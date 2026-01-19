@@ -11,20 +11,21 @@ class Ship {
      * @param {number} cargoCapacity - Maximum cargo capacity
      * @param {number} hull - Current hull integrity
      * @param {number} maxHull - Maximum hull integrity
+     * @param {string} type - Ship type ID (optional)
      */
-    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100) {
+    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'TRADER') {
         this.name = name;
+        this.type = type;
         this.fuel = fuel;
         this.maxFuel = maxFuel;
         this.cargoCapacity = cargoCapacity;
         this.hull = hull;
         this.maxHull = maxHull;
-        // Cargo is now stored as counts per type
-        this.cargo = {
-            AIR: 0,
-            WATER: 0,
-            FOOD: 0
-        };
+        // Initialize cargo for all types
+        this.cargo = {};
+        ALL_CARGO_TYPES.forEach(cargoType => {
+            this.cargo[cargoType.id] = 0;
+        });
     }
     
     /**

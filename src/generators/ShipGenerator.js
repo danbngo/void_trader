@@ -10,18 +10,31 @@ const ShipGenerator = (() => {
     ];
     
     /**
+     * Apply stat variation to a base stat
+     * @param {number} baseStat - Base stat value
+     * @returns {number} - Varied stat value
+     */
+    function applyStatVariation(baseStat) {
+        const range = SHIP_MAX_STAT_VARIATION - SHIP_MIN_STAT_VARIATION;
+        const multiplier = SHIP_MIN_STAT_VARIATION + Math.random() * range;
+        return Math.floor(baseStat * multiplier);
+    }
+    
+    /**
      * Generate a starting ship for the player
      * @returns {Ship}
      */
     function generateStartingShip() {
         const name = shipNames[Math.floor(Math.random() * shipNames.length)];
-        const maxFuel = 100;
+        const shipType = SHIP_TYPES.TRADER;
+        
+        const maxFuel = shipType.baseMaxFuel;
         const fuel = maxFuel;
-        const cargoCapacity = 50;
-        const maxHull = 100;
+        const cargoCapacity = shipType.baseCargoCapacity;
+        const maxHull = shipType.baseMaxHull;
         const hull = maxHull;
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id);
     }
     
     /**
@@ -30,13 +43,15 @@ const ShipGenerator = (() => {
      */
     function generateRandomShip() {
         const name = shipNames[Math.floor(Math.random() * shipNames.length)];
-        const maxFuel = 50 + Math.floor(Math.random() * 151); // 50-200
+        const shipType = ALL_SHIP_TYPES[Math.floor(Math.random() * ALL_SHIP_TYPES.length)];
+        
+        const maxFuel = applyStatVariation(shipType.baseMaxFuel);
         const fuel = maxFuel;
-        const cargoCapacity = 20 + Math.floor(Math.random() * 81); // 20-100
-        const maxHull = 50 + Math.floor(Math.random() * 151); // 50-200
+        const cargoCapacity = applyStatVariation(shipType.baseCargoCapacity);
+        const maxHull = applyStatVariation(shipType.baseMaxHull);
         const hull = maxHull;
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id);
     }
     
     return {

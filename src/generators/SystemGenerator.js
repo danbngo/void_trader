@@ -82,8 +82,9 @@ const SystemGenerator = (() => {
         
         // Generate market data for each cargo type
         ALL_CARGO_TYPES.forEach(cargoType => {
-            // Stock: random amount between 0-1000
-            system.cargoStock[cargoType.id] = Math.floor(Math.random() * 1001);
+            // Stock: random amount based on constants
+            const stockRange = MAX_CARGO_AMOUNT_IN_MARKET - MIN_CARGO_AMOUNT_IN_MARKET + 1;
+            system.cargoStock[cargoType.id] = Math.floor(Math.random() * stockRange) + MIN_CARGO_AMOUNT_IN_MARKET;
             
             // Price modifier: MIN to MAX cargo price modifier
             const range = MAX_CARGO_PRICE_MODIFIER - MIN_CARGO_PRICE_MODIFIER;

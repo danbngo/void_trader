@@ -59,9 +59,11 @@ const ShipyardMenu = (() => {
         const rows = gameState.ships.map((ship, index) => {
             const isActive = (index === gameState.activeShipIndex);
             const marker = isActive ? '*' : '';
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             return [
                 { text: marker, color: COLORS.TEXT_NORMAL },
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
+                { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
@@ -69,7 +71,7 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Fuel', 'Hull', 'Cargo', 'Value'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Cargo', 'Value'], rows, selectedShipIndex);
         
         // Output message
         const outputY = grid.height - 7;
@@ -110,8 +112,10 @@ const ShipyardMenu = (() => {
         const rows = currentSystem.ships.map((ship, index) => {
             const price = ship.getValue();
             const netCost = price - tradeInValue;
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
+                { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
@@ -120,7 +124,7 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Fuel', 'Hull', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex);
         
         // Output message
         const outputY = grid.height - 6;

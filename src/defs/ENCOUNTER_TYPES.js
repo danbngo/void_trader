@@ -1,0 +1,34 @@
+/**
+ * Encounter Type Definitions
+ * Defines types of encounters the player can have in space
+ */
+
+const ENCOUNTER_TYPES = {
+    POLICE: {
+        id: 'POLICE',
+        name: 'System Police',
+        description: 'Law enforcement patrol scanning for illegal cargo and fugitives',
+        onGreet: function(gameState) {
+            // TODO: Implement police encounter logic
+        }
+    },
+    MERCHANT: {
+        id: 'MERCHANT',
+        name: 'Merchant Vessel',
+        description: 'Fellow trader looking to exchange goods or information',
+        onGreet: function(gameState) {
+            // TODO: Implement merchant encounter logic
+        }
+    },
+    PIRATE: {
+        id: 'PIRATE',
+        name: 'Pirate Ship',
+        description: 'Hostile vessel demanding cargo or credits',
+        onGreet: function(gameState) {
+            // TODO: Implement pirate encounter logic
+        }
+    }
+};
+
+// Array of all encounter types for iteration
+const ALL_ENCOUNTER_TYPES = Object.values(ENCOUNTER_TYPES);

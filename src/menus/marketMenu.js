@@ -104,27 +104,34 @@ const MarketMenu = (() => {
         const ship = gameState.ship;
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
-        const totalCost = buyPrice * amount;
         const availableStock = currentSystem.cargoStock[cargoType.id];
         const availableSpace = ship.getAvailableCargoSpace();
         
+        // Adjust amount if not enough stock or space
+        const actualAmount = Math.min(amount, availableStock, availableSpace);
+        const totalCost = buyPrice * actualAmount;
+        
         // Check if we can buy
-        if (availableStock < amount) {
-            outputMessage = `Not enough stock! Only ${availableStock} available.`;
+        if (actualAmount === 0) {
+            if (availableStock === 0) {
+                outputMessage = `No stock available!`;
+            } else if (availableSpace === 0) {
+                outputMessage = `No cargo space available!`;
+            } else {
+                outputMessage = `Cannot buy any cargo.`;
+            }
             outputColor = COLORS.TEXT_ERROR;
         } else if (gameState.credits < totalCost) {
             outputMessage = `Not enough credits! Need ${totalCost} CR, have ${gameState.credits} CR.`;
             outputColor = COLORS.TEXT_ERROR;
-        } else if (availableSpace < amount) {
-            outputMessage = `Not enough cargo space! Only ${availableSpace} slots available.`;
-            outputColor = COLORS.TEXT_ERROR;
         } else {
             // Execute purchase
             gameState.credits -= totalCost;
-            currentSystem.cargoStock[cargoType.id] -= amount;
-            ship.cargo[cargoType.id] = (ship.cargo[cargoType.id] || 0) + amount;
+            currentSystem.cargoStock[cargoType.id] -= actualAmount;
+            ship.cargo[cargoType.id] = (ship.cargo[cargoType.id] || 0) + actualAmount;
             
-            outputMessage = `Bought ${amount}x ${cargoType.name} for ${totalCost} CR!`;
+            const message = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
+            outputMessage = message;
             outputColor = COLORS.TEXT_SUCCESS;
         }
         
@@ -141,20 +148,24 @@ const MarketMenu = (() => {
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);
-        const totalValue = sellPrice * amount;
         const playerQuantity = ship.cargo[cargoType.id] || 0;
         
+        // Adjust amount if player doesn't have enough
+        const actualAmount = Math.min(amount, playerQuantity);
+        const totalValue = sellPrice * actualAmount;
+        
         // Check if we can sell
-        if (playerQuantity < amount) {
-            outputMessage = `Not enough cargo! You only have ${playerQuantity}x ${cargoType.name}.`;
+        if (actualAmount === 0) {
+            outputMessage = `You don't have any ${cargoType.name} to sell!`;
             outputColor = COLORS.TEXT_ERROR;
         } else {
             // Execute sale
             gameState.credits += totalValue;
-            ship.cargo[cargoType.id] -= amount;
-            currentSystem.cargoStock[cargoType.id] += amount;
+            ship.cargo[cargoType.id] -= actualAmount;
+            currentSystem.cargoStock[cargoType.id] += actualAmount;
             
-            outputMessage = `Sold ${amount}x ${cargoType.name} for ${totalValue} CR!`;
+            const message = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;
+            outputMessage = message;
             outputColor = COLORS.TEXT_SUCCESS;
         }
         

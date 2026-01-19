@@ -61,10 +61,8 @@ const GalaxyMap = (() => {
         }
         UI.addText(0, mapHeight - 1, '+' + '-'.repeat(mapWidth - 2) + '+', COLORS.GRAY);
         
-        // Title (clear the border first to avoid overlap)
-        const titleText = '[ GALAXY MAP ]';
-        UI.addText(2, 0, ' '.repeat(titleText.length), COLORS.GRAY);
-        UI.addText(2, 0, titleText, COLORS.TITLE);
+        // Title
+        UI.addText(2, 0, '[ GALAXY MAP ]', COLORS.TITLE);
         
         // Calculate scale to fit systems in map
         const mapCenterX = Math.floor(mapWidth / 2);

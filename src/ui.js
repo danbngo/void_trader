@@ -5,10 +5,10 @@
 
 const UI = (() => {
     // Configuration
-    const GRID_WIDTH = 60;  // Characters wide
-    const GRID_HEIGHT = 30; // Characters tall
+    const GRID_WIDTH = 80;  // Characters wide
+    const GRID_HEIGHT = 40; // Characters tall
     const FONT_FAMILY = 'Courier New, monospace';
-    const MIN_FONT_SIZE = 12;   // Minimum font size in pixels
+    const MIN_FONT_SIZE = 16;   // Minimum font size in pixels
     const MAX_FONT_SIZE = 32;  // Maximum font size in pixels
     
     let canvas = null;
@@ -39,6 +39,9 @@ const UI = (() => {
         
         // Setup keyboard listener
         setupKeyListener();
+        
+        // Setup mouse listener
+        setupMouseListener();
     }
     
     /**
@@ -160,6 +163,63 @@ const UI = (() => {
     }
     
     /**
+     * Setup mouse event listener
+     */
+    function setupMouseListener() {
+        // Mouse move for hover
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const pixelX = e.clientX - rect.left;
+            const pixelY = e.clientY - rect.top;
+            
+            // Convert pixel position to grid position
+            const gridX = Math.floor(pixelX / charWidth);
+            const gridY = Math.floor(pixelY / charHeight);
+            
+            // Check if hovering over any button
+            let hoveredButtonIndex = -1;
+            registeredButtons.forEach((btn, index) => {
+                const buttonText = `[${btn.key}] ${btn.label}`;
+                const buttonEndX = btn.x + buttonText.length;
+                
+                if (gridY === btn.y && gridX >= btn.x && gridX < buttonEndX) {
+                    hoveredButtonIndex = index;
+                }
+            });
+            
+            // Update selection if hovering over a button
+            if (hoveredButtonIndex !== -1 && hoveredButtonIndex !== selectedButtonIndex) {
+                selectedButtonIndex = hoveredButtonIndex;
+                draw();
+            }
+        });
+        
+        // Mouse click to activate button
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const pixelX = e.clientX - rect.left;
+            const pixelY = e.clientY - rect.top;
+            
+            // Convert pixel position to grid position
+            const gridX = Math.floor(pixelX / charWidth);
+            const gridY = Math.floor(pixelY / charHeight);
+            
+            // Check if clicking on any button
+            registeredButtons.forEach((btn, index) => {
+                const buttonText = `[${btn.key}] ${btn.label}`;
+                const buttonEndX = btn.x + buttonText.length;
+                
+                if (gridY === btn.y && gridX >= btn.x && gridX < buttonEndX) {
+                    btn.callback();
+                }
+            });
+        });
+        
+        // Change cursor style when hovering over canvas
+        canvas.style.cursor = 'default';
+    }
+    
+    /**
      * Clear all registered UI elements (selection preserved if possible)
      */
     function clear() {
@@ -277,6 +337,16 @@ const UI = (() => {
         registeredTexts.forEach(item => {
             const pixelX = item.x * charWidth;
             const pixelY = item.y * charHeight;
+            const textWidth = item.text.length * charWidth;
+            
+            // Clear the area before drawing to prevent overlapping artifacts
+            // BUT don't clear if text is black (selected text on white background)
+            if (item.color !== 'black') {
+                ctx.fillStyle = 'black';
+                ctx.fillRect(pixelX, pixelY, textWidth, charHeight);
+            }
+            
+            // Draw the text
             ctx.fillStyle = item.color;
             ctx.fillText(item.text, pixelX, pixelY);
         });
@@ -288,6 +358,10 @@ const UI = (() => {
             const pixelY = btn.y * charHeight;
             const buttonWidth = buttonText.length * charWidth;
             const isSelected = (index === selectedButtonIndex);
+            
+            // Clear the area before drawing
+            ctx.fillStyle = 'black';
+            ctx.fillRect(pixelX, pixelY, buttonWidth, charHeight);
             
             // Draw background if selected
             if (isSelected) {

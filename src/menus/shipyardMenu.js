@@ -54,7 +54,7 @@ const ShipyardMenu = (() => {
      * Render manage mode (player's ships)
      */
     function renderManageMode(onReturn, grid) {
-        // Player ships table
+        // Player ships table (* marks the active ship)
         const startY = 8;
         const rows = gameState.ships.map((ship, index) => {
             const isActive = (index === gameState.activeShipIndex);
@@ -104,17 +104,23 @@ const ShipyardMenu = (() => {
         
         // Available ships table
         const startY = 8;
+        const currentShip = gameState.ships[gameState.activeShipIndex];
+        const tradeInValue = currentShip.getValue();
+        
         const rows = currentSystem.ships.map((ship, index) => {
+            const price = ship.getValue();
+            const netCost = price - tradeInValue;
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: `${ship.getValue()} CR`, color: COLORS.TEXT_NORMAL }
+                { text: `${price} CR`, color: COLORS.TEXT_NORMAL },
+                { text: `${netCost} CR`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Fuel', 'Hull', 'Cargo', 'Price'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['Ship', 'Fuel', 'Hull', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex);
         
         // Output message
         const outputY = grid.height - 6;

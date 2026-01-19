@@ -8,8 +8,7 @@ const TitleMenu = (() => {
      * Show the title screen
      */
     function show() {
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         const centerX = Math.floor(grid.width / 2);
@@ -18,47 +17,32 @@ const TitleMenu = (() => {
         UI.addTextCentered(5, 'V O I D   T R A D E R', COLORS.TITLE);
         UI.addTextCentered(7, 'A Text-Based Space Trading Game', COLORS.TEXT_DIM);
         
-        // Menu buttons - auto-arranged vertically with auto-generated keys
+        // Menu buttons
         const menuX = centerX - 10;
         const menuY = 12;
         
-        UI.setButtons([
-            {
-                label: 'New Game',
-                callback: () => newGame(),
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Load Game',
-                callback: () => LoadMenu.show(() => TitleMenu.show()),
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'About',
-                callback: () => showAbout(),
-                color: COLORS.BUTTON
-            }
-        ], menuX, menuY);
+        UI.addButton(menuX, menuY, '1', 'New Game', () => newGame(), COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 1, '2', 'Load Game', () => LoadMenu.show(() => TitleMenu.show()), COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 2, '3', 'About', () => showAbout(), COLORS.BUTTON);
         
         // Footer
-        UI.addTextCentered(grid.height - 2, '(Press number keys to select)', COLORS.TEXT_DIM);
+        UI.addTextCentered(grid.height - 2, '(Use arrow keys or numbers to select)', COLORS.TEXT_DIM);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show());
-        
-        // Debug output
-        UI.debugUI();
+        // Draw everything
+        UI.draw();
     }
     
     /**
      * Start a new game
      */
     function newGame() {
-        UI.clearAll();
+        UI.clear();
         const grid = UI.getGridSize();
         const centerY = Math.floor(grid.height / 2);
         
         UI.addTextCentered(centerY, 'Initializing new game...', COLORS.TEXT_SUCCESS);
+        UI.draw();
+        UI.draw();
         
         // Initialize game state
         setTimeout(() => {
@@ -88,7 +72,7 @@ const TitleMenu = (() => {
      * Show about screen
      */
     function showAbout() {
-        UI.clearAll();
+        UI.clear();
         const grid = UI.getGridSize();
         
         UI.addTextCentered(8, 'V O I D   T R A D E R', COLORS.TITLE);
@@ -99,15 +83,10 @@ const TitleMenu = (() => {
         UI.addTextCentered(17, 'Controls: Number keys', COLORS.BUTTON);
         UI.addTextCentered(18, 'Version: 0.1.0', COLORS.TEXT_DIM);
         
-        UI.setButtons([
-            {
-                label: 'Back to Title',
-                callback: () => show(),
-                color: COLORS.BUTTON,
-                x: Math.floor(grid.width / 2) - 10,
-                y: 22
-            }
-        ]);
+        const buttonX = Math.floor(grid.width / 2) - 10;
+        UI.addButton(buttonX, 22, '1', 'Back to Title', () => show(), COLORS.BUTTON);
+        
+        UI.draw();
     }
     
     // Public API

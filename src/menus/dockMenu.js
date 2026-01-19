@@ -9,8 +9,7 @@ const DockMenu = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
@@ -24,53 +23,27 @@ const DockMenu = (() => {
         
         // Menu buttons
         const menuX = Math.floor(grid.width / 2) - 12;
-        const menuY = 10;
+        let menuY = 10;
         
-        UI.setButtons([
-            {
-                label: 'Shipyard',
-                callback: () => {
-                    // TODO: Implement shipyard
-                    UI.clearAll();
-                    UI.addTextCentered(15, 'Shipyard - Coming Soon', COLORS.TEXT_WARNING);
-                    setTimeout(() => show(gameState), 1500);
-                },
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Market',
-                callback: () => {
-                    // TODO: Implement market
-                    UI.clearAll();
-                    UI.addTextCentered(15, 'Market - Coming Soon', COLORS.TEXT_WARNING);
-                    setTimeout(() => show(gameState), 1500);
-                },
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Depart',
-                callback: () => GalaxyMap.show(gameState),
-                color: COLORS.GREEN
-            },
-            {
-                key: 'a',
-                label: 'Assistant',
-                callback: () => AssistantMenu.show(() => show(gameState)),
-                color: COLORS.BUTTON
-            },
-            {
-                key: '0',
-                label: 'Options',
-                callback: () => OptionsMenu.show(() => show(gameState)),
-                color: COLORS.BUTTON
-            }
-        ], menuX, menuY);
+        UI.addButton(menuX, menuY++, '1', 'Shipyard', () => {
+            // TODO: Implement shipyard
+            UI.clearAll();
+            UI.addTextCentered(15, 'Shipyard - Coming Soon', COLORS.TEXT_WARNING);
+            setTimeout(() => show(gameState), 1500);
+        }, COLORS.BUTTON);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(gameState));
+        UI.addButton(menuX, menuY++, '2', 'Market', () => {
+            // TODO: Implement market
+            UI.clearAll();
+            UI.addTextCentered(15, 'Market - Coming Soon', COLORS.TEXT_WARNING);
+            setTimeout(() => show(gameState), 1500);
+        }, COLORS.BUTTON);
         
-        // Debug output
-        UI.debugUI();
+        UI.addButton(menuX, menuY++, '3', 'Depart', () => GalaxyMap.show(gameState), COLORS.GREEN);
+        UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(() => show(gameState)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON);
+        
+        UI.draw();
     }
     
     return {

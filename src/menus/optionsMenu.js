@@ -13,8 +13,7 @@ const OptionsMenu = (() => {
     function show(onReturn) {
         returnCallback = onReturn;
         
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         
@@ -23,39 +22,16 @@ const OptionsMenu = (() => {
         
         // Menu buttons
         const menuX = Math.floor(grid.width / 2) - 12;
-        const menuY = 10;
+        let menuY = 10;
         
-        UI.setButtons([
-            {
-                label: 'Save Game',
-                callback: () => SaveMenu.show(() => show(returnCallback)),
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Load Game',
-                callback: () => LoadMenu.show(() => show(returnCallback)),
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Return to Title Screen',
-                callback: () => TitleMenu.show(),
-                color: COLORS.BUTTON
-            },
-            {
-                key: '0',
-                label: 'Back',
-                callback: () => {
-                    if (returnCallback) returnCallback();
-                },
-                color: COLORS.BUTTON
-            }
-        ], menuX, menuY);
+        UI.addButton(menuX, menuY++, '1', 'Save Game', () => SaveMenu.show(() => show(returnCallback)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '2', 'Load Game', () => LoadMenu.show(() => show(returnCallback)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '3', 'Return to Title Screen', () => TitleMenu.show(), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '0', 'Back', () => {
+            if (returnCallback) returnCallback();
+        }, COLORS.BUTTON);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(returnCallback));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     return {

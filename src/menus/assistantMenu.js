@@ -13,8 +13,7 @@ const AssistantMenu = (() => {
     function show(onReturn) {
         returnCallback = onReturn;
         
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         
@@ -26,37 +25,12 @@ const AssistantMenu = (() => {
         const menuX = Math.floor(grid.width / 2) - 12;
         const menuY = 11;
         
-        UI.setButtons([
-            {
-                label: 'Ship Status',
-                callback: () => ShipInfoMenu.show(() => show(returnCallback)),
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Cargo Manifest',
-                callback: () => CargoInfoMenu.show(() => show(returnCallback)),
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Captain Info',
-                callback: () => CaptainInfoMenu.show(() => show(returnCallback)),
-                color: COLORS.BUTTON
-            },
-            {
-                key: '0',
-                label: 'Back',
-                callback: () => {
-                    if (returnCallback) returnCallback();
-                },
-                color: COLORS.BUTTON
-            }
-        ], menuX, menuY);
+        UI.addButton(menuX, menuY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 1, '2', 'Cargo Manifest', () => CargoInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(returnCallback));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     return {

@@ -9,8 +9,7 @@ const CargoInfoMenu = (() => {
      * @param {Function} onReturn - Callback to return to previous screen
      */
     function show(onReturn) {
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
@@ -49,22 +48,9 @@ const CargoInfoMenu = (() => {
         UI.addText(25, y + 1, `${totalValue} CR`, COLORS.GREEN);
         
         // Back button
-        UI.setButtons([
-            {
-                key: '0',
-                label: 'Back',
-                callback: onReturn,
-                color: COLORS.BUTTON,
-                x: 5,
-                y: grid.height - 4
-            }
-        ]);
+        UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(onReturn));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     return {

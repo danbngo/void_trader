@@ -13,8 +13,7 @@ const GalaxyMap = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
@@ -44,11 +43,7 @@ const GalaxyMap = (() => {
         // Draw buttons at bottom
         drawButtons(gameState, mapWidth + 2);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(gameState));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     /**
@@ -143,47 +138,29 @@ const GalaxyMap = (() => {
      */
     function drawButtons(gameState, startX) {
         const grid = UI.getGridSize();
-        const buttonY = grid.height - 8;
+        let buttonY = grid.height - 8;
         
-        const buttons = [
-            {
-                label: 'Previous System',
-                callback: () => {
-                    if (nearbySystems.length > 0) {
-                        selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
-                        show(gameState);
-                    }
-                },
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Next System',
-                callback: () => {
-                    if (nearbySystems.length > 0) {
-                        selectedIndex = (selectedIndex + 1) % nearbySystems.length;
-                        show(gameState);
-                    }
-                },
-                color: COLORS.BUTTON
-            },
-            {
-                label: 'Scan System',
-                callback: () => {
-                    if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
-                        ScanSystemMenu.show(nearbySystems[selectedIndex].system, () => show(gameState));
-                    }
-                },
-                color: COLORS.BUTTON
-            },
-            {
-                key: '0',
-                label: 'Dock',
-                callback: () => DockMenu.show(gameState),
-                color: COLORS.GREEN
+        UI.addButton(startX, buttonY++, '1', 'Previous System', () => {
+            if (nearbySystems.length > 0) {
+                selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
+                show(gameState);
             }
-        ];
+        }, COLORS.BUTTON);
         
-        UI.setButtons(buttons, startX, buttonY);
+        UI.addButton(startX, buttonY++, '2', 'Next System', () => {
+            if (nearbySystems.length > 0) {
+                selectedIndex = (selectedIndex + 1) % nearbySystems.length;
+                show(gameState);
+            }
+        }, COLORS.BUTTON);
+        
+        UI.addButton(startX, buttonY++, '3', 'Scan System', () => {
+            if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
+                ScanSystemMenu.show(nearbySystems[selectedIndex].system, () => show(gameState));
+            }
+        }, COLORS.BUTTON);
+        
+        UI.addButton(startX, buttonY++, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GREEN);
     }
     
     return {

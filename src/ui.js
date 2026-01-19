@@ -16,16 +16,11 @@ const UI = (() => {
     let charWidth = 0;
     let charHeight = 0;
     
-    // Button system
-    let buttons = {};
+    // Registered UI elements (registration phase)
+    let registeredTexts = [];
+    let registeredButtons = [];
+    let selectedButtonIndex = 0;
     let keyListener = null;
-    let redrawCallback = null;
-    
-    // Track drawn character positions to detect overwrites
-    let drawnPositions = new Set();
-    
-    // Track actual text content for debugging
-    let drawnContent = [];
     
     // Debounce timer for resize
     let resizeTimeout = null;
@@ -109,18 +104,8 @@ const UI = (() => {
         ctx.font = `${fontSize}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'top';
         
-        // Redraw current screen if callback is set
-        if (redrawCallback) {
-            redrawCallback();
-        }
-    }
-    
-    /**
-     * Set a callback function to redraw the current screen after resize
-     * @param {Function} callback - Function to call after canvas resize
-     */
-    function setRedrawCallback(callback) {
-        redrawCallback = callback;
+        // Redraw registered elements
+        draw();
     }
     
     /**
@@ -134,10 +119,39 @@ const UI = (() => {
         keyListener = (e) => {
             const key = e.key;
             
-            // Check if this key has a button assigned
-            if (buttons[key]) {
+            // Handle button navigation
+            if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'Tab') {
                 e.preventDefault();
-                buttons[key]();
+                if (registeredButtons.length > 0) {
+                    selectedButtonIndex = (selectedButtonIndex + 1) % registeredButtons.length;
+                    draw(); // Redraw with new selection
+                }
+                return;
+            }
+            
+            if (key === 'ArrowUp' || key === 'ArrowLeft') {
+                e.preventDefault();
+                if (registeredButtons.length > 0) {
+                    selectedButtonIndex = (selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length;
+                    draw(); // Redraw with new selection
+                }
+                return;
+            }
+            
+            // Handle button activation
+            if (key === 'Enter' || key === ' ') {
+                e.preventDefault();
+                if (registeredButtons.length > 0 && registeredButtons[selectedButtonIndex]) {
+                    registeredButtons[selectedButtonIndex].callback();
+                }
+                return;
+            }
+            
+            // Check if this key has a button assigned (direct access)
+            const button = registeredButtons.find(btn => btn.key === key);
+            if (button) {
+                e.preventDefault();
+                button.callback();
             }
         };
         
@@ -145,17 +159,16 @@ const UI = (() => {
     }
     
     /**
-     * Clear the entire canvas
+     * Clear all registered UI elements and reset selection
      */
-    function clearAll() {
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        drawnPositions.clear();
-        drawnContent = [];
+    function clear() {
+        registeredTexts = [];
+        registeredButtons = [];
+        selectedButtonIndex = 0;
     }
     
     /**
-     * Add text at grid position (x, y) with specified color
+     * Register text at grid position (registration phase - doesn't render yet)
      * @param {number} x - Grid X position (0 to GRID_WIDTH-1)
      * @param {number} y - Grid Y position (0 to GRID_HEIGHT-1)
      * @param {string} text - Text to render
@@ -174,44 +187,18 @@ const UI = (() => {
         if (x + text.length > GRID_WIDTH) {
             const maxLength = GRID_WIDTH - x;
             if (maxLength <= 3) {
-                // If we can't even fit "...", just fit what we can
                 text = text.substring(0, maxLength);
             } else {
-                // Truncate and add ellipsis
                 text = text.substring(0, maxLength - 3) + '...';
             }
         }
         
-        // Check for overwrites - each character in the text string
-        for (let i = 0; i < text.length; i++) {
-            const posKey = `${x + i},${y}`;
-            if (drawnPositions.has(posKey)) {
-                console.warn(`addText: overwriting character at position (${x + i}, ${y}). Text: "${text}"`);
-            }
-        }
-        
-        // Clear the area before drawing to prevent visual artifacts
-        const pixelX = x * charWidth;
-        const pixelY = y * charHeight;
-        const textWidth = text.length * charWidth;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(pixelX, pixelY, textWidth, charHeight);
-        
-        // Mark positions as drawn
-        for (let i = 0; i < text.length; i++) {
-            drawnPositions.add(`${x + i},${y}`);
-        }
-        //Record the text content for debugging
-        drawnContent.push({ x, y, text, color });
-        
-        // 
-        // Draw the text
-        ctx.fillStyle = color;
-        ctx.fillText(text, pixelX, pixelY);
+        // Register the text
+        registeredTexts.push({ x, y, text, color });
     }
     
     /**
-     * Add centered text at specified y position
+     * Register centered text (registration phase)
      * @param {number} y - Grid Y position (0 to GRID_HEIGHT-1)
      * @param {string} text - Text to render
      * @param {string} color - CSS color string (default: white)
@@ -222,7 +209,7 @@ const UI = (() => {
     }
     
     /**
-     * Add a button at grid position
+     * Register a button (registration phase - doesn't render yet)
      * @param {number} x - Grid X position
      * @param {number} y - Grid Y position
      * @param {string} key - Key to press (e.g., '1', '2', '3')
@@ -243,50 +230,46 @@ const UI = (() => {
             throw new Error(`addButton: button "${buttonText}" at x=${x} extends beyond grid width`);
         }
         
-        // Store the callback
-        buttons[key] = callback;
-        
-        // Render the button
-        addText(x, y, `[${key}]`, color);
-        addText(x + 4, y, label, 'white');
+        // Register the button
+        registeredButtons.push({ x, y, key, label, callback, color });
     }
     
     /**
-     * Clear all buttons (removes all key bindings)
+     * Draw all registered UI elements to the canvas
      */
-    function clearButtons() {
-        buttons = {};
-    }
-    
-    /**
-     * Setup multiple buttons at once
-     * @param {Array} buttonConfigs - Array of button configurations
-     * Each config: { x, y, key, label, callback, color }
-     * @param {number} startX - Default X position if not specified in config
-     * @param {number} startY - Default Y position if not specified in config
-     */
-    function setButtons(buttonConfigs, startX, startY) {
-        clearButtons();
-        let currentY = startY;
+    function draw() {
+        // Clear canvas
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        buttonConfigs.forEach((config, index) => {
-            const x = config.x !== undefined ? config.x : startX;
-            const y = config.y !== undefined ? config.y : currentY;
-            // Auto-generate key from index if not specified (1, 2, 3, ...)
-            const key = config.key !== undefined ? config.key : String(index + 1);
+        // Draw all registered texts
+        registeredTexts.forEach(item => {
+            const pixelX = item.x * charWidth;
+            const pixelY = item.y * charHeight;
+            ctx.fillStyle = item.color;
+            ctx.fillText(item.text, pixelX, pixelY);
+        });
+        
+        // Draw all registered buttons
+        registeredButtons.forEach((btn, index) => {
+            const buttonText = `[${btn.key}] ${btn.label}`;
+            const pixelX = btn.x * charWidth;
+            const pixelY = btn.y * charHeight;
+            const buttonWidth = buttonText.length * charWidth;
+            const isSelected = (index === selectedButtonIndex);
             
-            addButton(
-                x,
-                y,
-                key,
-                config.label,
-                config.callback,
-                config.color || 'cyan'
-            );
-            
-            // Only increment Y if using auto-positioning
-            if (config.y === undefined && startY !== undefined) {
-                currentY += 1; // Space buttons 1 row apart
+            // Draw background if selected
+            if (isSelected) {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(pixelX, pixelY, buttonWidth, charHeight);
+                ctx.fillStyle = 'black';
+                ctx.fillText(buttonText, pixelX, pixelY);
+            } else {
+                // Draw colored key and white label
+                ctx.fillStyle = btn.color;
+                ctx.fillText(`[${btn.key}] `, pixelX, pixelY);
+                ctx.fillStyle = 'white';
+                ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY);
             }
         });
     }
@@ -298,48 +281,14 @@ const UI = (() => {
         return { width: GRID_WIDTH, height: GRID_HEIGHT };
     }
     
-    /**
-     * Debug function to print current screen content as ASCII
-     */
-    function debugUI() {
-        // Create a 2D array to represent the screen
-        const screen = [];
-        for (let y = 0; y < GRID_HEIGHT; y++) {
-            screen[y] = new Array(GRID_WIDTH).fill(' ');
-        }
-        
-        // Fill in the screen with actual text content
-        drawnContent.forEach(item => {
-            const { x, y, text } = item;
-            for (let i = 0; i < text.length; i++) {
-                if (x + i >= 0 && x + i < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
-                    screen[y][x + i] = text[i];
-                }
-            }
-        });
-        
-        // Build the output string
-        let output = '\n┌' + '─'.repeat(GRID_WIDTH) + '┐\n';
-        for (let y = 0; y < GRID_HEIGHT; y++) {
-            output += '│' + screen[y].join('') + '│\n';
-        }
-        output += '└' + '─'.repeat(GRID_WIDTH) + '┘\n';
-        output += `Grid: ${GRID_WIDTH}x${GRID_HEIGHT}, Text items: ${drawnContent.length}, Drawn positions: ${drawnPositions.size}`;
-        
-        console.log(output);
-    }
-    
     // Public API
     return {
         init,
-        clearAll,
+        clear,
         addText,
         addTextCentered,
         addButton,
-        clearButtons,
-        setButtons,
-        setRedrawCallback,
-        getGridSize,
-        debugUI
+        draw,
+        getGridSize
     };
 })();

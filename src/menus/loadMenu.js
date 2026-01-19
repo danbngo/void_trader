@@ -13,8 +13,7 @@ const LoadMenu = (() => {
     function show(onReturn) {
         returnCallback = onReturn;
         
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         
@@ -32,43 +31,22 @@ const LoadMenu = (() => {
         }
         
         // Create load buttons
-        const buttons = [];
         const startY = 8;
         
         // Show existing saves
         saves.forEach((save, index) => {
             if (index < 9) { // Limit to 9 saves (keys 1-9)
                 const dateStr = save.date.toLocaleString();
-                buttons.push({
-                    key: String(index + 1),
-                    label: `${save.name} - ${dateStr}`,
-                    callback: () => loadFromSlot(save.id),
-                    color: COLORS.BUTTON,
-                    x: 5,
-                    y: startY + index
-                });
+                UI.addButton(5, startY + index, String(index + 1), `${save.name} - ${dateStr}`, () => loadFromSlot(save.id), COLORS.BUTTON);
             }
         });
         
         // Back button
-        buttons.push({
-            key: '0',
-            label: 'Back',
-            callback: () => {
-                if (returnCallback) returnCallback();
-            },
-            color: COLORS.BUTTON,
-            x: 5,
-            y: grid.height - 4
-        });
+        UI.addButton(5, grid.height - 4, '0', 'Back', () => {
+            if (returnCallback) returnCallback();
+        }, COLORS.BUTTON);
         
-        UI.setButtons(buttons);
-        
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(returnCallback));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     /**

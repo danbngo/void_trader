@@ -10,8 +10,7 @@ const ScanSystemMenu = (() => {
      * @param {Function} onReturn - Callback to return to previous screen
      */
     function show(system, onReturn) {
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         
@@ -38,22 +37,9 @@ const ScanSystemMenu = (() => {
         UI.addText(5, startY + 10, flavorText, COLORS.TEXT_NORMAL);
         
         // Back button
-        UI.setButtons([
-            {
-                key: '0',
-                label: 'Back',
-                callback: onReturn,
-                color: COLORS.BUTTON,
-                x: 5,
-                y: grid.height - 4
-            }
-        ]);
+        UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(system, onReturn));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     /**

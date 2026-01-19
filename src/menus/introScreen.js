@@ -9,8 +9,7 @@ const IntroScreen = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
-        UI.clearAll();
-        UI.clearButtons();
+        UI.clear();
         
         const grid = UI.getGridSize();
         
@@ -37,21 +36,9 @@ const IntroScreen = (() => {
         UI.addTextCentered(22, 'Or perish among the stars?', COLORS.TEXT_DIM);
         
         // Continue button
-        UI.setButtons([
-            {
-                label: 'Begin Your Journey',
-                callback: () => GalaxyMap.show(gameState),
-                color: COLORS.BUTTON,
-                x: Math.floor(grid.width / 2) - 12,
-                y: grid.height - 4
-            }
-        ]);
+        UI.addButton(Math.floor(grid.width / 2) - 12, grid.height - 4, '1', 'Begin Your Journey', () => GalaxyMap.show(gameState), COLORS.BUTTON);
         
-        // Set this screen as the redraw target
-        UI.setRedrawCallback(() => show(gameState));
-        
-        // Debug output
-        UI.debugUI();
+        UI.draw();
     }
     
     return {

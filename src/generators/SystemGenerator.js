@@ -150,14 +150,24 @@ const SystemGenerator = (() => {
         
         // Generate initial systems
         for (let i = 0; i < count; i++) {
-            systems.push(generate());
+            const newSystem = generate();
+            
+            // Check if system is too close to existing systems
+            const tooClose = systems.some(existing => {
+                const dist = distance(newSystem.x, newSystem.y, existing.x, existing.y);
+                return dist < STAR_SYSTEM_MIN_DISTANCE_FROM_NEIGHBORS;
+            });
+            
+            // Only add if not too close to any existing system
+            if (!tooClose) {
+                systems.push(newSystem);
+            }
         }
         
-        // Remove isolated systems (further than 10ly from nearest neighbor)
-        const maxIsolationDistance = 10;
+        // Remove isolated systems (further than STAR_SYSTEM_MAX_DISTANCE_FROM_NEIGHBORS from nearest neighbor)
         const connectedSystems = systems.filter(system => {
             const nearestDistance = findNearestNeighborDistance(system, systems);
-            return nearestDistance <= maxIsolationDistance;
+            return nearestDistance <= STAR_SYSTEM_MAX_DISTANCE_FROM_NEIGHBORS;
         });
         
         return connectedSystems;

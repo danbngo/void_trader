@@ -414,11 +414,13 @@ const UI = (() => {
                 ctx.fillStyle = 'black';
                 ctx.fillText(buttonText, pixelX, pixelY);
                 
-                // Show helpText if available, not forbidden, and output row is empty or already showing helpText
+                // Show helpText if available, not forbidden, and either:
+                // - Selection just changed (tab/arrow to new button should show its help), OR
+                // - Output row is empty or already showing helpText
                 if (
                     btn.helpText &&
                     !['Continue', 'Back'].includes(btn.label) &&
-                    (!outputRowText || outputRowIsHelpText)
+                    (selectionChanged || !outputRowText || outputRowIsHelpText)
                 ) {
                     outputRowText = btn.helpText;
                     outputRowColor = 'aqua';

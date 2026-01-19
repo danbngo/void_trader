@@ -174,12 +174,6 @@ const EncounterMenu = (() => {
         } : null);
         y += 2;
         
-        // Output message
-        if (outputMessage) {
-            UI.addText(5, y++, outputMessage, outputColor);
-            y++;
-        }
-        
         // Buttons
         const buttonY = grid.height - 7;
         
@@ -196,34 +190,40 @@ const EncounterMenu = (() => {
             if (canAct) {
                 UI.addButton(5, buttonY, '1', 'Fire Laser', () => {
                     startTargeting('laser');
-                }, COLORS.GREEN);
+                }, COLORS.GREEN, 'Attack an enemy ship with your laser weapon');
                 
                 UI.addButton(5, buttonY + 1, '2', 'Chase Enemy Ship', () => {
                     startTargeting('chase');
-                }, COLORS.BUTTON);
+                }, COLORS.BUTTON, 'Close the distance to an enemy ship');
                 
                 UI.addButton(5, buttonY + 2, '0', 'Flee', () => {
                     attemptFlee();
-                }, COLORS.TEXT_ERROR);
+                }, COLORS.TEXT_ERROR, 'Attempt to escape from combat (engine-based chance)');
             }
         } else if (isPlayerTurn && inTargetingMode) {
             // Player's turn - targeting mode
             UI.addButton(5, buttonY, '1', 'Previous Target', () => {
                 prevEnemyShip();
-            }, COLORS.BUTTON);
+            }, COLORS.BUTTON, 'Select previous enemy ship as target');
             
             UI.addButton(5, buttonY + 1, '2', 'Next Target', () => {
                 nextEnemyShip();
-            }, COLORS.BUTTON);
+            }, COLORS.BUTTON, 'Select next enemy ship as target');
             
             const actionLabel = targetingAction === 'laser' ? 'Fire' : 'Chase';
+            const actionHelp = targetingAction === 'laser' ? 'Fire laser at selected target' : 'Chase selected target to reduce distance';
             UI.addButton(25, buttonY, '3', actionLabel, () => {
                 confirmAction();
-            }, COLORS.GREEN);
+            }, COLORS.GREEN, actionHelp);
             
             UI.addButton(5, buttonY + 2, '0', 'Cancel', () => {
                 cancelTargeting();
-            }, COLORS.BUTTON);
+            }, COLORS.BUTTON, 'Cancel targeting and return to action menu');
+        }
+        
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
         }
         
         UI.draw();

@@ -1,0 +1,224 @@
+/**
+ * Travel Menu
+ * Shows progress bar and handles encounters during travel
+ */
+
+const TravelMenu = (() => {
+    let progress = 0;
+    let paused = false;
+    let encounterTriggered = false;
+    let currentGameState = null;
+    let targetSystem = null;
+    let totalDuration = 0;
+    let elapsedDays = 0;
+    let encounterType = null;
+    
+    /**
+     * Show the travel menu
+     * @param {GameState} gameState - Current game state
+     * @param {StarSystem} destination - Destination star system
+     */
+    function show(gameState, destination) {
+        UI.clear();
+        UI.resetSelection();
+        
+        // Initialize travel state
+        currentGameState = gameState;
+        targetSystem = destination;
+        progress = 0;
+        paused = false;
+        encounterTriggered = false;
+        encounterType = null;
+        
+        const currentSystem = gameState.getCurrentSystem();
+        const distance = currentSystem.distanceTo(destination);
+        totalDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY;
+        elapsedDays = 0;
+        
+        // Start travel loop
+        render();
+        startTravelTick();
+    }
+    
+    /**
+     * Render the travel screen
+     */
+    function render() {
+        UI.clear();
+        
+        const grid = UI.getGridSize();
+        const currentSystem = currentGameState.getCurrentSystem();
+        
+        // Title
+        UI.addTextCentered(2, '=== IN TRANSIT ===', COLORS.TITLE);
+        
+        let y = 5;
+        
+        // Journey info
+        UI.addText(5, y++, `From: ${currentSystem.name}`, COLORS.TEXT_DIM);
+        UI.addText(5, y++, `To: ${targetSystem.name}`, COLORS.TEXT_DIM);
+        y++;
+        
+        // Progress bar
+        const barWidth = Math.floor(grid.width * 0.6);
+        const barX = Math.floor((grid.width - barWidth) / 2);
+        const filledWidth = Math.floor(barWidth * progress);
+        
+        UI.addText(barX, y, '[', COLORS.TEXT_NORMAL);
+        UI.addText(barX + barWidth + 1, y, ']', COLORS.TEXT_NORMAL);
+        
+        for (let i = 0; i < filledWidth; i++) {
+            UI.addText(barX + 1 + i, y, '=', COLORS.CYAN);
+        }
+        
+        y += 2;
+        
+        // Progress percentage
+        UI.addTextCentered(y++, `${(progress * 100).toFixed(1)}% complete`, COLORS.TEXT_DIM);
+        y++;
+        
+        // Days elapsed
+        UI.addText(5, y++, `Days Elapsed: ${elapsedDays.toFixed(1)} / ${totalDuration.toFixed(1)}`, COLORS.TEXT_NORMAL);
+        y++;
+        
+        // Encounter output row
+        if (encounterTriggered && encounterType) {
+            y++;
+            UI.addText(5, y++, `=== ENCOUNTER: ${encounterType.name} ===`, COLORS.YELLOW);
+            UI.addText(5, y++, encounterType.description, COLORS.TEXT_NORMAL);
+            y++;
+            
+            UI.addButton(5, y++, '1', 'Continue', () => {
+                // Go to encounter menu
+                EncounterMenu.show(currentGameState, encounterType);
+            }, COLORS.GREEN);
+        } else if (paused) {
+            UI.addText(5, y++, 'Journey paused...', COLORS.TEXT_DIM);
+        }
+        
+        UI.draw();
+    }
+    
+    /**
+     * Start the travel tick loop
+     */
+    function startTravelTick() {
+        const tickInterval = 100; // milliseconds
+        const progressPerTick = 0.005; // 0.5% per tick
+        
+        const interval = setInterval(() => {
+            if (!paused && progress < 1.0) {
+                // Update progress
+                progress = Math.min(1.0, progress + progressPerTick);
+                
+                // Calculate elapsed days this tick
+                const daysThisTick = totalDuration * progressPerTick;
+                elapsedDays += daysThisTick;
+                
+                // Check for encounter
+                if (!encounterTriggered) {
+                    const encounterChance = AVERAGE_JOURNEY_ENCOUNTER_CHANCE_PER_DAY * daysThisTick;
+                    
+                    if (Math.random() < encounterChance) {
+                        // Trigger encounter
+                        paused = true;
+                        encounterTriggered = true;
+                        triggerEncounter();
+                    }
+                }
+                
+                render();
+            }
+            
+            // Complete journey
+            if (progress >= 1.0 && !encounterTriggered) {
+                clearInterval(interval);
+                completeJourney();
+            }
+        }, tickInterval);
+    }
+    
+    /**
+     * Trigger a random encounter
+     */
+    function triggerEncounter() {
+        const currentSystem = currentGameState.getCurrentSystem();
+        
+        // Calculate weights (average of current and target)
+        const avgPirateWeight = (currentSystem.pirateWeight + targetSystem.pirateWeight) / 2;
+        const avgPoliceWeight = (currentSystem.policeWeight + targetSystem.policeWeight) / 2;
+        const avgMerchantWeight = (currentSystem.merchantWeight + targetSystem.merchantWeight) / 2;
+        
+        // Total weight
+        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight;
+        
+        // Random selection based on weights
+        const roll = Math.random() * totalWeight;
+        
+        if (roll < avgPirateWeight) {
+            encounterType = ENCOUNTER_TYPES.PIRATE;
+        } else if (roll < avgPirateWeight + avgPoliceWeight) {
+            encounterType = ENCOUNTER_TYPES.POLICE;
+        } else {
+            encounterType = ENCOUNTER_TYPES.MERCHANT;
+        }
+        
+        // Generate encounter ships
+        generateEncounterShips();
+        
+        // Set encounter flag
+        currentGameState.encounter = true;
+        
+        render();
+    }
+    
+    /**
+     * Generate ships for the encounter
+     */
+    function generateEncounterShips() {
+        currentGameState.encounterShips = [];
+        
+        if (!encounterType || !encounterType.shipTypes) {
+            return;
+        }
+        
+        // Generate 1-3 ships
+        const numShips = Math.floor(Math.random() * 3) + 1;
+        
+        for (let i = 0; i < numShips; i++) {
+            const randomShipType = encounterType.shipTypes[
+                Math.floor(Math.random() * encounterType.shipTypes.length)
+            ];
+            
+            const ship = ShipGenerator.generateShipOfType(randomShipType);
+            currentGameState.encounterShips.push(ship);
+        }
+    }
+    
+    /**
+     * Complete the journey
+     */
+    function completeJourney() {
+        const currentSystem = currentGameState.getCurrentSystem();
+        const distance = currentSystem.distanceTo(targetSystem);
+        const fuelCost = Math.ceil(distance);
+        
+        // Consume fuel
+        currentGameState.ship.fuel -= fuelCost;
+        
+        // Advance date
+        const durationDays = Math.ceil(distance * AVERAGE_JOURNEY_DAYS_PER_LY);
+        currentGameState.date.setDate(currentGameState.date.getDate() + durationDays);
+        
+        // Move to target system
+        const targetIndex = currentGameState.systems.indexOf(targetSystem);
+        currentGameState.setCurrentSystem(targetIndex);
+        
+        // Return to galaxy map
+        GalaxyMap.show(currentGameState);
+    }
+    
+    return {
+        show
+    };
+})();

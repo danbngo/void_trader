@@ -60,8 +60,30 @@ const ShipGenerator = (() => {
         return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers);
     }
     
+    /**
+     * Generate a ship of a specific type
+     * @param {string} shipTypeId - ID of the ship type
+     * @returns {Ship}
+     */
+    function generateShipOfType(shipTypeId) {
+        const name = shipNames[Math.floor(Math.random() * shipNames.length)];
+        const shipType = SHIP_TYPES[shipTypeId] || SHIP_TYPES.SHUTTLE;
+        
+        const maxFuel = applyStatVariation(shipType.baseMaxFuel);
+        const fuel = maxFuel;
+        const cargoCapacity = applyStatVariation(shipType.baseCargoCapacity);
+        const maxHull = applyStatVariation(shipType.baseMaxHull);
+        const hull = maxHull;
+        const maxShields = applyStatVariation(shipType.baseMaxShields);
+        const shields = maxShields;
+        const lasers = Math.max(1, applyStatVariation(shipType.baseLasers)); // At least 1 laser
+        
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers);
+    }
+    
     return {
         generateStartingShip,
-        generateRandomShip
+        generateRandomShip,
+        generateShipOfType
     };
 })();

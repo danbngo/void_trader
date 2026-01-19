@@ -41,7 +41,11 @@ const SaveLoadManager = (() => {
                 y: gameState.y,
                 ship: gameState.ship,
                 officers: gameState.officers,
-                systems: gameState.systems
+                systems: gameState.systems,
+                visitedSystems: gameState.visitedSystems,
+                date: gameState.date.toISOString(),
+                encounterShips: gameState.encounterShips,
+                encounter: gameState.encounter
             },
             timestamp: new Date().toISOString()
         };
@@ -91,6 +95,10 @@ const SaveLoadManager = (() => {
         gameState.currentSystemIndex = data.currentSystemIndex;
         gameState.x = data.x;
         gameState.y = data.y;
+        gameState.visitedSystems = data.visitedSystems || [];
+        gameState.date = data.date ? new Date(data.date) : new Date(3000, 0, 1);
+        gameState.encounterShips = data.encounterShips || [];
+        gameState.encounter = data.encounter || false;
         
         // Reconstruct ship
         gameState.ship = new Ship(
@@ -107,9 +115,16 @@ const SaveLoadManager = (() => {
         );
         
         // Reconstruct systems
-        gameState.systems = data.systems.map(s => 
-            new StarSystem(s.name, s.x, s.y, s.population, s.economy)
-        );
+        gameState.systems = data.systems.map(s => {
+            const system = new StarSystem(s.name, s.x, s.y, s.population, s.economy);
+            system.cargoStock = s.cargoStock || {};
+            system.cargoPriceModifier = s.cargoPriceModifier || {};
+            system.ships = s.ships || [];
+            system.pirateWeight = s.pirateWeight || 0;
+            system.policeWeight = s.policeWeight || 0;
+            system.merchantWeight = s.merchantWeight || 0;
+            return system;
+        });
         
         return gameState;
     }

@@ -14,6 +14,9 @@ class GameState {
         this.y = 0; // Player's current y position
         this.credits = 1000; // Player's money
         this.visitedSystems = []; // Array of visited system indices
+        this.date = new Date(3000, 0, 1); // Game date set to January 1, 3000 AD
+        this.encounterShips = []; // Ships involved in current encounter
+        this.encounter = false; // Whether an encounter is active
     }
     
     /**

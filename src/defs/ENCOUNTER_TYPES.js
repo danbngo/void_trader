@@ -8,6 +8,7 @@ const ENCOUNTER_TYPES = {
         id: 'POLICE',
         name: 'System Police',
         description: 'Law enforcement patrol scanning for illegal cargo and fugitives',
+        shipTypes: ['CORVETTE', 'DESTROYER'],
         onGreet: function(gameState) {
             // TODO: Implement police encounter logic
         }
@@ -16,6 +17,7 @@ const ENCOUNTER_TYPES = {
         id: 'MERCHANT',
         name: 'Merchant Vessel',
         description: 'Fellow trader looking to exchange goods or information',
+        shipTypes: ['FREIGHTER', 'TRADER', 'HAULER'],
         onGreet: function(gameState) {
             // TODO: Implement merchant encounter logic
         }
@@ -24,6 +26,7 @@ const ENCOUNTER_TYPES = {
         id: 'PIRATE',
         name: 'Pirate Ship',
         description: 'Hostile vessel demanding cargo or credits',
+        shipTypes: ['SCOUT', 'RAIDER', 'CORVETTE'],
         onGreet: function(gameState) {
             // TODO: Implement pirate encounter logic
         }

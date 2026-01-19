@@ -261,7 +261,13 @@ const GalaxyMap = (() => {
             render(gameState);
         }, COLORS.BUTTON);
         
-        UI.addButton(startX, buttonY++, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GREEN);
+        UI.addButton(startX, buttonY++, '6', 'Travel', () => {
+            if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
+                TravelConfirmMenu.show(gameState, nearbySystems[selectedIndex].system);
+            }
+        }, COLORS.GREEN);
+        
+        UI.addButton(startX, buttonY++, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GRAY);
     }
     
     return {

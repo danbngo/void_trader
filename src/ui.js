@@ -293,7 +293,7 @@ const UI = (() => {
         }
         
         // Custom color logic for specific button labels
-        if (label === 'Assistant' || label === 'Options') {
+        if (label === 'Assistant' || label === 'Options' || label === 'Back') {
             color = COLORS.TEXT_DIM;
         }
         

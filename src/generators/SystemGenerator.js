@@ -97,6 +97,12 @@ const SystemGenerator = (() => {
             system.ships.push(ShipGenerator.generateRandomShip());
         }
         
+        // Generate encounter weights
+        const weightRange = MAX_ENCOUNTER_WEIGHT - MIN_ENCOUNTER_WEIGHT;
+        system.pirateWeight = MIN_ENCOUNTER_WEIGHT + Math.random() * weightRange;
+        system.policeWeight = MIN_ENCOUNTER_WEIGHT + Math.random() * weightRange;
+        system.merchantWeight = MIN_ENCOUNTER_WEIGHT + Math.random() * weightRange;
+        
         return system;
     }
     

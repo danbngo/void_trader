@@ -10,6 +10,7 @@ const IntroScreen = (() => {
      */
     function show(gameState) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         
@@ -36,7 +37,7 @@ const IntroScreen = (() => {
         UI.addTextCentered(22, 'Or perish among the stars?', COLORS.TEXT_DIM);
         
         // Continue button
-        UI.addButton(Math.floor(grid.width / 2) - 12, grid.height - 4, '1', 'Begin Your Journey', () => GalaxyMap.show(gameState), COLORS.BUTTON);
+        UI.addButton(Math.floor(grid.width / 2) - 12, grid.height - 4, '1', 'Begin Your Journey', () => DockMenu.show(gameState), COLORS.BUTTON);
         
         UI.draw();
     }

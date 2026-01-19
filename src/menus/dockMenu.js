@@ -10,12 +10,13 @@ const DockMenu = (() => {
      */
     function show(gameState) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
-        UI.addTextCentered(3, `=== DOCKED AT ${currentSystem.name} ===`, COLORS.TITLE);
+        UI.addTextCentered(3, `${currentSystem.name}: Dock`, COLORS.TITLE);
         
         // System info
         UI.addTextCentered(5, `Population: ${currentSystem.population}M`, COLORS.TEXT_DIM);
@@ -25,13 +26,7 @@ const DockMenu = (() => {
         const menuX = Math.floor(grid.width / 2) - 12;
         let menuY = 10;
         
-        UI.addButton(menuX, menuY++, '1', 'Shipyard', () => {
-            // TODO: Implement shipyard
-            UI.clear();
-            UI.addTextCentered(15, 'Shipyard - Coming Soon', COLORS.TEXT_WARNING);
-            UI.draw();
-            setTimeout(() => show(gameState), 1500);
-        }, COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '1', 'Shipyard', () => ShipyardMenu.show(gameState, () => show(gameState)), COLORS.BUTTON);
         
         UI.addButton(menuX, menuY++, '2', 'Market', () => MarketMenu.show(gameState, () => show(gameState)), COLORS.BUTTON);
         

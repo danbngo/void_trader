@@ -10,12 +10,13 @@ const CaptainInfoMenu = (() => {
      */
     function show(onReturn) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
         
         // Title
-        UI.addTextCentered(3, '=== CAPTAIN INFO ===', COLORS.TITLE);
+        UI.addTextCentered(3, 'Captain Info', COLORS.TITLE);
         
         // Captain details
         const currentSystem = gameState.getCurrentSystem();
@@ -25,7 +26,7 @@ const CaptainInfoMenu = (() => {
         ]);
         
         // Crew section
-        UI.addText(5, 10, '=== CREW ===', COLORS.TITLE);
+        UI.addText(5, 10, 'Crew', COLORS.TITLE);
         
         if (gameState.officers.length === 0) {
             UI.addText(5, 12, 'No crew members', COLORS.TEXT_DIM);

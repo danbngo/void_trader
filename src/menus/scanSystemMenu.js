@@ -11,11 +11,12 @@ const ScanSystemMenu = (() => {
      */
     function show(system, onReturn) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(3, '=== SYSTEM SCAN ===', COLORS.TITLE);
+        UI.addTextCentered(3, 'System Scan', COLORS.TITLE);
         
         // System details
         const startY = 6;

@@ -16,6 +16,9 @@ const MarketMenu = (() => {
      */
     function show(state, onReturn) {
         gameState = state;
+        selectedCargoIndex = 0;
+        outputMessage = '';
+        UI.resetSelection();
         render(onReturn);
     }
     
@@ -30,35 +33,30 @@ const MarketMenu = (() => {
         const ship = gameState.ship;
         
         // Title
-        UI.addTextCentered(3, '=== MARKET ===', COLORS.TITLE);
-        UI.addTextCentered(4, currentSystem.name, COLORS.CYAN);
+        UI.addTextCentered(3, `${currentSystem.name}: Market`, COLORS.TITLE);
         
         // Player info
-        UI.addText(5, 6, `Credits: ${gameState.credits} CR`, COLORS.YELLOW);
-        UI.addText(5, 7, `Cargo: ${ship.getTotalCargo()} / ${ship.cargoCapacity}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
+        UI.addText(5, 6, `Cargo: ${ship.getTotalCargo()} / ${ship.cargoCapacity}`, COLORS.TEXT_NORMAL);
         
         // Market table
-        const startY = 10;
+        const startY = 9;
         const rows = ALL_CARGO_TYPES.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
             const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
             const playerQuantity = ship.cargo[cargoType.id] || 0;
             
-            const isSelected = (index === selectedCargoIndex);
-            const marker = isSelected ? '>' : ' ';
-            
             return [
-                { text: marker, color: COLORS.GREEN },
-                { text: cargoType.name, color: isSelected ? COLORS.CYAN : COLORS.TEXT_NORMAL },
+                { text: cargoType.name, color: COLORS.TEXT_NORMAL },
                 { text: String(stock), color: COLORS.TEXT_NORMAL },
-                { text: `${buyPrice} CR`, color: COLORS.YELLOW },
-                { text: `${sellPrice} CR`, color: COLORS.YELLOW },
-                { text: String(playerQuantity), color: COLORS.GREEN }
+                { text: `${buyPrice} CR`, color: COLORS.TEXT_NORMAL },
+                { text: `${sellPrice} CR`, color: COLORS.TEXT_NORMAL },
+                { text: String(playerQuantity), color: COLORS.TEXT_NORMAL }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['', 'Cargo', 'Stock', 'Buy', 'Sell', 'You Have'], rows);
+        TableRenderer.renderTable(5, startY, ['Cargo', 'Stock', 'Buy', 'Sell', 'You Have'], rows, selectedCargoIndex);
         
         // Output message row (just above buttons)
         const outputY = grid.height - 6;

@@ -21,6 +21,9 @@ class StarSystem {
         // Market data
         this.cargoStock = {}; // Amount of each cargo type available
         this.cargoPriceModifier = {}; // Price multipliers for each cargo type
+        
+        // Shipyard data
+        this.ships = []; // Ships available for purchase
     }
     
     /**

@@ -19,6 +19,7 @@ const UI = (() => {
     // Registered UI elements (registration phase)
     let registeredTexts = [];
     let registeredButtons = [];
+    let registeredHighlights = []; // For table row selection highlights
     let selectedButtonIndex = 0;
     let keyListener = null;
     
@@ -159,12 +160,13 @@ const UI = (() => {
     }
     
     /**
-     * Clear all registered UI elements and reset selection
+     * Clear all registered UI elements (selection preserved if possible)
      */
     function clear() {
         registeredTexts = [];
         registeredButtons = [];
-        selectedButtonIndex = 0;
+        registeredHighlights = [];
+        // Don't reset selectedButtonIndex - let draw() handle bounds checking
     }
     
     /**
@@ -240,12 +242,36 @@ const UI = (() => {
     }
     
     /**
+     * Register a selection highlight for table rows (white background)
+     * @param {number} x - Grid X position
+     * @param {number} y - Grid Y position
+     * @param {number} width - Width in characters
+     */
+    function addSelectionHighlight(x, y, width) {
+        registeredHighlights.push({ x, y, width });
+    }
+    
+    /**
      * Draw all registered UI elements to the canvas
      */
     function draw() {
+        // Validate selection index (reset if out of bounds)
+        if (selectedButtonIndex >= registeredButtons.length) {
+            selectedButtonIndex = 0;
+        }
+        
         // Clear canvas
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw selection highlights first (under text)
+        registeredHighlights.forEach(item => {
+            const pixelX = item.x * charWidth;
+            const pixelY = item.y * charHeight;
+            const pixelWidth = item.width * charWidth;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(pixelX, pixelY, pixelWidth, charHeight);
+        });
         
         // Draw all registered texts
         registeredTexts.forEach(item => {
@@ -336,6 +362,13 @@ const UI = (() => {
         return { width: GRID_WIDTH, height: GRID_HEIGHT };
     }
     
+    /**
+     * Reset button selection to first button (for entering new menus)
+     */
+    function resetSelection() {
+        selectedButtonIndex = 0;
+    }
+    
     // Public API
     return {
         init,
@@ -343,7 +376,9 @@ const UI = (() => {
         addText,
         addTextCentered,
         addButton,
+        addSelectionHighlight,
         draw,
-        getGridSize
+        getGridSize,
+        resetSelection
     };
 })();

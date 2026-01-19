@@ -14,11 +14,12 @@ const OptionsMenu = (() => {
         returnCallback = onReturn;
         
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(5, '=== OPTIONS ===', COLORS.TITLE);
+        UI.addTextCentered(5, 'Options', COLORS.TITLE);
         
         // Menu buttons
         const menuX = Math.floor(grid.width / 2) - 12;

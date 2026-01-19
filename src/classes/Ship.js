@@ -9,12 +9,16 @@ class Ship {
      * @param {number} fuel - Current fuel amount
      * @param {number} maxFuel - Maximum fuel capacity
      * @param {number} cargoCapacity - Maximum cargo capacity
+     * @param {number} hull - Current hull integrity
+     * @param {number} maxHull - Maximum hull integrity
      */
-    constructor(name, fuel, maxFuel, cargoCapacity) {
+    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100) {
         this.name = name;
         this.fuel = fuel;
         this.maxFuel = maxFuel;
         this.cargoCapacity = cargoCapacity;
+        this.hull = hull;
+        this.maxHull = maxHull;
         // Cargo is now stored as counts per type
         this.cargo = {
             AIR: 0,
@@ -37,5 +41,19 @@ class Ship {
      */
     getAvailableCargoSpace() {
         return this.cargoCapacity - this.getTotalCargo();
+    }
+    
+    /**
+     * Calculate ship value based on stats
+     * @returns {number}
+     */
+    getValue() {
+        // Base value calculation: fuel capacity * 10 + cargo * 50 + hull * 5
+        const fuelValue = this.maxFuel * 10;
+        const cargoValue = this.cargoCapacity * 50;
+        const hullValue = this.maxHull * 5;
+        const conditionMultiplier = (this.hull / this.maxHull); // Degraded value based on current hull
+        
+        return Math.floor((fuelValue + cargoValue + hullValue) * conditionMultiplier);
     }
 }

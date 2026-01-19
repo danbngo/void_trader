@@ -14,11 +14,12 @@ const SaveMenu = (() => {
         returnCallback = onReturn;
         
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(3, '=== SAVE GAME ===', COLORS.TITLE);
+        UI.addTextCentered(3, 'Save Game', COLORS.TITLE);
         
         // Get save list
         const saves = SaveLoadManager.getSaveList();

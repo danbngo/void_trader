@@ -10,13 +10,14 @@ const ShipInfoMenu = (() => {
      */
     function show(onReturn) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
         const ship = gameState.ship;
         
         // Title
-        UI.addTextCentered(3, '=== SHIP STATUS ===', COLORS.TITLE);
+        UI.addTextCentered(3, 'Ship Status', COLORS.TITLE);
         
         // Ship details
         const startY = 6;

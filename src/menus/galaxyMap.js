@@ -14,6 +14,7 @@ const GalaxyMap = (() => {
      */
     function show(gameState) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
@@ -60,8 +61,10 @@ const GalaxyMap = (() => {
         }
         UI.addText(0, mapHeight - 1, '+' + '-'.repeat(mapWidth - 2) + '+', COLORS.GRAY);
         
-        // Title
-        UI.addText(2, 0, '[ GALAXY MAP ]', COLORS.TITLE);
+        // Title (clear the border first to avoid overlap)
+        const titleText = '[ GALAXY MAP ]';
+        UI.addText(2, 0, ' '.repeat(titleText.length), COLORS.GRAY);
+        UI.addText(2, 0, titleText, COLORS.TITLE);
         
         // Calculate scale to fit systems in map
         const mapCenterX = Math.floor(mapWidth / 2);
@@ -105,7 +108,7 @@ const GalaxyMap = (() => {
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
-        UI.addText(startX, 1, '=== CURRENT SYSTEM ===', COLORS.TITLE);
+        UI.addText(startX, 1, '=== Current System ===', COLORS.TITLE);
         UI.addText(startX, 3, 'Name:', COLORS.TEXT_DIM);
         UI.addText(startX + 6, 3, currentSystem.name, COLORS.TEXT_NORMAL);
         
@@ -113,7 +116,7 @@ const GalaxyMap = (() => {
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
             
-            UI.addText(startX, 6, '=== SELECTED SYSTEM ===', COLORS.YELLOW);
+            UI.addText(startX, 6, '=== Selected System ===', COLORS.YELLOW);
             UI.addText(startX, 8, 'Name:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, 8, selected.system.name, COLORS.TEXT_NORMAL);
             

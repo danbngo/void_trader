@@ -5,13 +5,34 @@
 
 class GameState {
     constructor() {
-        this.ship = null;
+        this.ships = []; // Player's ships
+        this.activeShipIndex = 0; // Index of currently active ship
         this.officers = [];
         this.systems = [];
         this.currentSystemIndex = 0;
         this.x = 0; // Player's current x position
         this.y = 0; // Player's current y position
         this.credits = 1000; // Player's money
+    }
+    
+    /**
+     * Get the active ship
+     * @returns {Ship|null}
+     */
+    get ship() {
+        return this.ships[this.activeShipIndex] || null;
+    }
+    
+    /**
+     * Set the active ship (for compatibility)
+     */
+    set ship(newShip) {
+        if (this.ships.length === 0) {
+            this.ships.push(newShip);
+            this.activeShipIndex = 0;
+        } else {
+            this.ships[this.activeShipIndex] = newShip;
+        }
     }
     
     /**

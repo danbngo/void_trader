@@ -9,6 +9,7 @@ const TitleMenu = (() => {
      */
     function show() {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const centerX = Math.floor(grid.width / 2);

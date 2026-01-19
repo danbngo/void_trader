@@ -10,27 +10,30 @@ const CargoInfoMenu = (() => {
      */
     function show(onReturn) {
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
         const ship = gameState.ship;
         
         // Title
-        UI.addTextCentered(3, '=== CARGO MANIFEST ===', COLORS.TITLE);
+        UI.addTextCentered(3, 'Cargo Manifest', COLORS.TITLE);
         
-        // Cargo summary
-        UI.addText(5, 6, `Total Cargo: ${ship.getTotalCargo()} / ${ship.cargoCapacity}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, 7, `Available Space: ${ship.getAvailableCargoSpace()} units`, COLORS.GREEN);
+        // Cargo summary using TableRenderer
+        const summaryY = TableRenderer.renderKeyValueList(5, 6, [
+            { label: 'Total Cargo:', value: `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, valueColor: 'white' },
+            { label: 'Available Space:', value: `${ship.getAvailableCargoSpace()} units`, valueColor: 'white' }
+        ]);
         
         // Cargo details
-        const startY = 10;
+        const startY = summaryY + 1;
         const rows = ALL_CARGO_TYPES.map(cargoType => {
             const quantity = ship.cargo[cargoType.id] || 0;
             const totalValue = quantity * cargoType.baseValue;
             return [
-                { text: cargoType.name, color: COLORS.TEXT_NORMAL },
-                { text: String(quantity), color: COLORS.TEXT_NORMAL },
-                { text: `${totalValue} CR`, color: COLORS.YELLOW }
+                { text: cargoType.name, color: 'white' },
+                { text: String(quantity), color: 'white' },
+                { text: `${totalValue} CR`, color: 'white' }
             ];
         });
         
@@ -42,7 +45,7 @@ const CargoInfoMenu = (() => {
         }, 0);
         
         TableRenderer.renderKeyValueList(5, y + 1, [
-            { label: 'Total Value:', value: `${totalValue} CR`, valueColor: COLORS.GREEN }
+            { label: 'Total Value:', value: `${totalValue} CR`, valueColor: 'white' }
         ]);
         
         // Back button

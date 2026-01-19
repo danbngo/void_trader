@@ -89,6 +89,12 @@ const SystemGenerator = (() => {
             system.cargoPriceModifier[cargoType.id] = 0.5 + Math.random() * 1.5;
         });
         
+        // Generate 0-3 ships for shipyard
+        const shipCount = Math.floor(Math.random() * 4); // 0, 1, 2, or 3
+        for (let i = 0; i < shipCount; i++) {
+            system.ships.push(ShipGenerator.generateRandomShip());
+        }
+        
         return system;
     }
     

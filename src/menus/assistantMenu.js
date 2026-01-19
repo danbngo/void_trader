@@ -14,11 +14,12 @@ const AssistantMenu = (() => {
         returnCallback = onReturn;
         
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(5, '=== ASSISTANT ===', COLORS.TITLE);
+        UI.addTextCentered(5, 'Assistant', COLORS.TITLE);
         UI.addTextCentered(7, 'What would you like to review?', COLORS.TEXT_NORMAL);
         
         // Menu buttons

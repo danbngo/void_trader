@@ -20,17 +20,12 @@ const ShipInfoMenu = (() => {
         
         // Ship details
         const startY = 6;
-        UI.addText(5, startY, 'Ship Name:', COLORS.TEXT_DIM);
-        UI.addText(20, startY, ship.name, COLORS.CYAN);
-        
-        UI.addText(5, startY + 2, 'Fuel:', COLORS.TEXT_DIM);
-        UI.addText(20, startY + 2, `${ship.fuel} / ${ship.maxFuel}`, COLORS.TEXT_NORMAL);
-        
-        UI.addText(5, startY + 4, 'Cargo Space:', COLORS.TEXT_DIM);
-        UI.addText(20, startY + 4, `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, COLORS.TEXT_NORMAL);
-        
-        UI.addText(5, startY + 6, 'Available Space:', COLORS.TEXT_DIM);
-        UI.addText(20, startY + 6, `${ship.getAvailableCargoSpace()} units`, COLORS.GREEN);
+        TableRenderer.renderKeyValueList(5, startY, [
+            { label: 'Ship Name:', value: ship.name, valueColor: COLORS.CYAN },
+            { label: 'Fuel:', value: `${ship.fuel} / ${ship.maxFuel}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Cargo Space:', value: `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Available Space:', value: `${ship.getAvailableCargoSpace()} units`, valueColor: COLORS.GREEN }
+        ]);
         
         // Back button
         UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);

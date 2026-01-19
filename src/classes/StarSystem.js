@@ -17,6 +17,10 @@ class StarSystem {
         this.y = y;
         this.population = population;
         this.economy = economy;
+        
+        // Market data
+        this.cargoStock = {}; // Amount of each cargo type available
+        this.cargoPriceModifier = {}; // Price multipliers for each cargo type
     }
     
     /**

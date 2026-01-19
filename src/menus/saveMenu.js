@@ -63,8 +63,9 @@ const SaveMenu = (() => {
             SaveLoadManager.saveGame(saveName, window.gameState);
             
             // Show confirmation
-            UI.clearAll();
+            UI.clear();
             UI.addTextCentered(15, 'Game Saved!', COLORS.TEXT_SUCCESS);
+            UI.draw();
             
             setTimeout(() => {
                 show(returnCallback);

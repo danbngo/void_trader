@@ -17,32 +17,25 @@ const CaptainInfoMenu = (() => {
         // Title
         UI.addTextCentered(3, '=== CAPTAIN INFO ===', COLORS.TITLE);
         
-        // Credits
-        UI.addText(5, 6, 'Credits:', COLORS.TEXT_DIM);
-        UI.addText(20, 6, `${gameState.credits} CR`, COLORS.YELLOW);
-        
-        // Current location
+        // Captain details
         const currentSystem = gameState.getCurrentSystem();
-        UI.addText(5, 8, 'Location:', COLORS.TEXT_DIM);
-        UI.addText(20, 8, currentSystem.name, COLORS.CYAN);
+        TableRenderer.renderKeyValueList(5, 6, [
+            { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.YELLOW },
+            { label: 'Location:', value: currentSystem.name, valueColor: COLORS.CYAN }
+        ]);
         
         // Crew section
-        UI.addText(5, 11, '=== CREW ===', COLORS.TITLE);
+        UI.addText(5, 10, '=== CREW ===', COLORS.TITLE);
         
         if (gameState.officers.length === 0) {
-            UI.addText(5, 13, 'No crew members', COLORS.TEXT_DIM);
+            UI.addText(5, 12, 'No crew members', COLORS.TEXT_DIM);
         } else {
-            const startY = 13;
-            UI.addText(5, startY, 'Name', COLORS.TEXT_DIM);
-            UI.addText(25, startY, 'Role', COLORS.TEXT_DIM);
-            UI.addText(40, startY, 'Skill', COLORS.TEXT_DIM);
-            
-            gameState.officers.forEach((officer, index) => {
-                const y = startY + 2 + index;
-                UI.addText(5, y, officer.name, COLORS.TEXT_NORMAL);
-                UI.addText(25, y, officer.role, COLORS.TEXT_NORMAL);
-                UI.addText(40, y, String(officer.skill), COLORS.GREEN);
-            });
+            const rows = gameState.officers.map(officer => [
+                { text: officer.name, color: COLORS.TEXT_NORMAL },
+                { text: officer.role, color: COLORS.TEXT_NORMAL },
+                { text: String(officer.skill), color: COLORS.GREEN }
+            ]);
+            TableRenderer.renderTable(5, 12, ['Name', 'Role', 'Skill'], rows);
         }
         
         // Back button

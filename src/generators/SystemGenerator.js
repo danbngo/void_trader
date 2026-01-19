@@ -78,7 +78,18 @@ const SystemGenerator = (() => {
         const population = Math.floor(Math.random() * 10000); // 0 to 10000 million
         const economy = economies[Math.floor(Math.random() * economies.length)];
         
-        return new StarSystem(name, x, y, population, economy);
+        const system = new StarSystem(name, x, y, population, economy);
+        
+        // Generate market data for each cargo type
+        ALL_CARGO_TYPES.forEach(cargoType => {
+            // Stock: random amount between 0-1000
+            system.cargoStock[cargoType.id] = Math.floor(Math.random() * 1001);
+            
+            // Price modifier: 0.5x to 2.0x base price
+            system.cargoPriceModifier[cargoType.id] = 0.5 + Math.random() * 1.5;
+        });
+        
+        return system;
     }
     
     /**

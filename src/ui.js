@@ -230,6 +230,11 @@ const UI = (() => {
             throw new Error(`addButton: button "${buttonText}" at x=${x} extends beyond grid width`);
         }
         
+        // Custom color logic for specific button labels
+        if (label === 'Assistant' || label === 'Options') {
+            color = COLORS.TEXT_DIM;
+        }
+        
         // Register the button
         registeredButtons.push({ x, y, key, label, callback, color });
     }
@@ -272,6 +277,56 @@ const UI = (() => {
                 ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY);
             }
         });
+        
+        // Debug output
+        debugToConsole();
+    }
+    
+    /**
+     * Debug function to print current screen content to console
+     */
+    function debugToConsole() {
+        // Create a 2D array to represent the screen
+        const screen = [];
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            screen[y] = new Array(GRID_WIDTH).fill(' ');
+        }
+        
+        // Fill in texts
+        registeredTexts.forEach(item => {
+            for (let i = 0; i < item.text.length; i++) {
+                if (item.x + i >= 0 && item.x + i < GRID_WIDTH && item.y >= 0 && item.y < GRID_HEIGHT) {
+                    screen[item.y][item.x + i] = item.text[i];
+                }
+            }
+        });
+        
+        // Fill in buttons
+        registeredButtons.forEach((btn, index) => {
+            const buttonText = `[${btn.key}] ${btn.label}`;
+            const isSelected = (index === selectedButtonIndex);
+            const marker = isSelected ? '█' : ' ';
+            
+            for (let i = 0; i < buttonText.length; i++) {
+                if (btn.x + i >= 0 && btn.x + i < GRID_WIDTH && btn.y >= 0 && btn.y < GRID_HEIGHT) {
+                    screen[btn.y][btn.x + i] = buttonText[i];
+                }
+            }
+            // Add selection marker
+            if (isSelected && btn.x > 0) {
+                screen[btn.y][btn.x - 1] = marker;
+            }
+        });
+        
+        // Build the output string
+        let output = '\n┌' + '─'.repeat(GRID_WIDTH) + '┐\n';
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            output += '│' + screen[y].join('') + '│\n';
+        }
+        output += '└' + '─'.repeat(GRID_WIDTH) + '┘\n';
+        output += `Texts: ${registeredTexts.length}, Buttons: ${registeredButtons.length}, Selected: ${selectedButtonIndex}`;
+        
+        console.log(output);
     }
     
     /**

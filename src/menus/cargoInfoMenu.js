@@ -24,28 +24,26 @@ const CargoInfoMenu = (() => {
         
         // Cargo details
         const startY = 10;
-        UI.addText(5, startY, 'Cargo Type', COLORS.TEXT_DIM);
-        UI.addText(25, startY, 'Quantity', COLORS.TEXT_DIM);
-        UI.addText(40, startY, 'Value', COLORS.TEXT_DIM);
-        
-        let y = startY + 2;
-        ALL_CARGO_TYPES.forEach(cargoType => {
+        const rows = ALL_CARGO_TYPES.map(cargoType => {
             const quantity = ship.cargo[cargoType.id] || 0;
             const totalValue = quantity * cargoType.baseValue;
-            
-            UI.addText(5, y, cargoType.name, COLORS.TEXT_NORMAL);
-            UI.addText(25, y, String(quantity), COLORS.TEXT_NORMAL);
-            UI.addText(40, y, `${totalValue} CR`, COLORS.YELLOW);
-            y++;
+            return [
+                { text: cargoType.name, color: COLORS.TEXT_NORMAL },
+                { text: String(quantity), color: COLORS.TEXT_NORMAL },
+                { text: `${totalValue} CR`, color: COLORS.YELLOW }
+            ];
         });
+        
+        const y = TableRenderer.renderTable(5, startY, ['Cargo Type', 'Quantity', 'Value'], rows);
         
         // Total value
         const totalValue = ALL_CARGO_TYPES.reduce((sum, type) => {
             return sum + (ship.cargo[type.id] || 0) * type.baseValue;
         }, 0);
         
-        UI.addText(5, y + 1, 'Total Value:', COLORS.TEXT_DIM);
-        UI.addText(25, y + 1, `${totalValue} CR`, COLORS.GREEN);
+        TableRenderer.renderKeyValueList(5, y + 1, [
+            { label: 'Total Value:', value: `${totalValue} CR`, valueColor: COLORS.GREEN }
+        ]);
         
         // Back button
         UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);

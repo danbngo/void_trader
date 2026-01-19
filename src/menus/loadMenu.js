@@ -60,16 +60,18 @@ const LoadMenu = (() => {
             window.gameState = gameState;
             
             // Show confirmation
-            UI.clearAll();
+            UI.clear();
             UI.addTextCentered(15, 'Game Loaded!', COLORS.TEXT_SUCCESS);
+            UI.draw();
             
             setTimeout(() => {
                 // Return to galaxy map
                 GalaxyMap.show(gameState);
             }, 1000);
         } else {
-            UI.clearAll();
+            UI.clear();
             UI.addTextCentered(15, 'Failed to load game', COLORS.TEXT_ERROR);
+            UI.draw();
             
             setTimeout(() => {
                 show(returnCallback);

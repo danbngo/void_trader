@@ -91,7 +91,7 @@ const GalaxyMap = (() => {
             const dy = item.system.y - currentSystem.y;
             
             const screenX = Math.floor(mapCenterX + dx * scale);
-            const screenY = Math.floor(mapCenterY + dy * scale);
+            const screenY = Math.floor(mapCenterY - dy * scale); // Negate Y because screen Y increases downward
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -288,11 +288,6 @@ const GalaxyMap = (() => {
         // Legend positioned right after map border
         UI.addText(2, mapHeight, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
         
-        // Output area (2 lines above buttons)
-        if (outputMessage) {
-            UI.addText(5, buttonY - 2, outputMessage, outputColor);
-        }
-
         // Buttons in columns on left side
         UI.addButton(5, buttonY, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
@@ -346,6 +341,11 @@ const GalaxyMap = (() => {
         }, COLORS.GREEN, 'Begin travel to the selected system');
         
         UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GRAY, 'Return to the docking menu');
+        
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
     }
     
     return {

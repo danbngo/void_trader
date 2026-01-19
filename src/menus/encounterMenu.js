@@ -199,7 +199,7 @@ const EncounterMenu = (() => {
             if (ship.fled) return;
             
             const screenX = Math.floor(mapCenterX + ship.x * scale);
-            const screenY = Math.floor(mapCenterY + ship.y * scale);
+            const screenY = Math.floor(mapCenterY - ship.y * scale); // Negate Y because screen Y increases downward
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -223,7 +223,7 @@ const EncounterMenu = (() => {
             if (ship.fled) return;
             
             const screenX = Math.floor(mapCenterX + ship.x * scale);
-            const screenY = Math.floor(mapCenterY + ship.y * scale);
+            const screenY = Math.floor(mapCenterY - ship.y * scale); // Negate Y because screen Y increases downward
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {

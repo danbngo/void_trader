@@ -50,7 +50,7 @@ const TravelMenu = (() => {
         const currentSystem = currentGameState.getCurrentSystem();
         
         // Title
-        UI.addTextCentered(2, '=== IN TRANSIT ===', COLORS.TITLE);
+        UI.addTextCentered(2, 'In Transit', COLORS.TITLE);
         
         let y = 5;
         
@@ -84,8 +84,8 @@ const TravelMenu = (() => {
         // Encounter output row
         if (encounterTriggered && encounterType) {
             y++;
-            UI.addText(5, y++, `=== ENCOUNTER: ${encounterType.name} ===`, COLORS.YELLOW);
-            UI.addText(5, y++, encounterType.description, COLORS.TEXT_NORMAL);
+            UI.addText(5, y++, `Alert: ${encounterType.name} Detected!`, COLORS.YELLOW);
+            //UI.addText(5, y++, encounterType.description, COLORS.TEXT_NORMAL);
             y++;
             
             UI.addButton(5, y++, '1', 'Continue', () => {

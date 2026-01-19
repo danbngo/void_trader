@@ -16,7 +16,7 @@ const EncounterMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(2, `=== ${encounterType.name.toUpperCase()} ===`, COLORS.YELLOW);
+        UI.addTextCentered(2, `${encounterType.name}`, COLORS.YELLOW);
         
         let y = 5;
         

@@ -12,6 +12,7 @@ const EncounterMenu = (() => {
     let cameraOffsetX = 0; // Camera offset for centering on active ship
     let cameraOffsetY = 0;
     let mapViewRange = ENCOUNTER_MAP_VIEW_RANGE; // Current view range
+    let continueEnemyTurn = null; // Function to continue after enemy ship moves
     
     /**
      * Calculate angle from one point to another (in radians)
@@ -146,8 +147,8 @@ const EncounterMenu = (() => {
         // Find first valid target
         findNextValidTarget();
         
-        // Center camera on first player ship
-        const firstShip = gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped);
+        // Center camera on first active player ship (one that hasn't acted)
+        const firstShip = getActivePlayerShip();
         if (firstShip) {
             cameraOffsetX = firstShip.x;
             cameraOffsetY = firstShip.y;
@@ -219,18 +220,20 @@ const EncounterMenu = (() => {
         // Draw center marker
         UI.addText(mapCenterX, mapCenterY, '+', COLORS.TEXT_DIM);
         
-        // Draw circular boundary markers (dots showing encounter area limit)
-        const numDots = 60; // Number of dots around the circle
-        for (let i = 0; i < numDots; i++) {
-            const angle = (i / numDots) * Math.PI * 2;
-            const x = Math.cos(angle) * ENCOUNTER_MAX_RADIUS;
-            const y = Math.sin(angle) * ENCOUNTER_MAX_RADIUS;
-            
-            const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
-            
-            if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                UI.addText(screenX, screenY, '·', COLORS.TEXT_DIM);
+        // Fill area outside circular boundary with shade blocks
+        for (let screenY = 1; screenY < mapHeight - 1; screenY++) {
+            for (let screenX = 1; screenX < mapWidth - 1; screenX++) {
+                // Convert screen coordinates to world coordinates
+                const worldX = (screenX - mapCenterX) / scale + cameraOffsetX;
+                const worldY = -((screenY - mapCenterY) / scale) + cameraOffsetY;
+                
+                // Calculate distance from center (0, 0) in world space
+                const distanceFromCenter = Math.sqrt(worldX * worldX + worldY * worldY);
+                
+                // If outside the combat radius, draw shade block
+                if (distanceFromCenter > ENCOUNTER_MAX_RADIUS) {
+                    UI.addText(screenX, screenY, '\u2591', COLORS.TEXT_DIM);
+                }
             }
         }
         
@@ -295,6 +298,27 @@ const EncounterMenu = (() => {
         
         // Draw line between active ship and target
         if (activeShipScreenX !== null && targetShipScreenX !== null) {
+            // Collect all ship positions to avoid drawing over them
+            const shipPositions = new Set();
+            
+            gameState.ships.forEach(ship => {
+                if (ship.fled || ship.escaped) return;
+                const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
+                const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+                if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                    shipPositions.add(`${screenX},${screenY}`);
+                }
+            });
+            
+            gameState.encounterShips.forEach(ship => {
+                if (ship.fled || ship.escaped) return;
+                const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
+                const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+                if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                    shipPositions.add(`${screenX},${screenY}`);
+                }
+            });
+            
             const linePoints = LineDrawer.drawLine(
                 activeShipScreenX, activeShipScreenY,
                 targetShipScreenX, targetShipScreenY,
@@ -302,10 +326,12 @@ const EncounterMenu = (() => {
                 COLORS.CYAN
             );
             
-            // Draw each line point
+            // Draw each line point, skipping ship positions
             linePoints.forEach(point => {
+                const posKey = `${point.x},${point.y}`;
                 if (point.x > 0 && point.x < mapWidth - 1 && 
-                    point.y > 0 && point.y < mapHeight - 1) {
+                    point.y > 0 && point.y < mapHeight - 1 &&
+                    !shipPositions.has(posKey)) {
                     UI.addText(point.x, point.y, point.symbol, point.color);
                 }
             });
@@ -337,16 +363,12 @@ const EncounterMenu = (() => {
         }
         
         UI.addText(startX, 0, '=== Your Ship ===', COLORS.GREEN);
-        
         if (activeShip) {
             const shipType = SHIP_TYPES[activeShip.type] || { name: 'Unknown' };
             
-            let y = 2;
+            let y = 1;
             UI.addText(startX, y, 'Name:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y, activeShip.name, COLORS.TEXT_NORMAL);
-            if (activeShip.acted) {
-                UI.addText(startX + 6 + activeShip.name.length, y, ' (Moved)', COLORS.TEXT_DIM);
-            }
             y++;
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
@@ -357,18 +379,17 @@ const EncounterMenu = (() => {
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            UI.addText(startX + 7, y - 1, `L${activeShip.lasers}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `E${activeShip.engine}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX + 8, y - 1, `${activeShip.engine}`, COLORS.TEXT_NORMAL);
         } else {
-            UI.addText(startX, 2, 'No active ships', COLORS.TEXT_ERROR);
+            UI.addText(startX, 1, 'No active ships', COLORS.TEXT_ERROR);
         }
         
         // Target Ship section
         const targetShip = gameState.encounterShips[targetIndex];
         
-        UI.addText(startX, 9, `=== ${encounterType.name} Ship ===`, COLORS.YELLOW);
-        
+        UI.addText(startX, 10, `=== ${encounterType.name} Ship ===`, COLORS.YELLOW);
         if (targetShip && !targetShip.fled && !targetShip.disabled && !targetShip.escaped) {
             const shipType = SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
             const distance = activeShip ? Math.sqrt(
@@ -385,6 +406,10 @@ const EncounterMenu = (() => {
             UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
+            UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
+            UI.addText(startX + 8, y - 1, `${targetShip.engine}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
             UI.addText(startX + 10, y - 1, `${distance} AU`, COLORS.TEXT_NORMAL);
         } else {
@@ -412,6 +437,14 @@ const EncounterMenu = (() => {
             return;
         }
         
+        // Check if waiting for enemy turn continuation
+        if (continueEnemyTurn) {
+            UI.addButton(5, buttonY, '1', 'Continue', () => {
+                continueEnemyTurn();
+            }, COLORS.GREEN, 'Continue to next enemy ship');
+            return;
+        }
+        
         // Check if waiting for player to continue
         const activeShip = getActivePlayerShip();
         const needsContinue = !activeShip || activeShip.acted;
@@ -422,20 +455,32 @@ const EncounterMenu = (() => {
                 continueAfterAction();
             }, COLORS.GREEN, 'Continue to next action');
         } else {
+            // Count valid enemy targets
+            const validEnemyCount = currentGameState.encounterShips.filter(
+                s => !s.fled && !s.disabled && !s.escaped
+            ).length;
+            
             // Show normal action buttons
-            UI.addButton(5, buttonY, '1', 'Previous Target', () => {
-                prevTarget();
-            }, COLORS.BUTTON, 'Select previous enemy ship as target');
+            let currentButtonY = buttonY;
             
-            UI.addButton(5, buttonY + 1, '2', 'Next Target', () => {
-                nextTarget();
-            }, COLORS.BUTTON, 'Select next enemy ship as target');
+            // Only show target selection if there's more than one valid enemy
+            if (validEnemyCount > 1) {
+                UI.addButton(5, currentButtonY, '1', 'Previous Target', () => {
+                    prevTarget();
+                }, COLORS.BUTTON, 'Select previous enemy ship as target');
+                currentButtonY++;
+                
+                UI.addButton(5, currentButtonY, '2', 'Next Target', () => {
+                    nextTarget();
+                }, COLORS.BUTTON, 'Select next enemy ship as target');
+                currentButtonY++;
+            }
             
-            UI.addButton(5, buttonY + 2, '3', 'Pursue', () => {
+            UI.addButton(5, currentButtonY, '3', 'Pursue', () => {
                 executePlayerAction(COMBAT_ACTIONS.PURSUE);
             }, COLORS.GREEN, 'Move toward the enemy ship');
             
-            UI.addButton(5, buttonY + 3, '4', 'Flee', () => {
+            UI.addButton(5, currentButtonY + 1, '4', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, 'Move away from the enemy ship');
             
@@ -520,11 +565,21 @@ const EncounterMenu = (() => {
         const targetShip = currentGameState.encounterShips[targetIndex];
         if (!targetShip || targetShip.fled || targetShip.disabled) return;
         
-        // Store initial distance for flee message
+        const targetShipType = SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
+        
+        // Store initial distance
         const initialDistance = Math.sqrt(
             Math.pow(activeShip.x - targetShip.x, 2) + 
             Math.pow(activeShip.y - targetShip.y, 2)
         );
+        
+        // Set initial message
+        if (actionType === COMBAT_ACTIONS.PURSUE) {
+            outputMessage = `Pursuing ${targetShip.name}...`;
+        } else if (actionType === COMBAT_ACTIONS.FLEE) {
+            outputMessage = `Fleeing from ${targetShipType.name}...`;
+        }
+        outputColor = COLORS.TEXT_NORMAL;
         
         // Create action
         const action = new CombatAction(activeShip, actionType, targetShip);
@@ -534,17 +589,18 @@ const EncounterMenu = (() => {
             // Mark ship as acted
             activeShip.acted = true;
             
-            // Calculate distance moved for flee action
+            // Calculate distance moved
+            const finalDistance = Math.sqrt(
+                Math.pow(activeShip.x - targetShip.x, 2) + 
+                Math.pow(activeShip.y - targetShip.y, 2)
+            );
+            const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
+            
             if (actionType === COMBAT_ACTIONS.FLEE) {
-                const finalDistance = Math.sqrt(
-                    Math.pow(activeShip.x - targetShip.x, 2) + 
-                    Math.pow(activeShip.y - targetShip.y, 2)
-                );
-                const distanceFled = (finalDistance - initialDistance).toFixed(1);
-                outputMessage = `Fled ${distanceFled} AU`;
+                outputMessage = `Fled ${distanceMoved} AU from ${targetShipType.name}`;
                 outputColor = COLORS.TEXT_NORMAL;
             } else if (actionType === COMBAT_ACTIONS.PURSUE) {
-                outputMessage = `Closed distance`;
+                outputMessage = `Pursued ${targetShip.name} ${distanceMoved} AU`;
                 outputColor = COLORS.TEXT_NORMAL;
             }
             
@@ -615,8 +671,8 @@ const EncounterMenu = (() => {
             currentGameState.ships.forEach(ship => ship.acted = false);
             currentGameState.encounterShips.forEach(ship => ship.acted = false);
             
-            // Center camera back on first player ship
-            const firstShip = currentGameState.ships.find(s => !s.fled && !s.disabled);
+            // Center camera back on first active player ship
+            const firstShip = getActivePlayerShip();
             if (firstShip) {
                 cameraOffsetX = firstShip.x;
                 cameraOffsetY = firstShip.y;
@@ -639,17 +695,62 @@ const EncounterMenu = (() => {
         
         const action = actions[index];
         
+        // Skip if action ship or target is no longer valid (fled, escaped, disabled)
+        if (!action.ship || !action.target || 
+            action.ship.fled || action.ship.escaped || action.ship.disabled ||
+            action.target.fled || action.target.escaped || action.target.disabled) {
+            // Skip to next action
+            executeEnemyActionsSequentially(actions, index + 1, onComplete);
+            return;
+        }
+        
         // Center camera on the enemy ship that's moving
         if (action.ship) {
             cameraOffsetX = action.ship.x;
             cameraOffsetY = action.ship.y;
         }
         
-        outputMessage = `Enemy moving...`;
+        // Store initial distance
+        const initialDistance = Math.sqrt(
+            Math.pow(action.ship.x - action.target.x, 2) + 
+            Math.pow(action.ship.y - action.target.y, 2)
+        );
+        
+        // Set initial message
+        if (action.type === COMBAT_ACTIONS.PURSUE) {
+            outputMessage = `Enemy pursuing ${action.target.name}...`;
+        } else if (action.type === COMBAT_ACTIONS.FLEE) {
+            outputMessage = `Enemy fleeing from ${action.target.name}...`;
+        }
         outputColor = COLORS.TEXT_ERROR;
         
         executeActionWithTicks(action, () => {
-            executeEnemyActionsSequentially(actions, index + 1, onComplete);
+            // Mark enemy ship as acted
+            action.ship.acted = true;
+            
+            // Calculate distance moved
+            const finalDistance = Math.sqrt(
+                Math.pow(action.ship.x - action.target.x, 2) + 
+                Math.pow(action.ship.y - action.target.y, 2)
+            );
+            const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
+            
+            // Set message for the completed action
+            if (action.type === COMBAT_ACTIONS.PURSUE) {
+                outputMessage = `Enemy pursued ${action.target.name} ${distanceMoved} AU`;
+            } else if (action.type === COMBAT_ACTIONS.FLEE) {
+                outputMessage = `Enemy fled ${distanceMoved} AU from ${action.target.name}`;
+            }
+            outputColor = COLORS.TEXT_ERROR;
+            
+            // Store continuation function
+            continueEnemyTurn = () => {
+                outputMessage = '';
+                continueEnemyTurn = null;
+                executeEnemyActionsSequentially(actions, index + 1, onComplete);
+            };
+            
+            render();
         });
     }
     

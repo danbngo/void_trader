@@ -70,8 +70,8 @@ const TravelConfirmMenu = (() => {
             { label: 'Fuel Cost:', value: String(fuelCost), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Fuel After:', value: String(fuelAfter), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Duration:', value: `${durationDays} days`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_DIM },
-            { label: 'Arrival Date:', value: formatDate(dateAfter), valueColor: COLORS.TEXT_DIM }
+            { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Arrival Date:', value: formatDate(dateAfter), valueColor: COLORS.TEXT_NORMAL }
         ]);
         y++;
         

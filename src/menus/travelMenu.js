@@ -80,8 +80,12 @@ const TravelMenu = (() => {
         UI.addText(5, y++, `ETA: ${formatDate(eta)}`, COLORS.TEXT_DIM);
         y++;
         
-        UI.addText(5, y++, `Fuel Consumed: ${fuelConsumed}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Fuel Remaining: ${fuelRemaining}`, fuelRemaining > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
+        const totalFuel = Math.ceil(currentSystem.distanceTo(targetSystem));
+        UI.addText(5, y++, `Fuel Used: ${fuelConsumed}/${totalFuel}`, fuelRemaining > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
+        y++;
+        
+        // Days elapsed
+        UI.addText(5, y++, `Days Elapsed: ${elapsedDays.toFixed(1)} / ${totalDuration.toFixed(1)}`, COLORS.TEXT_NORMAL);
         y++;
         
         // Progress bar
@@ -100,10 +104,6 @@ const TravelMenu = (() => {
         
         // Progress percentage
         UI.addTextCentered(y++, `${(progress * 100).toFixed(1)}% complete`, COLORS.TEXT_DIM);
-        y++;
-        
-        // Days elapsed
-        UI.addText(5, y++, `Days Elapsed: ${elapsedDays.toFixed(1)} / ${totalDuration.toFixed(1)}`, COLORS.TEXT_NORMAL);
         y++;
         
         // Encounter output row

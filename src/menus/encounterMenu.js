@@ -7,11 +7,14 @@ const EncounterMenu = (() => {
     let currentGameState = null;
     let encounterType = null;
     let selectedPlayerShip = 0;
-    let selectedEnemyShip = 0;
+    let selectedEnemyShip = -1; // -1 when not in targeting mode
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
     let inTargetingMode = false;
     let targetingAction = null; // 'laser' or 'chase'
+    let isPlayerTurn = true;
+    let currentEnemyActing = -1; // Index of enemy currently acting
+    let waitingForContinue = false;
     
     /**
      * Initialize combat distances for all ships
@@ -22,6 +25,7 @@ const EncounterMenu = (() => {
             ship.distance = Math.floor(Math.random() * 21) + 10;
             ship.fled = false;
             ship.disabled = false;
+            ship.acted = false;
         });
         
         // Set random distances for enemy ships (10-30)
@@ -29,6 +33,7 @@ const EncounterMenu = (() => {
             ship.distance = Math.floor(Math.random() * 21) + 10;
             ship.fled = false;
             ship.disabled = false;
+            ship.acted = false;
         });
     }
     
@@ -41,16 +46,43 @@ const EncounterMenu = (() => {
         currentGameState = gameState;
         encounterType = encType;
         selectedPlayerShip = 0;
-        selectedEnemyShip = 0;
+        selectedEnemyShip = -1;
         outputMessage = '';
         inTargetingMode = false;
+        isPlayerTurn = true;
+        currentEnemyActing = -1;
+        waitingForContinue = false;
         
         // Initialize combat if not already done
         if (!gameState.ships[0].hasOwnProperty('distance')) {
             initializeCombat(gameState);
         }
         
+        // Auto-select first active player ship
+        selectNextUnactedPlayerShip();
+        
         render();
+    }
+    
+    /**
+     * Auto-select the next player ship that hasn't acted
+     */
+    function selectNextUnactedPlayerShip() {
+        const ships = currentGameState.ships;
+        let found = false;
+        
+        for (let i = 0; i < ships.length; i++) {
+            if (!ships[i].acted && !ships[i].fled && !ships[i].disabled) {
+                selectedPlayerShip = i;
+                found = true;
+                break;
+            }
+        }
+        
+        // If no unacted ships, check if we should end player turn
+        if (!found) {
+            endPlayerTurn();
+        }
     }
     
     /**
@@ -60,67 +92,82 @@ const EncounterMenu = (() => {
         UI.clear();
         UI.resetSelection();
         
-        if (inTargetingMode) {
-            renderTargetingMode();
-        } else {
-            renderCombatMode();
-        }
-        
-        UI.draw();
-    }
-    
-    /**
-     * Render main combat mode
-     */
-    function renderCombatMode() {
         const grid = UI.getGridSize();
         
         // Title
         UI.addTextCentered(2, `COMBAT: ${encounterType.name}`, COLORS.YELLOW);
         
-        let y = 5;
+        let y = 4;
         
         // Player ships table
         UI.addText(5, y++, '=== Your Ships ===', COLORS.TITLE);
         y++;
         
-        const activePlayerShips = currentGameState.ships.filter(s => !s.fled && !s.disabled);
-        
-        if (activePlayerShips.length === 0) {
-            UI.addText(5, y++, 'All ships destroyed or fled!', COLORS.TEXT_ERROR);
-            checkBattleEnd();
-        } else {
-            const headers = ['', 'Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Distance', 'Status'];
-            const rows = currentGameState.ships.map((ship, index) => {
-                const marker = (index === selectedPlayerShip) ? '*' : '';
-                const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-                let status = 'Active';
-                let statusColor = COLORS.GREEN;
-                
-                if (ship.disabled) {
-                    status = 'Disabled';
-                    statusColor = COLORS.TEXT_ERROR;
-                } else if (ship.fled) {
-                    status = 'Fled';
-                    statusColor = COLORS.TEXT_DIM;
-                }
-                
-                return [
-                    { text: marker, color: COLORS.YELLOW },
-                    { text: ship.name, color: statusColor },
-                    { text: shipType.name, color: COLORS.TEXT_DIM },
-                    { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
-                    { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                    { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
-                    { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
-                    { text: String(ship.distance), color: COLORS.CYAN },
-                    { text: status, color: statusColor }
-                ];
-            });
+        const playerHeaders = ['', 'Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Distance', 'Status'];
+        const playerRows = currentGameState.ships.map((ship, index) => {
+            const marker = (index === selectedPlayerShip && isPlayerTurn) ? '*' : '';
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            let status = ship.acted ? 'Acted' : 'Ready';
+            let statusColor = ship.acted ? COLORS.TEXT_DIM : COLORS.GREEN;
             
-            TableRenderer.renderTable(5, y, headers, rows, selectedPlayerShip);
-            y += rows.length + 3;
-        }
+            if (ship.disabled) {
+                status = 'Disabled';
+                statusColor = COLORS.TEXT_ERROR;
+            } else if (ship.fled) {
+                status = 'Fled';
+                statusColor = COLORS.TEXT_DIM;
+            }
+            
+            return [
+                { text: marker, color: COLORS.YELLOW },
+                { text: ship.name, color: statusColor },
+                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
+                { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.distance), color: COLORS.CYAN },
+                { text: status, color: statusColor }
+            ];
+        });
+        
+        y = TableRenderer.renderTable(5, y, playerHeaders, playerRows, isPlayerTurn ? selectedPlayerShip : -1);
+        y += 2;
+        
+        // Enemy ships table
+        UI.addText(5, y++, '=== Enemy Ships ===', COLORS.TITLE);
+        y++;
+        
+        const enemyHeaders = ['', 'Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Distance', 'Status'];
+        const enemyRows = currentGameState.encounterShips.map((ship, index) => {
+            const marker = (index === selectedEnemyShip) ? '*' : '';
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            let status = ship.acted ? 'Acted' : 'Ready';
+            let statusColor = ship.acted ? COLORS.TEXT_DIM : COLORS.GREEN;
+            
+            if (ship.disabled) {
+                status = 'Disabled';
+                statusColor = COLORS.TEXT_ERROR;
+            } else if (ship.fled) {
+                status = 'Fled';
+                statusColor = COLORS.TEXT_DIM;
+            }
+            
+            return [
+                { text: marker, color: COLORS.YELLOW },
+                { text: ship.name, color: statusColor },
+                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
+                { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.distance), color: COLORS.CYAN },
+                { text: status, color: statusColor }
+            ];
+        });
+        
+        y = TableRenderer.renderTable(5, y, enemyHeaders, enemyRows, selectedEnemyShip);
+        y += 2;
         
         // Output message
         if (outputMessage) {
@@ -130,141 +177,51 @@ const EncounterMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 7;
-        const currentShip = currentGameState.ships[selectedPlayerShip];
-        const canAct = currentShip && !currentShip.fled && !currentShip.disabled;
         
-        if (canAct) {
-            UI.addButton(5, buttonY, '1', 'Next Ship', () => {
-                nextPlayerShip();
+        if (waitingForContinue) {
+            // Waiting for player to continue after enemy action
+            UI.addButton(5, buttonY, '1', 'Continue', () => {
+                continueEnemyTurn();
+            }, COLORS.GREEN);
+        } else if (isPlayerTurn && !inTargetingMode) {
+            // Player's turn - normal actions
+            const currentShip = currentGameState.ships[selectedPlayerShip];
+            const canAct = currentShip && !currentShip.fled && !currentShip.disabled && !currentShip.acted;
+            
+            if (canAct) {
+                UI.addButton(5, buttonY, '3', 'Fire Laser', () => {
+                    startTargeting('laser');
+                }, COLORS.GREEN);
+                
+                UI.addButton(5, buttonY + 1, '4', 'Chase Enemy Ship', () => {
+                    startTargeting('chase');
+                }, COLORS.BUTTON);
+                
+                UI.addButton(5, buttonY + 2, '0', 'Flee', () => {
+                    attemptFlee();
+                }, COLORS.TEXT_ERROR);
+            }
+        } else if (isPlayerTurn && inTargetingMode) {
+            // Player's turn - targeting mode
+            UI.addButton(5, buttonY, '1', 'Previous Target', () => {
+                prevEnemyShip();
             }, COLORS.BUTTON);
             
-            UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => {
-                prevPlayerShip();
+            UI.addButton(5, buttonY + 1, '2', 'Next Target', () => {
+                nextEnemyShip();
             }, COLORS.BUTTON);
             
-            UI.addButton(25, buttonY, '3', 'Fire Laser', () => {
-                startTargeting('laser');
+            const actionLabel = targetingAction === 'laser' ? 'Fire' : 'Chase';
+            UI.addButton(25, buttonY, '3', actionLabel, () => {
+                confirmAction();
             }, COLORS.GREEN);
             
-            UI.addButton(25, buttonY + 1, '4', 'Chase Enemy Ship', () => {
-                startTargeting('chase');
+            UI.addButton(5, buttonY + 2, '0', 'Cancel', () => {
+                cancelTargeting();
             }, COLORS.BUTTON);
         }
         
-        UI.addButton(5, buttonY + 3, '0', 'Flee', () => {
-            attemptFlee();
-        }, COLORS.TEXT_ERROR);
-    }
-    
-    /**
-     * Render targeting mode
-     */
-    function renderTargetingMode() {
-        const grid = UI.getGridSize();
-        
-        const actionText = targetingAction === 'laser' ? 'FIRE LASER' : 'CHASE';
-        UI.addTextCentered(2, `TARGETING: ${actionText}`, COLORS.YELLOW);
-        
-        let y = 5;
-        
-        // Enemy ships table
-        UI.addText(5, y++, '=== Enemy Ships ===', COLORS.TITLE);
-        y++;
-        
-        const activeEnemies = currentGameState.encounterShips.filter(s => !s.fled && !s.disabled);
-        
-        if (activeEnemies.length === 0) {
-            UI.addText(5, y++, 'No active enemies!', COLORS.TEXT_DIM);
-        } else {
-            const headers = ['', 'Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Distance', 'Status'];
-            const rows = currentGameState.encounterShips.map((ship, index) => {
-                const marker = (index === selectedEnemyShip) ? '*' : '';
-                const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-                let status = 'Active';
-                let statusColor = COLORS.GREEN;
-                
-                if (ship.disabled) {
-                    status = 'Disabled';
-                    statusColor = COLORS.TEXT_ERROR;
-                } else if (ship.fled) {
-                    status = 'Fled';
-                    statusColor = COLORS.TEXT_DIM;
-                }
-                
-                return [
-                    { text: marker, color: COLORS.YELLOW },
-                    { text: ship.name, color: statusColor },
-                    { text: shipType.name, color: COLORS.TEXT_DIM },
-                    { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
-                    { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                    { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
-                    { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
-                    { text: String(ship.distance), color: COLORS.CYAN },
-                    { text: status, color: statusColor }
-                ];
-            });
-            
-            TableRenderer.renderTable(5, y, headers, rows, selectedEnemyShip);
-            y += rows.length + 3;
-        }
-        
-        // Output message
-        if (outputMessage) {
-            UI.addText(5, y++, outputMessage, outputColor);
-            y++;
-        }
-        
-        // Buttons
-        const buttonY = grid.height - 6;
-        
-        UI.addButton(5, buttonY, '1', 'Next Target', () => {
-            nextEnemyShip();
-        }, COLORS.BUTTON);
-        
-        UI.addButton(5, buttonY + 1, '2', 'Previous Target', () => {
-            prevEnemyShip();
-        }, COLORS.BUTTON);
-        
-        const actionLabel = targetingAction === 'laser' ? 'Fire' : 'Chase';
-        UI.addButton(25, buttonY, '3', actionLabel, () => {
-            confirmAction();
-        }, COLORS.GREEN);
-        
-        UI.addButton(5, buttonY + 2, '0', 'Cancel', () => {
-            inTargetingMode = false;
-            outputMessage = '';
-            render();
-        }, COLORS.BUTTON);
-    }
-    
-    /**
-     * Navigate to next player ship
-     */
-    function nextPlayerShip() {
-        const ships = currentGameState.ships;
-        let attempts = 0;
-        do {
-            selectedPlayerShip = (selectedPlayerShip + 1) % ships.length;
-            attempts++;
-        } while ((ships[selectedPlayerShip].fled || ships[selectedPlayerShip].disabled) && attempts < ships.length);
-        
-        outputMessage = '';
-        render();
-    }
-    
-    /**
-     * Navigate to previous player ship
-     */
-    function prevPlayerShip() {
-        const ships = currentGameState.ships;
-        let attempts = 0;
-        do {
-            selectedPlayerShip = (selectedPlayerShip - 1 + ships.length) % ships.length;
-            attempts++;
-        } while ((ships[selectedPlayerShip].fled || ships[selectedPlayerShip].disabled) && attempts < ships.length);
-        
-        outputMessage = '';
-        render();
+        UI.draw();
     }
     
     /**
@@ -278,7 +235,6 @@ const EncounterMenu = (() => {
             attempts++;
         } while ((enemies[selectedEnemyShip].fled || enemies[selectedEnemyShip].disabled) && attempts < enemies.length);
         
-        outputMessage = '';
         render();
     }
     
@@ -293,7 +249,6 @@ const EncounterMenu = (() => {
             attempts++;
         } while ((enemies[selectedEnemyShip].fled || enemies[selectedEnemyShip].disabled) && attempts < enemies.length);
         
-        outputMessage = '';
         render();
     }
     
@@ -319,6 +274,16 @@ const EncounterMenu = (() => {
     }
     
     /**
+     * Cancel targeting mode
+     */
+    function cancelTargeting() {
+        inTargetingMode = false;
+        selectedEnemyShip = -1;
+        outputMessage = '';
+        render();
+    }
+    
+    /**
      * Confirm the targeting action
      */
     function confirmAction() {
@@ -338,13 +303,19 @@ const EncounterMenu = (() => {
             chaseEnemy(attacker, target);
         }
         
-        inTargetingMode = false;
+        // Mark ship as acted
+        attacker.acted = true;
         
-        // Enemy turn
-        enemyTurn();
+        inTargetingMode = false;
+        selectedEnemyShip = -1;
         
         // Check battle end
-        checkBattleEnd();
+        if (checkBattleEnd()) {
+            return;
+        }
+        
+        // Select next unacted player ship
+        selectNextUnactedPlayerShip();
         
         render();
     }
@@ -438,7 +409,7 @@ const EncounterMenu = (() => {
     function attemptFlee() {
         const ship = currentGameState.ships[selectedPlayerShip];
         
-        if (ship.fled || ship.disabled) {
+        if (ship.fled || ship.disabled || ship.acted) {
             outputMessage = 'This ship cannot flee!';
             outputColor = COLORS.TEXT_ERROR;
             render();
@@ -462,39 +433,102 @@ const EncounterMenu = (() => {
             outputColor = COLORS.TEXT_ERROR;
         }
         
-        // Enemy turn
-        enemyTurn();
+        // Mark as acted
+        ship.acted = true;
         
         // Check battle end
-        checkBattleEnd();
+        if (checkBattleEnd()) {
+            return;
+        }
+        
+        // Select next unacted player ship
+        selectNextUnactedPlayerShip();
         
         render();
     }
     
     /**
-     * Enemy turn - simple AI
+     * End player turn and start enemy turn
      */
-    function enemyTurn() {
-        const enemies = currentGameState.encounterShips.filter(s => !s.fled && !s.disabled);
+    function endPlayerTurn() {
+        // Reset all player ships' acted flag
+        currentGameState.ships.forEach(ship => ship.acted = false);
+        
+        // Reset all enemy ships' acted flag
+        currentGameState.encounterShips.forEach(ship => ship.acted = false);
+        
+        isPlayerTurn = false;
+        currentEnemyActing = -1;
+        outputMessage = 'Enemy turn...';
+        outputColor = COLORS.YELLOW;
+        
+        // Start enemy turn
+        continueEnemyTurn();
+    }
+    
+    /**
+     * Continue enemy turn (one ship at a time)
+     */
+    function continueEnemyTurn() {
+        waitingForContinue = false;
+        
+        // Find next enemy that hasn't acted
+        const enemies = currentGameState.encounterShips;
+        let foundNext = false;
+        
+        for (let i = currentEnemyActing + 1; i < enemies.length; i++) {
+            if (!enemies[i].fled && !enemies[i].disabled && !enemies[i].acted) {
+                currentEnemyActing = i;
+                foundNext = true;
+                break;
+            }
+        }
+        
+        if (!foundNext) {
+            // All enemies acted, return to player turn
+            isPlayerTurn = true;
+            currentEnemyActing = -1;
+            outputMessage = 'Your turn!';
+            outputColor = COLORS.GREEN;
+            selectNextUnactedPlayerShip();
+            render();
+            return;
+        }
+        
+        // Execute this enemy's action
+        const enemy = enemies[currentEnemyActing];
         const playerShips = currentGameState.ships.filter(s => !s.fled && !s.disabled);
         
-        if (enemies.length === 0 || playerShips.length === 0) return;
+        if (playerShips.length === 0) {
+            checkBattleEnd();
+            return;
+        }
         
-        enemies.forEach(enemy => {
-            // Pick random player target
-            const target = playerShips[Math.floor(Math.random() * playerShips.length)];
-            
-            // 50% chance to laser, 50% chance to chase
-            if (Math.random() < 0.5) {
-                fireLaser(enemy, target);
-            } else {
-                chaseEnemy(enemy, target);
-            }
-        });
+        // Pick random player target
+        const target = playerShips[Math.floor(Math.random() * playerShips.length)];
+        
+        // 50% chance to laser, 50% chance to chase
+        if (Math.random() < 0.5) {
+            fireLaser(enemy, target);
+        } else {
+            chaseEnemy(enemy, target);
+        }
+        
+        enemy.acted = true;
+        
+        // Check battle end
+        if (checkBattleEnd()) {
+            return;
+        }
+        
+        // Wait for player to continue
+        waitingForContinue = true;
+        render();
     }
     
     /**
      * Check if battle has ended
+     * @returns {boolean} - True if battle ended
      */
     function checkBattleEnd() {
         const activePlayer = currentGameState.ships.filter(s => !s.fled && !s.disabled);
@@ -503,10 +537,14 @@ const EncounterMenu = (() => {
         if (activePlayer.length === 0) {
             // Player lost
             endBattle(false);
+            return true;
         } else if (activeEnemy.length === 0) {
             // Player won
             endBattle(true);
+            return true;
         }
+        
+        return false;
     }
     
     /**
@@ -518,12 +556,14 @@ const EncounterMenu = (() => {
             delete ship.distance;
             delete ship.fled;
             delete ship.disabled;
+            delete ship.acted;
         });
         
         currentGameState.encounterShips.forEach(ship => {
             delete ship.distance;
             delete ship.fled;
             delete ship.disabled;
+            delete ship.acted;
         });
         
         currentGameState.encounter = false;

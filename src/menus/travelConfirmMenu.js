@@ -59,28 +59,29 @@ const TravelConfirmMenu = (() => {
         // Draw title
         UI.addTextCentered(2, 'Travel Confirmation', COLORS.TITLE);
         
-        let y = 5;
+        let y = 6;
         
-        // Journey details
-        UI.addText(5, y++, `From: ${currentSystem.name}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `To: ${targetSystem.name}`, COLORS.TEXT_NORMAL);
+        // Journey details section
+        UI.addText(5, y++, '=== Journey Details ===', COLORS.TITLE);
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Distance:', value: `${distance.toFixed(1)} LY`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Fuel Cost:', value: String(fuelCost), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
+            { label: 'Fuel After:', value: String(fuelAfter), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
+            { label: 'Duration:', value: `${durationDays} days`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_DIM },
+            { label: 'Arrival Date:', value: formatDate(dateAfter), valueColor: COLORS.TEXT_DIM }
+        ]);
         y++;
         
-        UI.addText(5, y++, `Distance: ${distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Fuel Cost: ${fuelCost}`, fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
-        UI.addText(5, y++, `Fuel After: ${fuelAfter}`, fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
-        y++;
-        
-        UI.addText(5, y++, `Duration: ${durationDays} days`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Current Date: ${formatDate(gameState.date)}`, COLORS.TEXT_DIM);
-        UI.addText(5, y++, `Arrival Date: ${formatDate(dateAfter)}`, COLORS.TEXT_DIM);
-        y++;
-        
-        // Encounter weights
+        // Encounter weights section
         UI.addText(5, y++, '=== Encounter Probability ===', COLORS.TITLE);
-        UI.addText(5, y++, `Pirates: ${pirateWeightRange}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Police: ${policeWeightRange}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Merchants: ${merchantWeightRange}`, COLORS.TEXT_NORMAL);
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Pirates:', value: pirateWeightRange, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Police:', value: policeWeightRange, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Merchants:', value: merchantWeightRange, valueColor: COLORS.TEXT_NORMAL }
+        ]);
         y++;
         
         if (!isVisited) {

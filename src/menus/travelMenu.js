@@ -32,7 +32,13 @@ const TravelMenu = (() => {
         
         const currentSystem = gameState.getCurrentSystem();
         const distance = currentSystem.distanceTo(destination);
-        totalDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY;
+        const activeShip = gameState.ship;
+        
+        // Calculate duration based on engine level
+        // Engine level of AVERAGE_SHIP_ENGINE_LEVEL means normal speed
+        // Higher engine = faster travel
+        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        totalDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
         elapsedDays = 0;
         
         // Start travel loop
@@ -54,9 +60,28 @@ const TravelMenu = (() => {
         
         let y = 5;
         
+        // Calculate journey details
+        const activeShip = currentGameState.ship;
+        const distance = currentSystem.distanceTo(targetSystem);
+        const fuelConsumed = Math.ceil(distance * progress);
+        const fuelRemaining = activeShip.fuel - fuelConsumed;
+        
+        // Calculate dates
+        const startDate = new Date(currentGameState.date);
+        const eta = new Date(startDate);
+        eta.setDate(eta.getDate() + Math.ceil(totalDuration));
+        
         // Journey info
         UI.addText(5, y++, `From: ${currentSystem.name}`, COLORS.TEXT_DIM);
         UI.addText(5, y++, `To: ${targetSystem.name}`, COLORS.TEXT_DIM);
+        y++;
+        
+        UI.addText(5, y++, `Start Date: ${formatDate(startDate)}`, COLORS.TEXT_DIM);
+        UI.addText(5, y++, `ETA: ${formatDate(eta)}`, COLORS.TEXT_DIM);
+        y++;
+        
+        UI.addText(5, y++, `Fuel Consumed: ${fuelConsumed}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, y++, `Fuel Remaining: ${fuelRemaining}`, fuelRemaining > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
         y++;
         
         // Progress bar
@@ -104,7 +129,7 @@ const TravelMenu = (() => {
      */
     function startTravelTick() {
         const tickInterval = 100; // milliseconds
-        const progressPerTick = 0.005; // 0.5% per tick
+        const progressPerTick = 0.02; // 2% per tick (faster progress)
         
         const interval = setInterval(() => {
             if (!paused && progress < 1.0) {
@@ -207,8 +232,7 @@ const TravelMenu = (() => {
         currentGameState.ship.fuel -= fuelCost;
         
         // Advance date
-        const durationDays = Math.ceil(distance * AVERAGE_JOURNEY_DAYS_PER_LY);
-        currentGameState.date.setDate(currentGameState.date.getDate() + durationDays);
+        currentGameState.date.setDate(currentGameState.date.getDate() + Math.ceil(totalDuration));
         
         // Move to target system
         const targetIndex = currentGameState.systems.indexOf(targetSystem);
@@ -216,6 +240,17 @@ const TravelMenu = (() => {
         
         // Return to galaxy map
         GalaxyMap.show(currentGameState);
+    }
+    
+    /**
+     * Format date for display
+     * @param {Date} date 
+     * @returns {string}
+     */
+    function formatDate(date) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     }
     
     return {

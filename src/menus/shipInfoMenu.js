@@ -28,6 +28,7 @@ const ShipInfoMenu = (() => {
             { label: 'Hull:', value: `${ship.hull} / ${ship.maxHull}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Shields:', value: `${ship.shields} / ${ship.maxShields}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Lasers:', value: String(ship.lasers), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Engine:', value: String(ship.engine), valueColor: COLORS.TEXT_NORMAL },
             { label: 'Fuel:', value: `${ship.fuel} / ${ship.maxFuel}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Cargo Space:', value: `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Available Space:', value: `${ship.getAvailableCargoSpace()} units`, valueColor: COLORS.GREEN }

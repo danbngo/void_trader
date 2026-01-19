@@ -31,16 +31,29 @@ const TravelConfirmMenu = (() => {
         const targetSystemIndex = gameState.systems.indexOf(targetSystem);
         const isVisited = gameState.visitedSystems.includes(targetSystemIndex);
         
-        // Calculate average encounter weights along journey
-        let avgPirateWeight = '?';
-        let avgPoliceWeight = '?';
-        let avgMerchantWeight = '?';
+        // Calculate encounter weight ranges along journey
+        let pirateWeightRange = '?';
+        let policeWeightRange = '?';
+        let merchantWeightRange = '?';
         
         if (isVisited) {
-            // Average between current and target system
-            avgPirateWeight = ((currentSystem.pirateWeight + targetSystem.pirateWeight) / 2).toFixed(2);
-            avgPoliceWeight = ((currentSystem.policeWeight + targetSystem.policeWeight) / 2).toFixed(2);
-            avgMerchantWeight = ((currentSystem.merchantWeight + targetSystem.merchantWeight) / 2).toFixed(2);
+            // Show range between current and target system
+            const minPirate = Math.min(currentSystem.pirateWeight, targetSystem.pirateWeight).toFixed(1);
+            const maxPirate = Math.max(currentSystem.pirateWeight, targetSystem.pirateWeight).toFixed(1);
+            pirateWeightRange = `${minPirate} - ${maxPirate}`;
+            
+            const minPolice = Math.min(currentSystem.policeWeight, targetSystem.policeWeight).toFixed(1);
+            const maxPolice = Math.max(currentSystem.policeWeight, targetSystem.policeWeight).toFixed(1);
+            policeWeightRange = `${minPolice} - ${maxPolice}`;
+            
+            const minMerchant = Math.min(currentSystem.merchantWeight, targetSystem.merchantWeight).toFixed(1);
+            const maxMerchant = Math.max(currentSystem.merchantWeight, targetSystem.merchantWeight).toFixed(1);
+            merchantWeightRange = `${minMerchant} - ${maxMerchant}`;
+        } else {
+            // Only know current system weights
+            pirateWeightRange = `${currentSystem.pirateWeight.toFixed(1)} - ?`;
+            policeWeightRange = `${currentSystem.policeWeight.toFixed(1)} - ?`;
+            merchantWeightRange = `${currentSystem.merchantWeight.toFixed(1)} - ?`;
         }
         
         // Draw title
@@ -65,9 +78,9 @@ const TravelConfirmMenu = (() => {
         
         // Encounter weights
         UI.addText(5, y++, '=== Encounter Probability ===', COLORS.TITLE);
-        UI.addText(5, y++, `Pirates: ${avgPirateWeight}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Police: ${avgPoliceWeight}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Merchants: ${avgMerchantWeight}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, y++, `Pirates: ${pirateWeightRange}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, y++, `Police: ${policeWeightRange}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, y++, `Merchants: ${merchantWeightRange}`, COLORS.TEXT_NORMAL);
         y++;
         
         if (!isVisited) {

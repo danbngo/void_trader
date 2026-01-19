@@ -7,6 +7,8 @@ const GalaxyMap = (() => {
     let selectedIndex = 0;
     let nearbySystems = [];
     let mapViewRange = MAP_VIEW_RANGE; // Current zoom level
+    let outputMessage = ''; // Output area message
+    let outputColor = COLORS.TEXT_NORMAL;
     
     /**
      * Show the galaxy map
@@ -15,6 +17,9 @@ const GalaxyMap = (() => {
     function show(gameState) {
         UI.clear();
         UI.resetSelection();
+        
+        // Clear output message when showing fresh
+        outputMessage = '';
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
@@ -231,6 +236,11 @@ const GalaxyMap = (() => {
         const grid = UI.getGridSize();
         let buttonY = grid.height - 10;
         
+        // Output area (2 lines above buttons)
+        if (outputMessage) {
+            UI.addText(startX, buttonY - 2, outputMessage, outputColor);
+        }
+        
         UI.addButton(startX, buttonY++, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
@@ -247,7 +257,18 @@ const GalaxyMap = (() => {
         
         UI.addButton(startX, buttonY++, '3', 'Scan System', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
-                ScanSystemMenu.show(nearbySystems[selectedIndex].system, () => show(gameState));
+                const selectedSystem = nearbySystems[selectedIndex].system;
+                const systemIndex = gameState.systems.indexOf(selectedSystem);
+                const isVisited = gameState.visitedSystems.includes(systemIndex);
+                
+                if (!isVisited) {
+                    outputMessage = 'You have not visited that system yet!';
+                    outputColor = COLORS.TEXT_ERROR;
+                    render(gameState);
+                } else {
+                    outputMessage = '';
+                    ScanSystemMenu.show(selectedSystem, () => show(gameState));
+                }
             }
         }, COLORS.BUTTON);
         

@@ -15,8 +15,9 @@ class Ship {
      * @param {number} shields - Current shield strength
      * @param {number} maxShields - Maximum shield capacity
      * @param {number} lasers - Number of laser weapons
+     * @param {number} engine - Engine level (affects travel speed)
      */
-    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'TRADER', shields = 0, maxShields = 0, lasers = 0) {
+    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'TRADER', shields = 0, maxShields = 0, lasers = 0, engine = 5) {
         this.name = name;
         this.type = type;
         this.fuel = fuel;
@@ -27,6 +28,7 @@ class Ship {
         this.shields = shields;
         this.maxShields = maxShields;
         this.lasers = lasers;
+        this.engine = engine;
         // Initialize cargo for all types
         this.cargo = {};
         ALL_CARGO_TYPES.forEach(cargoType => {

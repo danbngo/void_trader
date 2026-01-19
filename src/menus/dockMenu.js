@@ -26,13 +26,13 @@ const DockMenu = (() => {
         const menuX = Math.floor(grid.width / 2) - 12;
         let menuY = 10;
         
-        UI.addButton(menuX, menuY++, '1', 'Shipyard', () => ShipyardMenu.show(gameState, () => show(gameState)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '1', 'Shipyard', () => ShipyardMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'Manage and purchase ships');
         
-        UI.addButton(menuX, menuY++, '2', 'Market', () => MarketMenu.show(gameState, () => show(gameState)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '2', 'Market', () => MarketMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'Buy and sell cargo');
         
-        UI.addButton(menuX, menuY++, '3', 'Depart', () => GalaxyMap.show(gameState), COLORS.GREEN);
-        UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(() => show(gameState)), COLORS.BUTTON);
-        UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY++, '3', 'Depart', () => GalaxyMap.show(gameState), COLORS.GREEN, 'Leave station and travel to another system');
+        UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(() => show(gameState)), COLORS.BUTTON, 'View ship, cargo, and captain information');
+        UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
         
         UI.draw();
     }

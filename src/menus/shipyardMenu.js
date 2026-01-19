@@ -74,7 +74,12 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Laser', 'Engine', 'Cargo', 'Value'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Laser', 'Engine', 'Cargo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+            // When a row is clicked, select that ship
+            selectedShipIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
         
         // Output message
         const outputY = grid.height - 7;
@@ -84,11 +89,11 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 5;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON);
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON);
-        UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), COLORS.GREEN);
-        UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), COLORS.GREEN);
-        UI.addButton(40, buttonY, '5', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON);
+        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
+        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
+        UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), COLORS.GREEN, 'Refuel selected ship to maximum capacity');
+        UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), COLORS.GREEN, 'Repair hull and shields to maximum');
+        UI.addButton(40, buttonY, '5', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         UI.draw();
@@ -129,7 +134,12 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex, 2, (rowIndex) => {
+            // When a row is clicked, select that ship
+            selectedShipIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
         
         // Output message
         const outputY = grid.height - 6;
@@ -139,9 +149,9 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON);
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON);
-        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiatePurchase(onReturn), COLORS.GREEN);
+        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
+        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
+        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiatePurchase(onReturn), COLORS.GREEN, 'Purchase selected ship (trades in active ship)');
         UI.addButton(5, buttonY + 2, '0', 'Back', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
         UI.draw();

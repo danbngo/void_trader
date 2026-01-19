@@ -167,7 +167,11 @@ const EncounterMenu = (() => {
             ];
         });
         
-        y = TableRenderer.renderTable(5, y, enemyHeaders, enemyRows, selectedEnemyShip);
+        y = TableRenderer.renderTable(5, y, enemyHeaders, enemyRows, selectedEnemyShip, 2, inTargetingMode ? (rowIndex) => {
+            // When in targeting mode and a row is clicked, select that enemy
+            selectedEnemyShip = rowIndex;
+            render();
+        } : null);
         y += 2;
         
         // Output message

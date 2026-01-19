@@ -20,8 +20,15 @@ const UI = (() => {
     let registeredTexts = [];
     let registeredButtons = [];
     let registeredHighlights = []; // For table row selection highlights
+    let registeredTableRows = []; // For clickable table rows
     let selectedButtonIndex = 0;
+    let lastSelectedButtonIndex = -1; // Track last selection to detect changes
     let keyListener = null;
+    
+    // Output row state
+    let outputRowText = '';
+    let outputRowColor = 'white';
+    let outputRowIsHelpText = false;
     
     // Debounce timer for resize
     let resizeTimeout = null;
@@ -203,7 +210,7 @@ const UI = (() => {
             }
         });
         
-        // Mouse click to activate button
+        // Mouse click to activate button or table row
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const pixelX = e.clientX - rect.left;
@@ -214,14 +221,25 @@ const UI = (() => {
             const gridY = Math.floor(pixelY / charHeight);
             
             // Check if clicking on any button
+            let clickedButton = false;
             registeredButtons.forEach((btn, index) => {
                 const buttonText = `[${btn.key}] ${btn.label}`;
                 const buttonEndX = btn.x + buttonText.length;
                 
                 if (gridY === btn.y && gridX >= btn.x && gridX < buttonEndX) {
                     btn.callback();
+                    clickedButton = true;
                 }
             });
+            
+            // If didn't click a button, check if clicking on a table row
+            if (!clickedButton) {
+                registeredTableRows.forEach((row) => {
+                    if (gridY === row.y && gridX >= row.x && gridX < row.x + row.width) {
+                        row.callback(row.index);
+                    }
+                });
+            }
         });
         
         // Change cursor style when hovering over canvas
@@ -235,6 +253,11 @@ const UI = (() => {
         registeredTexts = [];
         registeredButtons = [];
         registeredHighlights = [];
+        registeredTableRows = [];
+        // Clear output row state
+        outputRowText = '';
+        outputRowColor = 'white';
+        outputRowIsHelpText = false;
         // Don't reset selectedButtonIndex - let draw() handle bounds checking
     }
     
@@ -361,16 +384,18 @@ const UI = (() => {
         });
         
         // Draw all registered buttons
-                // Draw output row (generalized)
-                if (typeof outputRowText !== 'undefined' && outputRowText) {
-                    const grid = getGridSize();
-                    const y = grid.height - 3;
-                    const x = Math.floor((GRID_WIDTH - outputRowText.length) / 2);
-                    ctx.fillStyle = 'black';
-                    ctx.fillRect(x * charWidth, y * charHeight, outputRowText.length * charWidth, charHeight);
-                    ctx.fillStyle = outputRowColor || 'white';
-                    ctx.fillText(outputRowText, x * charWidth, y * charHeight);
-                }
+        // Check if button selection changed
+        const selectionChanged = selectedButtonIndex !== lastSelectedButtonIndex;
+        if (selectionChanged) {
+            lastSelectedButtonIndex = selectedButtonIndex;
+            // Only clear output row if it was showing helpText
+            if (outputRowIsHelpText) {
+                outputRowText = '';
+                outputRowColor = 'white';
+                outputRowIsHelpText = false;
+            }
+        }
+        
         registeredButtons.forEach((btn, index) => {
             const buttonText = `[${btn.key}] ${btn.label}`;
             const pixelX = btn.x * charWidth;
@@ -388,6 +413,17 @@ const UI = (() => {
                 ctx.fillRect(pixelX, pixelY, buttonWidth, charHeight);
                 ctx.fillStyle = 'black';
                 ctx.fillText(buttonText, pixelX, pixelY);
+                
+                // Show helpText if available, not forbidden, and selection just changed or output row is empty/was helpText
+                if (
+                    btn.helpText &&
+                    !['Continue', 'Back'].includes(btn.label) &&
+                    (selectionChanged || !outputRowText || outputRowIsHelpText)
+                ) {
+                    outputRowText = btn.helpText;
+                    outputRowColor = 'aqua';
+                    outputRowIsHelpText = true;
+                }
             } else {
                 // Draw colored key and white label
                 ctx.fillStyle = btn.color;
@@ -396,6 +432,23 @@ const UI = (() => {
                 ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY);
             }
         });
+        
+        // Draw output row (generalized)
+        if (outputRowText) {
+            const grid = getGridSize();
+            // Find the minimum button Y position (topmost button)
+            let minButtonY = grid.height - 3; // default if no buttons
+            if (registeredButtons.length > 0) {
+                minButtonY = Math.min(...registeredButtons.map(btn => btn.y));
+            }
+            // Position output row 2 rows above the topmost button
+            const y = minButtonY - 2;
+            const x = Math.floor((GRID_WIDTH - outputRowText.length) / 2);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x * charWidth, y * charHeight, outputRowText.length * charWidth, charHeight);
+            ctx.fillStyle = outputRowColor;
+            ctx.fillText(outputRowText, x * charWidth, y * charHeight);
+        }
         
         // Debug output
         debugToConsole();
@@ -460,6 +513,52 @@ const UI = (() => {
      */
     function resetSelection() {
         selectedButtonIndex = 0;
+        lastSelectedButtonIndex = -1;
+        // Only clear helpText, not action output
+        if (outputRowIsHelpText) {
+            outputRowText = '';
+            outputRowColor = 'white';
+            outputRowIsHelpText = false;
+        }
+    }
+    
+    /**
+     * Set output row text (for action results, not helpText)
+     * @param {string} text - Text to display
+     * @param {string} color - Color of the text
+     */
+    function setOutputRow(text, color = 'white') {
+        outputRowText = text;
+        outputRowColor = color;
+        outputRowIsHelpText = false;
+    }
+    
+    /**
+     * Clear output row
+     */
+    function clearOutputRow() {
+        outputRowText = '';
+        outputRowColor = 'white';
+        outputRowIsHelpText = false;
+    }
+    
+    /**
+     * Get current output row state
+     */
+    function getOutputRow() {
+        return { text: outputRowText, color: outputRowColor, isHelpText: outputRowIsHelpText };
+    }
+    
+    /**
+     * Register a clickable table row
+     * @param {number} x - Starting X position
+     * @param {number} y - Y position of the row
+     * @param {number} width - Width of the row
+     * @param {number} index - Index of the row in the table
+     * @param {Function} callback - Function to call when row is clicked
+     */
+    function registerTableRow(x, y, width, index, callback) {
+        registeredTableRows.push({ x, y, width, index, callback });
     }
     
     // Public API
@@ -470,8 +569,12 @@ const UI = (() => {
         addTextCentered,
         addButton,
         addSelectionHighlight,
+        registerTableRow,
         draw,
         getGridSize,
-        resetSelection
+        resetSelection,
+        setOutputRow,
+        clearOutputRow,
+        getOutputRow
     };
 })();

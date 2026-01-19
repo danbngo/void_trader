@@ -57,7 +57,12 @@ const MarketMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Cargo', 'Base', 'Stock', 'Buy', 'Sell', 'You Have'], rows, selectedCargoIndex);
+        TableRenderer.renderTable(5, startY, ['Cargo', 'Base', 'Stock', 'Buy', 'Sell', 'You Have'], rows, selectedCargoIndex, 2, (rowIndex) => {
+            // When a row is clicked, select that cargo
+            selectedCargoIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
         
         // Output message row (just above buttons)
         const outputY = grid.height - 6;
@@ -67,12 +72,12 @@ const MarketMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON);
-        UI.addButton(5, buttonY + 1, '2', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON);
-        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), COLORS.GREEN);
-        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), COLORS.GREEN);
-        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), COLORS.GREEN);
-        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), COLORS.GREEN);
+        UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
+        UI.addButton(5, buttonY + 1, '2', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
+        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), COLORS.GREEN, 'Purchase 1 unit of selected cargo');
+        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), COLORS.GREEN, 'Sell 1 unit of selected cargo');
+        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), COLORS.GREEN, 'Purchase 10 units of selected cargo');
+        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), COLORS.GREEN, 'Sell 10 units of selected cargo');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         UI.draw();

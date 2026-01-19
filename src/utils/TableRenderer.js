@@ -12,9 +12,10 @@ const TableRenderer = (() => {
      * @param {Array<Array<{text: string, color: string}>>} rows - Array of rows, each row is array of cells
      * @param {number} selectedRowIndex - Index of selected row (-1 for none)
      * @param {number} spacing - Space between columns (default: 2)
+     * @param {Function} onRowClick - Optional callback when a row is clicked (receives row index)
      * @returns {number} - Y position after the table
      */
-    function renderTable(x, y, headers, rows, selectedRowIndex = -1, spacing = 2) {
+    function renderTable(x, y, headers, rows, selectedRowIndex = -1, spacing = 2, onRowClick = null) {
         // Calculate column widths based on content
         const columnWidths = headers.map((header, colIndex) => {
             let maxWidth = header.length;
@@ -46,6 +47,11 @@ const TableRenderer = (() => {
             // Add selection highlight background if selected
             if (isSelected) {
                 UI.addSelectionHighlight(x, currentY, totalWidth);
+            }
+            
+            // Register row as clickable if callback provided
+            if (onRowClick) {
+                UI.registerTableRow(x, currentY, totalWidth, rowIndex, onRowClick);
             }
             
             currentX = x;

@@ -26,9 +26,9 @@ const AssistantMenu = (() => {
         const menuX = Math.floor(grid.width / 2) - 12;
         const menuY = 11;
         
-        UI.addButton(menuX, menuY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON);
-        UI.addButton(menuX, menuY + 1, '2', 'Cargo Manifest', () => CargoInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON);
-        UI.addButton(menuX, menuY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON);
+        UI.addButton(menuX, menuY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON, 'View detailed ship specifications');
+        UI.addButton(menuX, menuY + 1, '2', 'Cargo Manifest', () => CargoInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON, 'View cargo hold contents and capacity');
+        UI.addButton(menuX, menuY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(returnCallback)), COLORS.BUTTON, 'View captain and officer details');
         UI.addButton(menuX, menuY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         UI.draw();

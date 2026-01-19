@@ -13,6 +13,7 @@ class GameState {
         this.x = 0; // Player's current x position
         this.y = 0; // Player's current y position
         this.credits = 1000; // Player's money
+        this.visitedSystems = []; // Array of visited system indices
     }
     
     /**
@@ -53,6 +54,11 @@ class GameState {
             const system = this.systems[systemIndex];
             this.x = system.x;
             this.y = system.y;
+            
+            // Mark system as visited
+            if (!this.visitedSystems.includes(systemIndex)) {
+                this.visitedSystems.push(systemIndex);
+            }
         }
     }
     

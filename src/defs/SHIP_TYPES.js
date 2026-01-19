@@ -8,71 +8,71 @@ const SHIP_TYPES = {
         id: 'SHUTTLE',
         name: 'Shuttle',
         description: 'Small personal transport craft',
-        baseMaxFuel: 10,
-        baseCargoCapacity: 30,
-        baseMaxHull: 60,
-        baseMaxShields: 20,
-        baseLasers: 1
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.0,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 1.5,
+        baseMaxHull: AVERAGE_SHIP_HULL * 1.5,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.2
     },
     FREIGHTER: {
         id: 'FREIGHTER',
         name: 'Freighter',
         description: 'Medium cargo hauler with good capacity',
-        baseMaxFuel: 15,
-        baseCargoCapacity: 100,
-        baseMaxHull: 100,
-        baseMaxShields: 40,
-        baseLasers: 2
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.5,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 5.0,
+        baseMaxHull: AVERAGE_SHIP_HULL * 2.5,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.0,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.4
     },
     SCOUT: {
         id: 'SCOUT',
         name: 'Scout',
         description: 'Fast and efficient with extended range',
-        baseMaxFuel: 15,
-        baseCargoCapacity: 40,
-        baseMaxHull: 70,
-        baseMaxShields: 50,
-        baseLasers: 3
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.5,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 2.0,
+        baseMaxHull: AVERAGE_SHIP_HULL * 1.75,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.25,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.6
     },
     HAULER: {
         id: 'HAULER',
         name: 'Hauler',
         description: 'Massive cargo capacity, slow but durable',
-        baseMaxFuel: 10,
-        baseCargoCapacity: 150,
-        baseMaxHull: 120,
-        baseMaxShields: 30,
-        baseLasers: 2
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.0,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 7.5,
+        baseMaxHull: AVERAGE_SHIP_HULL * 3.0,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.75,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.4
     },
     CORVETTE: {
         id: 'CORVETTE',
         name: 'Corvette',
         description: 'Military surplus with strong hull',
-        baseMaxFuel: 5,
-        baseCargoCapacity: 35,
-        baseMaxHull: 150,
-        baseMaxShields: 80,
-        baseLasers: 4
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 0.5,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 1.75,
+        baseMaxHull: AVERAGE_SHIP_HULL * 3.75,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 2.0,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.8
     },
     RAIDER: {
         id: 'RAIDER',
         name: 'Raider',
         description: 'Fast attack vessel with heavy firepower',
-        baseMaxFuel: 10,
-        baseCargoCapacity: 40,
-        baseMaxHull: 180,
-        baseMaxShields: 100,
-        baseLasers: 6
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.0,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 2.0,
+        baseMaxHull: AVERAGE_SHIP_HULL * 4.5,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 2.5,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.2
     },
     DESTROYER: {
         id: 'DESTROYER',
         name: 'Destroyer',
         description: 'Heavy military warship with superior defenses',
-        baseMaxFuel: 10,
-        baseCargoCapacity: 50,
-        baseMaxHull: 250,
-        baseMaxShields: 150,
-        baseLasers: 8
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.0,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 2.5,
+        baseMaxHull: AVERAGE_SHIP_HULL * 6.25,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 3.75,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.6
     },
     BATTLESHIP: {
         id: 'BATTLESHIP',

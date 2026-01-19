@@ -101,6 +101,39 @@ const SystemGenerator = (() => {
     }
     
     /**
+     * Calculate distance between two points
+     * @param {number} x1 
+     * @param {number} y1 
+     * @param {number} x2 
+     * @param {number} y2 
+     * @returns {number}
+     */
+    function distance(x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    /**
+     * Find the nearest neighbor distance for a system
+     * @param {StarSystem} system 
+     * @param {Array<StarSystem>} otherSystems 
+     * @returns {number}
+     */
+    function findNearestNeighborDistance(system, otherSystems) {
+        let minDistance = Infinity;
+        for (const other of otherSystems) {
+            if (other !== system) {
+                const dist = distance(system.x, system.y, other.x, other.y);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                }
+            }
+        }
+        return minDistance;
+    }
+    
+    /**
      * Generate multiple star systems
      * @param {number} count - Number of systems to generate
      * @returns {Array<StarSystem>}
@@ -108,10 +141,20 @@ const SystemGenerator = (() => {
     function generateMany(count) {
         usedNames.clear();
         const systems = [];
+        
+        // Generate initial systems
         for (let i = 0; i < count; i++) {
             systems.push(generate());
         }
-        return systems;
+        
+        // Remove isolated systems (further than 10ly from nearest neighbor)
+        const maxIsolationDistance = 10;
+        const connectedSystems = systems.filter(system => {
+            const nearestDistance = findNearestNeighborDistance(system, systems);
+            return nearestDistance <= maxIsolationDistance;
+        });
+        
+        return connectedSystems;
     }
     
     return {

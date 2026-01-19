@@ -24,7 +24,7 @@ const GalaxyMap = (() => {
             return;
         }
         
-        // Get nearby systems
+        // Get nearby systems (all visible systems, not filtered by reachability)
         nearbySystems = gameState.getNearbySystems(mapViewRange);
         
         // Ensure we don't go out of bounds
@@ -61,8 +61,9 @@ const GalaxyMap = (() => {
         }
         UI.addText(0, mapHeight - 1, '+' + '-'.repeat(mapWidth - 2) + '+', COLORS.GRAY);
         
-        // Title
+        // Title with zoom level
         UI.addText(2, 0, '[ GALAXY MAP ]', COLORS.TITLE);
+        UI.addText(mapWidth - 12, 0, `Zoom: ${mapViewRange.toFixed(1)}`, COLORS.TEXT_DIM);
         
         // Calculate scale to fit systems in map
         const mapCenterX = Math.floor(mapWidth / 2);
@@ -71,6 +72,8 @@ const GalaxyMap = (() => {
         
         // Draw current system (center)
         UI.addText(mapCenterX, mapCenterY, '@', COLORS.GREEN);
+        
+        const activeShip = gameState.ship;
         
         // Draw nearby systems
         nearbySystems.forEach((item, index) => {
@@ -83,8 +86,28 @@ const GalaxyMap = (() => {
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 const isSelected = index === selectedIndex;
-                const symbol = isSelected ? '*' : '.';
-                const color = isSelected ? COLORS.YELLOW : COLORS.CYAN;
+                
+                // Check if reachable and visited
+                const systemIndex = gameState.systems.indexOf(item.system);
+                const isVisited = gameState.visitedSystems.includes(systemIndex);
+                const canReach = activeShip.canReach(currentSystem.x, currentSystem.y, item.system.x, item.system.y);
+                
+                // Determine symbol and color
+                let symbol = '?'; // Unvisited default
+                let color = COLORS.GRAY; // Unreachable default
+                
+                if (isVisited) {
+                    symbol = isSelected ? '*' : '.';
+                } else if (isSelected) {
+                    symbol = '*';
+                }
+                
+                // Prioritize selection color over everything else
+                if (isSelected) {
+                    color = COLORS.YELLOW;
+                } else if (canReach) {
+                    color = COLORS.CYAN;
+                }
                 
                 // Only draw if not overlapping current system
                 if (screenX !== mapCenterX || screenY !== mapCenterY) {
@@ -93,13 +116,8 @@ const GalaxyMap = (() => {
             }
         });
         
-        // Legend below map
-        UI.addText(2, mapHeight + 1, '@ = You', COLORS.GRAY);
-        UI.addText(2, mapHeight + 2, '* = Selected', COLORS.GRAY);
-        UI.addText(2, mapHeight + 3, '. = System', COLORS.GRAY);
-        
         // Player Ships summary
-        UI.addText(2, mapHeight + 5, '=== Player Ships ===', COLORS.TITLE);
+        UI.addText(2, mapHeight + 1, '=== Player Ships ===', COLORS.TITLE);
         
         // Calculate total fuel and hull across all ships
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
@@ -107,8 +125,17 @@ const GalaxyMap = (() => {
         const totalHull = gameState.ships.reduce((sum, ship) => sum + ship.hull, 0);
         const totalMaxHull = gameState.ships.reduce((sum, ship) => sum + ship.maxHull, 0);
         
-        UI.addText(2, mapHeight + 6, `Fuel: ${totalFuel} / ${totalMaxFuel}`, COLORS.TEXT_NORMAL);
-        UI.addText(2, mapHeight + 7, `Hull: ${totalHull} / ${totalMaxHull}`, COLORS.TEXT_NORMAL);
+        UI.addText(2, mapHeight + 2, `Fuel: ${totalFuel} / ${totalMaxFuel}`, COLORS.TEXT_NORMAL);
+        UI.addText(2, mapHeight + 3, `Hull: ${totalHull} / ${totalMaxHull}`, COLORS.TEXT_NORMAL);
+        
+        // Empty row
+        
+        // Legend below in 2 columns
+        const legendY = mapHeight + 5;
+        UI.addText(2, legendY, '@ = You', COLORS.GRAY);
+        UI.addText(15, legendY, '* = Selected', COLORS.GRAY);
+        UI.addText(2, legendY + 1, '. = Visited', COLORS.GRAY);
+        UI.addText(15, legendY + 1, '? = Unknown', COLORS.GRAY);
     }
     
     /**
@@ -147,6 +174,57 @@ const GalaxyMap = (() => {
     }
     
     /**
+     * Render the galaxy map without resetting button selection
+     */
+    function render(gameState) {
+        UI.clear();
+        
+        const grid = UI.getGridSize();
+        const currentSystem = gameState.getCurrentSystem();
+        
+        if (!currentSystem) {
+            return;
+        }
+        
+        // Get nearby systems
+        const oldNearbySystems = nearbySystems;
+        nearbySystems = gameState.getNearbySystems(mapViewRange);
+        
+        // Check if selected system is still visible after zoom
+        if (oldNearbySystems.length > 0 && selectedIndex < oldNearbySystems.length) {
+            const previouslySelected = oldNearbySystems[selectedIndex].system;
+            const stillVisible = nearbySystems.find(item => item.system === previouslySelected);
+            
+            if (!stillVisible) {
+                // Selected system went off screen, reset to first
+                selectedIndex = 0;
+            } else {
+                // Update selectedIndex to match new position
+                selectedIndex = nearbySystems.findIndex(item => item.system === previouslySelected);
+            }
+        }
+        
+        // Ensure we don't go out of bounds
+        if (selectedIndex >= nearbySystems.length) {
+            selectedIndex = Math.max(0, nearbySystems.length - 1);
+        }
+        
+        // Draw map on left side (50% of width)
+        const mapWidth = Math.floor(grid.width * 0.5);
+        const mapHeight = Math.floor(grid.height * 0.5);
+        
+        drawMap(gameState, mapWidth, mapHeight);
+        
+        // Draw system info on right side
+        drawSystemInfo(gameState, mapWidth + 2);
+        
+        // Draw buttons at bottom
+        drawButtons(gameState, mapWidth + 2);
+        
+        UI.draw();
+    }
+    
+    /**
      * Draw navigation buttons
      */
     function drawButtons(gameState, startX) {
@@ -156,14 +234,14 @@ const GalaxyMap = (() => {
         UI.addButton(startX, buttonY++, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
-                show(gameState);
+                render(gameState);
             }
         }, COLORS.BUTTON);
         
         UI.addButton(startX, buttonY++, '2', 'Next System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex + 1) % nearbySystems.length;
-                show(gameState);
+                render(gameState);
             }
         }, COLORS.BUTTON);
         
@@ -175,18 +253,19 @@ const GalaxyMap = (() => {
         
         UI.addButton(startX, buttonY++, '4', 'Zoom In', () => {
             mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
-            show(gameState);
+            render(gameState);
         }, COLORS.BUTTON);
         
         UI.addButton(startX, buttonY++, '5', 'Zoom Out', () => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
-            show(gameState);
+            render(gameState);
         }, COLORS.BUTTON);
         
         UI.addButton(startX, buttonY++, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GREEN);
     }
     
     return {
-        show
+        show,
+        render
     };
 })();

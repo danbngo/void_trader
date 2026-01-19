@@ -65,4 +65,19 @@ class Ship {
         
         return Math.floor((fuelValue + cargoValue + hullValue + shieldValue + laserValue) * conditionMultiplier);
     }
+    
+    /**
+     * Check if ship can reach a destination
+     * @param {number} fromX - Starting X coordinate
+     * @param {number} fromY - Starting Y coordinate
+     * @param {number} toX - Destination X coordinate
+     * @param {number} toY - Destination Y coordinate
+     * @returns {boolean}
+     */
+    canReach(fromX, fromY, toX, toY) {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return this.fuel >= distance;
+    }
 }

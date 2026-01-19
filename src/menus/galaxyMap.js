@@ -311,12 +311,12 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'View detailed information about the selected system');
         
-        UI.addButton(28, buttonY, '4', 'Zoom In', () => {
+        UI.addButton(28, buttonY, '8', 'Zoom In', () => {
             mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
         
-        UI.addButton(28, buttonY + 1, '5', 'Zoom Out', () => {
+        UI.addButton(28, buttonY + 1, '9', 'Zoom Out', () => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');

@@ -9,6 +9,9 @@ const EncounterMenu = (() => {
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
     let targetIndex = 0; // Index of currently targeted enemy
+    let cameraOffsetX = 0; // Camera offset for centering on active ship
+    let cameraOffsetY = 0;
+    let mapViewRange = ENCOUNTER_MAP_VIEW_RANGE; // Current view range
     
     /**
      * Calculate angle from one point to another (in radians)
@@ -53,48 +56,74 @@ const EncounterMenu = (() => {
         const mapCenterX = 0;
         const mapCenterY = 0;
         
-        // Assign random positions to player ships
+        // Assign random positions to player ships (negative X side, within circle)
         gameState.ships.forEach(ship => {
-            ship.x = Math.floor(Math.random() * (ENCOUNTER_MAX_X - ENCOUNTER_MIN_X + 1)) + ENCOUNTER_MIN_X;
-            ship.y = Math.floor(Math.random() * (ENCOUNTER_MAX_Y - ENCOUNTER_MIN_Y + 1)) + ENCOUNTER_MIN_Y;
-            
-            // Ensure ship is at least MIN distance from center
-            const distFromCenter = Math.sqrt(ship.x * ship.x + ship.y * ship.y);
-            if (distFromCenter < ENCOUNTER_MIN_SHIP_DISTANCE) {
-                const angle = Math.random() * Math.PI * 2;
-                ship.x = Math.cos(angle) * ENCOUNTER_MIN_SHIP_DISTANCE;
-                ship.y = Math.sin(angle) * ENCOUNTER_MIN_SHIP_DISTANCE;
-            }
-            
-            // Point ship at center of map
-            ship.angle = calculateAngle(ship.x, ship.y, mapCenterX, mapCenterY);
+            // Player ships on left side of circle
+            const angle = Math.PI + Math.random() * Math.PI; // Left side angles (90° to 270°)
+            const distance = ENCOUNTER_MIN_SHIP_DISTANCE + Math.random() * (ENCOUNTER_MAX_SHIP_DISTANCE - ENCOUNTER_MIN_SHIP_DISTANCE);
+            ship.x = Math.cos(angle) * distance;
+            ship.y = Math.sin(angle) * distance;
             
             // Combat state
             ship.fled = false;
             ship.disabled = false;
             ship.acted = false;
+            ship.escaped = false;
         });
         
-        // Assign random positions to enemy ships
+        // Assign random positions to enemy ships (positive X side, within circle)
         gameState.encounterShips.forEach(ship => {
-            ship.x = Math.floor(Math.random() * (ENCOUNTER_MAX_X - ENCOUNTER_MIN_X + 1)) + ENCOUNTER_MIN_X;
-            ship.y = Math.floor(Math.random() * (ENCOUNTER_MAX_Y - ENCOUNTER_MIN_Y + 1)) + ENCOUNTER_MIN_Y;
-            
-            // Ensure ship is at least MIN distance from center
-            const distFromCenter = Math.sqrt(ship.x * ship.x + ship.y * ship.y);
-            if (distFromCenter < ENCOUNTER_MIN_SHIP_DISTANCE) {
-                const angle = Math.random() * Math.PI * 2;
-                ship.x = Math.cos(angle) * ENCOUNTER_MIN_SHIP_DISTANCE;
-                ship.y = Math.sin(angle) * ENCOUNTER_MIN_SHIP_DISTANCE;
-            }
-            
-            // Point ship at center of map
-            ship.angle = calculateAngle(ship.x, ship.y, mapCenterX, mapCenterY);
+            // Enemy ships on right side of circle
+            const angle = Math.random() * Math.PI; // Right side angles (-90° to 90°)
+            const distance = ENCOUNTER_MIN_SHIP_DISTANCE + Math.random() * (ENCOUNTER_MAX_SHIP_DISTANCE - ENCOUNTER_MIN_SHIP_DISTANCE);
+            ship.x = Math.cos(angle) * distance;
+            ship.y = Math.sin(angle) * distance;
             
             // Combat state
             ship.fled = false;
             ship.disabled = false;
             ship.acted = false;
+            ship.escaped = false;
+        });
+        
+        // After positioning, set angles to point at random opponents
+        gameState.ships.forEach(ship => {
+            if (gameState.encounterShips.length > 0) {
+                const randomEnemy = gameState.encounterShips[Math.floor(Math.random() * gameState.encounterShips.length)];
+                ship.angle = calculateAngle(ship.x, ship.y, randomEnemy.x, randomEnemy.y);
+            }
+        });
+        
+        gameState.encounterShips.forEach(ship => {
+            if (gameState.ships.length > 0) {
+                const randomPlayer = gameState.ships[Math.floor(Math.random() * gameState.ships.length)];
+                ship.angle = calculateAngle(ship.x, ship.y, randomPlayer.x, randomPlayer.y);
+            }
+        });
+    }
+    
+    /**
+     * Check all ships for escape (outside circular boundary)
+     */
+    function checkForEscapedShips(gameState) {
+        // Check player ships
+        gameState.ships.forEach(ship => {
+            if (!ship.escaped && !ship.disabled) {
+                const distanceFromCenter = Math.sqrt(ship.x * ship.x + ship.y * ship.y);
+                if (distanceFromCenter > ENCOUNTER_MAX_RADIUS) {
+                    ship.escaped = true;
+                }
+            }
+        });
+        
+        // Check enemy ships
+        gameState.encounterShips.forEach(ship => {
+            if (!ship.escaped && !ship.disabled) {
+                const distanceFromCenter = Math.sqrt(ship.x * ship.x + ship.y * ship.y);
+                if (distanceFromCenter > ENCOUNTER_MAX_RADIUS) {
+                    ship.escaped = true;
+                }
+            }
         });
     }
     
@@ -117,17 +146,24 @@ const EncounterMenu = (() => {
         // Find first valid target
         findNextValidTarget();
         
+        // Center camera on first player ship
+        const firstShip = gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped);
+        if (firstShip) {
+            cameraOffsetX = firstShip.x;
+            cameraOffsetY = firstShip.y;
+        }
+        
         render();
     }
     
     /**
-     * Find next valid target (not fled or disabled)
+     * Find next valid target (not fled, disabled, or escaped)
      */
     function findNextValidTarget() {
         const enemies = currentGameState.encounterShips;
         for (let i = 0; i < enemies.length; i++) {
             const idx = (targetIndex + i) % enemies.length;
-            if (!enemies[idx].fled && !enemies[idx].disabled) {
+            if (!enemies[idx].fled && !enemies[idx].disabled && !enemies[idx].escaped) {
                 targetIndex = idx;
                 return;
             }
@@ -177,16 +213,29 @@ const EncounterMenu = (() => {
         const mapCenterX = Math.floor(mapWidth / 2);
         const mapCenterY = Math.floor(mapHeight / 2);
         
-        // Calculate scale to fit encounter area in map
-        const encounterWidth = ENCOUNTER_MAX_X - ENCOUNTER_MIN_X;
-        const encounterHeight = ENCOUNTER_MAX_Y - ENCOUNTER_MIN_Y;
-        const scale = Math.min((mapWidth - 4) / encounterWidth, (mapHeight - 4) / encounterHeight);
+        // Calculate scale based on view range
+        const scale = Math.min((mapWidth - 4) / (mapViewRange * 2), (mapHeight - 4) / (mapViewRange * 2));
         
         // Draw center marker
         UI.addText(mapCenterX, mapCenterY, '+', COLORS.TEXT_DIM);
         
-        // Get active player ship (first non-fled, non-disabled)
-        const activeShip = gameState.ships.find(s => !s.fled && !s.disabled);
+        // Draw circular boundary markers (dots showing encounter area limit)
+        const numDots = 60; // Number of dots around the circle
+        for (let i = 0; i < numDots; i++) {
+            const angle = (i / numDots) * Math.PI * 2;
+            const x = Math.cos(angle) * ENCOUNTER_MAX_RADIUS;
+            const y = Math.sin(angle) * ENCOUNTER_MAX_RADIUS;
+            
+            const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
+            
+            if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                UI.addText(screenX, screenY, '·', COLORS.TEXT_DIM);
+            }
+        }
+        
+        // Get active player ship (first non-fled, non-disabled, non-escaped, non-acted)
+        const activeShip = gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped && !s.acted);
         const targetShip = gameState.encounterShips[targetIndex];
         
         let activeShipScreenX = null;
@@ -196,22 +245,22 @@ const EncounterMenu = (() => {
         
         // Draw player ships
         gameState.ships.forEach((ship, index) => {
-            if (ship.fled) return;
+            if (ship.fled || ship.escaped) return;
             
-            const screenX = Math.floor(mapCenterX + ship.x * scale);
-            const screenY = Math.floor(mapCenterY - ship.y * scale); // Negate Y because screen Y increases downward
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale); // Negate Y because screen Y increases downward
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 const symbol = getShipSymbol(ship.angle);
-                let color = COLORS.GREEN;
+                let color = COLORS.CYAN;
                 
                 if (ship.disabled) {
                     color = COLORS.GRAY;
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
                 } else if (ship === activeShip) {
-                    color = COLORS.CYAN; // Bright if active and hasn't moved
+                    color = COLORS.GREEN; // Bright if active and hasn't moved
                     activeShipScreenX = screenX;
                     activeShipScreenY = screenY;
                 }
@@ -222,10 +271,10 @@ const EncounterMenu = (() => {
         
         // Draw enemy ships
         gameState.encounterShips.forEach((ship, index) => {
-            if (ship.fled) return;
+            if (ship.fled || ship.escaped) return;
             
-            const screenX = Math.floor(mapCenterX + ship.x * scale);
-            const screenY = Math.floor(mapCenterY - ship.y * scale); // Negate Y because screen Y increases downward
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale); // Negate Y because screen Y increases downward
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -276,7 +325,7 @@ const EncounterMenu = (() => {
         let activeShip = null;
         for (let i = 0; i < gameState.ships.length; i++) {
             const ship = gameState.ships[i];
-            if (!ship.fled && !ship.disabled && !ship.acted) {
+            if (!ship.fled && !ship.disabled && !ship.escaped && !ship.acted) {
                 activeShip = ship;
                 break;
             }
@@ -284,23 +333,25 @@ const EncounterMenu = (() => {
         
         // If no active ship found, show first non-fled ship
         if (!activeShip) {
-            activeShip = gameState.ships.find(s => !s.fled && !s.disabled);
+            activeShip = gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped);
         }
         
-        UI.addText(startX, 0, '=== Your Ship ===', COLORS.CYAN);
+        UI.addText(startX, 0, '=== Your Ship ===', COLORS.GREEN);
         
         if (activeShip) {
             const shipType = SHIP_TYPES[activeShip.type] || { name: 'Unknown' };
-            const statusText = activeShip.acted ? ' (Moved)' : ' (Active)';
-            const statusColor = activeShip.acted ? COLORS.TEXT_DIM : COLORS.GREEN;
             
             let y = 2;
             UI.addText(startX, y, 'Name:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y, activeShip.name, COLORS.TEXT_NORMAL);
-            UI.addText(startX + 6 + activeShip.name.length, y, statusText, statusColor);
+            if (activeShip.acted) {
+                UI.addText(startX + 6 + activeShip.name.length, y, ' (Moved)', COLORS.TEXT_DIM);
+            }
             y++;
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
+            UI.addText(startX + 8, y - 1, `(${activeShip.x.toFixed(0)}, ${activeShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, `${activeShip.hull}/${activeShip.maxHull}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
@@ -318,7 +369,7 @@ const EncounterMenu = (() => {
         
         UI.addText(startX, 9, `=== ${encounterType.name} Ship ===`, COLORS.YELLOW);
         
-        if (targetShip && !targetShip.fled && !targetShip.disabled) {
+        if (targetShip && !targetShip.fled && !targetShip.disabled && !targetShip.escaped) {
             const shipType = SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
             const distance = activeShip ? Math.sqrt(
                 Math.pow(activeShip.x - targetShip.x, 2) + 
@@ -328,12 +379,14 @@ const EncounterMenu = (() => {
             let y = 11;
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
+            UI.addText(startX + 8, y - 1, `(${targetShip.x.toFixed(0)}, ${targetShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
-            UI.addText(startX + 10, y - 1, `${distance}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX + 10, y - 1, `${distance} AU`, COLORS.TEXT_NORMAL);
         } else {
             UI.addText(startX, 11, 'No valid targets', COLORS.TEXT_DIM);
         }
@@ -346,31 +399,56 @@ const EncounterMenu = (() => {
         const grid = UI.getGridSize();
         const buttonY = grid.height - 5;
         
-        // Output area (2 lines above buttons)
+        // Set output message in UI output row if there's a message
         if (outputMessage) {
-            UI.addText(5, buttonY - 2, outputMessage, outputColor);
+            UI.setOutputRow(outputMessage, outputColor);
         }
         
-        // Buttons in columns
-        UI.addButton(5, buttonY, '1', 'Previous Target', () => {
-            prevTarget();
-        }, COLORS.BUTTON, 'Select previous enemy ship as target');
+        // Check if action is in progress
+        const actionInProgress = gameState.combatAction || gameState.combatHandler;
         
-        UI.addButton(5, buttonY + 1, '2', 'Next Target', () => {
-            nextTarget();
-        }, COLORS.BUTTON, 'Select next enemy ship as target');
+        if (actionInProgress) {
+            // No buttons while action is executing
+            return;
+        }
         
-        UI.addButton(5, buttonY + 2, '3', 'Pursue', () => {
-            executePlayerAction(COMBAT_ACTIONS.PURSUE);
-        }, COLORS.GREEN, 'Move toward the enemy ship');
+        // Check if waiting for player to continue
+        const activeShip = getActivePlayerShip();
+        const needsContinue = !activeShip || activeShip.acted;
         
-        UI.addButton(5, buttonY + 3, '4', 'Flee', () => {
-            executePlayerAction(COMBAT_ACTIONS.FLEE);
-        }, COLORS.BUTTON, 'Move away from the enemy ship');
-        
-        UI.addButton(5, buttonY + 4, '0', 'End Combat', () => {
-            endCombat();
-        }, COLORS.GRAY, 'End combat and return to galaxy map');
+        if (needsContinue && outputMessage) {
+            // Show Continue button to advance to next ship or enemy turn
+            UI.addButton(5, buttonY, '1', 'Continue', () => {
+                continueAfterAction();
+            }, COLORS.GREEN, 'Continue to next action');
+        } else {
+            // Show normal action buttons
+            UI.addButton(5, buttonY, '1', 'Previous Target', () => {
+                prevTarget();
+            }, COLORS.BUTTON, 'Select previous enemy ship as target');
+            
+            UI.addButton(5, buttonY + 1, '2', 'Next Target', () => {
+                nextTarget();
+            }, COLORS.BUTTON, 'Select next enemy ship as target');
+            
+            UI.addButton(5, buttonY + 2, '3', 'Pursue', () => {
+                executePlayerAction(COMBAT_ACTIONS.PURSUE);
+            }, COLORS.GREEN, 'Move toward the enemy ship');
+            
+            UI.addButton(5, buttonY + 3, '4', 'Flee', () => {
+                executePlayerAction(COMBAT_ACTIONS.FLEE);
+            }, COLORS.BUTTON, 'Move away from the enemy ship');
+            
+            UI.addButton(28, buttonY, '8', 'Zoom In', () => {
+                mapViewRange = Math.max(ENCOUNTER_MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
+                render();
+            }, COLORS.BUTTON, 'Decrease view range to see closer');
+            
+            UI.addButton(28, buttonY + 1, '9', 'Zoom Out', () => {
+                mapViewRange = Math.min(ENCOUNTER_MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
+                render();
+            }, COLORS.BUTTON, 'Increase view range to see farther');
+        }
     }
     
     /**
@@ -382,7 +460,7 @@ const EncounterMenu = (() => {
         do {
             targetIndex = (targetIndex - 1 + enemies.length) % enemies.length;
             attempts++;
-        } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled) && attempts < enemies.length);
+        } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
         
         render();
     }
@@ -396,7 +474,7 @@ const EncounterMenu = (() => {
         do {
             targetIndex = (targetIndex + 1) % enemies.length;
             attempts++;
-        } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled) && attempts < enemies.length);
+        } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
         
         render();
     }
@@ -413,6 +491,7 @@ const EncounterMenu = (() => {
             delete ship.fled;
             delete ship.disabled;
             delete ship.acted;
+            delete ship.escaped;
         });
         
         currentGameState.encounterShips.forEach(ship => {
@@ -422,6 +501,7 @@ const EncounterMenu = (() => {
             delete ship.fled;
             delete ship.disabled;
             delete ship.acted;
+            delete ship.escaped;
         });
         
         currentGameState.encounter = false;
@@ -440,6 +520,12 @@ const EncounterMenu = (() => {
         const targetShip = currentGameState.encounterShips[targetIndex];
         if (!targetShip || targetShip.fled || targetShip.disabled) return;
         
+        // Store initial distance for flee message
+        const initialDistance = Math.sqrt(
+            Math.pow(activeShip.x - targetShip.x, 2) + 
+            Math.pow(activeShip.y - targetShip.y, 2)
+        );
+        
         // Create action
         const action = new CombatAction(activeShip, actionType, targetShip);
         
@@ -448,11 +534,35 @@ const EncounterMenu = (() => {
             // Mark ship as acted
             activeShip.acted = true;
             
-            // Move to next player ship or start enemy turn
-            if (!advanceToNextPlayerShip()) {
-                executeEnemyTurn();
+            // Calculate distance moved for flee action
+            if (actionType === COMBAT_ACTIONS.FLEE) {
+                const finalDistance = Math.sqrt(
+                    Math.pow(activeShip.x - targetShip.x, 2) + 
+                    Math.pow(activeShip.y - targetShip.y, 2)
+                );
+                const distanceFled = (finalDistance - initialDistance).toFixed(1);
+                outputMessage = `Fled ${distanceFled} AU`;
+                outputColor = COLORS.TEXT_NORMAL;
+            } else if (actionType === COMBAT_ACTIONS.PURSUE) {
+                outputMessage = `Closed distance`;
+                outputColor = COLORS.TEXT_NORMAL;
             }
+            
+            render();
         });
+    }
+    
+    /**
+     * Continue after action completes
+     */
+    function continueAfterAction() {
+        outputMessage = '';
+        
+        // Check if there are more player ships to move
+        if (!advanceToNextPlayerShip()) {
+            // All player ships moved, start enemy turn
+            executeEnemyTurn();
+        }
     }
     
     /**
@@ -461,7 +571,7 @@ const EncounterMenu = (() => {
     function getActivePlayerShip() {
         for (let i = 0; i < currentGameState.ships.length; i++) {
             const ship = currentGameState.ships[i];
-            if (!ship.fled && !ship.disabled && !ship.acted) {
+            if (!ship.fled && !ship.disabled && !ship.escaped && !ship.acted) {
                 return ship;
             }
         }
@@ -474,6 +584,9 @@ const EncounterMenu = (() => {
     function advanceToNextPlayerShip() {
         const nextShip = getActivePlayerShip();
         if (nextShip) {
+            // Center camera on new active ship
+            cameraOffsetX = nextShip.x;
+            cameraOffsetY = nextShip.y;
             render(); // Render with new active ship
             return true;
         }
@@ -501,6 +614,16 @@ const EncounterMenu = (() => {
             // Reset acted flags for new turn
             currentGameState.ships.forEach(ship => ship.acted = false);
             currentGameState.encounterShips.forEach(ship => ship.acted = false);
+            
+            // Center camera back on first player ship
+            const firstShip = currentGameState.ships.find(s => !s.fled && !s.disabled);
+            if (firstShip) {
+                cameraOffsetX = firstShip.x;
+                cameraOffsetY = firstShip.y;
+            }
+            
+            outputMessage = 'New turn';
+            outputColor = COLORS.TEXT_NORMAL;
             render();
         });
     }
@@ -514,7 +637,18 @@ const EncounterMenu = (() => {
             return;
         }
         
-        executeActionWithTicks(actions[index], () => {
+        const action = actions[index];
+        
+        // Center camera on the enemy ship that's moving
+        if (action.ship) {
+            cameraOffsetX = action.ship.x;
+            cameraOffsetY = action.ship.y;
+        }
+        
+        outputMessage = `Enemy moving...`;
+        outputColor = COLORS.TEXT_ERROR;
+        
+        executeActionWithTicks(action, () => {
             executeEnemyActionsSequentially(actions, index + 1, onComplete);
         });
     }
@@ -525,6 +659,10 @@ const EncounterMenu = (() => {
     function executeActionWithTicks(action, onComplete) {
         const handler = new CombatActionHandler(action);
         
+        // Store in gameState to track action in progress
+        currentGameState.combatAction = action;
+        currentGameState.combatHandler = handler;
+        
         const tickInterval = setInterval(() => {
             const complete = handler.tick();
             
@@ -532,6 +670,9 @@ const EncounterMenu = (() => {
             if (handler.ramAction) {
                 // Execute ram action after current action completes
                 clearInterval(tickInterval);
+                // Clear current action before starting ram action
+                currentGameState.combatAction = null;
+                currentGameState.combatHandler = null;
                 executeActionWithTicks(handler.ramAction, onComplete);
                 return;
             }
@@ -541,6 +682,14 @@ const EncounterMenu = (() => {
             
             if (complete) {
                 clearInterval(tickInterval);
+                
+                // Check for escaped ships after action completes
+                checkForEscapedShips(currentGameState);
+                
+                // Clear action from gameState
+                currentGameState.combatAction = null;
+                currentGameState.combatHandler = null;
+                
                 if (onComplete) {
                     onComplete();
                 }

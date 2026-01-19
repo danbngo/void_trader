@@ -98,14 +98,8 @@ const GalaxyMap = (() => {
                 const canReach = activeShip.canReach(currentSystem.x, currentSystem.y, item.system.x, item.system.y);
                 
                 // Determine symbol and color
-                let symbol = '?'; // Unvisited default
+                let symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
                 let color = COLORS.GRAY; // Unreachable default
-                
-                if (isVisited) {
-                    symbol = isSelected ? '*' : '.';
-                } else if (isSelected) {
-                    symbol = '*';
-                }
                 
                 // Prioritize selection color over everything else
                 if (isSelected) {
@@ -117,6 +111,12 @@ const GalaxyMap = (() => {
                 // Only draw if not overlapping current system
                 if (screenX !== mapCenterX || screenY !== mapCenterY) {
                     UI.addText(screenX, screenY, symbol, color);
+                    
+                    // Register as clickable
+                    UI.registerTableRow(screenX, screenY, 1, index, (rowIndex) => {
+                        selectedIndex = rowIndex;
+                        render(gameState);
+                    });
                 }
             }
         });
@@ -138,9 +138,8 @@ const GalaxyMap = (() => {
         // Legend below in 2 columns
         const legendY = mapHeight + 5;
         UI.addText(2, legendY, '@ = You', COLORS.GRAY);
-        UI.addText(15, legendY, '* = Selected', COLORS.GRAY);
-        UI.addText(2, legendY + 1, '. = Visited', COLORS.GRAY);
-        UI.addText(15, legendY + 1, '? = Unknown', COLORS.GRAY);
+        UI.addText(15, legendY, '★ = Visited', COLORS.GRAY);
+        UI.addText(2, legendY + 1, '☆ = Unvisited', COLORS.GRAY);
     }
     
     /**
@@ -258,17 +257,8 @@ const GalaxyMap = (() => {
         UI.addButton(startX, buttonY++, '3', 'Scan System', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 const selectedSystem = nearbySystems[selectedIndex].system;
-                const systemIndex = gameState.systems.indexOf(selectedSystem);
-                const isVisited = gameState.visitedSystems.includes(systemIndex);
-                
-                if (!isVisited) {
-                    outputMessage = 'You have not visited that system yet!';
-                    outputColor = COLORS.TEXT_ERROR;
-                    render(gameState);
-                } else {
-                    outputMessage = '';
-                    ScanSystemMenu.show(selectedSystem, () => show(gameState));
-                }
+                outputMessage = '';
+                ScanSystemMenu.show(selectedSystem, () => show(gameState));
             }
         }, COLORS.BUTTON);
         
@@ -284,7 +274,20 @@ const GalaxyMap = (() => {
         
         UI.addButton(startX, buttonY++, '6', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
-                TravelConfirmMenu.show(gameState, nearbySystems[selectedIndex].system);
+                const targetSystem = nearbySystems[selectedIndex].system;
+                const currentSystem = gameState.getCurrentSystem();
+                const distance = currentSystem.distanceTo(targetSystem);
+                const fuelCost = Math.ceil(distance);
+                const activeShip = gameState.ship;
+                
+                if (activeShip.fuel < fuelCost) {
+                    outputMessage = `Insufficient fuel! Need ${fuelCost}, have ${activeShip.fuel}`;
+                    outputColor = COLORS.TEXT_ERROR;
+                    render(gameState);
+                } else {
+                    outputMessage = '';
+                    TravelConfirmMenu.show(gameState, targetSystem);
+                }
             }
         }, COLORS.GREEN);
         

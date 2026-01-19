@@ -64,12 +64,6 @@ const MarketMenu = (() => {
             render(onReturn);
         });
         
-        // Output message row (just above buttons)
-        const outputY = grid.height - 6;
-        if (outputMessage) {
-            UI.addTextCentered(outputY, outputMessage, outputColor);
-        }
-        
         // Buttons
         const buttonY = grid.height - 4;
         UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
@@ -79,6 +73,11 @@ const MarketMenu = (() => {
         UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), COLORS.GREEN, 'Purchase 10 units of selected cargo');
         UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), COLORS.GREEN, 'Sell 10 units of selected cargo');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
+        
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
         
         UI.draw();
     }

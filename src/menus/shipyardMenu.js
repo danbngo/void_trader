@@ -81,12 +81,6 @@ const ShipyardMenu = (() => {
             render(onReturn);
         });
         
-        // Output message
-        const outputY = grid.height - 7;
-        if (outputMessage) {
-            UI.addTextCentered(outputY, outputMessage, outputColor);
-        }
-        
         // Buttons
         const buttonY = grid.height - 5;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
@@ -95,6 +89,11 @@ const ShipyardMenu = (() => {
         UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), COLORS.GREEN, 'Repair hull and shields to maximum');
         UI.addButton(40, buttonY, '5', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
+        
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
         
         UI.draw();
     }
@@ -141,18 +140,17 @@ const ShipyardMenu = (() => {
             render(onReturn);
         });
         
-        // Output message
-        const outputY = grid.height - 6;
-        if (outputMessage) {
-            UI.addTextCentered(outputY, outputMessage, outputColor);
-        }
-        
         // Buttons
         const buttonY = grid.height - 4;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
         UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiatePurchase(onReturn), COLORS.GREEN, 'Purchase selected ship (trades in active ship)');
         UI.addButton(5, buttonY + 2, '0', 'Back', () => switchToManageMode(onReturn), COLORS.BUTTON);
+        
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
         
         UI.draw();
     }

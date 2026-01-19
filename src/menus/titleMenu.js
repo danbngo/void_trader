@@ -55,23 +55,29 @@ const TitleMenu = (() => {
         const grid = UI.getGridSize();
         const centerY = Math.floor(grid.height / 2);
         
-        UI.addTextCentered(centerY, 'Starting new game...', COLORS.TEXT_SUCCESS);
+        UI.addTextCentered(centerY, 'Initializing new game...', COLORS.TEXT_SUCCESS);
         
-        // TODO: Implement game start
+        // Initialize game state
         setTimeout(() => {
-            UI.addTextCentered(centerY + 2, '(Game logic to be implemented)', COLORS.TEXT_WARNING);
-            UI.addTextCentered(centerY + 4, 'Press ESC to return', COLORS.TEXT_DIM);
+            // Create game state
+            const gameState = new GameState();
             
-            UI.setButtons([
-                {
-                    key: 'Escape',
-                    label: 'Back to Title',
-                    callback: () => show(),
-                    color: COLORS.BUTTON_DANGER,
-                    x: Math.floor(grid.width / 2) - 10,
-                    y: centerY + 6
-                }
-            ]);
+            // Generate 100 star systems
+            gameState.systems = SystemGenerator.generateMany(100);
+            
+            // Place player at random system
+            const randomSystemIndex = Math.floor(Math.random() * gameState.systems.length);
+            gameState.setCurrentSystem(randomSystemIndex);
+            
+            // Generate player ship and crew
+            gameState.ship = ShipGenerator.generateStartingShip();
+            gameState.officers = OfficerGenerator.generateCrew(2);
+            
+            // Store game state globally for access
+            window.gameState = gameState;
+            
+            // Show galaxy map
+            GalaxyMap.show(gameState);
         }, 500);
     }
     

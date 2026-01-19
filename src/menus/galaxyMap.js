@@ -97,10 +97,10 @@ const GalaxyMap = (() => {
             }
         });
         
-        // Legend
-        UI.addText(2, mapHeight - 2, '@ = You', COLORS.GRAY);
-        UI.addText(12, mapHeight - 2, '* = Selected', COLORS.GRAY);
-        UI.addText(27, mapHeight - 2, '. = System', COLORS.GRAY);
+        // Legend below map
+        UI.addText(2, mapHeight + 1, '@ = You', COLORS.GRAY);
+        UI.addText(2, mapHeight + 2, '* = Selected', COLORS.GRAY);
+        UI.addText(2, mapHeight + 3, '. = System', COLORS.GRAY);
     }
     
     /**
@@ -114,36 +114,27 @@ const GalaxyMap = (() => {
         UI.addText(startX, 3, 'Name:', COLORS.TEXT_DIM);
         UI.addText(startX + 6, 3, currentSystem.name, COLORS.TEXT_NORMAL);
         
-        UI.addText(startX, 4, 'Coords:', COLORS.TEXT_DIM);
-        UI.addText(startX + 8, 4, `(${currentSystem.x}, ${currentSystem.y})`, COLORS.TEXT_NORMAL);
-        
-        UI.addText(startX, 5, 'Pop:', COLORS.TEXT_DIM);
-        UI.addText(startX + 5, 5, `${currentSystem.population}M`, COLORS.TEXT_NORMAL);
-        
-        UI.addText(startX, 6, 'Economy:', COLORS.TEXT_DIM);
-        UI.addText(startX + 9, 6, currentSystem.economy, COLORS.TEXT_NORMAL);
-        
         // Selected nearby system info
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
             
-            UI.addText(startX, 9, '=== SELECTED SYSTEM ===', COLORS.YELLOW);
-            UI.addText(startX, 11, 'Name:', COLORS.TEXT_DIM);
-            UI.addText(startX + 6, 11, selected.system.name, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 6, '=== SELECTED SYSTEM ===', COLORS.YELLOW);
+            UI.addText(startX, 8, 'Name:', COLORS.TEXT_DIM);
+            UI.addText(startX + 6, 8, selected.system.name, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 12, 'Coords:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, 12, `(${selected.system.x}, ${selected.system.y})`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 9, 'Coords:', COLORS.TEXT_DIM);
+            UI.addText(startX + 8, 9, `(${selected.system.x}, ${selected.system.y})`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 13, 'Distance:', COLORS.TEXT_DIM);
-            UI.addText(startX + 10, 13, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 10, 'Distance:', COLORS.TEXT_DIM);
+            UI.addText(startX + 10, 10, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 14, 'Pop:', COLORS.TEXT_DIM);
-            UI.addText(startX + 5, 14, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 11, 'Pop:', COLORS.TEXT_DIM);
+            UI.addText(startX + 5, 11, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 15, 'Economy:', COLORS.TEXT_DIM);
-            UI.addText(startX + 9, 15, selected.system.economy, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 12, 'Economy:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, 12, selected.system.economy, COLORS.TEXT_NORMAL);
         } else {
-            UI.addText(startX, 9, 'No nearby systems', COLORS.TEXT_DIM);
+            UI.addText(startX, 6, 'No nearby systems', COLORS.TEXT_DIM);
         }
     }
     

@@ -27,6 +27,9 @@ const UI = (() => {
     // Track actual text content for debugging
     let drawnContent = [];
     
+    // Debounce timer for resize
+    let resizeTimeout = null;
+    
     /**
      * Initialize the UI system
      */
@@ -36,10 +39,25 @@ const UI = (() => {
         
         // Set canvas to fill window
         resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', debouncedResize);
         
         // Setup keyboard listener
         setupKeyListener();
+    }
+    
+    /**
+     * Debounced resize handler
+     */
+    function debouncedResize() {
+        // Clear existing timeout
+        if (resizeTimeout) {
+            clearTimeout(resizeTimeout);
+        }
+        
+        // Set new timeout to resize after 150ms of no resize events
+        resizeTimeout = setTimeout(() => {
+            resizeCanvas();
+        }, 150);
     }
     
     /**
@@ -151,8 +169,17 @@ const UI = (() => {
         if (y < 0 || y >= GRID_HEIGHT) {
             throw new Error(`addText: y position ${y} is out of bounds (0-${GRID_HEIGHT-1})`);
         }
+        
+        // Truncate text if it extends beyond grid width
         if (x + text.length > GRID_WIDTH) {
-            throw new Error(`addText: text "${text}" at x=${x} extends beyond grid width (${x + text.length} > ${GRID_WIDTH})`);
+            const maxLength = GRID_WIDTH - x;
+            if (maxLength <= 3) {
+                // If we can't even fit "...", just fit what we can
+                text = text.substring(0, maxLength);
+            } else {
+                // Truncate and add ellipsis
+                text = text.substring(0, maxLength - 3) + '...';
+            }
         }
         
         // Check for overwrites - each character in the text string
@@ -259,7 +286,7 @@ const UI = (() => {
             
             // Only increment Y if using auto-positioning
             if (config.y === undefined && startY !== undefined) {
-                currentY += 2; // Space buttons 2 rows apart
+                currentY += 1; // Space buttons 1 row apart
             }
         });
     }

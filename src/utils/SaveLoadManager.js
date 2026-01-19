@@ -4,7 +4,7 @@
  */
 
 const SaveLoadManager = (() => {
-    const SAVE_KEY_PREFIX = 'voidtrader_save_';
+    const SAVE_KEY_PREFIX = SAVE_FILE_PREFIX;
     const SAVE_LIST_KEY = 'voidtrader_saves';
     
     /**

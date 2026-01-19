@@ -36,7 +36,7 @@ const LoadMenu = (() => {
         
         // Show existing saves
         saves.forEach((save, index) => {
-            if (index < 9) { // Limit to 9 saves (keys 1-9)
+            if (index < MAX_SAVES) {
                 const dateStr = save.date.toLocaleString();
                 UI.addButton(5, startY + index, String(index + 1), `${save.name} - ${dateStr}`, () => loadFromSlot(save.id), COLORS.BUTTON);
             }

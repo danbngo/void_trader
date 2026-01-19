@@ -73,9 +73,9 @@ const SystemGenerator = (() => {
      */
     function generate() {
         const name = generateName();
-        const x = Math.floor(Math.random() * 201) - 100; // -100 to 100
-        const y = Math.floor(Math.random() * 201) - 100; // -100 to 100
-        const population = Math.floor(Math.random() * 10000); // 0 to 10000 million
+        const x = Math.floor(Math.random() * (MAX_SYSTEM_X - MIN_SYSTEM_X + 1)) + MIN_SYSTEM_X;
+        const y = Math.floor(Math.random() * (MAX_SYSTEM_Y - MIN_SYSTEM_Y + 1)) + MIN_SYSTEM_Y;
+        const population = Math.floor(Math.random() * (MAX_SYSTEM_POPULATION + 1));
         const economy = economies[Math.floor(Math.random() * economies.length)];
         
         const system = new StarSystem(name, x, y, population, economy);
@@ -85,12 +85,13 @@ const SystemGenerator = (() => {
             // Stock: random amount between 0-1000
             system.cargoStock[cargoType.id] = Math.floor(Math.random() * 1001);
             
-            // Price modifier: 0.5x to 2.0x base price
-            system.cargoPriceModifier[cargoType.id] = 0.5 + Math.random() * 1.5;
+            // Price modifier: MIN to MAX cargo price modifier
+            const range = MAX_CARGO_PRICE_MODIFIER - MIN_CARGO_PRICE_MODIFIER;
+            system.cargoPriceModifier[cargoType.id] = MIN_CARGO_PRICE_MODIFIER + Math.random() * range;
         });
         
-        // Generate 0-3 ships for shipyard
-        const shipCount = Math.floor(Math.random() * 4); // 0, 1, 2, or 3
+        // Generate ships for shipyard
+        const shipCount = Math.floor(Math.random() * (MAX_NUM_SHIPS_IN_SHIPYARD - MIN_NUM_SHIPS_IN_SHIPYARD + 1)) + MIN_NUM_SHIPS_IN_SHIPYARD;
         for (let i = 0; i < shipCount; i++) {
             system.ships.push(ShipGenerator.generateRandomShip());
         }

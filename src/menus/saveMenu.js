@@ -37,14 +37,14 @@ const SaveMenu = (() => {
         
         // Show existing saves
         saves.forEach((save, index) => {
-            if (index < 9) { // Limit to 9 saves (keys 1-9)
+            if (index < MAX_SAVES) {
                 const dateStr = save.date.toLocaleString();
                 UI.addButton(5, startY + index, String(index + 1), `${save.name} - ${dateStr}`, () => saveToSlot(save.name), COLORS.BUTTON);
             }
         });
         
-        // Add option to create new save if less than 9 saves
-        if (saves.length < 9) {
+        // Add option to create new save if less than max saves
+        if (saves.length < MAX_SAVES) {
             UI.addButton(5, startY + saves.length, String(saves.length + 1), '<New Save>', () => promptNewSave(), COLORS.GREEN);
         }
         

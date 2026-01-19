@@ -21,7 +21,7 @@ const CARGO_TYPES = {
         name: 'Food',
         description: 'Preserved rations and nutrition supplies',
         baseValue: 40
-    }
+    },
 };
 
 // Array of all cargo types for iteration

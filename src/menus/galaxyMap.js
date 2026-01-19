@@ -6,7 +6,6 @@
 const GalaxyMap = (() => {
     let selectedIndex = 0;
     let nearbySystems = [];
-    const MAP_VIEW_RANGE = 30; // Range of systems to show on map
     
     /**
      * Show the galaxy map

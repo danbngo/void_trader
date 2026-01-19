@@ -113,7 +113,7 @@ const UI = (() => {
         
         // Set font
         ctx.font = `${fontSize}px ${FONT_FAMILY}`;
-        ctx.textBaseline = 'top';
+        ctx.textBaseline = 'middle';
         
         // Redraw registered elements
         draw();
@@ -384,9 +384,9 @@ const UI = (() => {
             const actualFontSize = Math.floor(baseFontSize * item.fontSize);
             ctx.font = `${actualFontSize}px ${FONT_FAMILY}`;
             
-            // Draw the text
+            // Draw the text (centered vertically in grid cell)
             ctx.fillStyle = item.color;
-            ctx.fillText(item.text, pixelX, pixelY);
+            ctx.fillText(item.text, pixelX, pixelY + charHeight / 2);
         });
         
         // Draw all registered buttons
@@ -418,7 +418,7 @@ const UI = (() => {
                 ctx.fillStyle = 'white';
                 ctx.fillRect(pixelX, pixelY, buttonWidth, charHeight);
                 ctx.fillStyle = 'black';
-                ctx.fillText(buttonText, pixelX, pixelY);
+                ctx.fillText(buttonText, pixelX, pixelY + charHeight / 2);
                 
                 // Show helpText if available, not forbidden, and either:
                 // - Selection just changed (tab/arrow to new button should show its help), OR
@@ -435,9 +435,9 @@ const UI = (() => {
             } else {
                 // Draw colored key and white label
                 ctx.fillStyle = btn.color;
-                ctx.fillText(`[${btn.key}] `, pixelX, pixelY);
+                ctx.fillText(`[${btn.key}] `, pixelX, pixelY + charHeight / 2);
                 ctx.fillStyle = 'white';
-                ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY);
+                ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY + charHeight / 2);
             }
         });
         
@@ -455,7 +455,7 @@ const UI = (() => {
             ctx.fillStyle = 'black';
             ctx.fillRect(x * charWidth, y * charHeight, outputRowText.length * charWidth, charHeight);
             ctx.fillStyle = outputRowColor;
-            ctx.fillText(outputRowText, x * charWidth, y * charHeight);
+            ctx.fillText(outputRowText, x * charWidth, y * charHeight + charHeight / 2);
         }
         
         // Debug output

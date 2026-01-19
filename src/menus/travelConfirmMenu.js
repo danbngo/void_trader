@@ -15,12 +15,12 @@ const TravelConfirmMenu = (() => {
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
-        const activeShip = gameState.ship;
         
         // Calculate journey details
         const distance = currentSystem.distanceTo(targetSystem);
-        const fuelCost = Math.ceil(distance);
-        const fuelAfter = activeShip.fuel - fuelCost;
+        const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+        const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        const fuelAfter = totalFuel - fuelCost;
         const durationDays = Math.ceil(distance * AVERAGE_JOURNEY_DAYS_PER_LY);
         
         // Calculate date after journey

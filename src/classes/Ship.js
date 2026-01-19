@@ -82,4 +82,41 @@ class Ship {
         const distance = Math.sqrt(dx * dx + dy * dy);
         return this.fuel >= distance;
     }
+    
+    /**
+     * Calculate base fuel cost for a distance
+     * @param {number} distance - Distance to travel
+     * @returns {number} Base fuel cost
+     */
+    static calculateBaseFuelCost(distance) {
+        return Math.ceil(distance);
+    }
+    
+    /**
+     * Calculate fleet fuel cost (multiplied by number of ships)
+     * @param {number} distance - Distance to travel
+     * @param {number} numShips - Number of ships in fleet
+     * @returns {number} Total fuel cost for fleet
+     */
+    static calculateFleetFuelCost(distance, numShips) {
+        return Ship.calculateBaseFuelCost(distance) * numShips;
+    }
+    
+    /**
+     * Check if fleet can reach a destination based on total fuel
+     * @param {Array<Ship>} ships - Array of ships in fleet
+     * @param {number} fromX - Starting X coordinate
+     * @param {number} fromY - Starting Y coordinate
+     * @param {number} toX - Destination X coordinate
+     * @param {number} toY - Destination Y coordinate
+     * @returns {boolean}
+     */
+    static canFleetReach(ships, fromX, fromY, toX, toY) {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const fleetFuelCost = Ship.calculateFleetFuelCost(distance, ships.length);
+        const totalFuel = ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        return totalFuel >= fleetFuelCost;
+    }
 }

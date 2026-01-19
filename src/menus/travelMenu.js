@@ -61,10 +61,10 @@ const TravelMenu = (() => {
         let y = 5;
         
         // Calculate journey details
-        const activeShip = currentGameState.ship;
         const distance = currentSystem.distanceTo(targetSystem);
-        const fuelConsumed = Math.ceil(distance * progress);
-        const fuelRemaining = activeShip.fuel - fuelConsumed;
+        const fuelConsumed = Ship.calculateFleetFuelCost(distance * progress, currentGameState.ships.length);
+        const totalFuelAvailable = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        const fuelRemaining = totalFuelAvailable - fuelConsumed;
         
         // Calculate dates
         const startDate = new Date(currentGameState.date);
@@ -80,7 +80,7 @@ const TravelMenu = (() => {
         UI.addText(5, y++, `ETA: ${formatDate(eta)}`, COLORS.TEXT_DIM);
         y++;
         
-        const totalFuel = Math.ceil(currentSystem.distanceTo(targetSystem));
+        const totalFuel = Ship.calculateFleetFuelCost(currentSystem.distanceTo(targetSystem), currentGameState.ships.length);
         UI.addText(5, y++, `Fuel Used: ${fuelConsumed}/${totalFuel}`, fuelRemaining > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
         y++;
         
@@ -226,10 +226,24 @@ const TravelMenu = (() => {
     function completeJourney() {
         const currentSystem = currentGameState.getCurrentSystem();
         const distance = currentSystem.distanceTo(targetSystem);
-        const fuelCost = Math.ceil(distance);
+        const fleetFuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
         
-        // Consume fuel
-        currentGameState.ship.fuel -= fuelCost;
+        // Consume fuel proportionally from all ships based on their current fuel
+        const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        let remainingCost = fleetFuelCost;
+        
+        currentGameState.ships.forEach(ship => {
+            const shipFuelProportion = ship.fuel / totalFuel;
+            const shipFuelCost = Math.min(ship.fuel, Math.ceil(fleetFuelCost * shipFuelProportion));
+            ship.fuel -= shipFuelCost;
+            remainingCost -= shipFuelCost;
+        });
+        
+        // Handle any remaining fuel cost due to rounding (subtract from ship with most fuel)
+        if (remainingCost > 0) {
+            const shipWithMostFuel = currentGameState.ships.reduce((max, ship) => ship.fuel > max.fuel ? ship : max);
+            shipWithMostFuel.fuel = Math.max(0, shipWithMostFuel.fuel - remainingCost);
+        }
         
         // Advance date
         currentGameState.date.setDate(currentGameState.date.getDate() + Math.ceil(totalDuration));

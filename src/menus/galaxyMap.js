@@ -58,13 +58,13 @@ const GalaxyMap = (() => {
     function drawMap(gameState, mapWidth, mapHeight) {
         const currentSystem = gameState.getCurrentSystem();
         
-        // Draw border
-        UI.addText(0, 0, '+' + '-'.repeat(mapWidth - 2) + '+', COLORS.GRAY);
+        // Draw border with double-line corners and single-line edges
+        UI.addText(0, 0, '╔' + '═'.repeat(mapWidth - 2) + '╗', COLORS.GRAY);
         for (let y = 1; y < mapHeight - 1; y++) {
-            UI.addText(0, y, '|', COLORS.GRAY);
-            UI.addText(mapWidth - 1, y, '|', COLORS.GRAY);
+            UI.addText(0, y, '║', COLORS.GRAY);
+            UI.addText(mapWidth - 1, y, '║', COLORS.GRAY);
         }
-        UI.addText(0, mapHeight - 1, '+' + '-'.repeat(mapWidth - 2) + '+', COLORS.GRAY);
+        UI.addText(0, mapHeight - 1, '╚' + '═'.repeat(mapWidth - 2) + '╝', COLORS.GRAY);
         
         // Title with zoom level
         UI.addText(2, 0, '[ GALAXY MAP ]', COLORS.TITLE);
@@ -100,7 +100,7 @@ const GalaxyMap = (() => {
                 // Check if reachable and visited
                 const systemIndex = gameState.systems.indexOf(item.system);
                 const isVisited = gameState.visitedSystems.includes(systemIndex);
-                const canReach = activeShip.canReach(currentSystem.x, currentSystem.y, item.system.x, item.system.y);
+                const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y);
                 
                 // Determine symbol and color
                 let symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
@@ -153,26 +153,6 @@ const GalaxyMap = (() => {
                 }
             });
         }
-        
-        // Player Ships summary
-        UI.addText(2, mapHeight + 1, '=== Player Ships ===', COLORS.TITLE);
-        
-        // Calculate total fuel and hull across all ships
-        const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
-        const totalMaxFuel = gameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
-        const totalHull = gameState.ships.reduce((sum, ship) => sum + ship.hull, 0);
-        const totalMaxHull = gameState.ships.reduce((sum, ship) => sum + ship.maxHull, 0);
-        
-        UI.addText(2, mapHeight + 2, `Fuel: ${totalFuel} / ${totalMaxFuel}`, COLORS.TEXT_NORMAL);
-        UI.addText(2, mapHeight + 3, `Hull: ${totalHull} / ${totalMaxHull}`, COLORS.TEXT_NORMAL);
-        
-        // Empty row
-        
-        // Legend below in 2 columns
-        const legendY = mapHeight + 5;
-        UI.addText(2, legendY, '@ = You', COLORS.GRAY);
-        UI.addText(15, legendY, '★ = Visited', COLORS.GRAY);
-        UI.addText(2, legendY + 1, '☆ = Unvisited', COLORS.GRAY);
     }
     
     /**
@@ -182,40 +162,62 @@ const GalaxyMap = (() => {
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
-        UI.addText(startX, 0, '=== Current System ===', COLORS.TITLE);
-        UI.addText(startX, 2, 'Name:', COLORS.TEXT_DIM);
-        UI.addText(startX + 6, 2, currentSystem.name, COLORS.TEXT_NORMAL);
+        // Merged Fleet Info section
+        UI.addText(startX, 0, '=== Fleet Info ===', COLORS.TITLE);
+        
+        // Calculate fleet totals
+        const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        const totalMaxFuel = gameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
+        const totalHull = gameState.ships.reduce((sum, ship) => sum + ship.hull, 0);
+        const totalMaxHull = gameState.ships.reduce((sum, ship) => sum + ship.maxHull, 0);
+        const numShips = gameState.ships.length;
+        
+        let y = 2;
+        UI.addText(startX, y++, 'Sys.:', COLORS.TEXT_DIM);
+        UI.addText(startX + 6, y - 1, currentSystem.name, COLORS.TEXT_NORMAL);
+        UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
+        UI.addText(startX + 8, y - 1, `(${currentSystem.x}, ${currentSystem.y})`, COLORS.TEXT_NORMAL);
+        UI.addText(startX, y++, 'Ships:', COLORS.TEXT_DIM);
+        UI.addText(startX + 7, y - 1, String(numShips), COLORS.TEXT_NORMAL);
+        UI.addText(startX, y++, 'Fuel Cost Mult.:', COLORS.TEXT_DIM);
+        UI.addText(startX + 17, y - 1, `${numShips}x`, COLORS.TEXT_NORMAL);
+        UI.addText(startX, y++, 'Fuel:', COLORS.TEXT_DIM);
+        UI.addText(startX + 6, y - 1, `${totalFuel}/${totalMaxFuel}`, COLORS.TEXT_NORMAL);
+        UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
+        UI.addText(startX + 6, y - 1, `${totalHull}/${totalMaxHull}`, COLORS.TEXT_NORMAL);
+        
+        y++; // Empty row
         
         // Selected nearby system info
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
-            const activeShip = gameState.ship;
-            const fuelCost = Math.ceil(selected.distance);
-            const canReach = activeShip.canReach(currentSystem.x, currentSystem.y, selected.system.x, selected.system.y);
+            const fuelCost = Ship.calculateFleetFuelCost(selected.distance, gameState.ships.length);
+            const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, selected.system.x, selected.system.y);
             
-            UI.addText(startX, 5, '=== Selected System ===', COLORS.YELLOW);
-            UI.addText(startX, 7, 'Name:', COLORS.TEXT_DIM);
-            UI.addText(startX + 6, 7, selected.system.name, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, '=== Selected System ===', COLORS.YELLOW);
+            y++; // Empty row
+            UI.addText(startX, y++, 'Name:', COLORS.TEXT_DIM);
+            UI.addText(startX + 6, y - 1, selected.system.name, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 8, 'Coords:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, 8, `(${selected.system.x}, ${selected.system.y})`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
+            UI.addText(startX + 8, y - 1, `(${selected.system.x}, ${selected.system.y})`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 9, 'Distance:', COLORS.TEXT_DIM);
-            UI.addText(startX + 10, 9, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
+            UI.addText(startX + 10, y - 1, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 10, 'Fuel Cost:', COLORS.TEXT_DIM);
-            UI.addText(startX + 11, 10, `${fuelCost}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Fuel Cost:', COLORS.TEXT_DIM);
+            UI.addText(startX + 11, y - 1, `${fuelCost}`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 11, 'Reachable:', COLORS.TEXT_DIM);
-            UI.addText(startX + 11, 11, canReach ? 'Yes' : 'No', canReach ? COLORS.GREEN : COLORS.TEXT_ERROR);
+            UI.addText(startX, y++, 'Reachable:', COLORS.TEXT_DIM);
+            UI.addText(startX + 11, y - 1, canReach ? 'Yes' : 'No', canReach ? COLORS.GREEN : COLORS.TEXT_ERROR);
             
-            UI.addText(startX, 12, 'Pop:', COLORS.TEXT_DIM);
-            UI.addText(startX + 5, 12, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Pop:', COLORS.TEXT_DIM);
+            UI.addText(startX + 5, y - 1, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 13, 'Economy:', COLORS.TEXT_DIM);
-            UI.addText(startX + 9, 13, selected.system.economy, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Economy:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, y - 1, selected.system.economy, COLORS.TEXT_NORMAL);
         } else {
-            UI.addText(startX, 5, 'No nearby systems', COLORS.TEXT_DIM);
+            UI.addText(startX, y, 'No nearby systems', COLORS.TEXT_DIM);
         }
     }
     
@@ -275,55 +277,59 @@ const GalaxyMap = (() => {
      */
     function drawButtons(gameState, startX) {
         const grid = UI.getGridSize();
-        let buttonY = grid.height - 10;
+        const buttonY = grid.height - 5;
         
         // Output area (2 lines above buttons)
         if (outputMessage) {
-            UI.addText(startX, buttonY - 2, outputMessage, outputColor);
+            UI.addText(5, buttonY - 2, outputMessage, outputColor);
         }
         
-        UI.addButton(startX, buttonY++, '1', 'Previous System', () => {
+        // Legend above buttons
+        UI.addText(2, buttonY - 4, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
+        
+        // Buttons in columns on left side
+        UI.addButton(5, buttonY, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
                 render(gameState);
             }
-        }, COLORS.BUTTON);
+        }, COLORS.BUTTON, 'Select the previous system in the list');
         
-        UI.addButton(startX, buttonY++, '2', 'Next System', () => {
+        UI.addButton(5, buttonY + 1, '2', 'Next System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex + 1) % nearbySystems.length;
                 render(gameState);
             }
-        }, COLORS.BUTTON);
+        }, COLORS.BUTTON, 'Select the next system in the list');
         
-        UI.addButton(startX, buttonY++, '3', 'Scan System', () => {
+        UI.addButton(5, buttonY + 2, '3', 'Scan System', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 const selectedSystem = nearbySystems[selectedIndex].system;
                 outputMessage = '';
                 ScanSystemMenu.show(selectedSystem, () => show(gameState));
             }
-        }, COLORS.BUTTON);
+        }, COLORS.BUTTON, 'View detailed information about the selected system');
         
-        UI.addButton(startX, buttonY++, '4', 'Zoom In', () => {
+        UI.addButton(28, buttonY, '4', 'Zoom In', () => {
             mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
             render(gameState);
-        }, COLORS.BUTTON);
+        }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
         
-        UI.addButton(startX, buttonY++, '5', 'Zoom Out', () => {
+        UI.addButton(28, buttonY + 1, '5', 'Zoom Out', () => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
             render(gameState);
-        }, COLORS.BUTTON);
+        }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
         
-        UI.addButton(startX, buttonY++, '6', 'Travel', () => {
+        UI.addButton(28, buttonY + 2, '6', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 const targetSystem = nearbySystems[selectedIndex].system;
                 const currentSystem = gameState.getCurrentSystem();
                 const distance = currentSystem.distanceTo(targetSystem);
-                const fuelCost = Math.ceil(distance);
-                const activeShip = gameState.ship;
+                const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+                const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
                 
-                if (activeShip.fuel < fuelCost) {
-                    outputMessage = `Insufficient fuel! Need ${fuelCost}, have ${activeShip.fuel}`;
+                if (totalFuel < fuelCost) {
+                    outputMessage = `Insufficient fuel! Need ${fuelCost}, have ${totalFuel}`;
                     outputColor = COLORS.TEXT_ERROR;
                     render(gameState);
                 } else {
@@ -331,9 +337,9 @@ const GalaxyMap = (() => {
                     TravelConfirmMenu.show(gameState, targetSystem);
                 }
             }
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Begin travel to the selected system');
         
-        UI.addButton(startX, buttonY++, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GRAY);
+        UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GRAY, 'Return to the docking menu');
     }
     
     return {

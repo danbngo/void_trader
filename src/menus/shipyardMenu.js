@@ -66,12 +66,14 @@ const ShipyardMenu = (() => {
                 { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${ship.getValue()} CR`, color: COLORS.TEXT_NORMAL }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Cargo', 'Value'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Laser', 'Cargo', 'Value'], rows, selectedShipIndex);
         
         // Output message
         const outputY = grid.height - 7;
@@ -116,15 +118,16 @@ const ShipyardMenu = (() => {
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
-                { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${price} CR`, color: COLORS.TEXT_NORMAL },
                 { text: `${netCost} CR`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex);
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex);
         
         // Output message
         const outputY = grid.height - 6;

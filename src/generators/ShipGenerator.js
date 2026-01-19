@@ -33,8 +33,11 @@ const ShipGenerator = (() => {
         const cargoCapacity = shipType.baseCargoCapacity;
         const maxHull = shipType.baseMaxHull;
         const hull = maxHull;
+        const maxShields = shipType.baseMaxShields;
+        const shields = maxShields;
+        const lasers = shipType.baseLasers;
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers);
     }
     
     /**
@@ -50,8 +53,11 @@ const ShipGenerator = (() => {
         const cargoCapacity = applyStatVariation(shipType.baseCargoCapacity);
         const maxHull = applyStatVariation(shipType.baseMaxHull);
         const hull = maxHull;
+        const maxShields = applyStatVariation(shipType.baseMaxShields);
+        const shields = maxShields;
+        const lasers = Math.max(1, applyStatVariation(shipType.baseLasers)); // At least 1 laser
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers);
     }
     
     return {

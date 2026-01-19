@@ -4,6 +4,13 @@
  */
 
 const CARGO_TYPES = {
+    AIR: {
+        id: 'AIR',
+        name: 'Air',
+        description: 'Compressed breathable atmosphere for life support systems',
+        baseValue: 20,
+        illegal: false
+    },
     WATER: {
         id: 'WATER',
         name: 'Water',
@@ -16,13 +23,6 @@ const CARGO_TYPES = {
         name: 'Food',
         description: 'Preserved rations and nutrition supplies',
         baseValue: 40,
-        illegal: false
-    },
-    AIR: {
-        id: 'AIR',
-        name: 'Air',
-        description: 'Compressed breathable atmosphere for life support systems',
-        baseValue: 50,
         illegal: false
     },
     ISOTOPES: {

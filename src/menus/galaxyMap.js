@@ -6,6 +6,7 @@
 const GalaxyMap = (() => {
     let selectedIndex = 0;
     let nearbySystems = [];
+    let mapViewRange = MAP_VIEW_RANGE; // Current zoom level
     
     /**
      * Show the galaxy map
@@ -24,7 +25,7 @@ const GalaxyMap = (() => {
         }
         
         // Get nearby systems
-        nearbySystems = gameState.getNearbySystems(MAP_VIEW_RANGE);
+        nearbySystems = gameState.getNearbySystems(mapViewRange);
         
         // Ensure we don't go out of bounds
         if (selectedIndex >= nearbySystems.length) {
@@ -66,7 +67,7 @@ const GalaxyMap = (() => {
         // Calculate scale to fit systems in map
         const mapCenterX = Math.floor(mapWidth / 2);
         const mapCenterY = Math.floor(mapHeight / 2);
-        const scale = Math.min((mapWidth - 4) / (MAP_VIEW_RANGE * 2), (mapHeight - 4) / (MAP_VIEW_RANGE * 2));
+        const scale = Math.min((mapWidth - 4) / (mapViewRange * 2), (mapHeight - 4) / (mapViewRange * 2));
         
         // Draw current system (center)
         UI.addText(mapCenterX, mapCenterY, '@', COLORS.GREEN);
@@ -96,6 +97,18 @@ const GalaxyMap = (() => {
         UI.addText(2, mapHeight + 1, '@ = You', COLORS.GRAY);
         UI.addText(2, mapHeight + 2, '* = Selected', COLORS.GRAY);
         UI.addText(2, mapHeight + 3, '. = System', COLORS.GRAY);
+        
+        // Player Ships summary
+        UI.addText(2, mapHeight + 5, '=== Player Ships ===', COLORS.TITLE);
+        
+        // Calculate total fuel and hull across all ships
+        const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        const totalMaxFuel = gameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
+        const totalHull = gameState.ships.reduce((sum, ship) => sum + ship.hull, 0);
+        const totalMaxHull = gameState.ships.reduce((sum, ship) => sum + ship.maxHull, 0);
+        
+        UI.addText(2, mapHeight + 6, `Fuel: ${totalFuel} / ${totalMaxFuel}`, COLORS.TEXT_NORMAL);
+        UI.addText(2, mapHeight + 7, `Hull: ${totalHull} / ${totalMaxHull}`, COLORS.TEXT_NORMAL);
     }
     
     /**
@@ -138,7 +151,7 @@ const GalaxyMap = (() => {
      */
     function drawButtons(gameState, startX) {
         const grid = UI.getGridSize();
-        let buttonY = grid.height - 8;
+        let buttonY = grid.height - 10;
         
         UI.addButton(startX, buttonY++, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
@@ -158,6 +171,16 @@ const GalaxyMap = (() => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 ScanSystemMenu.show(nearbySystems[selectedIndex].system, () => show(gameState));
             }
+        }, COLORS.BUTTON);
+        
+        UI.addButton(startX, buttonY++, '4', 'Zoom In', () => {
+            mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
+            show(gameState);
+        }, COLORS.BUTTON);
+        
+        UI.addButton(startX, buttonY++, '5', 'Zoom Out', () => {
+            mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
+            show(gameState);
         }, COLORS.BUTTON);
         
         UI.addButton(startX, buttonY++, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GREEN);

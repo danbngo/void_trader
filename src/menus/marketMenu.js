@@ -49,6 +49,7 @@ const MarketMenu = (() => {
             
             return [
                 { text: cargoType.name, color: COLORS.TEXT_NORMAL },
+                { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
                 { text: String(stock), color: COLORS.TEXT_NORMAL },
                 { text: `${buyPrice} CR`, color: COLORS.TEXT_NORMAL },
                 { text: `${sellPrice} CR`, color: COLORS.TEXT_NORMAL },
@@ -56,7 +57,7 @@ const MarketMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Cargo', 'Stock', 'Buy', 'Sell', 'You Have'], rows, selectedCargoIndex);
+        TableRenderer.renderTable(5, startY, ['Cargo', 'Base', 'Stock', 'Buy', 'Sell', 'You Have'], rows, selectedCargoIndex);
         
         // Output message row (just above buttons)
         const outputY = grid.height - 6;

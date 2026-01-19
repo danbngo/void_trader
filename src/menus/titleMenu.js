@@ -51,7 +51,9 @@ const TitleMenu = (() => {
             const gameState = new GameState();
             
             // Generate 100 star systems
-            gameState.systems = SystemGenerator.generateMany(100);
+            // Generate systems
+            const numSystems = Math.floor(Math.random() * (MAX_NUM_SYSTEMS - MIN_NUM_SYSTEMS + 1)) + MIN_NUM_SYSTEMS;
+            gameState.systems = SystemGenerator.generateMany(numSystems);
             
             // Place player at random system
             const randomSystemIndex = Math.floor(Math.random() * gameState.systems.length);

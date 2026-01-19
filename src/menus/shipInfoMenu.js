@@ -21,8 +21,13 @@ const ShipInfoMenu = (() => {
         
         // Ship details
         const startY = 6;
+        const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
         TableRenderer.renderKeyValueList(5, startY, [
             { label: 'Ship Name:', value: ship.name, valueColor: COLORS.CYAN },
+            { label: 'Ship Type:', value: shipType.name, valueColor: COLORS.TEXT_DIM },
+            { label: 'Hull:', value: `${ship.hull} / ${ship.maxHull}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Shields:', value: `${ship.shields} / ${ship.maxShields}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Lasers:', value: String(ship.lasers), valueColor: COLORS.TEXT_NORMAL },
             { label: 'Fuel:', value: `${ship.fuel} / ${ship.maxFuel}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Cargo Space:', value: `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Available Space:', value: `${ship.getAvailableCargoSpace()} units`, valueColor: COLORS.GREEN }

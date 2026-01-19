@@ -8,49 +8,81 @@ const SHIP_TYPES = {
         id: 'SHUTTLE',
         name: 'Shuttle',
         description: 'Small personal transport craft',
-        baseMaxFuel: 80,
+        baseMaxFuel: 10,
         baseCargoCapacity: 30,
-        baseMaxHull: 60
+        baseMaxHull: 60,
+        baseMaxShields: 20,
+        baseLasers: 1
     },
     FREIGHTER: {
         id: 'FREIGHTER',
         name: 'Freighter',
         description: 'Medium cargo hauler with good capacity',
-        baseMaxFuel: 120,
+        baseMaxFuel: 15,
         baseCargoCapacity: 100,
-        baseMaxHull: 100
-    },
-    TRADER: {
-        id: 'TRADER',
-        name: 'Trader',
-        description: 'Balanced vessel for commerce',
-        baseMaxFuel: 100,
-        baseCargoCapacity: 50,
-        baseMaxHull: 80
+        baseMaxHull: 100,
+        baseMaxShields: 40,
+        baseLasers: 2
     },
     SCOUT: {
         id: 'SCOUT',
         name: 'Scout',
         description: 'Fast and efficient with extended range',
-        baseMaxFuel: 150,
+        baseMaxFuel: 15,
         baseCargoCapacity: 40,
-        baseMaxHull: 70
+        baseMaxHull: 70,
+        baseMaxShields: 50,
+        baseLasers: 3
     },
     HAULER: {
         id: 'HAULER',
         name: 'Hauler',
         description: 'Massive cargo capacity, slow but durable',
-        baseMaxFuel: 100,
+        baseMaxFuel: 10,
         baseCargoCapacity: 150,
-        baseMaxHull: 120
+        baseMaxHull: 120,
+        baseMaxShields: 30,
+        baseLasers: 2
     },
     CORVETTE: {
         id: 'CORVETTE',
         name: 'Corvette',
         description: 'Military surplus with strong hull',
-        baseMaxFuel: 90,
+        baseMaxFuel: 5,
         baseCargoCapacity: 35,
-        baseMaxHull: 150
+        baseMaxHull: 150,
+        baseMaxShields: 80,
+        baseLasers: 4
+    },
+    RAIDER: {
+        id: 'RAIDER',
+        name: 'Raider',
+        description: 'Fast attack vessel with heavy firepower',
+        baseMaxFuel: 10,
+        baseCargoCapacity: 40,
+        baseMaxHull: 180,
+        baseMaxShields: 100,
+        baseLasers: 6
+    },
+    DESTROYER: {
+        id: 'DESTROYER',
+        name: 'Destroyer',
+        description: 'Heavy military warship with superior defenses',
+        baseMaxFuel: 10,
+        baseCargoCapacity: 50,
+        baseMaxHull: 250,
+        baseMaxShields: 150,
+        baseLasers: 8
+    },
+    BATTLESHIP: {
+        id: 'BATTLESHIP',
+        name: 'Battleship',
+        description: 'Massive capital ship with devastating firepower',
+        baseMaxFuel: 15,
+        baseCargoCapacity: 60,
+        baseMaxHull: 350,
+        baseMaxShields: 200,
+        baseLasers: 12
     }
 };
 

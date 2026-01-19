@@ -29,8 +29,8 @@ const TitleMenu = (() => {
                 color: COLORS.BUTTON
             },
             {
-                label: 'Continue',
-                callback: () => continueGame(),
+                label: 'Load Game',
+                callback: () => LoadMenu.show(() => TitleMenu.show()),
                 color: COLORS.BUTTON
             },
             {
@@ -82,21 +82,6 @@ const TitleMenu = (() => {
             // Show introduction screen
             IntroScreen.show(gameState);
         }, 500);
-    }
-    
-    /**
-     * Continue existing game
-     */
-    function continueGame() {
-        UI.clearAll();
-        const grid = UI.getGridSize();
-        const centerY = Math.floor(grid.height / 2);
-        
-        UI.addTextCentered(centerY, 'No saved game found', COLORS.TEXT_ERROR);
-        
-        setTimeout(() => {
-            show();
-        }, 2000);
     }
     
     /**

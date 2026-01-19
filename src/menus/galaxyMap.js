@@ -167,9 +167,19 @@ const GalaxyMap = (() => {
                 color: COLORS.BUTTON
             },
             {
-                label: 'Back to Title',
-                callback: () => TitleMenu.show(),
-                color: COLORS.BUTTON_DANGER
+                label: 'Scan System',
+                callback: () => {
+                    if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
+                        ScanSystemMenu.show(nearbySystems[selectedIndex].system, () => show(gameState));
+                    }
+                },
+                color: COLORS.BUTTON
+            },
+            {
+                key: '0',
+                label: 'Dock',
+                callback: () => DockMenu.show(gameState),
+                color: COLORS.GREEN
             }
         ];
         

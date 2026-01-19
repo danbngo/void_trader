@@ -15,6 +15,27 @@ class Ship {
         this.fuel = fuel;
         this.maxFuel = maxFuel;
         this.cargoCapacity = cargoCapacity;
-        this.cargo = [];
+        // Cargo is now stored as counts per type
+        this.cargo = {
+            AIR: 0,
+            WATER: 0,
+            FOOD: 0
+        };
+    }
+    
+    /**
+     * Get total cargo count
+     * @returns {number}
+     */
+    getTotalCargo() {
+        return Object.values(this.cargo).reduce((sum, count) => sum + count, 0);
+    }
+    
+    /**
+     * Get available cargo space
+     * @returns {number}
+     */
+    getAvailableCargoSpace() {
+        return this.cargoCapacity - this.getTotalCargo();
     }
 }

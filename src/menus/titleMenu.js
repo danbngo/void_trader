@@ -42,6 +42,9 @@ const TitleMenu = (() => {
         
         // Footer
         UI.addTextCentered(grid.height - 2, '(Press number keys to select)', COLORS.TEXT_DIM);
+        
+        // Set this screen as the redraw target
+        UI.setRedrawCallback(() => show());
     }
     
     /**

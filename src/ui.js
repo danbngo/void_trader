@@ -5,9 +5,11 @@
 
 const UI = (() => {
     // Configuration
-    const GRID_WIDTH = 80;  // Characters wide
+    const GRID_WIDTH = 60;  // Characters wide
     const GRID_HEIGHT = 30; // Characters tall
     const FONT_FAMILY = 'Courier New, monospace';
+    const MIN_FONT_SIZE = 12;   // Minimum font size in pixels
+    const MAX_FONT_SIZE = 32;  // Maximum font size in pixels
     
     let canvas = null;
     let ctx = null;
@@ -17,6 +19,10 @@ const UI = (() => {
     // Button system
     let buttons = {};
     let keyListener = null;
+    let redrawCallback = null;
+    
+    // Track drawn character positions to detect overwrites
+    let drawnPositions = new Set();
     
     /**
      * Initialize the UI system
@@ -37,21 +43,63 @@ const UI = (() => {
      * Resize canvas and recalculate character dimensions
      */
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Calculate the aspect ratio for our character grid
+        const gridAspect = GRID_WIDTH / GRID_HEIGHT;
+        const windowAspect = window.innerWidth / window.innerHeight;
         
-        // Calculate character size based on grid
-        charWidth = canvas.width / GRID_WIDTH;
-        charHeight = canvas.height / GRID_HEIGHT;
+        let canvasWidth, canvasHeight;
         
-        // Use the smaller dimension to maintain aspect ratio
-        const fontSize = Math.floor(Math.min(charWidth, charHeight) * 0.9);
-        charWidth = fontSize * 0.6; // Monospace character width approximation
-        charHeight = fontSize;
+        // Fit grid to window while preserving aspect ratio (letterbox/pillarbox)
+        if (windowAspect > gridAspect) {
+            // Window is wider - pillarbox (black bars on sides)
+            canvasHeight = window.innerHeight;
+            canvasWidth = canvasHeight * gridAspect;
+        } else {
+            // Window is taller - letterbox (black bars top/bottom)
+            canvasWidth = window.innerWidth;
+            canvasHeight = canvasWidth / gridAspect;
+        }
+        
+        // Calculate initial character dimensions
+        let tempCharHeight = canvasHeight / GRID_HEIGHT;
+        
+        // Calculate font size with min/max constraints
+        let fontSize = Math.floor(tempCharHeight * 0.9);
+        fontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fontSize));
+        
+        // Calculate actual character dimensions based on final font size
+        charHeight = fontSize / 0.9;
+        charWidth = fontSize * 0.6; // Monospace width approximation
+        
+        // Recalculate canvas size based on actual character dimensions
+        // This ensures the grid fits perfectly even when font is capped
+        canvasWidth = charWidth * GRID_WIDTH;
+        canvasHeight = charHeight * GRID_HEIGHT;
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Center canvas in window
+        canvas.style.position = 'absolute';
+        canvas.style.left = `${(window.innerWidth - canvasWidth) / 2}px`;
+        canvas.style.top = `${(window.innerHeight - canvasHeight) / 2}px`;
         
         // Set font
         ctx.font = `${fontSize}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'top';
+        
+        // Redraw current screen if callback is set
+        if (redrawCallback) {
+            redrawCallback();
+        }
+    }
+    
+    /**
+     * Set a callback function to redraw the current screen after resize
+     * @param {Function} callback - Function to call after canvas resize
+     */
+    function setRedrawCallback(callback) {
+        redrawCallback = callback;
     }
     
     /**
@@ -81,6 +129,7 @@ const UI = (() => {
     function clearAll() {
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawnPositions.clear();
     }
     
     /**
@@ -100,6 +149,19 @@ const UI = (() => {
         }
         if (x + text.length > GRID_WIDTH) {
             throw new Error(`addText: text "${text}" at x=${x} extends beyond grid width (${x + text.length} > ${GRID_WIDTH})`);
+        }
+        
+        // Check for overwrites - each character in the text string
+        for (let i = 0; i < text.length; i++) {
+            const posKey = `${x + i},${y}`;
+            if (drawnPositions.has(posKey)) {
+                throw new Error(`addText: attempting to overwrite character at position (${x + i}, ${y}). Text: "${text}"`);
+            }
+        }
+        
+        // Mark positions as drawn
+        for (let i = 0; i < text.length; i++) {
+            drawnPositions.add(`${x + i},${y}`);
         }
         
         ctx.fillStyle = color;
@@ -205,6 +267,7 @@ const UI = (() => {
         addButton,
         clearButtons,
         setButtons,
+        setRedrawCallback,
         getGridSize
     };
 })();

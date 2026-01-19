@@ -55,19 +55,30 @@ const TitleMenu = (() => {
             const numSystems = Math.floor(Math.random() * (MAX_NUM_SYSTEMS - MIN_NUM_SYSTEMS + 1)) + MIN_NUM_SYSTEMS;
             gameState.systems = SystemGenerator.generateMany(numSystems);
             
-            // Place player at system closest to center (0, 0)
-            let closestDistance = Infinity;
-            let closestSystemIndex = 0;
+            // Place player at system with most neighbors within 10ly
+            let bestSystemIndex = 0;
+            let maxNeighbors = 0;
             
             gameState.systems.forEach((system, index) => {
-                const distance = Math.sqrt(system.x * system.x + system.y * system.y);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestSystemIndex = index;
+                // Count neighbors within 10ly
+                let neighborCount = 0;
+                gameState.systems.forEach((otherSystem, otherIndex) => {
+                    if (index !== otherIndex) {
+                        const distance = system.distanceTo(otherSystem);
+                        if (distance <= 10) {
+                            neighborCount++;
+                        }
+                    }
+                });
+                
+                // Update best system if this one has more neighbors
+                if (neighborCount > maxNeighbors) {
+                    maxNeighbors = neighborCount;
+                    bestSystemIndex = index;
                 }
             });
             
-            gameState.setCurrentSystem(closestSystemIndex);
+            gameState.setCurrentSystem(bestSystemIndex);
             
             // Generate player ships and crew (2 ships for testing)
             gameState.ships.push(ShipGenerator.generateStartingShip());

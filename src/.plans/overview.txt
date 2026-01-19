@@ -1,0 +1,24 @@
+high tension = good, survival = good, grinding/scoring up = mediocre
+star trek had an ok formula - because there's an antagonist.
+we need something similar here - klingon equivalents who try to conquer systems. 
+if they succeed, a klingon fleet sits there. so you can't use it to repair, buy goods etc until you liberate it.
+maybe they do this by blockading... and maybe the target system gives up instead of fighting so their defense fleet is preserved.
+also you should be able to conquer systems by fighting their defense fleet. 
+this gives 4 alignments naturally
+conquer - evil
+liberate - good
+both - chaotic
+neither - pure neutral (boringcore)
+
+to actually increase tension we need to make a chance some bugs will attack the player if he travels to a system they're blokading or control
+ie world gets scarier
+
+and we also need to make flee not guaranteed to work, escape pods limited, and ship can be destroyed (you can actually die/lose)
+
+there's also the concept of score for prestige players - ie, total systems conquered, liberated, etc.
+and to make the world "live" a little more we can have the still free systems occasionally send out their own liberation fleets (player, bug, doesnt matter)
+and some "classes" naturally arise
+trader - dont give a shit about anything and just trade at free systems
+smuggler - make dangerous runs into bug held space, or just transmit illegal cargo
+warrior - fight the shit out of bugs OR defense fleets, whatever
+some others may be possible too.

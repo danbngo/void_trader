@@ -267,8 +267,9 @@ const UI = (() => {
      * @param {number} y - Grid Y position (0 to GRID_HEIGHT-1)
      * @param {string} text - Text to render
      * @param {string} color - CSS color string (default: white)
+     * @param {number} fontSize - Optional font size multiplier (default: 1.0)
      */
-    function addText(x, y, text, color = 'white') {
+    function addText(x, y, text, color = 'white', fontSize = 1.0) {
         // Bounds checking
         if (x < 0 || x >= GRID_WIDTH) {
             throw new Error(`addText: x position ${x} is out of bounds (0-${GRID_WIDTH-1})`);
@@ -288,7 +289,7 @@ const UI = (() => {
         }
         
         // Register the text
-        registeredTexts.push({ x, y, text, color });
+        registeredTexts.push({ x, y, text, color, fontSize });
     }
     
     /**
@@ -377,6 +378,11 @@ const UI = (() => {
                 ctx.fillStyle = 'black';
                 ctx.fillRect(pixelX, pixelY, textWidth, charHeight);
             }
+            
+            // Calculate font size based on multiplier
+            const baseFontSize = Math.floor(charHeight * 0.9);
+            const actualFontSize = Math.floor(baseFontSize * item.fontSize);
+            ctx.font = `${actualFontSize}px ${FONT_FAMILY}`;
             
             // Draw the text
             ctx.fillStyle = item.color;

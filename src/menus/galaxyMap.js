@@ -83,6 +83,7 @@ const GalaxyMap = (() => {
         // Store selected system screen coordinates for line drawing
         let selectedScreenX = null;
         let selectedScreenY = null;
+        let selectedCanReach = false;
         
         // Draw nearby systems
         nearbySystems.forEach((item, index) => {
@@ -107,14 +108,15 @@ const GalaxyMap = (() => {
                 
                 // Prioritize selection color over everything else
                 if (isSelected) {
-                    color = COLORS.YELLOW;
+                    // Selected: yellow if reachable, red if not
+                    color = canReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
                 } else if (canReach) {
                     color = COLORS.CYAN;
                 }
                 
                 // Only draw if not overlapping current system
                 if (screenX !== mapCenterX || screenY !== mapCenterY) {
-                    UI.addText(screenX, screenY, symbol, color);
+                    UI.addText(screenX, screenY, symbol, color, 0.7); // Render stars at 70% size
                     
                     // Register as clickable
                     UI.registerTableRow(screenX, screenY, 1, index, (rowIndex) => {
@@ -126,6 +128,7 @@ const GalaxyMap = (() => {
                     if (isSelected) {
                         selectedScreenX = screenX;
                         selectedScreenY = screenY;
+                        selectedCanReach = canReach;
                     }
                 }
             }
@@ -133,11 +136,12 @@ const GalaxyMap = (() => {
         
         // Draw line between current and selected system
         if (selectedScreenX !== null && selectedScreenY !== null) {
+            const lineColor = selectedCanReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
             const linePoints = LineDrawer.drawLine(
                 mapCenterX, mapCenterY,
                 selectedScreenX, selectedScreenY,
                 false, // Don't include endpoints (they have their own symbols)
-                COLORS.YELLOW
+                lineColor
             );
             
             // Draw each line point
@@ -185,6 +189,9 @@ const GalaxyMap = (() => {
         // Selected nearby system info
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
+            const activeShip = gameState.ship;
+            const fuelCost = Math.ceil(selected.distance);
+            const canReach = activeShip.canReach(currentSystem.x, currentSystem.y, selected.system.x, selected.system.y);
             
             UI.addText(startX, 5, '=== Selected System ===', COLORS.YELLOW);
             UI.addText(startX, 7, 'Name:', COLORS.TEXT_DIM);
@@ -196,11 +203,17 @@ const GalaxyMap = (() => {
             UI.addText(startX, 9, 'Distance:', COLORS.TEXT_DIM);
             UI.addText(startX + 10, 9, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 10, 'Pop:', COLORS.TEXT_DIM);
-            UI.addText(startX + 5, 10, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 10, 'Fuel Cost:', COLORS.TEXT_DIM);
+            UI.addText(startX + 11, 10, `${fuelCost}`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 11, 'Economy:', COLORS.TEXT_DIM);
-            UI.addText(startX + 9, 11, selected.system.economy, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 11, 'Reachable:', COLORS.TEXT_DIM);
+            UI.addText(startX + 11, 11, canReach ? 'Yes' : 'No', canReach ? COLORS.GREEN : COLORS.TEXT_ERROR);
+            
+            UI.addText(startX, 12, 'Pop:', COLORS.TEXT_DIM);
+            UI.addText(startX + 5, 12, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
+            
+            UI.addText(startX, 13, 'Economy:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, 13, selected.system.economy, COLORS.TEXT_NORMAL);
         } else {
             UI.addText(startX, 5, 'No nearby systems', COLORS.TEXT_DIM);
         }

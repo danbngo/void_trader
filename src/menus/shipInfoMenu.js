@@ -14,25 +14,35 @@ const ShipInfoMenu = (() => {
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
-        const ship = gameState.ship;
         
         // Title
-        UI.addTextCentered(3, 'Ship Status', COLORS.TITLE);
+        UI.addTextCentered(3, 'Fleet Status', COLORS.TITLE);
         
-        // Ship details
+        // Build table data for all ships
         const startY = 6;
-        const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-        TableRenderer.renderKeyValueList(5, startY, [
-            { label: 'Ship Name:', value: ship.name, valueColor: COLORS.CYAN },
-            { label: 'Ship Type:', value: shipType.name, valueColor: COLORS.TEXT_DIM },
-            { label: 'Hull:', value: `${ship.hull} / ${ship.maxHull}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Shields:', value: `${ship.shields} / ${ship.maxShields}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Lasers:', value: String(ship.lasers), valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Engine:', value: String(ship.engine), valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Fuel:', value: `${ship.fuel} / ${ship.maxFuel}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Cargo Space:', value: `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Available Space:', value: `${ship.getAvailableCargoSpace()} units`, valueColor: COLORS.GREEN }
-        ]);
+        const headers = ['Ship', 'Type', 'Hull', 'Shields', 'Lasers', 'Engine', 'Fuel', 'Cargo'];
+        const rows = gameState.ships.map((ship, index) => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const isActive = index === gameState.activeShipIndex;
+            const nameColor = isActive ? COLORS.GREEN : COLORS.CYAN;
+            
+            return [
+                { text: ship.name, color: nameColor },
+                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
+                { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.getTotalCargo()}/${ship.cargoCapacity}`, color: COLORS.TEXT_NORMAL }
+            ];
+        });
+        
+        // Render the table
+        TableRenderer.renderTable(5, startY, headers, rows, -1, 2, null);
+        
+        // Legend
+        UI.addText(5, startY + rows.length + 2, 'Active ship shown in green', COLORS.TEXT_DIM);
         
         // Back button
         UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);

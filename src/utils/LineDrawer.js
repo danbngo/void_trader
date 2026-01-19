@@ -76,23 +76,24 @@ const LineDrawer = (() => {
         const normalizedDegrees = (degrees + 360) % 360;
         
         // Choose symbol based on angle
-        // Horizontal: 0° or 180° (±22.5°)
-        if ((normalizedDegrees >= 0 && normalizedDegrees < 22.5) || 
-            (normalizedDegrees >= 157.5 && normalizedDegrees < 202.5) ||
-            (normalizedDegrees >= 337.5 && normalizedDegrees < 360)) {
+        // Adjusted for ASCII character aspect ratio (characters are ~2x taller than wide)
+        // Horizontal: 0° or 180° (±30°) - wider range to prefer horizontal
+        if ((normalizedDegrees >= 0 && normalizedDegrees < 30) || 
+            (normalizedDegrees >= 150 && normalizedDegrees < 210) ||
+            (normalizedDegrees >= 330 && normalizedDegrees < 360)) {
             return '─';
         }
-        // Vertical: 90° or 270° (±22.5°)
-        else if ((normalizedDegrees >= 67.5 && normalizedDegrees < 112.5) ||
-                 (normalizedDegrees >= 247.5 && normalizedDegrees < 292.5)) {
+        // Vertical: 90° or 270° (±30°)
+        else if ((normalizedDegrees >= 60 && normalizedDegrees < 120) ||
+                 (normalizedDegrees >= 240 && normalizedDegrees < 300)) {
             return '│';
         }
-        // Diagonal down-right or up-left: 45° or 225° (±22.5°) - backslash
-        else if ((normalizedDegrees >= 22.5 && normalizedDegrees < 67.5) ||
-                 (normalizedDegrees >= 202.5 && normalizedDegrees < 247.5)) {
+        // Diagonal down-right or up-left: 45° or 225° (±15°) - backslash
+        else if ((normalizedDegrees >= 30 && normalizedDegrees < 60) ||
+                 (normalizedDegrees >= 210 && normalizedDegrees < 240)) {
             return '\\';
         }
-        // Diagonal down-left or up-right: 135° or 315° (±22.5°) - forward slash
+        // Diagonal down-left or up-right: 135° or 315° (±15°) - forward slash
         else {
             return '/';
         }

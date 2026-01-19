@@ -80,6 +80,10 @@ const GalaxyMap = (() => {
         
         const activeShip = gameState.ship;
         
+        // Store selected system screen coordinates for line drawing
+        let selectedScreenX = null;
+        let selectedScreenY = null;
+        
         // Draw nearby systems
         nearbySystems.forEach((item, index) => {
             const dx = item.system.x - currentSystem.x;
@@ -117,9 +121,34 @@ const GalaxyMap = (() => {
                         selectedIndex = rowIndex;
                         render(gameState);
                     });
+                    
+                    // Store selected system coordinates
+                    if (isSelected) {
+                        selectedScreenX = screenX;
+                        selectedScreenY = screenY;
+                    }
                 }
             }
         });
+        
+        // Draw line between current and selected system
+        if (selectedScreenX !== null && selectedScreenY !== null) {
+            const linePoints = LineDrawer.drawLine(
+                mapCenterX, mapCenterY,
+                selectedScreenX, selectedScreenY,
+                false, // Don't include endpoints (they have their own symbols)
+                COLORS.YELLOW
+            );
+            
+            // Draw each line point
+            linePoints.forEach(point => {
+                // Only draw if within map bounds and not overlapping a system
+                if (point.x > 0 && point.x < mapWidth - 1 && 
+                    point.y > 0 && point.y < mapHeight - 1) {
+                    UI.addText(point.x, point.y, point.symbol, point.color);
+                }
+            });
+        }
         
         // Player Ships summary
         UI.addText(2, mapHeight + 1, '=== Player Ships ===', COLORS.TITLE);
@@ -149,31 +178,31 @@ const GalaxyMap = (() => {
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
-        UI.addText(startX, 1, '=== Current System ===', COLORS.TITLE);
-        UI.addText(startX, 3, 'Name:', COLORS.TEXT_DIM);
-        UI.addText(startX + 6, 3, currentSystem.name, COLORS.TEXT_NORMAL);
+        UI.addText(startX, 0, '=== Current System ===', COLORS.TITLE);
+        UI.addText(startX, 2, 'Name:', COLORS.TEXT_DIM);
+        UI.addText(startX + 6, 2, currentSystem.name, COLORS.TEXT_NORMAL);
         
         // Selected nearby system info
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
             
-            UI.addText(startX, 6, '=== Selected System ===', COLORS.YELLOW);
-            UI.addText(startX, 8, 'Name:', COLORS.TEXT_DIM);
-            UI.addText(startX + 6, 8, selected.system.name, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 5, '=== Selected System ===', COLORS.YELLOW);
+            UI.addText(startX, 7, 'Name:', COLORS.TEXT_DIM);
+            UI.addText(startX + 6, 7, selected.system.name, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 9, 'Coords:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, 9, `(${selected.system.x}, ${selected.system.y})`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 8, 'Coords:', COLORS.TEXT_DIM);
+            UI.addText(startX + 8, 8, `(${selected.system.x}, ${selected.system.y})`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 10, 'Distance:', COLORS.TEXT_DIM);
-            UI.addText(startX + 10, 10, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 9, 'Distance:', COLORS.TEXT_DIM);
+            UI.addText(startX + 10, 9, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 11, 'Pop:', COLORS.TEXT_DIM);
-            UI.addText(startX + 5, 11, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 10, 'Pop:', COLORS.TEXT_DIM);
+            UI.addText(startX + 5, 10, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, 12, 'Economy:', COLORS.TEXT_DIM);
-            UI.addText(startX + 9, 12, selected.system.economy, COLORS.TEXT_NORMAL);
+            UI.addText(startX, 11, 'Economy:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, 11, selected.system.economy, COLORS.TEXT_NORMAL);
         } else {
-            UI.addText(startX, 6, 'No nearby systems', COLORS.TEXT_DIM);
+            UI.addText(startX, 5, 'No nearby systems', COLORS.TEXT_DIM);
         }
     }
     

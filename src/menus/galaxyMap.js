@@ -46,6 +46,9 @@ const GalaxyMap = (() => {
         
         // Set this screen as the redraw target
         UI.setRedrawCallback(() => show(gameState));
+        
+        // Debug output
+        UI.debugUI();
     }
     
     /**
@@ -62,8 +65,8 @@ const GalaxyMap = (() => {
         }
         UI.addText(0, mapHeight - 1, '+' + '-'.repeat(mapWidth - 2) + '+', COLORS.GRAY);
         
-        // Title (inside the border)
-        UI.addText(2, 1, '[ GALAXY MAP ]', COLORS.TITLE);
+        // Title
+        UI.addText(2, 0, '[ GALAXY MAP ]', COLORS.TITLE);
         
         // Calculate scale to fit systems in map
         const mapCenterX = Math.floor(mapWidth / 2);

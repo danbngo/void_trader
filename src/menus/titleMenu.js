@@ -45,6 +45,9 @@ const TitleMenu = (() => {
         
         // Set this screen as the redraw target
         UI.setRedrawCallback(() => show());
+        
+        // Debug output
+        UI.debugUI();
     }
     
     /**
@@ -76,8 +79,8 @@ const TitleMenu = (() => {
             // Store game state globally for access
             window.gameState = gameState;
             
-            // Show galaxy map
-            GalaxyMap.show(gameState);
+            // Show introduction screen
+            IntroScreen.show(gameState);
         }, 500);
     }
     

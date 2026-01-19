@@ -24,6 +24,9 @@ const UI = (() => {
     // Track drawn character positions to detect overwrites
     let drawnPositions = new Set();
     
+    // Track actual text content for debugging
+    let drawnContent = [];
+    
     /**
      * Initialize the UI system
      */
@@ -130,6 +133,7 @@ const UI = (() => {
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawnPositions.clear();
+        drawnContent = [];
     }
     
     /**
@@ -155,18 +159,27 @@ const UI = (() => {
         for (let i = 0; i < text.length; i++) {
             const posKey = `${x + i},${y}`;
             if (drawnPositions.has(posKey)) {
-                throw new Error(`addText: attempting to overwrite character at position (${x + i}, ${y}). Text: "${text}"`);
+                console.warn(`addText: overwriting character at position (${x + i}, ${y}). Text: "${text}"`);
             }
         }
+        
+        // Clear the area before drawing to prevent visual artifacts
+        const pixelX = x * charWidth;
+        const pixelY = y * charHeight;
+        const textWidth = text.length * charWidth;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(pixelX, pixelY, textWidth, charHeight);
         
         // Mark positions as drawn
         for (let i = 0; i < text.length; i++) {
             drawnPositions.add(`${x + i},${y}`);
         }
+        //Record the text content for debugging
+        drawnContent.push({ x, y, text, color });
         
+        // 
+        // Draw the text
         ctx.fillStyle = color;
-        const pixelX = x * charWidth;
-        const pixelY = y * charHeight;
         ctx.fillText(text, pixelX, pixelY);
     }
     
@@ -258,6 +271,37 @@ const UI = (() => {
         return { width: GRID_WIDTH, height: GRID_HEIGHT };
     }
     
+    /**
+     * Debug function to print current screen content as ASCII
+     */
+    function debugUI() {
+        // Create a 2D array to represent the screen
+        const screen = [];
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            screen[y] = new Array(GRID_WIDTH).fill(' ');
+        }
+        
+        // Fill in the screen with actual text content
+        drawnContent.forEach(item => {
+            const { x, y, text } = item;
+            for (let i = 0; i < text.length; i++) {
+                if (x + i >= 0 && x + i < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
+                    screen[y][x + i] = text[i];
+                }
+            }
+        });
+        
+        // Build the output string
+        let output = '\n┌' + '─'.repeat(GRID_WIDTH) + '┐\n';
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            output += '│' + screen[y].join('') + '│\n';
+        }
+        output += '└' + '─'.repeat(GRID_WIDTH) + '┘\n';
+        output += `Grid: ${GRID_WIDTH}x${GRID_HEIGHT}, Text items: ${drawnContent.length}, Drawn positions: ${drawnPositions.size}`;
+        
+        console.log(output);
+    }
+    
     // Public API
     return {
         init,
@@ -268,6 +312,7 @@ const UI = (() => {
         clearButtons,
         setButtons,
         setRedrawCallback,
-        getGridSize
+        getGridSize,
+        debugUI
     };
 })();

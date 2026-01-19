@@ -150,6 +150,15 @@ const UI = (() => {
                 }
                 return;
             }
+
+            if (key == 'Escape') {
+                const zeroBtn = registeredButtons.find(btn => btn.key === '0');
+                if (zeroBtn) {
+                    e.preventDefault();
+                    zeroBtn.callback();
+                }
+                return;
+            }
             
             // Check if this key has a button assigned (direct access)
             const button = registeredButtons.find(btn => btn.key === key);
@@ -298,7 +307,7 @@ const UI = (() => {
         }
         
         // Register the button
-        registeredButtons.push({ x, y, key, label, callback, color });
+        registeredButtons.push({ x, y, key, label, callback, color, helpText: arguments[6] || '' });
     }
     
     /**
@@ -352,6 +361,16 @@ const UI = (() => {
         });
         
         // Draw all registered buttons
+                // Draw output row (generalized)
+                if (typeof outputRowText !== 'undefined' && outputRowText) {
+                    const grid = getGridSize();
+                    const y = grid.height - 3;
+                    const x = Math.floor((GRID_WIDTH - outputRowText.length) / 2);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(x * charWidth, y * charHeight, outputRowText.length * charWidth, charHeight);
+                    ctx.fillStyle = outputRowColor || 'white';
+                    ctx.fillText(outputRowText, x * charWidth, y * charHeight);
+                }
         registeredButtons.forEach((btn, index) => {
             const buttonText = `[${btn.key}] ${btn.label}`;
             const pixelX = btn.x * charWidth;

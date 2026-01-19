@@ -22,9 +22,9 @@ const TitleMenu = (() => {
         const menuX = centerX - 10;
         const menuY = 12;
         
-        UI.addButton(menuX, menuY, '1', 'New Game', () => newGame(), COLORS.BUTTON);
-        UI.addButton(menuX, menuY + 1, '2', 'Load Game', () => LoadMenu.show(() => TitleMenu.show()), COLORS.BUTTON);
-        UI.addButton(menuX, menuY + 2, '3', 'About', () => showAbout(), COLORS.BUTTON);
+        UI.addButton(menuX, menuY, '1', 'New Game', () => newGame(), COLORS.BUTTON, 'Start a new adventure');
+        UI.addButton(menuX, menuY + 1, '2', 'Load Game', () => LoadMenu.show(() => TitleMenu.show()), COLORS.BUTTON, 'Load a previously saved game');
+        UI.addButton(menuX, menuY + 2, '3', 'About', () => showAbout(), COLORS.BUTTON, 'Learn about the game');
         
         // Footer
         UI.addTextCentered(grid.height - 2, '(Use arrow keys or numbers to select)', COLORS.TEXT_DIM);

@@ -17,6 +17,11 @@ class GameState {
         this.date = new Date(3000, 0, 1); // Game date set to January 1, 3000 AD
         this.encounterShips = []; // Ships involved in current encounter
         this.encounter = false; // Whether an encounter is active
+        
+        // Combat state
+        this.combatAction = null; // Current combat action being executed
+        this.combatHandler = null; // Current combat action handler
+        this.activeShipCombatIndex = 0; // Index of current active ship in combat
     }
     
     /**

@@ -34,7 +34,7 @@ const SHIP_TYPES = {
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 2.0,
         baseMaxHull: AVERAGE_SHIP_HULL * 1.75,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.25,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.6,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.0,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5
     },
     HAULER: {
@@ -56,7 +56,7 @@ const SHIP_TYPES = {
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 1.75,
         baseMaxHull: AVERAGE_SHIP_HULL * 3.75,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 2.0,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.8,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.2,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.2
     },
     RAIDER: {

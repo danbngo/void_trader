@@ -20,17 +20,19 @@ const EncounterMenu = (() => {
      * Initialize combat distances for all ships
      */
     function initializeCombat(gameState) {
-        // Set random distances for player ships (10-30)
+        const range = ENCOUNTER_MAX_SHIP_DISTANCE - ENCOUNTER_MIN_SHIP_DISTANCE;
+        
+        // Set random distances for player ships
         gameState.ships.forEach(ship => {
-            ship.distance = Math.floor(Math.random() * 21) + 10;
+            ship.distance = Math.floor(Math.random() * (range + 1)) + ENCOUNTER_MIN_SHIP_DISTANCE;
             ship.fled = false;
             ship.disabled = false;
             ship.acted = false;
         });
         
-        // Set random distances for enemy ships (10-30)
+        // Set random distances for enemy ships
         gameState.encounterShips.forEach(ship => {
-            ship.distance = Math.floor(Math.random() * 21) + 10;
+            ship.distance = Math.floor(Math.random() * (range + 1)) + ENCOUNTER_MIN_SHIP_DISTANCE;
             ship.fled = false;
             ship.disabled = false;
             ship.acted = false;
@@ -138,7 +140,7 @@ const EncounterMenu = (() => {
         UI.addText(5, y++, '=== Enemy Ships ===', COLORS.TITLE);
         y++;
         
-        const enemyHeaders = ['', 'Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Distance', 'Status'];
+        const enemyHeaders = ['', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Distance', 'Status'];
         const enemyRows = currentGameState.encounterShips.map((ship, index) => {
             const marker = (index === selectedEnemyShip) ? '*' : '';
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
@@ -155,12 +157,11 @@ const EncounterMenu = (() => {
             
             return [
                 { text: marker, color: COLORS.YELLOW },
-                { text: ship.name, color: statusColor },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
-                { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.distance), color: COLORS.CYAN },
                 { text: status, color: statusColor }
             ];
@@ -189,11 +190,11 @@ const EncounterMenu = (() => {
             const canAct = currentShip && !currentShip.fled && !currentShip.disabled && !currentShip.acted;
             
             if (canAct) {
-                UI.addButton(5, buttonY, '3', 'Fire Laser', () => {
+                UI.addButton(5, buttonY, '1', 'Fire Laser', () => {
                     startTargeting('laser');
                 }, COLORS.GREEN);
                 
-                UI.addButton(5, buttonY + 1, '4', 'Chase Enemy Ship', () => {
+                UI.addButton(5, buttonY + 1, '2', 'Chase Enemy Ship', () => {
                     startTargeting('chase');
                 }, COLORS.BUTTON);
                 
@@ -326,6 +327,11 @@ const EncounterMenu = (() => {
     function fireLaser(attacker, target) {
         const damage = Math.floor(Math.random() * attacker.lasers) + 1;
         
+        // Determine if attacker is player or enemy
+        const isPlayerAttacking = currentGameState.ships.includes(attacker);
+        const attackerName = isPlayerAttacking ? attacker.name : `Enemy ${(SHIP_TYPES[attacker.type] || { name: 'Unknown' }).name.toLowerCase()}`;
+        const targetName = isPlayerAttacking ? '' : target.name;
+        
         // Apply to shields first
         if (target.shields > 0) {
             const shieldDamage = Math.min(damage, target.shields);
@@ -334,13 +340,25 @@ const EncounterMenu = (() => {
             
             if (carryover > 0) {
                 target.hull -= carryover;
-                outputMessage = `${attacker.name} hit ${target.name} for ${shieldDamage} shield + ${carryover} hull damage!`;
+                if (isPlayerAttacking) {
+                    outputMessage = `${attackerName} hit enemy for ${shieldDamage} shield + ${carryover} hull damage!`;
+                } else {
+                    outputMessage = `${attackerName} hit ${targetName} for ${shieldDamage} shield + ${carryover} hull damage!`;
+                }
             } else {
-                outputMessage = `${attacker.name} hit ${target.name} for ${shieldDamage} shield damage!`;
+                if (isPlayerAttacking) {
+                    outputMessage = `${attackerName} hit enemy for ${shieldDamage} shield damage!`;
+                } else {
+                    outputMessage = `${attackerName} hit ${targetName} for ${shieldDamage} shield damage!`;
+                }
             }
         } else {
             target.hull -= damage;
-            outputMessage = `${attacker.name} hit ${target.name} for ${damage} hull damage!`;
+            if (isPlayerAttacking) {
+                outputMessage = `${attackerName} hit enemy for ${damage} hull damage!`;
+            } else {
+                outputMessage = `${attackerName} hit ${targetName} for ${damage} hull damage!`;
+            }
         }
         
         outputColor = COLORS.GREEN;
@@ -349,7 +367,11 @@ const EncounterMenu = (() => {
         if (target.hull <= 0) {
             target.hull = 0;
             target.disabled = true;
-            outputMessage += ` ${target.name} disabled!`;
+            if (isPlayerAttacking) {
+                outputMessage += ` Enemy disabled!`;
+            } else {
+                outputMessage += ` ${targetName} disabled!`;
+            }
         }
     }
     
@@ -363,6 +385,10 @@ const EncounterMenu = (() => {
         const newAttackerDist = attacker.distance - attackerClosing;
         const newTargetDist = target.distance - targetClosing;
         
+        // Determine if attacker is player or enemy
+        const isPlayerAttacking = currentGameState.ships.includes(attacker);
+        const attackerName = isPlayerAttacking ? attacker.name : `Enemy ${(SHIP_TYPES[attacker.type] || { name: 'Unknown' }).name.toLowerCase()}`;
+        
         // Check for ram
         if (newAttackerDist < 1 && newTargetDist < 1) {
             attacker.distance = 1;
@@ -371,7 +397,11 @@ const EncounterMenu = (() => {
         } else {
             attacker.distance = Math.max(1, newAttackerDist);
             target.distance = Math.max(1, newTargetDist);
-            outputMessage = `${attacker.name} closing distance! Your dist: ${attacker.distance}, Enemy dist: ${target.distance}`;
+            if (isPlayerAttacking) {
+                outputMessage = `${attackerName} closing distance! Your dist: ${attacker.distance}, Enemy dist: ${target.distance}`;
+            } else {
+                outputMessage = `${attackerName} closing distance! Enemy dist: ${attacker.distance}`;
+            }
             outputColor = COLORS.CYAN;
         }
     }
@@ -386,14 +416,19 @@ const EncounterMenu = (() => {
         target.hull -= damage;
         attacker.hull -= selfDamage;
         
-        outputMessage = `${attacker.name} RAMMED ${target.name}! Dealt ${damage} damage, took ${selfDamage} damage!`;
+        // Determine if attacker is player or enemy
+        const isPlayerAttacking = currentGameState.ships.includes(attacker);
+        const attackerName = isPlayerAttacking ? attacker.name : `Enemy ${(SHIP_TYPES[attacker.type] || { name: 'Unknown' }).name.toLowerCase()}`;
+        const targetName = isPlayerAttacking ? 'enemy' : target.name;
+        
+        outputMessage = `${attackerName} RAMMED ${targetName}! Dealt ${damage} damage, took ${selfDamage} damage!`;
         outputColor = COLORS.YELLOW;
         
         // Check disabled
         if (target.hull <= 0) {
             target.hull = 0;
             target.disabled = true;
-            outputMessage += ` ${target.name} disabled!`;
+            outputMessage += ` ${targetName.charAt(0).toUpperCase() + targetName.slice(1)} disabled!`;
         }
         
         if (attacker.hull <= 0) {

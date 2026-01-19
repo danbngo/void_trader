@@ -67,8 +67,8 @@ const ShipyardMenu = (() => {
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
-                { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${ship.getValue()} CR`, color: COLORS.TEXT_NORMAL }
             ];
@@ -121,8 +121,8 @@ const ShipyardMenu = (() => {
                 { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                { text: `L${ship.lasers}`, color: COLORS.TEXT_NORMAL },
-                { text: `E${ship.engine}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${price} CR`, color: COLORS.TEXT_NORMAL },
                 { text: `${netCost} CR`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }

@@ -47,7 +47,7 @@ const GalaxyMap = (() => {
         drawSystemInfo(gameState, mapWidth + 2);
         
         // Draw buttons at bottom
-        drawButtons(gameState, mapWidth + 2);
+        drawButtons(gameState, mapWidth + 2, mapHeight);
         
         UI.draw();
     }
@@ -260,14 +260,20 @@ const GalaxyMap = (() => {
         // Draw map on left side (50% of width)
         const mapWidth = Math.floor(grid.width * 0.5);
         const mapHeight = Math.floor(grid.height * 0.5);
-        
+
         drawMap(gameState, mapWidth, mapHeight);
         
         // Draw system info on right side
         drawSystemInfo(gameState, mapWidth + 2);
         
         // Draw buttons at bottom
-        drawButtons(gameState, mapWidth + 2);
+        drawButtons(gameState, mapWidth + 2, mapHeight);
+        
+        // Debug: Log all registered texts to see what's happening
+        console.log('=== Registered UI Elements Before Draw ===');
+        console.log('Map dimensions:', { mapWidth, mapHeight });
+        console.log('Looking for legend at row:', mapHeight);
+        UI.debugRegisteredTexts();
         
         UI.draw();
     }
@@ -275,18 +281,18 @@ const GalaxyMap = (() => {
     /**
      * Draw navigation buttons
      */
-    function drawButtons(gameState, startX) {
+    function drawButtons(gameState, startX, mapHeight) {
         const grid = UI.getGridSize();
         const buttonY = grid.height - 5;
+        
+        // Legend positioned right after map border
+        UI.addText(2, mapHeight, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
         
         // Output area (2 lines above buttons)
         if (outputMessage) {
             UI.addText(5, buttonY - 2, outputMessage, outputColor);
         }
-        
-        // Legend above buttons
-        UI.addText(2, buttonY - 4, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
-        
+
         // Buttons in columns on left side
         UI.addButton(5, buttonY, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {

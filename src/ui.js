@@ -569,6 +569,30 @@ const UI = (() => {
         registeredTableRows.push({ x, y, width, index, callback });
     }
     
+    /**
+     * Debug function to log all registered texts
+     */
+    function debugRegisteredTexts() {
+        console.log('=== All Registered Texts ===');
+        console.log(`Total: ${registeredTexts.length} texts`);
+        
+        // Group by Y coordinate for easier reading
+        const byY = {};
+        registeredTexts.forEach((t, i) => {
+            if (!byY[t.y]) byY[t.y] = [];
+            byY[t.y].push({ index: i, x: t.x, text: t.text, color: t.color });
+        });
+        
+        // Print sorted by Y
+        Object.keys(byY).sort((a, b) => Number(a) - Number(b)).forEach(y => {
+            console.log(`\nRow ${y}:`);
+            byY[y].forEach(item => {
+                const preview = item.text.length > 40 ? item.text.substring(0, 40) + '...' : item.text;
+                console.log(`  [${item.index}] x=${item.x}, color=${item.color}, text="${preview}"`);
+            });
+        });
+    }
+    
     // Public API
     return {
         init,
@@ -578,6 +602,7 @@ const UI = (() => {
         addButton,
         addSelectionHighlight,
         registerTableRow,
+        debugRegisteredTexts,
         draw,
         getGridSize,
         resetSelection,

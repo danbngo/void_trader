@@ -447,7 +447,8 @@ const EncounterMenu = (() => {
         
         // Check if waiting for player to continue
         const activeShip = getActivePlayerShip();
-        const needsContinue = !activeShip || activeShip.acted;
+        const anyShipActed = currentGameState.ships.some(s => s.acted && !s.fled && !s.disabled && !s.escaped);
+        const needsContinue = (!activeShip || anyShipActed);
         
         if (needsContinue && outputMessage) {
             // Show Continue button to advance to next ship or enemy turn
@@ -575,7 +576,7 @@ const EncounterMenu = (() => {
         
         // Set initial message
         if (actionType === COMBAT_ACTIONS.PURSUE) {
-            outputMessage = `Pursuing ${targetShip.name}...`;
+            outputMessage = `${activeShip.name} pursuing ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FLEE) {
             outputMessage = `Fleeing from ${targetShipType.name}...`;
         }
@@ -596,12 +597,15 @@ const EncounterMenu = (() => {
             );
             const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
             
-            if (actionType === COMBAT_ACTIONS.FLEE) {
-                outputMessage = `Fled ${distanceMoved} AU from ${targetShipType.name}`;
-                outputColor = COLORS.TEXT_NORMAL;
-            } else if (actionType === COMBAT_ACTIONS.PURSUE) {
-                outputMessage = `Pursued ${targetShip.name} ${distanceMoved} AU`;
-                outputColor = COLORS.TEXT_NORMAL;
+            // Only set message if it's not already set (e.g., from ramming)
+            if (!outputMessage.includes('RAMMED')) {
+                if (actionType === COMBAT_ACTIONS.FLEE) {
+                    outputMessage = `Fled ${distanceMoved} AU from ${targetShipType.name}`;
+                    outputColor = COLORS.TEXT_NORMAL;
+                } else if (actionType === COMBAT_ACTIONS.PURSUE) {
+                    outputMessage = `${activeShip.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
+                    outputColor = COLORS.TEXT_NORMAL;
+                }
             }
             
             render();
@@ -771,10 +775,55 @@ const EncounterMenu = (() => {
             if (handler.ramAction) {
                 // Execute ram action after current action completes
                 clearInterval(tickInterval);
+                
+                // Calculate ramming damage (between 1 and distance travelled)
+                const ramAction = handler.ramAction;
+                const distanceTravelled = ramAction.knockbackDistance;
+                const damage = Math.floor(Math.random() * Math.max(1, distanceTravelled)) + 1;
+                
+                // Apply hull damage to rammed ship
+                ramAction.ship.hull -= damage;
+                
+                // Check if ship is disabled
+                if (ramAction.ship.hull <= 0) {
+                    ramAction.ship.hull = 0;
+                    ramAction.ship.disabled = true;
+                }
+                
+                // Get ship names/types for message
+                let rammerName = '';
+                let rammedName = '';
+                
+                if (ramAction.rammer) {
+                    // Determine if rammer is player or enemy
+                    const rammerIsPlayer = currentGameState.ships.includes(ramAction.rammer);
+                    if (rammerIsPlayer) {
+                        rammerName = ramAction.rammer.name;
+                        const rammedType = SHIP_TYPES[ramAction.ship.type] || { name: 'Unknown' };
+                        rammedName = rammedType.name;
+                    } else {
+                        rammerName = 'Enemy';
+                        rammedName = ramAction.ship.name;
+                    }
+                }
+                
                 // Clear current action before starting ram action
                 currentGameState.combatAction = null;
                 currentGameState.combatHandler = null;
-                executeActionWithTicks(handler.ramAction, onComplete);
+                
+                // Execute ram knockback animation
+                executeActionWithTicks(ramAction, () => {
+                    // Update message to show ramming
+                    if (rammerName) {
+                        outputMessage = `${rammerName} RAMMED ${rammedName} for ${damage} damage!`;
+                        outputColor = COLORS.TEXT_ERROR;
+                    }
+                    
+                    // Call original completion callback
+                    if (onComplete) {
+                        onComplete();
+                    }
+                });
                 return;
             }
             

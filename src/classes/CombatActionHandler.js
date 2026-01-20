@@ -165,7 +165,8 @@ class CombatActionHandler {
                         COMBAT_ACTIONS.GET_RAMMED,
                         null,
                         knockbackDistance,
-                        knockbackAngle
+                        knockbackAngle,
+                        this.ship // Store rammer for damage calculation
                     );
                     
                     // Store reference for caller to handle

@@ -23,6 +23,7 @@ const UI = (() => {
     let registeredTableRows = []; // For clickable table rows
     let selectedButtonIndex = 0;
     let lastSelectedButtonIndex = -1; // Track last selection to detect changes
+    let preservedButtonKey = null; // Track button key to preserve selection across re-renders
     let keyListener = null;
     
     // Output row state
@@ -250,6 +251,11 @@ const UI = (() => {
      * Clear all registered UI elements (selection preserved if possible)
      */
     function clear() {
+        // Preserve current selected button key
+        if (registeredButtons.length > 0 && selectedButtonIndex < registeredButtons.length) {
+            preservedButtonKey = registeredButtons[selectedButtonIndex].key;
+        }
+        
         registeredTexts = [];
         registeredButtons = [];
         registeredHighlights = [];
@@ -348,6 +354,15 @@ const UI = (() => {
      * Draw all registered UI elements to the canvas
      */
     function draw() {
+        // Try to restore selection by preserved button key
+        if (preservedButtonKey !== null) {
+            const foundIndex = registeredButtons.findIndex(btn => btn.key === preservedButtonKey);
+            if (foundIndex !== -1) {
+                selectedButtonIndex = foundIndex;
+            }
+            preservedButtonKey = null;
+        }
+        
         // Validate selection index (reset if out of bounds)
         if (selectedButtonIndex >= registeredButtons.length) {
             selectedButtonIndex = 0;

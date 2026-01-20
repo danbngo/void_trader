@@ -10,13 +10,15 @@ class CombatAction {
      * @param {Object} targetShip - Optional target ship (for PURSUE)
      * @param {number} knockbackDistance - Optional knockback distance (for GET_RAMMED)
      * @param {number} knockbackAngle - Optional knockback angle (for GET_RAMMED)
+     * @param {Object} rammer - Optional ship that caused the ramming (for GET_RAMMED)
      */
-    constructor(ship, actionType, targetShip = null, knockbackDistance = 0, knockbackAngle = 0) {
+    constructor(ship, actionType, targetShip = null, knockbackDistance = 0, knockbackAngle = 0, rammer = null) {
         this.ship = ship;
         this.actionType = actionType;
         this.targetShip = targetShip;
         this.knockbackDistance = knockbackDistance;
         this.knockbackAngle = knockbackAngle;
+        this.rammer = rammer;
         this.completed = false;
     }
     

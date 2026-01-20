@@ -136,6 +136,15 @@ const GuildMenu = (() => {
             gameState.enabledCargoTypes.push(...CARGO_TYPES_ILLEGAL);
         }
         
+        // Unlock corresponding ship types
+        if (perk.id === 'SHIP_MERCANTILE') {
+            gameState.enabledShipTypes.push(...SHIP_TYPES_MERCANTILE);
+        } else if (perk.id === 'SHIP_PARAMILITARY') {
+            gameState.enabledShipTypes.push(...SHIP_TYPES_PARAMILITARY);
+        } else if (perk.id === 'SHIP_MILITARY') {
+            gameState.enabledShipTypes.push(...SHIP_TYPES_MILITARY);
+        }
+        
         outputMessage = `Learned ${perk.name}!`;
         outputColor = COLORS.TEXT_SUCCESS;
         render(onReturn);

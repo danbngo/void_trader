@@ -21,6 +21,24 @@ const PERKS = {
         name: 'Cargo Handling: Illegal',
         description: 'Learn to handle illegal cargo types (Weapons, Drugs, Antimatter)',
         baseCost: 10000
+    },
+    SHIP_MERCANTILE: {
+        id: 'SHIP_MERCANTILE',
+        name: 'Ship License: Mercantile',
+        description: 'License to pilot mercantile vessels (Freighter, Hauler)',
+        baseCost: 3000
+    },
+    SHIP_PARAMILITARY: {
+        id: 'SHIP_PARAMILITARY',
+        name: 'Ship License: Paramilitary',
+        description: 'License to pilot paramilitary vessels (Corvette, Raider)',
+        baseCost: 7000
+    },
+    SHIP_MILITARY: {
+        id: 'SHIP_MILITARY',
+        name: 'Ship License: Military',
+        description: 'License to pilot military capital ships (Destroyer, Battleship)',
+        baseCost: 15000
     }
 };
 

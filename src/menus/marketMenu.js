@@ -49,20 +49,25 @@ const MarketMenu = (() => {
             const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
             const playerQuantity = fleetCargo[cargoType.id] || 0;
             
+            // Check if player has training for this cargo type
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            
             // Calculate ratios for color coding
             const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
             const sellRatio = sellPrice / cargoType.baseValue; // Higher sell price = higher ratio = better
             
-            const buyColor = UI.calcStatColor(buyRatio);
-            const sellColor = UI.calcStatColor(sellRatio);
+            // If no training, make entire row grey
+            const buyColor = hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
+            const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
+            const textColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             
             return [
-                { text: cargoType.name, color: COLORS.TEXT_NORMAL },
-                { text: String(stock), color: COLORS.TEXT_NORMAL },
-                { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
+                { text: cargoType.name, color: textColor },
+                { text: String(stock), color: textColor },
+                { text: String(cargoType.baseValue), color: hasTraining ? COLORS.TEXT_DIM : COLORS.TEXT_DIM },
                 { text: `${buyPrice}`, color: buyColor },
                 { text: `${sellPrice}`, color: sellColor },
-                { text: String(playerQuantity), color: COLORS.TEXT_NORMAL }
+                { text: String(playerQuantity), color: textColor }
             ];
         });
         
@@ -85,26 +90,57 @@ const MarketMenu = (() => {
         const marketStock = currentSystem.cargoStock[selectedCargoType.id];
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         const playerStock = fleetCargo[selectedCargoType.id] || 0;
+        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id);
         
-        // Buy 1 - gray out if no stock, no space, or insufficient credits
-        const canBuy1 = marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
+        // Build help text for buy buttons
+        let buy1HelpText = 'Purchase 1 unit of selected cargo';
+        let buy10HelpText = 'Purchase 10 units of selected cargo';
+        if (!hasTraining) {
+            buy1HelpText = 'Requires training - Visit the Guild';
+            buy10HelpText = 'Requires training - Visit the Guild';
+        } else if (marketStock === 0) {
+            buy1HelpText = 'No stock available in market';
+            buy10HelpText = 'No stock available in market';
+        } else if (availableSpace === 0) {
+            buy1HelpText = 'No cargo space available';
+            buy10HelpText = 'No cargo space available';
+        } else if (gameState.credits < buyPrice) {
+            buy1HelpText = `Not enough credits (need ${buyPrice} CR)`;
+            buy10HelpText = `Not enough credits (need ${buyPrice * 10} CR)`;
+        }
+        
+        // Build help text for sell buttons
+        let sell1HelpText = 'Sell 1 unit of selected cargo';
+        let sell10HelpText = 'Sell 10 units of selected cargo';
+        if (!hasTraining) {
+            sell1HelpText = 'Requires training - Visit the Guild';
+            sell10HelpText = 'Requires training - Visit the Guild';
+        } else if (playerStock === 0) {
+            sell1HelpText = 'You have none to sell';
+            sell10HelpText = 'You have none to sell';
+        } else if (playerStock < 10) {
+            sell10HelpText = `Only have ${playerStock} to sell`;
+        }
+        
+        // Buy 1 - gray out if no training, no stock, no space, or insufficient credits
+        const canBuy1 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
         const buy1Color = canBuy1 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, 'Purchase 1 unit of selected cargo');
+        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, buy1HelpText);
         
-        // Sell 1 - gray out if no player stock
-        const canSell1 = playerStock >= 1;
+        // Sell 1 - gray out if no training or no player stock
+        const canSell1 = hasTraining && playerStock >= 1;
         const sell1Color = canSell1 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), sell1Color, 'Sell 1 unit of selected cargo');
+        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), sell1Color, sell1HelpText);
         
-        // Buy 10 - gray out if no stock, no space, or insufficient credits
-        const canBuy10 = marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
+        // Buy 10 - gray out if no training, no stock, no space, or insufficient credits
+        const canBuy10 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
         const buy10Color = canBuy10 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, 'Purchase 10 units of selected cargo');
+        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, buy10HelpText);
         
-        // Sell 10 - gray out if no player stock
-        const canSell10 = playerStock >= 1;
+        // Sell 10 - gray out if no training or no player stock
+        const canSell10 = hasTraining && playerStock >= 1;
         const sell10Color = canSell10 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), sell10Color, 'Sell 10 units of selected cargo');
+        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), sell10Color, sell10HelpText);
         
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
@@ -140,6 +176,15 @@ const MarketMenu = (() => {
     function buyCargo(amount, onReturn) {
         const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
+        
+        // Check if player has training
+        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+        if (!hasTraining) {
+            outputMessage = `You lack training to handle ${cargoType.name}. Visit the Guild!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const availableStock = currentSystem.cargoStock[cargoType.id];
@@ -182,6 +227,15 @@ const MarketMenu = (() => {
     function sellCargo(amount, onReturn) {
         const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
+        
+        // Check if player has training
+        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+        if (!hasTraining) {
+            outputMessage = `You lack training to handle ${cargoType.name}. Visit the Guild!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);

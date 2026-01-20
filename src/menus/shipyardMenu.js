@@ -125,18 +125,27 @@ const ShipyardMenu = (() => {
         const rows = currentSystem.ships.map((ship, index) => {
             const price = ship.getValue();
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            
+            // Check if player has license for this ship type
+            const hasLicense = gameState.enabledShipTypes.some(st => st.id === ship.type);
+            
             const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            
+            // If no license, make entire row grey
+            const textColor = hasLicense ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            const statColor = (ratio) => hasLicense ? UI.calcStatColor(ratio) : COLORS.TEXT_DIM;
+            
             return [
-                { text: shipType.name, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
-                { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
-                { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
-                { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: `${price}`, color: COLORS.TEXT_NORMAL }
+                { text: shipType.name, color: textColor },
+                { text: `${ship.maxHull}`, color: textColor },
+                { text: `${ship.maxShields}`, color: textColor },
+                { text: String(ship.lasers), color: statColor(laserRatio) },
+                { text: String(ship.engine), color: statColor(engineRatio) },
+                { text: String(ship.radar), color: statColor(radarRatio) },
+                { text: String(ship.cargoCapacity), color: textColor },
+                { text: `${price}`, color: textColor }
             ];
         });
         
@@ -151,17 +160,34 @@ const ShipyardMenu = (() => {
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
         
-        // Buy Ship - gray out if insufficient credits
+        // Buy Ship - gray out if insufficient credits or no license
         const selectedShip = currentSystem.ships[selectedShipIndex];
         const shipPrice = selectedShip.getValue();
-        const canBuy = gameState.credits >= shipPrice;
-        const buyColor = canBuy ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), buyColor, 'Purchase selected ship');
+        const hasLicense = gameState.enabledShipTypes.some(st => st.id === selectedShip.type);
+        const canAfford = gameState.credits >= shipPrice;
+        const canBuy = hasLicense && canAfford;
         
-        // Trade In - gray out if insufficient credits for net cost
-        const canTradeIn = gameState.ships.length > 0;
+        let buyHelpText = 'Purchase selected ship';
+        if (!hasLicense) {
+            buyHelpText = 'Requires ship license - Visit the Guild';
+        } else if (!canAfford) {
+            buyHelpText = `Not enough credits (need ${shipPrice} CR)`;
+        }
+        
+        const buyColor = canBuy ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), buyColor, buyHelpText);
+        
+        // Trade In - gray out if insufficient credits for net cost or no license
+        const canTradeIn = gameState.ships.length > 0 && hasLicense;
+        let tradeInHelpText = 'Trade in one of your ships for this one';
+        if (!hasLicense) {
+            tradeInHelpText = 'Requires ship license - Visit the Guild';
+        } else if (gameState.ships.length === 0) {
+            tradeInHelpText = 'No ships to trade in';
+        }
+        
         const tradeInColor = canTradeIn ? COLORS.BUTTON : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), tradeInColor, 'Trade in one of your ships for this one');
+        UI.addButton(25, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), tradeInColor, tradeInHelpText);
         
         UI.addButton(5, buttonY + 2, '0', 'Back to Fleet', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
@@ -306,6 +332,16 @@ const ShipyardMenu = (() => {
         }
         
         const ship = currentSystem.ships[selectedShipIndex];
+        
+        // Check if player has license for this ship type
+        const hasLicense = gameState.enabledShipTypes.some(st => st.id === ship.type);
+        if (!hasLicense) {
+            outputMessage = 'You lack a license to pilot this ship type. Visit the Guild!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
         const cost = ship.getValue();
         
         if (cost > gameState.credits) {
@@ -358,9 +394,19 @@ const ShipyardMenu = (() => {
             return;
         }
         
+        const newShip = currentSystem.ships[selectedShipIndex];
+        
+        // Check if player has license for this ship type
+        const hasLicense = gameState.enabledShipTypes.some(st => st.id === newShip.type);
+        if (!hasLicense) {
+            outputMessage = 'You lack a license to pilot this ship type. Visit the Guild!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
         // Trade in the first ship (could be enhanced to let player choose)
         const oldShip = gameState.ships[0];
-        const newShip = currentSystem.ships[selectedShipIndex];
         
         const tradeInValue = oldShip.getValue();
         const cost = newShip.getValue();

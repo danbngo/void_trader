@@ -61,7 +61,8 @@ const SaveLoadManager = (() => {
                 bounty: gameState.bounty,
                 // Save perk system
                 perks: Array.from(gameState.perks),
-                enabledCargoTypes: gameState.enabledCargoTypes
+                enabledCargoTypes: gameState.enabledCargoTypes,
+                enabledShipTypes: gameState.enabledShipTypes
             },
             timestamp: new Date().toISOString()
         };
@@ -184,6 +185,7 @@ const SaveLoadManager = (() => {
         // Restore perk system
         gameState.perks = new Set(data.perks || []);
         gameState.enabledCargoTypes = data.enabledCargoTypes || [...CARGO_TYPES_SAFE];
+        gameState.enabledShipTypes = data.enabledShipTypes || [...SHIP_TYPES_BASIC];
         
         return gameState;
     }

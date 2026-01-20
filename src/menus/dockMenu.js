@@ -18,6 +18,7 @@ const DockMenu = (() => {
         outputMessage = '';
         outputColor = COLORS.TEXT_NORMAL;
         
+        UI.resetSelection(); // Only reset selection when first entering menu
         render(gameState);
     }
     
@@ -29,7 +30,7 @@ const DockMenu = (() => {
         console.log(`[DockMenu] render called. outputMessage:`, outputMessage, `outputColor:`, outputColor);
         
         UI.clear();
-        UI.resetSelection();
+        // Don't reset selection here - preserve it across re-renders
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();

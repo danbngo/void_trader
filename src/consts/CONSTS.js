@@ -10,6 +10,10 @@ const MAX_ENCOUNTER_WEIGHT = 4
 const MAP_VIEW_RANGE = 20 // in coordinate units
 const MIN_MAP_VIEW_RANGE = 10
 const MAX_MAP_VIEW_RANGE = 40
+const GALAXY_MAP_WIDTH_PERCENT = 0.5 // 50% of screen width
+const GALAXY_MAP_HEIGHT_PERCENT = 0.5 // 50% of screen height
+const GALAXY_MAP_WIDTH_BONUS = 5 // Extra columns
+const GALAXY_MAP_HEIGHT_BONUS = 5 // Extra rows
 
 const MIN_NUM_SYSTEMS = 200
 const MAX_NUM_SYSTEMS = 300
@@ -39,6 +43,10 @@ const ENCOUNTER_MAX_RADIUS = 100
 const ENCOUNTER_MAP_VIEW_RANGE = 80 // in coordinate units
 const ENCOUNTER_MIN_MAP_VIEW_RANGE = 20
 const ENCOUNTER_MAX_MAP_VIEW_RANGE = 120
+const ENCOUNTER_MAP_WIDTH_PERCENT = 0.5 // 50% of screen width
+const ENCOUNTER_MAP_HEIGHT_PERCENT = 0.5 // 50% of screen height
+const ENCOUNTER_MAP_WIDTH_BONUS = 5 // Extra columns
+const ENCOUNTER_MAP_HEIGHT_BONUS = 5 // Extra rows
 
 const STAR_SYSTEM_MIN_DISTANCE_FROM_NEIGHBORS = 5
 const STAR_SYSTEM_MAX_DISTANCE_FROM_NEIGHBORS = 20

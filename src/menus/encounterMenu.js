@@ -193,8 +193,8 @@ const EncounterMenu = (() => {
         const grid = UI.getGridSize();
         
         // Draw map on left side (50% of width + 5)
-        const mapWidth = Math.floor(grid.width * 0.5) + 5;
-        const mapHeight = Math.floor(grid.height * 0.5) + 5;
+        const mapWidth = Math.floor(grid.width * ENCOUNTER_MAP_WIDTH_PERCENT) + ENCOUNTER_MAP_WIDTH_BONUS;
+        const mapHeight = Math.floor(grid.height * ENCOUNTER_MAP_HEIGHT_PERCENT) + ENCOUNTER_MAP_HEIGHT_BONUS;
         
         drawMap(currentGameState, mapWidth, mapHeight);
         
@@ -419,10 +419,10 @@ const EncounterMenu = (() => {
             UI.addText(startX + 8, y - 1, `(${activeShip.x.toFixed(0)}, ${activeShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
             const hullRatio = activeShip.hull / activeShip.maxHull;
-            UI.addText(startX + 6, y - 1, `${activeShip.hull}/${activeShip.maxHull}`, UI.calcStatColor(hullRatio));
+            UI.addText(startX + 6, y - 1, `${activeShip.hull}/${activeShip.maxHull}`, UI.calcStatColor(hullRatio, true));
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
             const shieldRatio = activeShip.shields / activeShip.maxShields;
-            UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, UI.calcStatColor(shieldRatio));
+            UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, UI.calcStatColor(shieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
             UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
@@ -451,10 +451,10 @@ const EncounterMenu = (() => {
             UI.addText(startX + 8, y - 1, `(${targetShip.x.toFixed(0)}, ${targetShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
             const targetHullRatio = targetShip.hull / targetShip.maxHull;
-            UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, UI.calcStatColor(targetHullRatio));
+            UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, UI.calcStatColor(targetHullRatio, true));
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
             const targetShieldRatio = targetShip.shields / targetShip.maxShields;
-            UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, UI.calcStatColor(targetShieldRatio));
+            UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, UI.calcStatColor(targetShieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
             UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);

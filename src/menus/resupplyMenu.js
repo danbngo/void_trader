@@ -43,9 +43,9 @@ const ResupplyMenu = (() => {
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
-                { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio) },
-                { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio) },
-                { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio) }
+                { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
+                { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
+                { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) }
             ];
         });
         

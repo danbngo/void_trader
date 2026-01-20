@@ -50,8 +50,8 @@ const GalaxyMap = (() => {
         }
         
         // Draw map on left side (50% of width + 5)
-        const mapWidth = Math.floor(grid.width * 0.5) + 5;
-        const mapHeight = Math.floor(grid.height * 0.5) + 5;
+        const mapWidth = Math.floor(grid.width * GALAXY_MAP_WIDTH_PERCENT) + GALAXY_MAP_WIDTH_BONUS;
+        const mapHeight = Math.floor(grid.height * GALAXY_MAP_HEIGHT_PERCENT) + GALAXY_MAP_HEIGHT_BONUS;
         
         drawMap(gameState, mapWidth, mapHeight);
         
@@ -195,10 +195,10 @@ const GalaxyMap = (() => {
         UI.addText(startX + 17, y - 1, `${numShips}x`, COLORS.TEXT_NORMAL);
         UI.addText(startX, y++, 'Fuel:', COLORS.TEXT_DIM);
         const fuelRatio = totalFuel / totalMaxFuel;
-        UI.addText(startX + 6, y - 1, `${totalFuel}/${totalMaxFuel}`, UI.calcStatColor(fuelRatio));
+        UI.addText(startX + 6, y - 1, `${totalFuel}/${totalMaxFuel}`, UI.calcStatColor(fuelRatio, true));
         UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
         const hullRatio = totalHull / totalMaxHull;
-        UI.addText(startX + 6, y - 1, `${totalHull}/${totalMaxHull}`, UI.calcStatColor(hullRatio));
+        UI.addText(startX + 6, y - 1, `${totalHull}/${totalMaxHull}`, UI.calcStatColor(hullRatio, true));
         
         y++; // Empty row
         
@@ -271,9 +271,9 @@ const GalaxyMap = (() => {
             selectedIndex = Math.max(0, nearbySystems.length - 1);
         }
         
-        // Draw map on left side (50% of width)
-        const mapWidth = Math.floor(grid.width * 0.5);
-        const mapHeight = Math.floor(grid.height * 0.5);
+        // Draw map on left side (50% of width + 5)
+        const mapWidth = Math.floor(grid.width * GALAXY_MAP_WIDTH_PERCENT) + GALAXY_MAP_WIDTH_BONUS;
+        const mapHeight = Math.floor(grid.height * GALAXY_MAP_HEIGHT_PERCENT) + GALAXY_MAP_HEIGHT_BONUS;
 
         drawMap(gameState, mapWidth, mapHeight);
         

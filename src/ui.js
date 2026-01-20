@@ -559,9 +559,15 @@ const UI = (() => {
     /**
      * Calculate stat color based on ratio
      * @param {number} ratio - Value ratio (0 to 4+)
+     * @param {boolean} maxAsGreen - If true, ratio of 1.0 shows as light green instead of white
      * @returns {string} Color string
      */
-    function calcStatColor(ratio) {
+    function calcStatColor(ratio, maxAsGreen = false) {
+        // Special case: if maxAsGreen is true and ratio is exactly 1.0, return light green
+        if (maxAsGreen && ratio >= 0.9999 && ratio <= 1.0001) {
+            return '#90EE90'; // Light green
+        }
+        
         if (ratio <= 0) return '#8B0000'; // Dark red
         if (ratio <= 0.25) {
             // Interpolate between dark red and red

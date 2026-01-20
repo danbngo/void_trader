@@ -18,8 +18,8 @@ const MESSAGES = {
             'To help you succeed, I have arranged a series of challenges.',
             'Complete them, and credits will be deposited into your account.',
             '',
-            'Your first task: reach the nearest star system with a',
-            'Merchant\'s Guild. Only there can you become a true merchant.',
+            'Your first task: reach Proxima, the nearest star system with',
+            'a Merchant\'s Guild. Only there can you become a true merchant.',
             '',
             'May the void be kind to you.',
             '- Uncle'

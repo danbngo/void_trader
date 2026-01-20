@@ -476,11 +476,18 @@ const UI = (() => {
                     outputRowIsHelpText = true;
                 }
             } else {
-                // Draw colored key and white label
-                ctx.fillStyle = btn.color;
-                ctx.fillText(`[${btn.key}] `, pixelX, pixelY + charHeight / 2);
-                ctx.fillStyle = 'white';
-                ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY + charHeight / 2);
+                // Draw button - if yellow (special highlight), color entire button
+                if (btn.color === COLORS.YELLOW) {
+                    // Highlight entire button text in yellow for extra attention
+                    ctx.fillStyle = btn.color;
+                    ctx.fillText(buttonText, pixelX, pixelY + charHeight / 2);
+                } else {
+                    // Draw colored key and white label
+                    ctx.fillStyle = btn.color;
+                    ctx.fillText(`[${btn.key}] `, pixelX, pixelY + charHeight / 2);
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY + charHeight / 2);
+                }
             }
         });
         

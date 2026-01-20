@@ -180,8 +180,46 @@ const SystemGenerator = (() => {
         return connectedSystems;
     }
     
+    /**
+     * Validate and adjust galaxy for game start
+     * Names the starting system "Nexus", removes its guild,
+     * and names the nearest guild system "Proxima"
+     * @param {Array<StarSystem>} systems - All star systems
+     * @param {number} startSystemIndex - Index of starting system
+     */
+    function validateGalaxy(systems, startSystemIndex) {
+        const startingSystem = systems[startSystemIndex];
+        
+        // Name starting system "Nexus"
+        startingSystem.name = 'Nexus';
+        
+        // Remove guild from Nexus if present
+        if (startingSystem.buildings.includes('GUILD')) {
+            startingSystem.buildings = startingSystem.buildings.filter(b => b !== 'GUILD');
+        }
+        
+        // Find nearest system with a guild and name it "Proxima"
+        let nearestGuildSystem = null;
+        let nearestDistance = Infinity;
+        
+        systems.forEach((system, index) => {
+            if (index !== startSystemIndex && system.buildings.includes('GUILD')) {
+                const dist = distance(startingSystem.x, startingSystem.y, system.x, system.y);
+                if (dist < nearestDistance) {
+                    nearestDistance = dist;
+                    nearestGuildSystem = system;
+                }
+            }
+        });
+        
+        if (nearestGuildSystem) {
+            nearestGuildSystem.name = 'Proxima';
+        }
+    }
+    
     return {
         generate,
-        generateMany
+        generateMany,
+        validateGalaxy
     };
 })();

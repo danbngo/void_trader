@@ -274,7 +274,16 @@ const DockMenu = (() => {
         // Continue button
         const buttonY = grid.height - 4;
         UI.addButton(10, buttonY, '1', 'Continue', () => {
-            show(gameState);
+            // Check if there are more unread messages
+            const nextUnreadMessage = gameState.messages.find(m => !m.isRead && !m.suppressWarning);
+            
+            if (nextUnreadMessage) {
+                // Show next unread message warning
+                showUnreadMessageWarning(gameState, nextUnreadMessage);
+            } else {
+                // No more unread messages, proceed to galaxy map
+                proceedToGalaxyMap(gameState);
+            }
         }, COLORS.GREEN);
         
         UI.draw();
@@ -364,6 +373,18 @@ const DockMenu = (() => {
             outputColor = COLORS.TEXT_ERROR;
             console.log(`[DockMenu] Insufficient rank. Setting outputMessage:`, outputMessage);
             render(gameState);
+        } else if (building.id === 'DOCK') {
+            // Special check for Dock Services: if all ships are at full fuel and hull
+            const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
+            if (allShipsFull) {
+                outputMessage = 'All ships at full fuel and hull!';
+                outputColor = COLORS.TEXT_ERROR;
+                render(gameState);
+            } else {
+                // Player has access
+                console.log(`[DockMenu] Player has access, opening menu`);
+                building.openMenu();
+            }
         } else {
             // Player has access
             console.log(`[DockMenu] Player has access, opening menu`);

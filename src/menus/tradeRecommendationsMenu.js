@@ -1,0 +1,235 @@
+/**
+ * Trade Recommendations Menu
+ * Shows best trade opportunities for different cargo types across nearby systems
+ */
+
+const TradeRecommendationsMenu = (() => {
+    let returnCallback = null;
+    let currentGameState = null;
+    let selectedCargoIndex = 0;
+    let currentPage = 0;
+    const SYSTEMS_PER_PAGE = 10;
+    
+    /**
+     * Show the trade recommendations menu
+     * @param {GameState} gameState - Current game state
+     * @param {Function} onReturn - Callback to return to previous screen
+     */
+    function show(gameState, onReturn) {
+        returnCallback = onReturn;
+        currentGameState = gameState;
+        
+        // Find first enabled cargo type
+        const enabledCargoIds = gameState.enabledCargoTypes.map(ct => ct.id);
+        selectedCargoIndex = ALL_CARGO_TYPES.findIndex(ct => enabledCargoIds.includes(ct.id));
+        if (selectedCargoIndex === -1) selectedCargoIndex = 0; // Fallback
+        
+        currentPage = 0;
+        
+        UI.clear();
+        UI.resetSelection();
+        render();
+    }
+    
+    /**
+     * Render the trade recommendations screen
+     */
+    function render() {
+        UI.clear();
+        
+        const grid = UI.getGridSize();
+        const currentSystem = currentGameState.getCurrentSystem();
+        const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        
+        // Title
+        UI.addTextCentered(3, 'Trade Recommendations', COLORS.TITLE);
+        
+        // Cargo type info
+        let y = 5;
+        const fleetCargo = Ship.getFleetCargo(currentGameState.ships);
+        const playerQuantity = fleetCargo[selectedCargoType.id] || 0;
+        
+        UI.addText(5, y++, `Cargo Type: ${selectedCargoType.name}`, COLORS.CYAN);
+        UI.addText(5, y++, `Your Stock: ${playerQuantity}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, y++, `Base Value: ${selectedCargoType.baseValue} CR`, COLORS.TEXT_NORMAL);
+        y++;
+        
+        // Get reachable systems
+        const reachableSystems = getReachableSystems();
+        
+        if (reachableSystems.length === 0) {
+            UI.addTextCentered(y + 2, 'No reachable systems found!', COLORS.TEXT_ERROR);
+            UI.addTextCentered(y + 3, 'Refuel your ships to explore trade routes.', COLORS.TEXT_DIM);
+        } else {
+            // Pagination
+            const totalPages = Math.ceil(reachableSystems.length / SYSTEMS_PER_PAGE);
+            const startIdx = currentPage * SYSTEMS_PER_PAGE;
+            const endIdx = Math.min(startIdx + SYSTEMS_PER_PAGE, reachableSystems.length);
+            const pageData = reachableSystems.slice(startIdx, endIdx);
+            
+            // Display page info if there are multiple pages
+            if (totalPages > 1) {
+                UI.addText(5, y++, `Page ${currentPage + 1} of ${totalPages}`, COLORS.TEXT_DIM);
+                y++;
+            }
+            
+            // Table header
+            const headers = ['System', 'Dist', 'ETA (days)', 'Fuel', 'Buy Price', 'Sell Price'];
+            const rows = pageData.map(systemData => {
+                const buyPrice = systemData.buyPrice;
+                const sellPrice = systemData.sellPrice;
+                
+                // Calculate ratios for color coding (same as market menu)
+                const buyRatio = selectedCargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
+                const sellRatio = sellPrice / selectedCargoType.baseValue; // Higher sell price = higher ratio = better
+                
+                const buyColor = UI.calcStatColor(buyRatio);
+                const sellColor = UI.calcStatColor(sellRatio);
+                
+                // Format ETA
+                const etaText = systemData.eta.toFixed(1);
+                
+                return [
+                    { text: systemData.system.name, color: COLORS.TEXT_NORMAL },
+                    { text: systemData.distance.toFixed(1), color: COLORS.TEXT_DIM },
+                    { text: etaText, color: COLORS.TEXT_DIM },
+                    { text: String(systemData.fuelCost), color: COLORS.TEXT_DIM },
+                    { text: String(buyPrice), color: buyColor },
+                    { text: String(sellPrice), color: sellColor }
+                ];
+            });
+            
+            TableRenderer.renderTable(5, y, headers, rows, -1, 1);
+        }
+        
+        // Buttons
+        const buttonY = grid.height - 6;
+        UI.addButton(5, buttonY, '1', 'Next Cargo', nextCargo, COLORS.BUTTON, 'View next cargo type');
+        UI.addButton(5, buttonY + 1, '2', 'Prev Cargo', prevCargo, COLORS.BUTTON, 'View previous cargo type');
+        
+        // Pagination buttons
+        if (reachableSystems.length > SYSTEMS_PER_PAGE) {
+            const totalPages = Math.ceil(reachableSystems.length / SYSTEMS_PER_PAGE);
+            const canNextPage = currentPage < totalPages - 1;
+            const canPrevPage = currentPage > 0;
+            
+            const nextPageColor = canNextPage ? COLORS.BUTTON : COLORS.TEXT_DIM;
+            const prevPageColor = canPrevPage ? COLORS.BUTTON : COLORS.TEXT_DIM;
+            
+            UI.addButton(25, buttonY, '8', 'Next Page', nextPage, nextPageColor, canNextPage ? 'View next page of systems' : 'Already on last page');
+            UI.addButton(25, buttonY + 1, '9', 'Prev Page', prevPage, prevPageColor, canPrevPage ? 'View previous page of systems' : 'Already on first page');
+        }
+        
+        UI.addButton(5, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Get all reachable systems with trade data
+     * @returns {Array} Array of system data objects
+     */
+    function getReachableSystems() {
+        const currentSystem = currentGameState.getCurrentSystem();
+        const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        const reachableSystems = [];
+        
+        // Get first ship for engine calculation
+        const activeShip = currentGameState.ships[0];
+        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        
+        // Check all systems except current one
+        for (let i = 0; i < currentGameState.systems.length; i++) {
+            if (i === currentGameState.currentSystemIndex) continue;
+            
+            const system = currentGameState.systems[i];
+            const distance = currentSystem.distanceTo(system);
+            const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
+            const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+            
+            // Only include if we can reach it
+            if (totalFuel >= fuelCost) {
+                // Calculate ETA (days)
+                const eta = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
+                
+                // Calculate prices
+                const buyPrice = Math.floor(selectedCargoType.baseValue * system.cargoPriceModifier[selectedCargoType.id]);
+                const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price (same as market)
+                
+                reachableSystems.push({
+                    system: system,
+                    distance: distance,
+                    fuelCost: fuelCost,
+                    eta: eta,
+                    buyPrice: buyPrice,
+                    sellPrice: sellPrice
+                });
+            }
+        }
+        
+        // Sort by distance (closest first)
+        reachableSystems.sort((a, b) => a.distance - b.distance);
+        
+        return reachableSystems;
+    }
+    
+    /**
+     * Select next cargo type (only enabled ones)
+     */
+    function nextCargo() {
+        const enabledCargoIds = currentGameState.enabledCargoTypes.map(ct => ct.id);
+        let nextIndex = selectedCargoIndex;
+        
+        // Find next enabled cargo type
+        do {
+            nextIndex = (nextIndex + 1) % ALL_CARGO_TYPES.length;
+        } while (!enabledCargoIds.includes(ALL_CARGO_TYPES[nextIndex].id) && nextIndex !== selectedCargoIndex);
+        
+        selectedCargoIndex = nextIndex;
+        currentPage = 0; // Reset to first page when changing cargo
+        render();
+    }
+    
+    /**
+     * Select previous cargo type (only enabled ones)
+     */
+    function prevCargo() {
+        const enabledCargoIds = currentGameState.enabledCargoTypes.map(ct => ct.id);
+        let prevIndex = selectedCargoIndex;
+        
+        // Find previous enabled cargo type
+        do {
+            prevIndex = (prevIndex - 1 + ALL_CARGO_TYPES.length) % ALL_CARGO_TYPES.length;
+        } while (!enabledCargoIds.includes(ALL_CARGO_TYPES[prevIndex].id) && prevIndex !== selectedCargoIndex);
+        
+        selectedCargoIndex = prevIndex;
+        currentPage = 0; // Reset to first page when changing cargo
+        render();
+    }
+    
+    /**
+     * Go to next page
+     */
+    function nextPage() {
+        const reachableSystems = getReachableSystems();
+        const totalPages = Math.ceil(reachableSystems.length / SYSTEMS_PER_PAGE);
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            render();
+        }
+    }
+    
+    /**
+     * Go to previous page
+     */
+    function prevPage() {
+        if (currentPage > 0) {
+            currentPage--;
+            render();
+        }
+    }
+    
+    return {
+        show
+    };
+})();

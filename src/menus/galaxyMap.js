@@ -334,12 +334,12 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'View detailed information about the selected system');
         
-        UI.addButton(28, buttonY, '8', 'Zoom In', () => {
+        UI.addButton(28, buttonY + 1, '8', 'Zoom In', () => {
             mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
         
-        UI.addButton(28, buttonY + 1, '9', 'Zoom Out', () => {
+        UI.addButton(28, buttonY + 2, '9', 'Zoom Out', () => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
@@ -366,7 +366,7 @@ const GalaxyMap = (() => {
         
         const travelColor = canTravel ? COLORS.GREEN : COLORS.TEXT_DIM;
         
-        UI.addButton(28, buttonY + 2, '6', 'Travel', () => {
+        UI.addButton(28, buttonY, '6', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 // Check if retirement time has passed (50 years)
                 if (gameState.hasRetirementTimePassed()) {

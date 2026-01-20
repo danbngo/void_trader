@@ -76,8 +76,9 @@ const AssistantMenu = (() => {
         const questsColor = hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM;
         UI.addButton(menuX, menuY + 5, '6', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
-        UI.addButton(menuX, menuY + 6, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
-        UI.addButton(menuX, menuY + 7, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 6, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View trade opportunities in nearby systems');
+        UI.addButton(menuX, menuY + 7, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
+        UI.addButton(menuX, menuY + 8, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

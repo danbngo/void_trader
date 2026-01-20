@@ -7,6 +7,7 @@ const MessagesMenu = (() => {
     let returnCallback = null;
     let currentGameState = null;
     let selectedIndex = 0;
+    let showingUnread = true; // true = unread messages, false = read messages
     
     /**
      * Show the messages menu
@@ -17,6 +18,7 @@ const MessagesMenu = (() => {
         returnCallback = onReturn;
         currentGameState = gameState;
         selectedIndex = 0;
+        showingUnread = true;
         
         render();
     }
@@ -32,33 +34,55 @@ const MessagesMenu = (() => {
         
         // Title
         let y = 5;
-        UI.addTextCentered(y++, '=== Messages ===', COLORS.TITLE);
+        const title = showingUnread ? '=== Unread Messages ===' : '=== Read Messages ===';
+        UI.addTextCentered(y++, title, COLORS.TITLE);
         y += 2;
         
-        if (currentGameState.messages.length === 0) {
-            UI.addTextCentered(y++, 'No messages', COLORS.TEXT_DIM);
+        // Filter messages by read status
+        const filteredMessages = currentGameState.messages.filter(m => 
+            showingUnread ? !m.isRead : m.isRead
+        );
+        
+        if (filteredMessages.length === 0) {
+            const message = showingUnread ? 'No unread messages' : 'No read messages';
+            UI.addTextCentered(y++, message, COLORS.TEXT_DIM);
         } else {
             // Show list of messages
             const leftX = 10;
             UI.addText(leftX, y++, 'Press number to read message:', COLORS.TEXT_DIM);
             y++;
             
-            currentGameState.messages.forEach((message, index) => {
-                const num = index + 1;
+            filteredMessages.forEach((message, displayIndex) => {
+                const num = displayIndex + 1;
                 const status = message.isRead ? '' : '[NEW] ';
                 const color = message.isRead ? COLORS.TEXT_DIM : COLORS.YELLOW;
                 
+                // Get original index for readMessage function
+                const originalIndex = currentGameState.messages.indexOf(message);
+                
                 UI.addButton(leftX, y++, num.toString(), `${status}${message.title}`, () => {
-                    readMessage(index);
+                    readMessage(originalIndex);
                 }, color);
             });
         }
         
+        // Buttons
+        const buttonY = grid.height - 5;
+        
+        // Toggle between unread/read
+        const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
+        UI.addButton(10, buttonY, 'T', toggleLabel, () => {
+            showingUnread = !showingUnread;
+            render();
+        }, COLORS.BUTTON);
+        
         // Back button
-        const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '0', 'Back', () => {
+        UI.addButton(10, buttonY + 2, '0', 'Back', () => {
             if (returnCallback) returnCallback();
         }, COLORS.BUTTON);
+        
+        // Set help text in output row
+        UI.setOutputRow('Toggle between unread and read messages', COLORS.TEXT_DIM);
         
         UI.draw();
     }

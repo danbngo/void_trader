@@ -94,7 +94,15 @@ const DockMenu = (() => {
         allBuildings.forEach((building, index) => {
             const hasBuilding = currentSystem.buildings.includes(building.id);
             const hasRank = currentRank.level >= building.buildingType.minRankLevel;
-            const isAccessible = hasBuilding && hasRank;
+            let isAccessible = hasBuilding && hasRank;
+            
+            // Special check for Dock Services: also gray out if all ships are at full fuel and hull
+            if (building.id === 'DOCK' && isAccessible) {
+                const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
+                if (allShipsFull) {
+                    isAccessible = false;
+                }
+            }
             
             const color = isAccessible ? COLORS.BUTTON : COLORS.TEXT_DIM;
             const key = String(index + 1);
@@ -107,6 +115,11 @@ const DockMenu = (() => {
             } else if (!hasRank) {
                 const requiredRank = ALL_RANKS.find(r => r.level === building.buildingType.minRankLevel);
                 helpText += ` - Requires ${requiredRank.name} citizenship`;
+            } else if (building.id === 'DOCK') {
+                const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
+                if (allShipsFull) {
+                    helpText += ' - All ships at full fuel and hull';
+                }
             }
             
             UI.addButton(menuX, menuY++, key, building.name, 

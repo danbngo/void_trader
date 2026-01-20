@@ -639,6 +639,7 @@ const UI = (() => {
     function resetSelection() {
         selectedButtonIndex = 0;
         lastSelectedButtonIndex = -1;
+        preservedButtonKey = null; // Clear preserved key to prevent carryover
         // Only clear helpText, not action output
         if (outputRowIsHelpText) {
             outputRowText = '';

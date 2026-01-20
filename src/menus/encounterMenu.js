@@ -101,6 +101,17 @@ const EncounterMenu = (() => {
                 ship.angle = calculateAngle(ship.x, ship.y, randomPlayer.x, randomPlayer.y);
             }
         });
+        
+        // Generate asteroids within the encounter radius
+        gameState.asteroids = [];
+        const numAsteroids = MIN_COMBAT_ASTEROIDS + Math.floor(Math.random() * (MAX_COMBAT_ASTEROIDS - MIN_COMBAT_ASTEROIDS + 1));
+        for (let i = 0; i < numAsteroids; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * ENCOUNTER_MAX_RADIUS; // Spread across entire combat area
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+            gameState.asteroids.push(new Asteroid(x, y));
+        }
     }
     
     /**
@@ -231,7 +242,7 @@ const EncounterMenu = (() => {
         const scale = Math.min((mapWidth - 4) / (mapViewRange * 2), (mapHeight - 4) / (mapViewRange * 2));
         
         // Draw center marker
-        UI.addText(mapCenterX, mapCenterY, '+', COLORS.TEXT_DIM);
+        // UI.addText(mapCenterX, mapCenterY, '+', COLORS.TEXT_DIM); // Removed center marker
         
         // Fill area outside circular boundary with shade blocks
         for (let screenY = 1; screenY < mapHeight - 1; screenY++) {
@@ -266,6 +277,19 @@ const EncounterMenu = (() => {
             targetShipScreenY = Math.floor(mapCenterY - (targetShip.y - cameraOffsetY) * scale);
         }
         
+        // Draw asteroids (render before projectiles and ships)
+        gameState.asteroids.forEach(asteroid => {
+            if (asteroid.disabled) return;
+            
+            const screenX = Math.floor(mapCenterX + (asteroid.x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (asteroid.y - cameraOffsetY) * scale);
+            
+            // Check if in bounds
+            if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                UI.addText(screenX, screenY, 'O', COLORS.TEXT_DIM, 0.5);
+            }
+        });
+        
         // Draw projectile (render before ships so ships overlap it)
         if (gameState.combatAction && gameState.combatAction.projectile) {
             const proj = gameState.combatAction.projectile;
@@ -287,10 +311,11 @@ const EncounterMenu = (() => {
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                const symbol = getShipSymbol(ship.angle);
+                let symbol = getShipSymbol(ship.angle);
                 let color = COLORS.CYAN;
                 
                 if (ship.disabled) {
+                    symbol = 'x';
                     color = COLORS.GRAY;
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
@@ -313,10 +338,11 @@ const EncounterMenu = (() => {
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                const symbol = getShipSymbol(ship.angle);
+                let symbol = getShipSymbol(ship.angle);
                 let color = COLORS.TEXT_ERROR;
                 
                 if (ship.disabled) {
+                    symbol = 'x';
                     color = COLORS.GRAY;
                 } else if (index === targetIndex) {
                     color = COLORS.YELLOW;
@@ -383,7 +409,7 @@ const EncounterMenu = (() => {
         }
         
         // Legend positioned right after map border
-        UI.addText(2, mapHeight, '▲ = Ship  ■ = Disabled', COLORS.GRAY);
+        UI.addText(2, mapHeight, '▲ = Ship  x = Destroyed  O = Asteroid', COLORS.GRAY);
     }
     
     /**
@@ -536,19 +562,58 @@ const EncounterMenu = (() => {
                 currentButtonY++;
             }
             
+            // Calculate action details for help text
+            const targetShip = currentGameState.encounterShips[targetIndex];
+            let laserHelpText = 'Fire laser at the enemy ship';
+            let pursueHelpText = 'Move toward the enemy ship';
+            let fleeHelpText = 'Move away from the enemy ship';
+            
+            if (activeShip && targetShip) {
+                const dx = targetShip.x - activeShip.x;
+                const dy = targetShip.y - activeShip.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Laser help text: hit chance and damage
+                const hitChance = Math.min(100, Math.floor((activeShip.radar / distance) * 100));
+                const damageRange = `1-${activeShip.lasers}`;
+                laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg)`;
+                
+                // Pursue help text: check for ramming
+                const willRam = distance <= activeShip.engine;
+                if (willRam) {
+                    const massRatio = activeShip.maxHull / targetShip.maxHull;
+                    const knockback = Math.floor((activeShip.engine / 2) * massRatio);
+                    const ramDamage = `1-${Math.floor(knockback)}`;
+                    pursueHelpText = `Pursue (WILL RAM for ${ramDamage} dmg, travel ${Math.floor(distance)} AU)`;
+                } else {
+                    pursueHelpText = `Pursue (travel ${activeShip.engine} AU toward target)`;
+                }
+                
+                // Flee help text: distance and escape check
+                const fleeDistance = activeShip.engine;
+                const newDistance = distance + fleeDistance;
+                const currentDistanceFromCenter = Math.sqrt(activeShip.x * activeShip.x + activeShip.y * activeShip.y);
+                const willEscape = currentDistanceFromCenter + fleeDistance > ENCOUNTER_MAX_RADIUS;
+                if (willEscape) {
+                    fleeHelpText = `Flee ${fleeDistance} AU (WILL ESCAPE THE MAP)`;
+                } else {
+                    fleeHelpText = `Flee ${fleeDistance} AU away from target`;
+                }
+            }
+            
             UI.addButton(5, currentButtonY, '3', 'Fire Laser', () => {
                 executePlayerAction(COMBAT_ACTIONS.FIRE_LASER);
-            }, COLORS.TEXT_ERROR, 'Fire laser at the enemy ship');
+            }, COLORS.TEXT_ERROR, laserHelpText);
             currentButtonY++;
 
             UI.addButton(5, currentButtonY, '4', 'Pursue', () => {
                 executePlayerAction(COMBAT_ACTIONS.PURSUE);
-            }, COLORS.GREEN, 'Move toward the enemy ship');
+            }, COLORS.GREEN, pursueHelpText);
             currentButtonY++;
             
             UI.addButton(5, currentButtonY, '5', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
-            }, COLORS.BUTTON, 'Move away from the enemy ship');
+            }, COLORS.BUTTON, fleeHelpText);
             currentButtonY++;
             
             UI.addButton(28, buttonY, '8', 'Zoom In', () => {
@@ -663,10 +728,10 @@ const EncounterMenu = (() => {
             if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
                 // Laser message
                 if (action.hit) {
-                    outputMessage = `${activeShip.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU, ${Math.floor((activeShip.radar / action.distance) * 100)}% hit chance)`;
+                    outputMessage = `${activeShip.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.GREEN;
                 } else {
-                    outputMessage = `${activeShip.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU, ${Math.floor((activeShip.radar / action.distance) * 100)}% hit chance)`;
+                    outputMessage = `${activeShip.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
@@ -823,10 +888,10 @@ const EncounterMenu = (() => {
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
                 // Laser message
                 if (action.hit) {
-                    outputMessage = `Enemy hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
+                    outputMessage = `Enemy hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_ERROR;
                 } else {
-                    outputMessage = `Enemy missed ${action.targetShip.name}! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
+                    outputMessage = `Enemy missed ${action.targetShip.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
@@ -861,7 +926,7 @@ const EncounterMenu = (() => {
      * Execute an action with visual tick updates
      */
     function executeActionWithTicks(action, onComplete) {
-        const handler = new CombatActionHandler(action);
+        const handler = new CombatActionHandler(action, currentGameState.asteroids);
         
         // Store in gameState to track action in progress
         currentGameState.combatAction = action;

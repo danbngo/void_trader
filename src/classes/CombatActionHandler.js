@@ -7,9 +7,11 @@ class CombatActionHandler {
     /**
      * Create an action handler
      * @param {CombatAction} action - The action to execute
+     * @param {Array<Asteroid>} asteroids - Asteroids in the encounter
      */
-    constructor(action) {
+    constructor(action, asteroids = []) {
         this.action = action;
+        this.asteroids = asteroids;
         this.ship = action.ship;
         this.targetAngle = null;
         this.remainingDistance = 0;
@@ -152,9 +154,22 @@ class CombatActionHandler {
         
         // Move projectile
         const moveAmount = Math.min(10, this.remainingDistance);
+        const oldX = this.action.projectile.x;
+        const oldY = this.action.projectile.y;
         this.action.projectile.x += this.movementPerTick.x;
         this.action.projectile.y += this.movementPerTick.y;
         this.remainingDistance -= moveAmount;
+        
+        // Check for asteroid collisions along the path
+        const hitAsteroid = this.checkAsteroidCollision(oldX, oldY, this.action.projectile.x, this.action.projectile.y);
+        if (hitAsteroid) {
+            // Hit an asteroid - disable it and stop the laser
+            hitAsteroid.disabled = true;
+            this.action.hit = false; // Didn't hit the target ship
+            this.action.projectile = null;
+            this.action.complete();
+            return true;
+        }
         
         // Check if projectile reached target
         if (this.remainingDistance <= 0) {
@@ -188,6 +203,32 @@ class CombatActionHandler {
         }
         
         return false;
+    }
+    
+    /**
+     * Check if laser path collides with any asteroids
+     * Returns the nearest asteroid hit, or null
+     */
+    checkAsteroidCollision(x1, y1, x2, y2) {
+        let nearestAsteroid = null;
+        let nearestDistance = Infinity;
+        
+        // Check all non-disabled asteroids
+        for (const asteroid of this.asteroids) {
+            if (asteroid.disabled) continue;
+            
+            // Check if line segment intersects asteroid circle
+            if (Geom.lineCircleIntersect(x1, y1, x2, y2, asteroid.x, asteroid.y, ASTEROID_SIZE)) {
+                // Calculate distance from laser start to asteroid
+                const distance = Geom.distance(this.ship.x, this.ship.y, asteroid.x, asteroid.y);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestAsteroid = asteroid;
+                }
+            }
+        }
+        
+        return nearestAsteroid;
     }
     
     /**

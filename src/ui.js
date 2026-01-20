@@ -476,9 +476,9 @@ const UI = (() => {
                     outputRowIsHelpText = true;
                 }
             } else {
-                // Draw button - if yellow (special highlight), color entire button
-                if (btn.color === COLORS.YELLOW) {
-                    // Highlight entire button text in yellow for extra attention
+                // Draw button - if yellow (special highlight) or gray (disabled), color entire button
+                if (btn.color === COLORS.YELLOW || btn.color === COLORS.TEXT_DIM) {
+                    // Highlight entire button text in yellow or gray
                     ctx.fillStyle = btn.color;
                     ctx.fillText(buttonText, pixelX, pixelY + charHeight / 2);
                 } else {

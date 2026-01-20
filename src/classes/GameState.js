@@ -27,6 +27,9 @@ class GameState {
         this.activeQuests = []; // Array of active quest IDs
         this.completedQuests = []; // Array of completed quest IDs
         
+        // Rank system - maps system index to rank ID
+        this.systemRanks = {}; // { systemIndex: 'RANK_ID' }
+        
         // Combat state
         this.combatAction = null; // Current combat action being executed
         this.combatHandler = null; // Current combat action handler
@@ -86,5 +89,22 @@ class GameState {
         const currentDate = this.date;
         const yearsPassed = (currentDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
         return yearsPassed >= 50;
+    }
+    
+    /**
+     * Get player's rank at current system
+     * @returns {Object} Rank object (defaults to RANKS.NONE)
+     */
+    getRankAtCurrentSystem() {
+        const rankId = this.systemRanks[this.currentSystemIndex] || 'NONE';
+        return RANKS[rankId] || RANKS.NONE;
+    }
+    
+    /**
+     * Set player's rank at current system
+     * @param {string} rankId - Rank ID to set
+     */
+    setRankAtCurrentSystem(rankId) {
+        this.systemRanks[this.currentSystemIndex] = rankId;
     }
 }

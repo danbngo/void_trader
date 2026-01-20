@@ -131,14 +131,14 @@ const ShipyardMenu = (() => {
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             return [
-                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: `${price}`, color: COLORS.GREEN }
+                { text: `${price}`, color: COLORS.TEXT_NORMAL }
             ];
         });
         

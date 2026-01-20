@@ -25,15 +25,66 @@ const DockMenu = (() => {
         UI.addTextCentered(5, `Population: ${currentSystem.population}M`, COLORS.TEXT_DIM);
         UI.addTextCentered(6, `Economy: ${currentSystem.economy}`, COLORS.TEXT_DIM);
         
+        // Get player's rank at this system
+        const currentRank = gameState.getRankAtCurrentSystem();
+        UI.addTextCentered(7, `Citizenship: ${currentRank.name}`, COLORS.CYAN);
+        
         // Menu buttons
         const menuX = Math.floor(grid.width / 2) - 12;
         let menuY = 10;
         
-        UI.addButton(menuX, menuY++, '1', 'Shipyard', () => ShipyardMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'Manage and purchase ships');
+        // Define all possible buildings (always shown)
+        const allBuildings = [
+            {
+                id: 'MARKET',
+                name: 'Market',
+                buildingType: BUILDING_TYPES.MARKET,
+                openMenu: () => MarketMenu.show(gameState, () => show(gameState))
+            },
+            {
+                id: 'COURTHOUSE',
+                name: 'Courthouse',
+                buildingType: BUILDING_TYPES.COURTHOUSE,
+                openMenu: () => CourthouseMenu.show(gameState, () => show(gameState))
+            },
+            {
+                id: 'SHIPYARD',
+                name: 'Shipyard',
+                buildingType: BUILDING_TYPES.SHIPYARD,
+                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
+            },
+            {
+                id: 'TAVERN',
+                name: 'Tavern',
+                buildingType: BUILDING_TYPES.TAVERN,
+                openMenu: () => UI.setOutputRow('Tavern not yet implemented', COLORS.TEXT_DIM)
+            },
+            {
+                id: 'GUILD',
+                name: 'Guild',
+                buildingType: BUILDING_TYPES.GUILD,
+                openMenu: () => GuildMenu.show(gameState, () => show(gameState))
+            }
+        ];
         
-        UI.addButton(menuX, menuY++, '2', 'Market', () => MarketMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'Buy and sell cargo');
+        // Add building buttons (always show all, gray out if unavailable)
+        allBuildings.forEach((building, index) => {
+            const hasBuilding = currentSystem.buildings.includes(building.id);
+            const hasRank = currentRank.level >= building.buildingType.minRankLevel;
+            const isAccessible = hasBuilding && hasRank;
+            
+            const color = isAccessible ? COLORS.BUTTON : COLORS.TEXT_DIM;
+            const key = String(index + 1);
+            
+            UI.addButton(menuX, menuY++, key, building.name, 
+                () => tryOpenBuilding(gameState, building, hasBuilding, hasRank),
+                color, '');
+        });
         
-        UI.addButton(menuX, menuY++, '3', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
+        menuY++; // Spacing
+        
+        // Always available buttons
+        UI.addButton(menuX, menuY++, '8', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
         
         // Highlight assistant button if there are unread messages
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
@@ -229,6 +280,29 @@ const DockMenu = (() => {
         });
         
         return completedThisDock;
+    }
+    
+    /**
+     * Try to open a building, checking availability and rank requirements
+     * @param {GameState} gameState - Current game state
+     * @param {Object} building - Building definition with id, name, buildingType, openMenu
+     * @param {boolean} hasBuilding - Whether system has this building
+     * @param {boolean} hasRank - Whether player has required rank
+     */
+    function tryOpenBuilding(gameState, building, hasBuilding, hasRank) {
+        if (!hasBuilding) {
+            // System doesn't have this building
+            UI.setOutputRow(`${building.name} not available in this system!`, COLORS.TEXT_ERROR);
+            show(gameState);
+        } else if (!hasRank) {
+            // Player lacks required rank
+            const requiredRank = ALL_RANKS.find(r => r.level === building.buildingType.minRankLevel);
+            UI.setOutputRow(`Requires ${requiredRank.name} citizenship!`, COLORS.TEXT_ERROR);
+            show(gameState);
+        } else {
+            // Player has access
+            building.openMenu();
+        }
     }
     
     return {

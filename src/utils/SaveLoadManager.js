@@ -54,7 +54,11 @@ const SaveLoadManager = (() => {
                 })),
                 // Quest arrays are already just IDs
                 activeQuests: gameState.activeQuests,
-                completedQuests: gameState.completedQuests
+                completedQuests: gameState.completedQuests,
+                // Save rank system
+                systemRanks: gameState.systemRanks,
+                reputation: gameState.reputation,
+                bounty: gameState.bounty
             },
             timestamp: new Date().toISOString()
         };
@@ -168,6 +172,11 @@ const SaveLoadManager = (() => {
         // Restore quest arrays (already just IDs)
         gameState.activeQuests = data.activeQuests || [];
         gameState.completedQuests = data.completedQuests || [];
+        
+        // Restore rank system
+        gameState.systemRanks = data.systemRanks || {};
+        gameState.reputation = data.reputation !== undefined ? data.reputation : 0;
+        gameState.bounty = data.bounty !== undefined ? data.bounty : 0;
         
         return gameState;
     }

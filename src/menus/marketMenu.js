@@ -77,10 +77,35 @@ const MarketMenu = (() => {
         const buttonY = grid.height - 4;
         UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
         UI.addButton(5, buttonY + 1, '2', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
-        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), COLORS.GREEN, 'Purchase 1 unit of selected cargo');
-        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), COLORS.GREEN, 'Sell 1 unit of selected cargo');
-        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), COLORS.GREEN, 'Purchase 10 units of selected cargo');
-        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), COLORS.GREEN, 'Sell 10 units of selected cargo');
+        
+        // Get cargo info for selected type
+        const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        const buyPrice = Math.floor(selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id]);
+        const sellPrice = Math.floor(buyPrice * 0.8);
+        const marketStock = currentSystem.cargoStock[selectedCargoType.id];
+        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
+        const playerStock = fleetCargo[selectedCargoType.id] || 0;
+        
+        // Buy 1 - gray out if no stock, no space, or insufficient credits
+        const canBuy1 = marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
+        const buy1Color = canBuy1 ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, 'Purchase 1 unit of selected cargo');
+        
+        // Sell 1 - gray out if no player stock
+        const canSell1 = playerStock >= 1;
+        const sell1Color = canSell1 ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), sell1Color, 'Sell 1 unit of selected cargo');
+        
+        // Buy 10 - gray out if no stock, no space, or insufficient credits
+        const canBuy10 = marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
+        const buy10Color = canBuy10 ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, 'Purchase 10 units of selected cargo');
+        
+        // Sell 10 - gray out if no player stock
+        const canSell10 = playerStock >= 1;
+        const sell10Color = canSell10 ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), sell10Color, 'Sell 10 units of selected cargo');
+        
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message

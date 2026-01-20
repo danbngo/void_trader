@@ -80,7 +80,13 @@ const CourthouseMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 5;
-        UI.addButton(5, buttonY, '1', 'Pay Bounty', () => payBounty(onReturn), COLORS.GREEN, 'Pay off your bounty');
+        
+        // Pay Bounty - gray out if no bounty or insufficient credits
+        const hasBounty = gameState.bounty > 0;
+        const canPayBounty = hasBounty && gameState.credits >= gameState.bounty;
+        const bountyColor = (!hasBounty || !canPayBounty) ? COLORS.TEXT_DIM : COLORS.GREEN;
+        UI.addButton(5, buttonY, '1', 'Pay Bounty', () => payBounty(onReturn), bountyColor, 'Pay off your bounty');
+        
         UI.addButton(5, buttonY + 1, '2', 'Upgrade Rank', () => upgradeRank(onReturn), COLORS.BUTTON, 'Purchase next citizenship rank');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
@@ -97,20 +103,21 @@ const CourthouseMenu = (() => {
      */
     function payBounty(onReturn) {
         if (gameState.bounty === 0) {
-            outputMessage = 'You have no bounty to pay!';
+            outputMessage = 'You have no bounty to pay off!';
             outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
         } else if (gameState.credits < gameState.bounty) {
             outputMessage = `Not enough credits! Need ${gameState.bounty} CR, have ${gameState.credits} CR.`;
             outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
         } else {
             const amount = gameState.bounty;
             gameState.credits -= amount;
             gameState.bounty = 0;
             outputMessage = `Paid bounty of ${amount} CR!`;
             outputColor = COLORS.TEXT_SUCCESS;
+            render(onReturn);
         }
-        
-        render(onReturn);
     }
     
     /**

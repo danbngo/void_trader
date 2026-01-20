@@ -4,6 +4,13 @@
  */
 
 const BUILDING_TYPES = {
+    DOCK: {
+        id: 'DOCK',
+        name: 'Dock',
+        description: 'Repair and refuel ships',
+        generationChance: 1, // 100% chance - otherwise how to repair?
+        minRankLevel: 0
+    },
     MARKET: {
         id: 'MARKET',
         name: 'Market',
@@ -21,8 +28,8 @@ const BUILDING_TYPES = {
     SHIPYARD: {
         id: 'SHIPYARD',
         name: 'Shipyard',
-        description: 'Manage and purchase ships',
-        generationChance: 0.5, // 50% chance
+        description: 'Sell and purchase ships',
+        generationChance: 1, // 100% chance - otherwise how to repair?
         minRankLevel: 1
     },
     TAVERN: {

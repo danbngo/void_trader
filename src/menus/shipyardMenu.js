@@ -94,8 +94,22 @@ const ShipyardMenu = (() => {
         const buttonY = grid.height - 6;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
-        UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), COLORS.GREEN, 'Refuel selected ship to maximum capacity');
-        UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), COLORS.GREEN, 'Repair hull and shields to maximum');
+        
+        // Refuel - gray out if already full or insufficient credits
+        const ship = gameState.ships[selectedShipIndex];
+        const fuelNeeded = ship.maxFuel - ship.fuel;
+        const fuelCost = fuelNeeded * 5;
+        const canRefuel = fuelNeeded > 0 && gameState.credits >= fuelCost;
+        const refuelColor = canRefuel ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), refuelColor, 'Refuel selected ship to maximum capacity');
+        
+        // Repair - gray out if already full or insufficient credits
+        const hullNeeded = ship.maxHull - ship.hull;
+        const repairCost = hullNeeded * 10;
+        const canRepair = hullNeeded > 0 && gameState.credits >= repairCost;
+        const repairColor = canRepair ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), repairColor, 'Repair hull and shields to maximum');
+        
         UI.addButton(40, buttonY, '5', 'Sell Ship', () => initiateSell(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship for credits');
         UI.addButton(55, buttonY, '6', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
@@ -152,8 +166,19 @@ const ShipyardMenu = (() => {
         const buttonY = grid.height - 5;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
-        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), COLORS.GREEN, 'Purchase selected ship');
-        UI.addButton(25, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), COLORS.BUTTON, 'Trade in one of your ships for this one');
+        
+        // Buy Ship - gray out if insufficient credits
+        const selectedShip = currentSystem.ships[selectedShipIndex];
+        const shipPrice = selectedShip.getValue();
+        const canBuy = gameState.credits >= shipPrice;
+        const buyColor = canBuy ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), buyColor, 'Purchase selected ship');
+        
+        // Trade In - gray out if insufficient credits for net cost
+        const canTradeIn = gameState.ships.length > 0;
+        const tradeInColor = canTradeIn ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), tradeInColor, 'Trade in one of your ships for this one');
+        
         UI.addButton(5, buttonY + 2, '0', 'Back to Fleet', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message

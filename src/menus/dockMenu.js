@@ -29,12 +29,18 @@ const DockMenu = (() => {
         const currentRank = gameState.getRankAtCurrentSystem();
         UI.addTextCentered(7, `Citizenship: ${currentRank.name}`, COLORS.CYAN);
         
-        // Menu buttons
+        // Menu buttons - positioned towards bottom
         const menuX = Math.floor(grid.width / 2) - 12;
-        let menuY = 10;
+        let menuY = grid.height - 14; // Start buttons near bottom
         
         // Define all possible buildings (always shown)
         const allBuildings = [
+            {
+                id: 'SHIPYARD',
+                name: 'Shipyard',
+                buildingType: BUILDING_TYPES.SHIPYARD,
+                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
+            },
             {
                 id: 'MARKET',
                 name: 'Market',
@@ -46,12 +52,6 @@ const DockMenu = (() => {
                 name: 'Courthouse',
                 buildingType: BUILDING_TYPES.COURTHOUSE,
                 openMenu: () => CourthouseMenu.show(gameState, () => show(gameState))
-            },
-            {
-                id: 'SHIPYARD',
-                name: 'Shipyard',
-                buildingType: BUILDING_TYPES.SHIPYARD,
-                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'TAVERN',
@@ -76,9 +76,19 @@ const DockMenu = (() => {
             const color = isAccessible ? COLORS.BUTTON : COLORS.TEXT_DIM;
             const key = String(index + 1);
             
+            // Build help text
+            let helpText = building.buildingType.description;
+            
+            if (!hasBuilding) {
+                helpText += ' - Not available in this system';
+            } else if (!hasRank) {
+                const requiredRank = ALL_RANKS.find(r => r.level === building.buildingType.minRankLevel);
+                helpText += ` - Requires ${requiredRank.name} citizenship`;
+            }
+            
             UI.addButton(menuX, menuY++, key, building.name, 
                 () => tryOpenBuilding(gameState, building, hasBuilding, hasRank),
-                color, '');
+                color, helpText);
         });
         
         menuY++; // Spacing

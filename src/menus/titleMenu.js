@@ -4,11 +4,75 @@
  */
 
 const TitleMenu = (() => {
+    let animationInterval = null;
+    
     /**
      * Show the title screen
      */
     function show() {
+        // Initialize starfield
+        Starfield.init();
+        
+        // Start animation loop
+        screenController = startAnimation();
+        if (screenController) screenController.setScreen('title');
+        
+        // Initial render
+        renderTitleScreen();
+    }
+    
+    /**
+     * Start the starfield animation loop
+     */
+    function startAnimation() {
+        // Clear any existing animation
+        if (animationInterval) {
+            clearInterval(animationInterval);
+        }
+        
+        // Track which screen we're on
+        let currentScreen = 'title';
+        
+        // Animate at ~30 FPS
+        animationInterval = setInterval(() => {
+            Starfield.update();
+            
+            // Re-render the appropriate screen
+            // We need to check which screen is active
+            if (currentScreen === 'title') {
+                renderTitleScreen();
+            } else if (currentScreen === 'about') {
+                renderAboutScreen();
+            }
+        }, 33);
+        
+        return {
+            setScreen: (screen) => { currentScreen = screen; }
+        };
+    }
+    
+    let screenController = null;
+    
+    /**
+     * Stop the starfield animation
+     */
+    function stopAnimation() {
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+        }
+    }
+    
+    /**
+     * Render the title screen with starfield background
+     */
+    function renderTitleScreen() {
         UI.clear();
+        
+        // Render starfield FIRST (background layer)
+        Starfield.render();
+        
+        // Reset selection for buttons
         UI.resetSelection();
         
         const grid = UI.getGridSize();
@@ -22,9 +86,18 @@ const TitleMenu = (() => {
         const menuX = centerX - 10;
         const menuY = 12;
         
-        UI.addButton(menuX, menuY, '1', 'New Game', () => newGame(), COLORS.BUTTON, 'Start a new adventure');
-        UI.addButton(menuX, menuY + 1, '2', 'Load Game', () => LoadMenu.show(() => TitleMenu.show()), COLORS.BUTTON, 'Load a previously saved game');
-        UI.addButton(menuX, menuY + 2, '3', 'About', () => showAbout(), COLORS.BUTTON, 'Learn about the game');
+        UI.addButton(menuX, menuY, '1', 'New Game', () => {
+            stopAnimation();
+            newGame();
+        }, COLORS.BUTTON, 'Start a new adventure');
+        UI.addButton(menuX, menuY + 1, '2', 'Load Game', () => {
+            stopAnimation();
+            LoadMenu.show(() => TitleMenu.show());
+        }, COLORS.BUTTON, 'Load a previously saved game');
+        UI.addButton(menuX, menuY + 2, '3', 'About', () => {
+            stopAnimation();
+            showAbout();
+        }, COLORS.BUTTON, 'Learn about the game');
         
         // Footer
         UI.addTextCentered(grid.height - 2, '(Use arrow keys or numbers to select)', COLORS.TEXT_DIM);
@@ -98,7 +171,26 @@ const TitleMenu = (() => {
      * Show about screen
      */
     function showAbout() {
+        // Keep starfield running
+        if (!animationInterval) {
+            Starfield.init();
+            screenController = startAnimation();
+        }
+        
+        if (screenController) screenController.setScreen('about');
+        
+        renderAboutScreen();
+    }
+    
+    /**
+     * Render the about screen
+     */
+    function renderAboutScreen() {
         UI.clear();
+        
+        // Render starfield background
+        Starfield.render();
+        
         const grid = UI.getGridSize();
         
         UI.addTextCentered(8, 'V O I D   T R A D E R', COLORS.TITLE);

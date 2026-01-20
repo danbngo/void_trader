@@ -47,8 +47,8 @@ const SHIP_TYPES = {
         baseMaxFuel: AVERAGE_SHIP_FUEL * 0.5,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.5,
         baseMaxHull: AVERAGE_SHIP_HULL * 1.5,
-        baseMaxShields: AVERAGE_SHIP_SHIELDS * 2,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 2,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.5,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1
     },
@@ -71,8 +71,8 @@ const SHIP_TYPES = {
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.25,
         baseMaxHull: AVERAGE_SHIP_HULL * 2,
-        baseMaxShields: AVERAGE_SHIP_SHIELDS * 2,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 4,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.5,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 3,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 3
     },
@@ -82,9 +82,9 @@ const SHIP_TYPES = {
         description: 'Massive capital ship with devastating firepower',
         baseMaxFuel: AVERAGE_SHIP_FUEL * 3,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 1,
-        baseMaxHull: AVERAGE_SHIP_HULL * 3,
+        baseMaxHull: AVERAGE_SHIP_HULL * 4,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 3,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 3,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 2,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 2,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 2
     }

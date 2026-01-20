@@ -424,11 +424,14 @@ const EncounterMenu = (() => {
             const shieldRatio = activeShip.shields / activeShip.maxShields;
             UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, UI.calcStatColor(shieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, COLORS.TEXT_NORMAL);
+            const laserRatio = activeShip.lasers / AVERAGE_SHIP_LASER_LEVEL;
+            UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, UI.calcStatColor(laserRatio));
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `${activeShip.engine}`, COLORS.TEXT_NORMAL);
+            const engineRatio = activeShip.engine / AVERAGE_SHIP_ENGINE_LEVEL;
+            UI.addText(startX + 8, y - 1, `${activeShip.engine}`, UI.calcStatColor(engineRatio));
             UI.addText(startX, y++, 'Radar:', COLORS.TEXT_DIM);
-            UI.addText(startX + 7, y - 1, `${activeShip.radar}`, COLORS.TEXT_NORMAL);
+            const radarRatio = activeShip.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            UI.addText(startX + 7, y - 1, `${activeShip.radar}`, UI.calcStatColor(radarRatio));
         } else {
             UI.addText(startX, 1, 'No active ships', COLORS.TEXT_ERROR);
         }
@@ -456,11 +459,14 @@ const EncounterMenu = (() => {
             const targetShieldRatio = targetShip.shields / targetShip.maxShields;
             UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, UI.calcStatColor(targetShieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, COLORS.TEXT_NORMAL);
+            const targetLaserRatio = targetShip.lasers / AVERAGE_SHIP_LASER_LEVEL;
+            UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, UI.calcStatColor(targetLaserRatio));
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `${targetShip.engine}`, COLORS.TEXT_NORMAL);
+            const targetEngineRatio = targetShip.engine / AVERAGE_SHIP_ENGINE_LEVEL;
+            UI.addText(startX + 8, y - 1, `${targetShip.engine}`, UI.calcStatColor(targetEngineRatio));
             UI.addText(startX, y++, 'Radar:', COLORS.TEXT_DIM);
-            UI.addText(startX + 7, y - 1, `${targetShip.radar}`, COLORS.TEXT_NORMAL);
+            const targetRadarRatio = targetShip.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            UI.addText(startX + 7, y - 1, `${targetShip.radar}`, UI.calcStatColor(targetRadarRatio));
             UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
             UI.addText(startX + 10, y - 1, `${distance} AU`, COLORS.TEXT_NORMAL);
         } else {

@@ -63,6 +63,9 @@ const ShipyardMenu = (() => {
             const fuelRatio = ship.fuel / ship.maxFuel;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.shields / ship.maxShields;
+            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
+            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
+            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             return [
                 //{ text: marker, color: COLORS.TEXT_NORMAL },
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
@@ -70,9 +73,9 @@ const ShipyardMenu = (() => {
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
-                { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
-                { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
-                { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
+                { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
+                { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${ship.getValue()}`, color: COLORS.TEXT_NORMAL }
             ];
@@ -124,14 +127,17 @@ const ShipyardMenu = (() => {
             const price = ship.getValue();
             const netCost = price - tradeInValue;
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
+            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
+            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             return [
                 //{ text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
-                { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
-                { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
-                { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
+                { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
+                { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${price}`, color: COLORS.TEXT_NORMAL },
                 { text: `${netCost}`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }

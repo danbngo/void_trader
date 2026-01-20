@@ -47,17 +47,24 @@ const MarketMenu = (() => {
             const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
             const playerQuantity = ship.cargo[cargoType.id] || 0;
             
+            // Calculate ratios for color coding
+            const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
+            const sellRatio = sellPrice / cargoType.baseValue; // Higher sell price = higher ratio = better
+            
+            const buyColor = UI.calcStatColor(buyRatio);
+            const sellColor = UI.calcStatColor(sellRatio);
+            
             return [
                 { text: cargoType.name, color: COLORS.TEXT_NORMAL },
-                { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
                 { text: String(stock), color: COLORS.TEXT_NORMAL },
-                { text: `${buyPrice}`, color: COLORS.TEXT_NORMAL },
-                { text: `${sellPrice}`, color: COLORS.TEXT_NORMAL },
+                { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
+                { text: `${buyPrice}`, color: buyColor },
+                { text: `${sellPrice}`, color: sellColor },
                 { text: String(playerQuantity), color: COLORS.TEXT_NORMAL }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Cargo', 'Base', 'Stock', 'Buy', 'Sell', 'You Have'], rows, selectedCargoIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Cargo', 'Market Stock', 'Base Value', 'Buy Price', 'Sell Price', 'Your Stock'], rows, selectedCargoIndex, 2, (rowIndex) => {
             // When a row is clicked, select that cargo
             selectedCargoIndex = rowIndex;
             outputMessage = '';

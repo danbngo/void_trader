@@ -10,6 +10,7 @@ class GameState {
         this.officers = [];
         this.systems = [];
         this.currentSystemIndex = 0;
+        this.previousSystemIndex = 0; // Track system player departed from (for jail mechanic)
         this.x = 0; // Player's current x position
         this.y = 0; // Player's current y position
         this.credits = 1000; // Player's money

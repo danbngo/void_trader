@@ -708,14 +708,116 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You signal your surrender to the enemy forces.`, COLORS.TEXT_NORMAL);
         y++;
         
+        // Handle surrender based on encounter type
+        if (encounterType.id === 'POLICE') {
+            // Police: Confiscate illegal cargo and send to jail
+            handlePoliceSurrender(gameState, y);
+        } else if (encounterType.id === 'PIRATE') {
+            // Pirates: Loot cargo normally
+            handlePirateSurrender(gameState, y);
+        } else if (encounterType.id === 'MERCHANT') {
+            // Merchants: Flee in a hurry
+            handleMerchantSurrender(gameState, y);
+        }
+    }
+    
+    /**
+     * Handle surrender to police - confiscate illegal cargo and jail
+     */
+    function handlePoliceSurrender(gameState, startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The police accept your surrender.`, COLORS.TEXT_NORMAL);
+        y++;
+        
+        // Confiscate all illegal cargo
+        const playerCargo = Ship.getFleetCargo(gameState.ships);
+        const illegalCargo = [];
+        
+        CARGO_TYPES_ILLEGAL.forEach(cargoType => {
+            const amount = playerCargo[cargoType.id] || 0;
+            if (amount > 0) {
+                Ship.removeCargoFromFleet(gameState.ships, cargoType.id, amount);
+                illegalCargo.push({ type: cargoType, amount });
+            }
+        });
+        
+        if (illegalCargo.length > 0) {
+            UI.addText(10, y++, `The police confiscate your illegal cargo:`, COLORS.TEXT_ERROR);
+            illegalCargo.forEach(cargo => {
+                UI.addText(10, y++, `  Confiscated: ${cargo.amount} ${cargo.type.name}`, COLORS.TEXT_ERROR);
+            });
+            y++;
+        }
+        
+        // Calculate jail time based on bounty
+        if (gameState.bounty > 0) {
+            const jailDays = Math.ceil((gameState.bounty / 1000) * DAYS_IN_JAIL_PER_1000CR_BOUNTY);
+            
+            UI.addText(10, y++, `You are arrested and taken to the nearest station.`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `Bounty: ${gameState.bounty} CR`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `Sentence: ${jailDays} days in jail`, COLORS.TEXT_ERROR);
+            y++;
+            
+            // Clear bounty
+            gameState.bounty = 0;
+            
+            // Advance time by jail sentence
+            gameState.date.setDate(gameState.date.getDate() + jailDays);
+            
+            UI.addText(10, y++, `After serving your sentence, you are released.`, COLORS.TEXT_NORMAL);
+        } else {
+            UI.addText(10, y++, `The police escort you back to the nearest station.`, COLORS.TEXT_NORMAL);
+        }
+        
+        y++;
+        
+        // Return to previous system (where we departed from)
+        const previousSystem = gameState.systems[gameState.previousSystemIndex];
+        UI.addText(10, y++, `You are returned to ${previousSystem.name}.`, COLORS.CYAN);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue', () => {
+            // End encounter and return to previous system
+            gameState.encounter = false;
+            gameState.encounterShips = [];
+            gameState.encounterCargo = {};
+            gameState.setCurrentSystem(gameState.previousSystemIndex);
+            
+            // Clean up combat properties
+            gameState.ships.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            DockMenu.show(gameState);
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle surrender to pirates - loot cargo
+     */
+    function handlePirateSurrender(gameState, startY) {
+        let y = startY;
+        
         const playerCargo = Ship.getFleetCargo(gameState.ships);
         const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
         
         // Calculate enemy cargo capacity
         const enemyCapacity = gameState.encounterShips.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
         
-        // Enemy takes cargo
+        // Pirates take cargo
         if (hasAnyCargo && enemyCapacity > 0) {
+            UI.addText(10, y++, `The pirates board your ships and take your cargo:`, COLORS.TEXT_ERROR);
+            y++;
+            
             // Sort cargo by value (most valuable first)
             const cargoByValue = Object.keys(playerCargo)
                 .filter(cargoId => playerCargo[cargoId] > 0)
@@ -741,26 +843,50 @@ const EncounterMenu = (() => {
             }
             
             if (lootedCargo.length > 0) {
-                UI.addText(10, y++, `The enemy takes your cargo:`, COLORS.TEXT_ERROR);
                 lootedCargo.forEach(loot => {
-                    UI.addText(10, y++, `  Surrendered: ${loot.amount} ${loot.type.name}`, COLORS.TEXT_ERROR);
+                    UI.addText(10, y++, `  Taken: ${loot.amount} ${loot.type.name}`, COLORS.TEXT_ERROR);
                 });
                 y++;
             }
-        }
-        
-        // Enemy takes credits (25% of player's credits)
-        const creditsTaken = Math.floor(gameState.credits * 0.25);
-        if (creditsTaken > 0) {
-            gameState.credits -= creditsTaken;
-            UI.addText(10, y++, `The enemy demands ${creditsTaken} credits.`, COLORS.TEXT_ERROR);
+        } else {
+            UI.addText(10, y++, `You have no cargo worth taking.`, COLORS.TEXT_DIM);
             y++;
         }
         
-        UI.addText(10, y++, `The enemy allows you to go free.`, COLORS.TEXT_NORMAL);
+        // Pirates take credits (25% of player's credits)
+        const creditsTaken = Math.floor(gameState.credits * 0.25);
+        if (creditsTaken > 0) {
+            gameState.credits -= creditsTaken;
+            UI.addText(10, y++, `The pirates demand ${creditsTaken} credits.`, COLORS.TEXT_ERROR);
+            y++;
+        }
+        
+        UI.addText(10, y++, `The pirates allow you to go free.`, COLORS.TEXT_NORMAL);
         y += 2;
         
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
+            // Resume travel
+            TravelMenu.resume();
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle surrender to merchants - they flee
+     */
+    function handleMerchantSurrender(gameState, startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The merchants panic at your surrender signal!`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `Confused by your intentions, they flee in a hurry.`, COLORS.CYAN);
+        y++;
+        
+        UI.addText(10, y++, `You are left alone in space.`, COLORS.TEXT_DIM);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+            // Resume travel
             TravelMenu.resume();
         }, COLORS.GREEN);
         

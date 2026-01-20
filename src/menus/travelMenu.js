@@ -32,6 +32,9 @@ const TravelMenu = (() => {
         arrivedAtDestination = false;
         encounterType = null;
         
+        // Track where we departed from (for police surrender jail mechanic)
+        gameState.previousSystemIndex = gameState.currentSystemIndex;
+        
         const currentSystem = gameState.getCurrentSystem();
         const distance = currentSystem.distanceTo(destination);
         // Use first ship for engine calculation (fleet moves together)

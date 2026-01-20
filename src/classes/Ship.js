@@ -18,7 +18,7 @@ class Ship {
      * @param {number} engine - Engine level (affects travel speed)
      * @param {number} radar - Radar level (affects targeting accuracy)
      */
-    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'TRADER', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5) {
+    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5) {
         this.name = name;
         this.type = type;
         this.fuel = fuel;
@@ -67,7 +67,8 @@ class Ship {
         const laserValue = this.lasers * 500;
         const conditionMultiplier = (this.hull / this.maxHull); // Degraded value based on current hull
         
-        return Math.floor((fuelValue + cargoValue + hullValue + shieldValue + laserValue) * conditionMultiplier);
+        const baseValue = (fuelValue + cargoValue + hullValue + shieldValue + laserValue) * conditionMultiplier;
+        return Math.floor(Math.pow(baseValue, 1.5) / 10);
     }
     
     /**

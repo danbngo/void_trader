@@ -51,8 +51,8 @@ const MarketMenu = (() => {
                 { text: cargoType.name, color: COLORS.TEXT_NORMAL },
                 { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
                 { text: String(stock), color: COLORS.TEXT_NORMAL },
-                { text: `${buyPrice} CR`, color: COLORS.TEXT_NORMAL },
-                { text: `${sellPrice} CR`, color: COLORS.TEXT_NORMAL },
+                { text: `${buyPrice}`, color: COLORS.TEXT_NORMAL },
+                { text: `${sellPrice}`, color: COLORS.TEXT_NORMAL },
                 { text: String(playerQuantity), color: COLORS.TEXT_NORMAL }
             ];
         });

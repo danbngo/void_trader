@@ -68,7 +68,7 @@ class CombatActionHandler {
                 break;
                 
             case COMBAT_ACTIONS.FIRE_LASER:
-                // Instant action - calculate hit and damage immediately
+                // Calculate hit and damage, but animate projectile movement
                 if (this.action.targetShip) {
                     const dx = this.action.targetShip.x - this.ship.x;
                     const dy = this.action.targetShip.y - this.ship.y;
@@ -82,32 +82,31 @@ class CombatActionHandler {
                     this.action.hit = hit;
                     this.action.distance = distance;
                     
+                    // Pre-calculate damage for hit
                     if (hit) {
-                        // Calculate damage: random between 1 and ship.lasers
                         const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
                         this.action.damage = damage;
-                        
-                        // Apply damage to shields first, then hull
-                        if (this.action.targetShip.shields > 0) {
-                            const shieldDamage = Math.min(damage, this.action.targetShip.shields);
-                            this.action.targetShip.shields -= shieldDamage;
-                            const remainingDamage = damage - shieldDamage;
-                            if (remainingDamage > 0) {
-                                this.action.targetShip.hull -= remainingDamage;
-                            }
-                        } else {
-                            this.action.targetShip.hull -= damage;
-                        }
-                        
-                        // Check if ship is disabled
-                        if (this.action.targetShip.hull <= 0) {
-                            this.action.targetShip.hull = 0;
-                            this.action.targetShip.disabled = true;
-                        }
                     }
+                    
+                    // Set up projectile movement
+                    this.targetAngle = Math.atan2(dy, dx);
+                    this.remainingDistance = distance;
+                    
+                    // Projectile moves at 10 units per tick (faster than ships)
+                    if (distance > 0) {
+                        this.movementPerTick.x = (dx / distance) * 10;
+                        this.movementPerTick.y = (dy / distance) * 10;
+                    }
+                    
+                    // Create projectile visual
+                    this.action.projectile = {
+                        x: this.ship.x,
+                        y: this.ship.y,
+                        angle: this.targetAngle,
+                        character: this.getLaserCharacter(this.targetAngle),
+                        color: COLORS.TEXT_ERROR
+                    };
                 }
-                // Mark as complete immediately
-                this.action.complete();
                 break;
         }
         
@@ -127,9 +126,9 @@ class CombatActionHandler {
             return true;
         }
         
-        // FIRE_LASER is instant - completes immediately
+        // FIRE_LASER has projectile animation
         if (this.action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
-            return true;
+            return this.tickLaser();
         }
         
         // Handle GET_RAMMED differently - can spin and move concurrently
@@ -139,6 +138,83 @@ class CombatActionHandler {
         
         // For PURSUE and FLEE, turn first, then move
         return this.tickMoveAction();
+    }
+    
+    /**
+     * Tick for FIRE_LASER action - move projectile toward target
+     */
+    tickLaser() {
+        if (!this.action.projectile) {
+            // No projectile, complete immediately
+            this.action.complete();
+            return true;
+        }
+        
+        // Move projectile
+        const moveAmount = Math.min(10, this.remainingDistance);
+        this.action.projectile.x += this.movementPerTick.x;
+        this.action.projectile.y += this.movementPerTick.y;
+        this.remainingDistance -= moveAmount;
+        
+        // Check if projectile reached target
+        if (this.remainingDistance <= 0) {
+            // Apply damage if hit
+            if (this.action.hit && this.action.targetShip) {
+                const damage = this.action.damage;
+                
+                // Apply damage to shields first, then hull
+                if (this.action.targetShip.shields > 0) {
+                    const shieldDamage = Math.min(damage, this.action.targetShip.shields);
+                    this.action.targetShip.shields -= shieldDamage;
+                    const remainingDamage = damage - shieldDamage;
+                    if (remainingDamage > 0) {
+                        this.action.targetShip.hull -= remainingDamage;
+                    }
+                } else {
+                    this.action.targetShip.hull -= damage;
+                }
+                
+                // Check if ship is disabled
+                if (this.action.targetShip.hull <= 0) {
+                    this.action.targetShip.hull = 0;
+                    this.action.targetShip.disabled = true;
+                }
+            }
+            
+            // Clear projectile and complete action
+            this.action.projectile = null;
+            this.action.complete();
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get laser character based on angle
+     */
+    getLaserCharacter(angle) {
+        // Convert angle to degrees and normalize to 0-360
+        const degrees = (angle * (180 / Math.PI) + 360) % 360;
+        
+        // Choose appropriate line segment character based on angle
+        if (degrees >= 337.5 || degrees < 22.5) {
+            return '─'; // Horizontal ─
+        } else if (degrees >= 22.5 && degrees < 67.5) {
+            return '╱'; // Diagonal /
+        } else if (degrees >= 67.5 && degrees < 112.5) {
+            return '│'; // Vertical │
+        } else if (degrees >= 112.5 && degrees < 157.5) {
+            return '╲'; // Diagonal \
+        } else if (degrees >= 157.5 && degrees < 202.5) {
+            return '─'; // Horizontal ─
+        } else if (degrees >= 202.5 && degrees < 247.5) {
+            return '╱'; // Diagonal /
+        } else if (degrees >= 247.5 && degrees < 292.5) {
+            return '│'; // Vertical │
+        } else {
+            return '╲'; // Diagonal \
+        }
     }
     
     /**

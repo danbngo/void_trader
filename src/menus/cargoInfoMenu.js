@@ -33,7 +33,7 @@ const CargoInfoMenu = (() => {
             return [
                 { text: cargoType.name, color: 'white' },
                 { text: String(quantity), color: 'white' },
-                { text: `${totalValue} CR`, color: 'white' }
+                { text: `${totalValue}`, color: 'white' }
             ];
         });
         

@@ -30,11 +30,36 @@ const DockMenu = (() => {
         
         UI.addButton(menuX, menuY++, '2', 'Market', () => MarketMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'Buy and sell cargo');
         
-        UI.addButton(menuX, menuY++, '3', 'Depart', () => GalaxyMap.show(gameState), COLORS.GREEN, 'Leave station and travel to another system');
+        UI.addButton(menuX, menuY++, '3', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
         UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(() => show(gameState)), COLORS.BUTTON, 'View ship, cargo, and captain information');
         UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
         
         UI.draw();
+    }
+    
+    /**
+     * Check if ships need resupply before departing
+     */
+    function checkAndDepart(gameState) {
+        // Check if any ships need repair or refuel
+        const needsRepair = gameState.ships.some(ship => 
+            ship.hull < ship.maxHull || ship.shields < ship.maxShields
+        );
+        const needsRefuel = gameState.ships.some(ship => 
+            ship.fuel < ship.maxFuel
+        );
+        
+        if (needsRepair || needsRefuel) {
+            // Show resupply menu
+            ResupplyMenu.show(
+                gameState,
+                () => show(gameState), // onReturn
+                () => GalaxyMap.show(gameState) // onDepart
+            );
+        } else {
+            // All good, go straight to galaxy map
+            GalaxyMap.show(gameState);
+        }
     }
     
     return {

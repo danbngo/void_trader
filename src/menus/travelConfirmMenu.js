@@ -77,10 +77,21 @@ const TravelConfirmMenu = (() => {
         
         // Encounter weights section
         UI.addText(5, y++, '=== Encounter Probability ===', COLORS.TITLE);
+        
+        // Calculate average weights for color coding
+        const avgPirateWeight = (currentSystem.pirateWeight + (isVisited ? targetSystem.pirateWeight : currentSystem.pirateWeight)) / 2;
+        const avgPoliceWeight = (currentSystem.policeWeight + (isVisited ? targetSystem.policeWeight : currentSystem.policeWeight)) / 2;
+        const avgMerchantWeight = (currentSystem.merchantWeight + (isVisited ? targetSystem.merchantWeight : currentSystem.merchantWeight)) / 2;
+        
+        // Pirates: 2x weight = 0.5x ratio (bad), Police/Merchants: 2x weight = 2x ratio (good)
+        const pirateColor = UI.calcStatColor(1 / Math.max(0.5, avgPirateWeight));
+        const policeColor = UI.calcStatColor(avgPoliceWeight);
+        const merchantColor = UI.calcStatColor(avgMerchantWeight);
+        
         y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Pirates:', value: pirateWeightRange, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Police:', value: policeWeightRange, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Merchants:', value: merchantWeightRange, valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Pirates:', value: pirateWeightRange, valueColor: pirateColor },
+            { label: 'Police:', value: policeWeightRange, valueColor: policeColor },
+            { label: 'Merchants:', value: merchantWeightRange, valueColor: merchantColor }
         ]);
         y++;
         

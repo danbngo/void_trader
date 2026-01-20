@@ -57,25 +57,28 @@ const ShipyardMenu = (() => {
         // Player ships table (* marks the active ship)
         const startY = 8;
         const rows = gameState.ships.map((ship, index) => {
-            const isActive = (index === gameState.activeShipIndex);
-            const marker = isActive ? '*' : '';
+            //const isActive = (index === gameState.activeShipIndex);
+            //const marker = isActive ? '*' : '';
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const fuelRatio = ship.fuel / ship.maxFuel;
+            const hullRatio = ship.hull / ship.maxHull;
+            const shieldRatio = ship.shields / ship.maxShields;
             return [
-                { text: marker, color: COLORS.TEXT_NORMAL },
+                //{ text: marker, color: COLORS.TEXT_NORMAL },
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
-                { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio) },
+                { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio) },
+                { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio) },
                 { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: `${ship.getValue()} CR`, color: COLORS.TEXT_NORMAL }
+                { text: `${ship.getValue()}`, color: COLORS.TEXT_NORMAL }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Laser', 'Engine', 'Radar', 'Cargo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';
@@ -122,20 +125,20 @@ const ShipyardMenu = (() => {
             const netCost = price - tradeInValue;
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             return [
-                { text: ship.name, color: COLORS.TEXT_NORMAL },
+                //{ text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
-                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: `${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: `${price} CR`, color: COLORS.TEXT_NORMAL },
-                { text: `${netCost} CR`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }
+                { text: `${price}`, color: COLORS.TEXT_NORMAL },
+                { text: `${netCost}`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Radar', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price', 'Trade'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';

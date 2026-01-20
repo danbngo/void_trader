@@ -192,9 +192,9 @@ const EncounterMenu = (() => {
         
         const grid = UI.getGridSize();
         
-        // Draw map on left side (50% of width)
-        const mapWidth = Math.floor(grid.width * 0.5);
-        const mapHeight = Math.floor(grid.height * 0.5);
+        // Draw map on left side (50% of width + 5)
+        const mapWidth = Math.floor(grid.width * 0.5) + 5;
+        const mapHeight = Math.floor(grid.height * 0.5) + 5;
         
         drawMap(currentGameState, mapWidth, mapHeight);
         
@@ -264,6 +264,18 @@ const EncounterMenu = (() => {
             targetShipScreenY = Math.floor(mapCenterY - (targetShip.y - cameraOffsetY) * scale);
         }
         
+        // Draw projectile (render before ships so ships overlap it)
+        if (gameState.combatAction && gameState.combatAction.projectile) {
+            const proj = gameState.combatAction.projectile;
+            const screenX = Math.floor(mapCenterX + (proj.x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (proj.y - cameraOffsetY) * scale);
+            
+            // Check if in bounds
+            if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                UI.addText(screenX, screenY, proj.character, proj.color, 0.8);
+            }
+        }
+        
         // Draw player ships
         gameState.ships.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
@@ -323,8 +335,12 @@ const EncounterMenu = (() => {
             }
         });
         
-        // Draw line between active ship and target
-        if (activeShipScreenX !== null && targetShipScreenX !== null) {
+        // Draw line between active ship and target (only if not firing laser with projectile)
+        const isLaserActive = gameState.combatAction && 
+                             gameState.combatAction.actionType === COMBAT_ACTIONS.FIRE_LASER && 
+                             gameState.combatAction.projectile;
+        
+        if (activeShipScreenX !== null && targetShipScreenX !== null && !isLaserActive) {
             // Collect all ship positions to avoid drawing over them
             const shipPositions = new Set();
             
@@ -402,9 +418,11 @@ const EncounterMenu = (() => {
             UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `(${activeShip.x.toFixed(0)}, ${activeShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
-            UI.addText(startX + 6, y - 1, `${activeShip.hull}/${activeShip.maxHull}`, COLORS.TEXT_NORMAL);
+            const hullRatio = activeShip.hull / activeShip.maxHull;
+            UI.addText(startX + 6, y - 1, `${activeShip.hull}/${activeShip.maxHull}`, UI.calcStatColor(hullRatio));
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, COLORS.TEXT_NORMAL);
+            const shieldRatio = activeShip.shields / activeShip.maxShields;
+            UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, UI.calcStatColor(shieldRatio));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
             UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
@@ -432,9 +450,11 @@ const EncounterMenu = (() => {
             UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `(${targetShip.x.toFixed(0)}, ${targetShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
-            UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, COLORS.TEXT_NORMAL);
+            const targetHullRatio = targetShip.hull / targetShip.maxHull;
+            UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, UI.calcStatColor(targetHullRatio));
             UI.addText(startX, y++, 'Shield:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, COLORS.TEXT_NORMAL);
+            const targetShieldRatio = targetShip.shields / targetShip.maxShields;
+            UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, UI.calcStatColor(targetShieldRatio));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
             UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
@@ -508,17 +528,20 @@ const EncounterMenu = (() => {
                 currentButtonY++;
             }
             
-            UI.addButton(5, currentButtonY + 2, '3', 'Fire Laser', () => {
+            UI.addButton(5, currentButtonY, '3', 'Fire Laser', () => {
                 executePlayerAction(COMBAT_ACTIONS.FIRE_LASER);
             }, COLORS.TEXT_ERROR, 'Fire laser at the enemy ship');
+            currentButtonY++;
 
             UI.addButton(5, currentButtonY, '4', 'Pursue', () => {
                 executePlayerAction(COMBAT_ACTIONS.PURSUE);
             }, COLORS.GREEN, 'Move toward the enemy ship');
+            currentButtonY++;
             
-            UI.addButton(5, currentButtonY + 1, '5', 'Flee', () => {
+            UI.addButton(5, currentButtonY, '5', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, 'Move away from the enemy ship');
+            currentButtonY++;
             
             UI.addButton(28, buttonY, '8', 'Zoom In', () => {
                 mapViewRange = Math.max(ENCOUNTER_MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
@@ -749,9 +772,9 @@ const EncounterMenu = (() => {
         const action = actions[index];
         
         // Skip if action ship or target is no longer valid (fled, escaped, disabled)
-        if (!action.ship || !action.target || 
+        if (!action.ship || !action.targetShip || 
             action.ship.fled || action.ship.escaped || action.ship.disabled ||
-            action.target.fled || action.target.escaped || action.target.disabled) {
+            action.targetShip.fled || action.targetShip.escaped || action.targetShip.disabled) {
             // Skip to next action
             executeEnemyActionsSequentially(actions, index + 1, onComplete);
             return;
@@ -765,20 +788,20 @@ const EncounterMenu = (() => {
         
         // Store initial distance
         const initialDistance = Math.sqrt(
-            Math.pow(action.ship.x - action.target.x, 2) + 
-            Math.pow(action.ship.y - action.target.y, 2)
+            Math.pow(action.ship.x - action.targetShip.x, 2) + 
+            Math.pow(action.ship.y - action.targetShip.y, 2)
         );
         
         // Get target ship type for messages
-        const targetShipType = SHIP_TYPES[action.target.type] || { name: 'Unknown' };
+        const targetShipType = SHIP_TYPES[action.targetShip.type] || { name: 'Unknown' };
         
         // Set initial message
         if (action.actionType === COMBAT_ACTIONS.PURSUE) {
-            outputMessage = `Enemy pursuing ${action.target.name}...`;
+            outputMessage = `Enemy pursuing ${action.targetShip.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
-            outputMessage = `Enemy fleeing from ${action.target.name}...`;
+            outputMessage = `Enemy fleeing from ${action.targetShip.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
-            outputMessage = `Enemy firing laser at ${action.target.name}...`;
+            outputMessage = `Enemy firing laser at ${action.targetShip.name}...`;
         }
         outputColor = COLORS.TEXT_ERROR;
         
@@ -790,25 +813,25 @@ const EncounterMenu = (() => {
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
                 // Laser message
                 if (action.hit) {
-                    outputMessage = `Enemy hit ${action.target.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
+                    outputMessage = `Enemy hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
                     outputColor = COLORS.TEXT_ERROR;
                 } else {
-                    outputMessage = `Enemy missed ${action.target.name}! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
+                    outputMessage = `Enemy missed ${action.targetShip.name}! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
                 // Calculate distance moved
                 const finalDistance = Math.sqrt(
-                    Math.pow(action.ship.x - action.target.x, 2) + 
-                    Math.pow(action.ship.y - action.target.y, 2)
+                    Math.pow(action.ship.x - action.targetShip.x, 2) + 
+                    Math.pow(action.ship.y - action.targetShip.y, 2)
                 );
                 const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
                 
                 // Set message for the completed action
                 if (action.actionType === COMBAT_ACTIONS.PURSUE) {
-                    outputMessage = `Enemy pursued ${action.target.name} ${distanceMoved} AU`;
+                    outputMessage = `Enemy pursued ${action.targetShip.name} ${distanceMoved} AU`;
                 } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
-                    outputMessage = `Enemy fled ${distanceMoved} AU from ${action.target.name}`;
+                    outputMessage = `Enemy fled ${distanceMoved} AU from ${action.targetShip.name}`;
                 }
                 outputColor = COLORS.TEXT_ERROR;
             }

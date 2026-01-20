@@ -17,7 +17,7 @@ const ENCOUNTER_TYPES = {
         id: 'MERCHANT',
         name: 'Merchant',
         description: 'Fellow trader looking to exchange goods or information',
-        shipTypes: ['FREIGHTER', 'TRADER', 'HAULER'],
+        shipTypes: ['FREIGHTER', 'HAULER'],
         onGreet: function(gameState) {
             // TODO: Implement merchant encounter logic
         }

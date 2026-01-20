@@ -49,9 +49,9 @@ const GalaxyMap = (() => {
             selectedIndex = Math.max(0, nearbySystems.length - 1);
         }
         
-        // Draw map on left side (50% of width)
-        const mapWidth = Math.floor(grid.width * 0.5);
-        const mapHeight = Math.floor(grid.height * 0.5);
+        // Draw map on left side (50% of width + 5)
+        const mapWidth = Math.floor(grid.width * 0.5) + 5;
+        const mapHeight = Math.floor(grid.height * 0.5) + 5;
         
         drawMap(gameState, mapWidth, mapHeight);
         
@@ -194,9 +194,11 @@ const GalaxyMap = (() => {
         UI.addText(startX, y++, 'Fuel Cost Mult.:', COLORS.TEXT_DIM);
         UI.addText(startX + 17, y - 1, `${numShips}x`, COLORS.TEXT_NORMAL);
         UI.addText(startX, y++, 'Fuel:', COLORS.TEXT_DIM);
-        UI.addText(startX + 6, y - 1, `${totalFuel}/${totalMaxFuel}`, COLORS.TEXT_NORMAL);
+        const fuelRatio = totalFuel / totalMaxFuel;
+        UI.addText(startX + 6, y - 1, `${totalFuel}/${totalMaxFuel}`, UI.calcStatColor(fuelRatio));
         UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
-        UI.addText(startX + 6, y - 1, `${totalHull}/${totalMaxHull}`, COLORS.TEXT_NORMAL);
+        const hullRatio = totalHull / totalMaxHull;
+        UI.addText(startX + 6, y - 1, `${totalHull}/${totalMaxHull}`, UI.calcStatColor(hullRatio));
         
         y++; // Empty row
         
@@ -206,7 +208,7 @@ const GalaxyMap = (() => {
             const fuelCost = Ship.calculateFleetFuelCost(selected.distance, gameState.ships.length);
             const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, selected.system.x, selected.system.y);
             
-            UI.addText(startX, y++, '=== Selected System ===', COLORS.YELLOW);
+            UI.addText(startX, y++, '=== Target System ===', COLORS.YELLOW);
             y++; // Empty row
             UI.addText(startX, y++, 'Name:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, selected.system.name, COLORS.TEXT_NORMAL);

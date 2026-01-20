@@ -252,8 +252,8 @@ const TravelMenu = (() => {
         const targetIndex = currentGameState.systems.indexOf(targetSystem);
         currentGameState.setCurrentSystem(targetIndex);
         
-        // Return to galaxy map
-        GalaxyMap.show(currentGameState);
+        // Go to dock menu at destination
+        DockMenu.show(currentGameState);
     }
     
     /**

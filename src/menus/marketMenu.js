@@ -112,10 +112,7 @@ const MarketMenu = (() => {
         // Build help text for sell buttons
         let sell1HelpText = 'Sell 1 unit of selected cargo';
         let sell10HelpText = 'Sell 10 units of selected cargo';
-        if (!hasTraining) {
-            sell1HelpText = 'Requires training - Visit the Guild';
-            sell10HelpText = 'Requires training - Visit the Guild';
-        } else if (playerStock === 0) {
+        if (playerStock === 0) {
             sell1HelpText = 'You have none to sell';
             sell10HelpText = 'You have none to sell';
         } else if (playerStock < 10) {
@@ -127,8 +124,8 @@ const MarketMenu = (() => {
         const buy1Color = canBuy1 ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, buy1HelpText);
         
-        // Sell 1 - gray out if no training or no player stock
-        const canSell1 = hasTraining && playerStock >= 1;
+        // Sell 1 - gray out if no player stock
+        const canSell1 = playerStock >= 1;
         const sell1Color = canSell1 ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), sell1Color, sell1HelpText);
         
@@ -137,8 +134,8 @@ const MarketMenu = (() => {
         const buy10Color = canBuy10 ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, buy10HelpText);
         
-        // Sell 10 - gray out if no training or no player stock
-        const canSell10 = hasTraining && playerStock >= 1;
+        // Sell 10 - gray out if no player stock
+        const canSell10 = playerStock >= 1;
         const sell10Color = canSell10 ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), sell10Color, sell10HelpText);
         
@@ -227,15 +224,6 @@ const MarketMenu = (() => {
     function sellCargo(amount, onReturn) {
         const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
-        
-        // Check if player has training
-        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
-        if (!hasTraining) {
-            outputMessage = `You lack training to handle ${cargoType.name}. Visit the Guild!`;
-            outputColor = COLORS.TEXT_ERROR;
-            render(onReturn);
-            return;
-        }
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);

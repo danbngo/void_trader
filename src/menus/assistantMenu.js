@@ -6,6 +6,8 @@
 const AssistantMenu = (() => {
     let returnCallback = null;
     let currentGameState = null;
+    let outputMessage = '';
+    let outputColor = COLORS.TEXT_NORMAL;
     
     /**
      * Show the assistant menu
@@ -15,9 +17,18 @@ const AssistantMenu = (() => {
     function show(gameState, onReturn) {
         returnCallback = onReturn;
         currentGameState = gameState;
+        outputMessage = '';
         
         UI.clear();
         UI.resetSelection();
+        render(gameState, onReturn);
+    }
+    
+    /**
+     * Render the assistant menu
+     */
+    function render(gameState, onReturn) {
+        UI.clear();
         
         const grid = UI.getGridSize();
         
@@ -31,23 +42,97 @@ const AssistantMenu = (() => {
             UI.addTextCentered(8, 'You have unread messages!', COLORS.YELLOW);
         }
         
+        // Check criteria for buttons
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
+        const hasCargo = totalCargo > 0;
+        const hasCrew = gameState.officers && gameState.officers.length > 0;
+        const hasQuests = (gameState.activeQuests && gameState.activeQuests.length > 0) || 
+                          (gameState.completedQuests && gameState.completedQuests.length > 0);
+        
         // Menu buttons
         const menuX = Math.floor(grid.width / 2) - 12;
         const menuY = 11;
         
         UI.addButton(menuX, menuY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View detailed ship specifications');
-        UI.addButton(menuX, menuY + 1, '2', 'Cargo Manifest', () => CargoInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View cargo hold contents and capacity');
+        
+        // Cargo Manifest - gray out if no cargo
+        const cargoHelpText = hasCargo ? 'View cargo hold contents and capacity' : 'No cargo to display';
+        const cargoColor = hasCargo ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        UI.addButton(menuX, menuY + 1, '2', 'Cargo Manifest', () => tryOpenCargo(gameState, onReturn), cargoColor, cargoHelpText);
+        
         UI.addButton(menuX, menuY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View captain and perk details');
-        UI.addButton(menuX, menuY + 3, '4', 'Crew', () => CrewInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View crew and officer details');
+        
+        // Crew - gray out if no crew
+        const crewHelpText = hasCrew ? 'View crew and officer details' : 'No crew members (hire at Tavern)';
+        const crewColor = hasCrew ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        UI.addButton(menuX, menuY + 3, '4', 'Crew', () => tryOpenCrew(gameState, onReturn), crewColor, crewHelpText);
         
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(menuX, menuY + 4, '5', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
-        UI.addButton(menuX, menuY + 5, '6', 'Quests', () => QuestsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View active and completed quests');
+        // Quests - gray out if no quests
+        const questsHelpText = hasQuests ? 'View active and completed quests' : 'No active or completed quests';
+        const questsColor = hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        UI.addButton(menuX, menuY + 5, '6', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
+        
         UI.addButton(menuX, menuY + 6, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
         UI.addButton(menuX, menuY + 7, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+        
         UI.draw();
+    }
+    
+    /**
+     * Try to open cargo manifest
+     */
+    function tryOpenCargo(gameState, onReturn) {
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
+        
+        if (totalCargo === 0) {
+            outputMessage = 'No cargo to display. Your cargo holds are empty.';
+            outputColor = COLORS.TEXT_ERROR;
+            render(gameState, onReturn);
+            return;
+        }
+        
+        CargoInfoMenu.show(() => show(gameState, returnCallback));
+    }
+    
+    /**
+     * Try to open crew info
+     */
+    function tryOpenCrew(gameState, onReturn) {
+        if (!gameState.officers || gameState.officers.length === 0) {
+            outputMessage = 'No crew members. Visit the Tavern to hire crew!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(gameState, onReturn);
+            return;
+        }
+        
+        CrewInfoMenu.show(() => show(gameState, returnCallback));
+    }
+    
+    /**
+     * Try to open quests menu
+     */
+    function tryOpenQuests(gameState, onReturn) {
+        const hasQuests = (gameState.activeQuests && gameState.activeQuests.length > 0) || 
+                          (gameState.completedQuests && gameState.completedQuests.length > 0);
+        
+        if (!hasQuests) {
+            outputMessage = 'No active or completed quests to display.';
+            outputColor = COLORS.TEXT_ERROR;
+            render(gameState, onReturn);
+            return;
+        }
+        
+        QuestsMenu.show(gameState, () => show(gameState, returnCallback));
     }
     
     return {

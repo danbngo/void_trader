@@ -88,9 +88,13 @@ const LootMenu = (() => {
             .map((cargoType, index) => {
                 const lootQuantity = lootCargo[cargoType.id] || 0;
                 
+                // Check if player has training for this cargo type
+                const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+                const textColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+                
                 return [
-                    { text: cargoType.name, color: COLORS.TEXT_NORMAL },
-                    { text: String(lootQuantity), color: COLORS.TEXT_NORMAL }
+                    { text: cargoType.name, color: textColor },
+                    { text: String(lootQuantity), color: textColor }
                 ];
             });
         
@@ -108,10 +112,48 @@ const LootMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Take 1', () => takeCargo(1, onContinue), COLORS.GREEN, 'Take 1 unit of selected cargo');
-        UI.addButton(5, buttonY + 1, '2', 'Take 10', () => takeCargo(10, onContinue), COLORS.GREEN, 'Take 10 units of selected cargo');
-        UI.addButton(25, buttonY, '3', 'Dump 1', () => dumpCargo(1, onContinue), COLORS.TEXT_ERROR, 'Dump 1 unit of selected cargo into space');
-        UI.addButton(25, buttonY + 1, '4', 'Dump 10', () => dumpCargo(10, onContinue), COLORS.TEXT_ERROR, 'Dump 10 units of selected cargo into space');
+        
+        // Get selected cargo type and check training
+        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => lootCargo[ct.id] > 0);
+        const selectedCargoType = availableCargoTypes[selectedCargoIndex];
+        const hasTraining = selectedCargoType ? gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id) : false;
+        const lootQuantity = selectedCargoType ? (lootCargo[selectedCargoType.id] || 0) : 0;
+        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
+        
+        // Build help text for Take buttons
+        let take1HelpText = 'Take 1 unit of selected cargo';
+        let take10HelpText = 'Take 10 units of selected cargo';
+        if (!hasTraining) {
+            take1HelpText = 'Requires training - Visit the Guild';
+            take10HelpText = 'Requires training - Visit the Guild';
+        } else if (lootQuantity === 0) {
+            take1HelpText = 'No cargo available';
+            take10HelpText = 'No cargo available';
+        } else if (availableSpace === 0) {
+            take1HelpText = 'No cargo space available';
+            take10HelpText = 'No cargo space available';
+        }
+        
+        // Build help text for Dump buttons
+        let dump1HelpText = 'Dump 1 unit of selected cargo into space';
+        let dump10HelpText = 'Dump 10 units of selected cargo into space';
+        if (lootQuantity === 0) {
+            dump1HelpText = 'No cargo available';
+            dump10HelpText = 'No cargo available';
+        }
+        
+        // Take buttons - gray out if no training, no loot, or no space
+        const canTake = hasTraining && lootQuantity > 0 && availableSpace > 0;
+        const takeColor = canTake ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(5, buttonY, '1', 'Take 1', () => takeCargo(1, onContinue), takeColor, take1HelpText);
+        UI.addButton(5, buttonY + 1, '2', 'Take 10', () => takeCargo(10, onContinue), takeColor, take10HelpText);
+        
+        // Dump buttons - only gray out if no loot
+        const canDump = lootQuantity > 0;
+        const dumpColor = canDump ? COLORS.TEXT_ERROR : COLORS.TEXT_DIM;
+        UI.addButton(25, buttonY, '3', 'Dump 1', () => dumpCargo(1, onContinue), dumpColor, dump1HelpText);
+        UI.addButton(25, buttonY + 1, '4', 'Dump 10', () => dumpCargo(10, onContinue), dumpColor, dump10HelpText);
+        
         UI.addButton(5, buttonY + 2, '0', 'Continue Journey', onContinue, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
@@ -136,6 +178,16 @@ const LootMenu = (() => {
         }
         
         const cargoType = availableCargoTypes[selectedCargoIndex];
+        
+        // Check if player has training for this cargo type
+        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+        if (!hasTraining) {
+            outputMessage = `You lack training to handle ${cargoType.name}. Visit the Guild!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onContinue);
+            return;
+        }
+        
         const availableLoot = lootCargo[cargoType.id] || 0;
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         

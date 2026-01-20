@@ -159,10 +159,9 @@ const TitleMenu = (() => {
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);
             
-            // Generate player ships and crew (2 ships for testing)
+            // Generate player ships (no initial crew - will be hired at tavern)
             gameState.ships.push(ShipGenerator.generateStartingShip());
             //gameState.ships.push(ShipGenerator.generateStartingShip());
-            gameState.officers = OfficerGenerator.generateCrew(2);
             
             // Store game state globally for access
             window.gameState = gameState;

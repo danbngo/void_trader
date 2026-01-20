@@ -17,13 +17,13 @@ const RANKS = {
         name: 'Visa',
         description: 'Basic visitor status - unlocks Shipyard, Tavern, and Guild',
         level: 1,
-        fee: 1000,
+        fee: 2000,
         minReputation: 0
     },
     CITIZEN: {
         id: 'CITIZEN',
         name: 'Citizen',
-        description: 'Full citizenship status',
+        description: 'Full citizenship status - unlocks additional services and privileges',
         level: 2,
         fee: 5000,
         minReputation: 50

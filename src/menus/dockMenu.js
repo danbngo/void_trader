@@ -36,8 +36,15 @@ const DockMenu = (() => {
         UI.addButton(menuX, menuY++, '3', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
         
         // Highlight assistant button if there are unread messages
-        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
+        const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
+        console.log('[DockMenu] Messages check:', {
+            messagesExists: !!gameState.messages,
+            messageCount: gameState.messages?.length || 0,
+            messages: gameState.messages?.map(m => ({ id: m.id, isRead: m.isRead })),
+            hasUnreadMessages: hasUnreadMessages
+        });
         const assistantColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
+        console.log('[DockMenu] Assistant color:', assistantColor, 'YELLOW:', COLORS.YELLOW, 'BUTTON:', COLORS.BUTTON);
         UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
         UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
@@ -57,6 +64,129 @@ const DockMenu = (() => {
             return;
         }
         
+        // Check for unread messages that haven't been suppressed
+        const unreadMessages = gameState.messages.filter(m => !m.isRead && !m.suppressWarning);
+        if (unreadMessages.length > 0) {
+            showUnreadMessageWarning(gameState, unreadMessages[0]);
+            return;
+        }
+        
+        // Check if any ships need repair or refuel
+        const needsRepair = gameState.ships.some(ship => 
+            ship.hull < ship.maxHull || ship.shields < ship.maxShields
+        );
+        const needsRefuel = gameState.ships.some(ship => 
+            ship.fuel < ship.maxFuel
+        );
+        
+        if (needsRepair || needsRefuel) {
+            // Show resupply menu
+            ResupplyMenu.show(
+                gameState,
+                () => show(gameState), // onReturn
+                () => GalaxyMap.show(gameState) // onDepart
+            );
+        } else {
+            // All good, go straight to galaxy map
+            GalaxyMap.show(gameState);
+        }
+    }
+    
+    /**
+     * Show warning about unread messages
+     * @param {GameState} gameState - Current game state
+     * @param {Message} message - The unread message
+     */
+    function showUnreadMessageWarning(gameState, message) {
+        UI.clear();
+        UI.resetSelection();
+        
+        const grid = UI.getGridSize();
+        
+        // Title at top
+        let y = 3;
+        UI.addTextCentered(y++, '=== Unread Message ===', COLORS.YELLOW);
+        y += 2;
+        
+        UI.addTextCentered(y++, 'You have an unread message:', COLORS.TEXT_NORMAL);
+        UI.addTextCentered(y++, message.title, COLORS.CYAN);
+        
+        // Buttons at bottom
+        const buttonY = grid.height - 6;
+        const menuX = Math.floor(grid.width / 2) - 15;
+        
+        UI.addButton(menuX, buttonY, '1', 'Read Message', () => {
+            readMessageDirect(gameState, message);
+        }, COLORS.GREEN, 'Read the message now');
+        
+        UI.addButton(menuX, buttonY + 1, '2', 'Ignore Message', () => {
+            proceedToGalaxyMap(gameState);
+        }, COLORS.BUTTON, 'Continue to galaxy map');
+        
+        UI.addButton(menuX, buttonY + 2, '9', 'Don\'t Show This Warning Again', () => {
+            message.suppressWarning = true;
+            proceedToGalaxyMap(gameState);
+        }, COLORS.TEXT_DIM, 'Suppress this warning for this message');
+        
+        UI.addButton(menuX, buttonY + 3, '0', 'Back', () => {
+            show(gameState);
+        }, COLORS.BUTTON, 'Return to dock');
+        
+        UI.draw();
+    }
+    
+    /**
+     * Read a message directly and return to dock
+     * @param {GameState} gameState - Current game state
+     * @param {Message} message - The message to read
+     */
+    function readMessageDirect(gameState, message) {
+        // Mark as read and trigger onRead
+        const wasUnread = !message.isRead;
+        message.read(gameState);
+        
+        UI.clear();
+        UI.resetSelection();
+        
+        const grid = UI.getGridSize();
+        
+        // Title
+        let y = 5;
+        UI.addTextCentered(y++, `=== ${message.title} ===`, COLORS.CYAN);
+        y += 2;
+        
+        // Content
+        const leftX = 10;
+        if (Array.isArray(message.content)) {
+            message.content.forEach(line => {
+                UI.addText(leftX, y++, line, COLORS.TEXT_NORMAL);
+            });
+        } else {
+            UI.addText(leftX, y++, message.content, COLORS.TEXT_NORMAL);
+        }
+        
+        y += 2;
+        
+        // Show quest added notification if message was unread
+        if (wasUnread && message.onRead) {
+            UI.addText(leftX, y++, 'Quest added!', COLORS.GREEN);
+            y++;
+        }
+        
+        // Continue button
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Continue', () => {
+            show(gameState);
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Proceed to galaxy map (handling resupply check)
+     * @param {GameState} gameState - Current game state
+     */
+    function proceedToGalaxyMap(gameState) {
         // Check if any ships need repair or refuel
         const needsRepair = gameState.ships.some(ship => 
             ship.hull < ship.maxHull || ship.shields < ship.maxShields

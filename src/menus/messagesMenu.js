@@ -71,9 +71,22 @@ const MessagesMenu = (() => {
         const message = currentGameState.messages[index];
         if (!message) return;
         
+        // Track active quests before reading to detect new quest
+        const questsBefore = [...currentGameState.activeQuests];
+        
         // Mark as read and trigger onRead
         const wasUnread = !message.isRead;
         message.read(currentGameState);
+        
+        // Check if new quest was added
+        let addedQuestId = null;
+        if (wasUnread && message.onRead) {
+            const questsAfter = currentGameState.activeQuests;
+            const newQuest = questsAfter.find(qid => !questsBefore.includes(qid));
+            if (newQuest) {
+                addedQuestId = newQuest;
+            }
+        }
         
         UI.clear();
         UI.resetSelection();
@@ -97,10 +110,13 @@ const MessagesMenu = (() => {
         
         y += 2;
         
-        // Show quest added notification if message was unread
-        if (wasUnread && message.onRead) {
-            UI.addText(leftX, y++, 'Quest added!', COLORS.GREEN);
-            y++;
+        // Show quest added notification with quest name
+        if (addedQuestId) {
+            const addedQuest = QUESTS[addedQuestId];
+            if (addedQuest) {
+                UI.addText(leftX, y++, `Quest added: ${addedQuest.name}!`, COLORS.GREEN);
+                y++;
+            }
         }
         
         // Continue button

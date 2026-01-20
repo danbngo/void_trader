@@ -348,8 +348,8 @@ const UI = (() => {
             throw new Error(`addButton: button "${buttonText}" at x=${x} extends beyond grid width`);
         }
         
-        // Custom color logic for specific button labels
-        if (label === 'Assistant' || label === 'Options' || label === 'Back') {
+        // Custom color logic for specific button labels (only if default color)
+        if ((label === 'Options' || label === 'Back') && color === 'cyan') {
             color = COLORS.TEXT_DIM;
         }
         

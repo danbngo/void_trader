@@ -45,7 +45,16 @@ const SaveLoadManager = (() => {
                 visitedSystems: gameState.visitedSystems,
                 date: gameState.date.toISOString(),
                 encounterShips: gameState.encounterShips,
-                encounter: gameState.encounter
+                encounter: gameState.encounter,
+                // Save message states (ID, isRead, suppressWarning)
+                messages: gameState.messages.map(m => ({
+                    id: m.id,
+                    isRead: m.isRead,
+                    suppressWarning: m.suppressWarning
+                })),
+                // Quest arrays are already just IDs
+                activeQuests: gameState.activeQuests,
+                completedQuests: gameState.completedQuests
             },
             timestamp: new Date().toISOString()
         };
@@ -123,8 +132,36 @@ const SaveLoadManager = (() => {
             system.pirateWeight = s.pirateWeight || 0;
             system.policeWeight = s.policeWeight || 0;
             system.merchantWeight = s.merchantWeight || 0;
+            system.buildings = s.buildings || [];
             return system;
         });
+        
+        // Reconstruct messages from MESSAGES definitions
+        gameState.messages = [];
+        if (data.messages && Array.isArray(data.messages)) {
+            data.messages.forEach(msgData => {
+                const messageTemplate = MESSAGES[msgData.id];
+                if (messageTemplate) {
+                    // Create a new Message instance from the template
+                    const message = new Message(
+                        messageTemplate.id,
+                        messageTemplate.title,
+                        messageTemplate.content,
+                        messageTemplate.onRead,
+                        msgData.suppressWarning || false
+                    );
+                    // Restore the read state
+                    if (msgData.isRead) {
+                        message.isRead = true;
+                    }
+                    gameState.messages.push(message);
+                }
+            });
+        }
+        
+        // Restore quest arrays (already just IDs)
+        gameState.activeQuests = data.activeQuests || [];
+        gameState.completedQuests = data.completedQuests || [];
         
         return gameState;
     }

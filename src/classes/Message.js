@@ -16,6 +16,7 @@ class Message {
         this.content = content;
         this.onRead = onRead;
         this.isRead = false;
+        this.suppressWarning = false; // Don't warn when departing with this unread
     }
     
     /**

@@ -21,6 +21,18 @@ const GalaxyMap = (() => {
         // Clear output message when showing fresh
         outputMessage = '';
         
+        // Set up wheel zoom handler
+        UI.setWheelZoomHandler((delta) => {
+            if (delta > 0) {
+                // Zoom out (PageDown / wheel down)
+                mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
+            } else {
+                // Zoom in (PageUp / wheel up)
+                mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
+            }
+            render(gameState);
+        });
+        
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         

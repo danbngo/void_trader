@@ -25,6 +25,7 @@ const UI = (() => {
     let lastSelectedButtonIndex = -1; // Track last selection to detect changes
     let preservedButtonKey = null; // Track button key to preserve selection across re-renders
     let keyListener = null;
+    let wheelZoomHandler = null; // Handler for mouse wheel zoom
     
     // Output row state
     let outputRowText = '';
@@ -168,6 +169,18 @@ const UI = (() => {
                 return;
             }
             
+            // Check for PageUp/PageDown zoom
+            if (key === 'PageUp' && wheelZoomHandler) {
+                e.preventDefault();
+                wheelZoomHandler(-100); // Negative delta = zoom in
+                return;
+            }
+            if (key === 'PageDown' && wheelZoomHandler) {
+                e.preventDefault();
+                wheelZoomHandler(100); // Positive delta = zoom out
+                return;
+            }
+            
             // Check if this key has a button assigned (direct access)
             const button = registeredButtons.find(btn => btn.key === key);
             if (button) {
@@ -177,6 +190,14 @@ const UI = (() => {
         };
         
         document.addEventListener('keydown', keyListener);
+        
+        // Mouse wheel zoom handler
+        canvas.addEventListener('wheel', (e) => {
+            if (wheelZoomHandler) {
+                e.preventDefault();
+                wheelZoomHandler(e.deltaY);
+            }
+        });
     }
     
     /**
@@ -348,6 +369,17 @@ const UI = (() => {
      */
     function addSelectionHighlight(x, y, width) {
         registeredHighlights.push({ x, y, width });
+    }
+    
+    /**
+     * Register a clickable area (like a ship icon)
+     * @param {number} x - Grid X position
+     * @param {number} y - Grid Y position
+     * @param {number} width - Width in characters (usually 1 for a single character)
+     * @param {Function} callback - Function to call when clicked
+     */
+    function addClickable(x, y, width, callback) {
+        registeredTableRows.push({ x, y, width, callback, index: -1 });
     }
     
     /**
@@ -557,6 +589,14 @@ const UI = (() => {
     }
     
     /**
+     * Set the wheel zoom handler
+     * @param {Function} handler - Function to call with delta value (positive = zoom out, negative = zoom in)
+     */
+    function setWheelZoomHandler(handler) {
+        wheelZoomHandler = handler;
+    }
+    
+    /**
      * Clear output row
      */
     function clearOutputRow() {
@@ -623,6 +663,8 @@ const UI = (() => {
         resetSelection,
         setOutputRow,
         clearOutputRow,
-        getOutputRow
+        getOutputRow,
+        addClickable,
+        setWheelZoomHandler
     };
 })();

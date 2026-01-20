@@ -154,6 +154,18 @@ const EncounterMenu = (() => {
             cameraOffsetY = firstShip.y;
         }
         
+        // Set up wheel zoom handler
+        UI.setWheelZoomHandler((delta) => {
+            if (delta > 0) {
+                // Zoom out
+                mapViewRange = Math.min(ENCOUNTER_MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
+            } else {
+                // Zoom in
+                mapViewRange = Math.max(ENCOUNTER_MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
+            }
+            render();
+        });
+        
         render();
     }
     
@@ -246,6 +258,12 @@ const EncounterMenu = (() => {
         let targetShipScreenX = null;
         let targetShipScreenY = null;
         
+        // Calculate target ship screen position (even if off-screen) for line drawing
+        if (targetShip && !targetShip.fled && !targetShip.escaped) {
+            targetShipScreenX = Math.floor(mapCenterX + (targetShip.x - cameraOffsetX) * scale);
+            targetShipScreenY = Math.floor(mapCenterY - (targetShip.y - cameraOffsetY) * scale);
+        }
+        
         // Draw player ships
         gameState.ships.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
@@ -288,8 +306,17 @@ const EncounterMenu = (() => {
                     color = COLORS.GRAY;
                 } else if (index === targetIndex) {
                     color = COLORS.YELLOW;
+                    // Store position even if already stored
                     targetShipScreenX = screenX;
                     targetShipScreenY = screenY;
+                }
+                
+                // Make non-disabled enemy ships clickable
+                if (!ship.disabled) {
+                    UI.addClickable(screenX, screenY, 1, () => {
+                        targetIndex = index;
+                        render();
+                    });
                 }
                 
                 UI.addText(screenX, screenY, symbol, color, 0.7);
@@ -338,7 +365,7 @@ const EncounterMenu = (() => {
         }
         
         // Legend positioned right after map border
-        UI.addText(2, mapHeight, '\u25B2 = Player  \u25BC = Enemy  \u25A0 = Disabled', COLORS.GRAY);
+        UI.addText(2, mapHeight, '▲ = Ship  ■ = Disabled', COLORS.GRAY);
     }
     
     /**

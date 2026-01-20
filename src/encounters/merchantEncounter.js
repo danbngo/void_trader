@@ -17,14 +17,26 @@ const MerchantEncounter = {
         UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
         y += 2;
         
+        // Show player ships
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y++;
+        
+        // Show merchant ships
+        y = ShipTableRenderer.addNPCFleet(10, y, 'Merchant Vessels:', gameState.encounterShips);
+        y++;
+        
         UI.addButton(10, y++, '1', 'Accept Trade Offer', () => {
             this.handleTrade(gameState, encType);
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Trade with merchants (buy or sell cargo at base price)');
         
         UI.addButton(10, y++, '2', 'Ignore', () => {
             // Return to travel menu
             TravelMenu.resume();
-        }, COLORS.TEXT_DIM);
+        }, COLORS.TEXT_DIM, 'Continue journey without trading');
+        
+        UI.addButton(10, y++, '3', 'Attack', () => {
+            this.showAttackConsequences(gameState, encType);
+        }, COLORS.TEXT_ERROR, 'Attack innocent traders (-5 reputation, +1000 bounty)');
         
         UI.draw();
     },
@@ -158,6 +170,35 @@ const MerchantEncounter = {
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN);
+        
+        UI.draw();
+    },
+    
+    /**
+     * Show consequences of attacking merchants
+     */
+    showAttackConsequences: function(gameState, encType) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Attacking Civilians ===`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        // Apply reputation and bounty penalties
+        gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_CIVILIAN;
+        gameState.bounty += BOUNTY_INCREASE_ON_ATTACK_CIVILIANS;
+        
+        UI.addText(10, y++, `You attack innocent merchants!`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `Reputation: ${REPUTATION_EFFECT_ON_ATTACK_CIVILIAN}`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_CIVILIANS} credits`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `The merchants try to defend themselves!`, COLORS.TEXT_NORMAL);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+            EncounterMenu.show(gameState, encType);
+        }, COLORS.TEXT_ERROR);
         
         UI.draw();
     }

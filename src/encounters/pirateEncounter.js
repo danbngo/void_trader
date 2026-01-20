@@ -17,13 +17,25 @@ const PirateEncounter = {
         UI.addText(10, y++, `"Hand over your cargo or we'll take it by force!"`, COLORS.TEXT_ERROR);
         y += 2;
         
+        // Show player ships
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y++;
+        
+        // Show pirate ships
+        y = ShipTableRenderer.addNPCFleet(10, y, 'Pirate Forces:', gameState.encounterShips);
+        y++;
+        
         UI.addButton(10, y++, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
-        }, COLORS.YELLOW);
+        }, COLORS.YELLOW, 'Surrender cargo to pirates (lose valuable cargo, no reputation loss)');
         
         UI.addButton(10, y++, '2', 'Resist', () => {
             EncounterMenu.show(gameState, encType);
-        }, COLORS.TEXT_ERROR);
+        }, COLORS.TEXT_ERROR, 'Fight the pirates (no reputation/bounty changes)');
+        
+        UI.addButton(10, y++, '3', 'Attack', () => {
+            this.showAttackConsequences(gameState, encType);
+        }, COLORS.GREEN, 'Attack criminals (+5 reputation, no bounty)');
         
         UI.draw();
     },
@@ -100,6 +112,33 @@ const PirateEncounter = {
         
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
             TravelMenu.resume();
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    },
+    
+    /**
+     * Show consequences of attacking pirates
+     */
+    showAttackConsequences: function(gameState, encType) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Attacking Criminals ===`, COLORS.GREEN);
+        y += 2;
+        
+        // Apply reputation gain (attacking criminals is good)
+        gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_CRIMINALS;
+        
+        UI.addText(10, y++, `You attack the pirate vessels!`, COLORS.GREEN);
+        y++;
+        UI.addText(10, y++, `Reputation: +${REPUTATION_EFFECT_ON_ATTACK_CRIMINALS}`, COLORS.GREEN);
+        y++;
+        UI.addText(10, y++, `Fighting criminals improves your standing!`, COLORS.TEXT_NORMAL);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+            EncounterMenu.show(gameState, encType);
         }, COLORS.GREEN);
         
         UI.draw();

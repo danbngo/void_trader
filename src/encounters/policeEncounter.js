@@ -17,13 +17,25 @@ const PoliceEncounter = {
         UI.addText(10, y++, `"This is System Authority. Prepare for routine inspection."`, COLORS.YELLOW);
         y += 2;
         
+        // Show player ships
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y++;
+        
+        // Show enemy ships
+        y = ShipTableRenderer.addNPCFleet(10, y, 'Police Forces:', gameState.encounterShips);
+        y++;
+        
         UI.addButton(10, y++, '1', 'Allow Inspection', () => {
             this.handleInspection(gameState, encType);
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Let police scan your cargo (50% chance to find illegal goods)');
         
         UI.addButton(10, y++, '2', 'Resist', () => {
-            EncounterMenu.show(gameState, encType);
-        }, COLORS.TEXT_ERROR);
+            this.showResistConsequences(gameState, encType);
+        }, COLORS.TEXT_ERROR, 'Refuse inspection and fight (-10 reputation, +2000 bounty)');
+        
+        UI.addButton(10, y++, '3', 'Attack', () => {
+            this.showAttackConsequences(gameState, encType);
+        }, COLORS.TEXT_ERROR, 'Launch unprovoked attack (-10 reputation, +2000 bounty)');
         
         UI.draw();
     },
@@ -101,6 +113,64 @@ const PoliceEncounter = {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.GREEN);
+        
+        UI.draw();
+    },
+    
+    /**
+     * Show consequences of resisting police
+     */
+    showResistConsequences: function(gameState, encType) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Resisting Arrest ===`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        // Apply reputation and bounty penalties
+        gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES;
+        gameState.bounty += BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES;
+        
+        UI.addText(10, y++, `You refuse to submit to inspection!`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `Reputation: ${REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES}`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `The police open fire!`, COLORS.TEXT_NORMAL);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+            EncounterMenu.show(gameState, encType);
+        }, COLORS.TEXT_ERROR);
+        
+        UI.draw();
+    },
+    
+    /**
+     * Show consequences of attacking police
+     */
+    showAttackConsequences: function(gameState, encType) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Attacking Authorities ===`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        // Apply reputation and bounty penalties
+        gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES;
+        gameState.bounty += BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES;
+        
+        UI.addText(10, y++, `You launch an unprovoked attack on law enforcement!`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `Reputation: ${REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES}`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `You are now a wanted criminal!`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+            EncounterMenu.show(gameState, encType);
+        }, COLORS.TEXT_ERROR);
         
         UI.draw();
     }

@@ -31,26 +31,8 @@ const ResupplyMenu = (() => {
         UI.addTextCentered(3, 'Ship Status', COLORS.TITLE);
         UI.addTextCentered(5, 'Some ships need attention before departure', COLORS.YELLOW);
         
-        // Build table data
-        const startY = 8;
-        const headers = ['Ship', 'Type', 'Hull', 'Shields', 'Fuel'];
-        const rows = gameState.ships.map((ship) => {
-            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-            const hullRatio = ship.hull / ship.maxHull;
-            const shieldRatio = ship.shields / ship.maxShields;
-            const fuelRatio = ship.fuel / ship.maxFuel;
-            
-            return [
-                { text: ship.name, color: COLORS.TEXT_NORMAL },
-                { text: shipType.name, color: COLORS.TEXT_DIM },
-                { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
-                { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
-                { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) }
-            ];
-        });
-        
-        // Render the table
-        TableRenderer.renderTable(5, startY, headers, rows, -1, 2, null);
+        // Use ship table utility (without cargo column)
+        const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, false);
         
         // Check if all ships are ready
         const allRepaired = gameState.ships.every(ship => ship.hull >= ship.maxHull && ship.shields >= ship.maxShields);

@@ -13,6 +13,8 @@ class GameState {
         this.x = 0; // Player's current x position
         this.y = 0; // Player's current y position
         this.credits = 1000; // Player's money
+        this.reputation = 0; // Player's reputation (-100 to 100)
+        this.bounty = 0; // Player's bounty (credits)
         this.visitedSystems = []; // Array of visited system indices
         this.date = new Date(3000, 0, 1); // Game date set to January 1, 3000 AD
         this.encounterShips = []; // Ships involved in current encounter

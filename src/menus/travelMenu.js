@@ -134,7 +134,7 @@ const TravelMenu = (() => {
      */
     function startTravelTick() {
         const tickInterval = 100; // milliseconds
-        const progressPerTick = 0.02; // 2% per tick (faster progress)
+        const progressPerTick = 0.04; // 4% per tick (2x faster progress)
         
         const interval = setInterval(() => {
             if (!paused && progress < 1.0) {

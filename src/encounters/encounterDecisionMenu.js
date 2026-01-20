@@ -43,6 +43,14 @@ const EncounterDecisionMenu = {
         UI.addText(10, y++, `They don't seem interested in you.`, COLORS.TEXT_DIM);
         y += 2;
         
+        // Show player ships
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y++;
+        
+        // Show encounter ships
+        y = ShipTableRenderer.addNPCFleet(10, y, `${encType.name} Ships:`, gameState.encounterShips);
+        y++;
+        
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
             // Return to travel menu
             TravelMenu.resume();

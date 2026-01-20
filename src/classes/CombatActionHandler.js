@@ -66,6 +66,49 @@ class CombatActionHandler {
                 this.movementPerTick.x = Math.cos(this.action.knockbackAngle);
                 this.movementPerTick.y = Math.sin(this.action.knockbackAngle);
                 break;
+                
+            case COMBAT_ACTIONS.FIRE_LASER:
+                // Instant action - calculate hit and damage immediately
+                if (this.action.targetShip) {
+                    const dx = this.action.targetShip.x - this.ship.x;
+                    const dy = this.action.targetShip.y - this.ship.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Calculate hit chance: radar / distance
+                    const hitChance = Math.min(1, this.ship.radar / distance);
+                    const hit = Math.random() < hitChance;
+                    
+                    // Store hit result in action
+                    this.action.hit = hit;
+                    this.action.distance = distance;
+                    
+                    if (hit) {
+                        // Calculate damage: random between 1 and ship.lasers
+                        const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                        this.action.damage = damage;
+                        
+                        // Apply damage to shields first, then hull
+                        if (this.action.targetShip.shields > 0) {
+                            const shieldDamage = Math.min(damage, this.action.targetShip.shields);
+                            this.action.targetShip.shields -= shieldDamage;
+                            const remainingDamage = damage - shieldDamage;
+                            if (remainingDamage > 0) {
+                                this.action.targetShip.hull -= remainingDamage;
+                            }
+                        } else {
+                            this.action.targetShip.hull -= damage;
+                        }
+                        
+                        // Check if ship is disabled
+                        if (this.action.targetShip.hull <= 0) {
+                            this.action.targetShip.hull = 0;
+                            this.action.targetShip.disabled = true;
+                        }
+                    }
+                }
+                // Mark as complete immediately
+                this.action.complete();
+                break;
         }
         
         this.initialized = true;
@@ -81,6 +124,11 @@ class CombatActionHandler {
         }
         
         if (this.action.completed) {
+            return true;
+        }
+        
+        // FIRE_LASER is instant - completes immediately
+        if (this.action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
             return true;
         }
         

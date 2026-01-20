@@ -69,12 +69,13 @@ const ShipyardMenu = (() => {
                 { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${ship.getValue()} CR`, color: COLORS.TEXT_NORMAL }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Laser', 'Engine', 'Cargo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['', 'Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Laser', 'Engine', 'Radar', 'Cargo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';
@@ -127,13 +128,14 @@ const ShipyardMenu = (() => {
                 { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${price} CR`, color: COLORS.TEXT_NORMAL },
                 { text: `${netCost} CR`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Shield', 'Laser', 'Engine', 'Radar', 'Cargo', 'Price', 'After Trade'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';

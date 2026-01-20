@@ -27,8 +27,16 @@ class CombatAI {
             }
         });
         
-        // Default: pursue nearest player ship
         if (nearestShip) {
+            // Calculate hit chance if we were to fire laser
+            const hitChance = Math.min(1, enemyShip.radar / nearestDistance);
+            
+            // Fire laser if hit chance > 30% (prefer ranged combat when possible)
+            if (hitChance > 0.3) {
+                return new CombatAction(enemyShip, COMBAT_ACTIONS.FIRE_LASER, nearestShip);
+            }
+            
+            // Otherwise pursue to get closer
             return new CombatAction(enemyShip, COMBAT_ACTIONS.PURSUE, nearestShip);
         }
         

@@ -13,7 +13,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 1.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.2,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.0
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.0,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.0
     },
     FREIGHTER: {
         id: 'FREIGHTER',
@@ -24,7 +25,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 2.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.0,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.4,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.6
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.6,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.6
     },
     SCOUT: {
         id: 'SCOUT',
@@ -35,7 +37,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 1.75,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.25,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.0,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.5
     },
     HAULER: {
         id: 'HAULER',
@@ -46,7 +49,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 3.0,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.75,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.4,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.4
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.4,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.4
     },
     CORVETTE: {
         id: 'CORVETTE',
@@ -57,7 +61,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 3.75,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 2.0,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.2,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.2
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.2,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.2
     },
     RAIDER: {
         id: 'RAIDER',
@@ -68,7 +73,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 4.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 2.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.2,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.4
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.4,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.4
     },
     DESTROYER: {
         id: 'DESTROYER',
@@ -79,7 +85,8 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 6.25,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 3.75,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.6,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.8
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.8,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.6
     },
     BATTLESHIP: {
         id: 'BATTLESHIP',
@@ -90,7 +97,8 @@ const SHIP_TYPES = {
         baseMaxHull: 350,
         baseMaxShields: 200,
         baseLasers: 12,
-        baseEngine: 4
+        baseEngine: 4,
+        baseRadar: 16
     }
 };
 

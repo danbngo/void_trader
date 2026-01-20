@@ -37,8 +37,9 @@ const ShipGenerator = (() => {
         const shields = maxShields;
         const lasers = shipType.baseLasers;
         const engine = shipType.baseEngine;
+        const radar = shipType.baseRadar;
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }
     
     /**
@@ -58,8 +59,9 @@ const ShipGenerator = (() => {
         const shields = maxShields;
         const lasers = Math.max(1, applyStatVariation(shipType.baseLasers)); // At least 1 laser
         const engine = Math.max(1, applyStatVariation(shipType.baseEngine));
+        const radar = Math.max(1, applyStatVariation(shipType.baseRadar)); // At least 1 radar
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }
     
     /**
@@ -80,8 +82,9 @@ const ShipGenerator = (() => {
         const shields = maxShields;
         const lasers = Math.max(1, applyStatVariation(shipType.baseLasers)); // At least 1 laser
         const engine = Math.max(1, applyStatVariation(shipType.baseEngine));
+        const radar = Math.max(1, applyStatVariation(shipType.baseRadar)); // At least 1 radar
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine);
+        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }
     
     return {

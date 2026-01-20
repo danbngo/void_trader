@@ -20,7 +20,7 @@ const ShipInfoMenu = (() => {
         
         // Build table data for all ships
         const startY = 6;
-        const headers = ['Ship', 'Type', 'Hull', 'Shields', 'Lasers', 'Engine', 'Fuel', 'Cargo'];
+        const headers = ['Ship', 'Type', 'Hull', 'Shields', 'Lasers', 'Engine', 'Radar', 'Fuel', 'Cargo'];
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const isActive = index === gameState.activeShipIndex;
@@ -33,6 +33,7 @@ const ShipInfoMenu = (() => {
                 { text: `${ship.shields}/${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.lasers), color: COLORS.TEXT_NORMAL },
                 { text: String(ship.engine), color: COLORS.TEXT_NORMAL },
+                { text: String(ship.radar), color: COLORS.TEXT_NORMAL },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.getTotalCargo()}/${ship.cargoCapacity}`, color: COLORS.TEXT_NORMAL }
             ];

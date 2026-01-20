@@ -409,6 +409,8 @@ const EncounterMenu = (() => {
             UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `${activeShip.engine}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Radar:', COLORS.TEXT_DIM);
+            UI.addText(startX + 7, y - 1, `${activeShip.radar}`, COLORS.TEXT_NORMAL);
         } else {
             UI.addText(startX, 1, 'No active ships', COLORS.TEXT_ERROR);
         }
@@ -437,6 +439,8 @@ const EncounterMenu = (() => {
             UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
             UI.addText(startX + 8, y - 1, `${targetShip.engine}`, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Radar:', COLORS.TEXT_DIM);
+            UI.addText(startX + 7, y - 1, `${targetShip.radar}`, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
             UI.addText(startX + 10, y - 1, `${distance} AU`, COLORS.TEXT_NORMAL);
         } else {
@@ -504,11 +508,15 @@ const EncounterMenu = (() => {
                 currentButtonY++;
             }
             
-            UI.addButton(5, currentButtonY, '3', 'Pursue', () => {
+            UI.addButton(5, currentButtonY + 2, '3', 'Fire Laser', () => {
+                executePlayerAction(COMBAT_ACTIONS.FIRE_LASER);
+            }, COLORS.TEXT_ERROR, 'Fire laser at the enemy ship');
+
+            UI.addButton(5, currentButtonY, '4', 'Pursue', () => {
                 executePlayerAction(COMBAT_ACTIONS.PURSUE);
             }, COLORS.GREEN, 'Move toward the enemy ship');
             
-            UI.addButton(5, currentButtonY + 1, '4', 'Flee', () => {
+            UI.addButton(5, currentButtonY + 1, '5', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, 'Move away from the enemy ship');
             
@@ -606,6 +614,8 @@ const EncounterMenu = (() => {
             outputMessage = `${activeShip.name} pursuing ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FLEE) {
             outputMessage = `Fleeing from ${targetShipType.name}...`;
+        } else if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
+            outputMessage = `${activeShip.name} firing laser at ${targetShipType.name}...`;
         }
         outputColor = COLORS.TEXT_NORMAL;
         
@@ -617,21 +627,33 @@ const EncounterMenu = (() => {
             // Mark ship as acted
             activeShip.acted = true;
             
-            // Calculate distance moved
-            const finalDistance = Math.sqrt(
-                Math.pow(activeShip.x - targetShip.x, 2) + 
-                Math.pow(activeShip.y - targetShip.y, 2)
-            );
-            const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
-            
-            // Only set message if it's not already set (e.g., from ramming)
-            if (!outputMessage.includes('RAMMED')) {
-                if (actionType === COMBAT_ACTIONS.FLEE) {
-                    outputMessage = `Fled ${distanceMoved} AU from ${targetShipType.name}`;
-                    outputColor = COLORS.TEXT_NORMAL;
-                } else if (actionType === COMBAT_ACTIONS.PURSUE) {
-                    outputMessage = `${activeShip.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
-                    outputColor = COLORS.TEXT_NORMAL;
+            // Set completion message based on action type
+            if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
+                // Laser message
+                if (action.hit) {
+                    outputMessage = `${activeShip.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU, ${Math.floor((activeShip.radar / action.distance) * 100)}% hit chance)`;
+                    outputColor = COLORS.GREEN;
+                } else {
+                    outputMessage = `${activeShip.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU, ${Math.floor((activeShip.radar / action.distance) * 100)}% hit chance)`;
+                    outputColor = COLORS.TEXT_DIM;
+                }
+            } else {
+                // Calculate distance moved
+                const finalDistance = Math.sqrt(
+                    Math.pow(activeShip.x - targetShip.x, 2) + 
+                    Math.pow(activeShip.y - targetShip.y, 2)
+                );
+                const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
+                
+                // Only set message if it's not already set (e.g., from ramming)
+                if (!outputMessage.includes('RAMMED')) {
+                    if (actionType === COMBAT_ACTIONS.FLEE) {
+                        outputMessage = `Fled ${distanceMoved} AU from ${targetShipType.name}`;
+                        outputColor = COLORS.TEXT_NORMAL;
+                    } else if (actionType === COMBAT_ACTIONS.PURSUE) {
+                        outputMessage = `${activeShip.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
+                        outputColor = COLORS.TEXT_NORMAL;
+                    }
                 }
             }
             
@@ -747,11 +769,16 @@ const EncounterMenu = (() => {
             Math.pow(action.ship.y - action.target.y, 2)
         );
         
+        // Get target ship type for messages
+        const targetShipType = SHIP_TYPES[action.target.type] || { name: 'Unknown' };
+        
         // Set initial message
-        if (action.type === COMBAT_ACTIONS.PURSUE) {
+        if (action.actionType === COMBAT_ACTIONS.PURSUE) {
             outputMessage = `Enemy pursuing ${action.target.name}...`;
-        } else if (action.type === COMBAT_ACTIONS.FLEE) {
+        } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
             outputMessage = `Enemy fleeing from ${action.target.name}...`;
+        } else if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
+            outputMessage = `Enemy firing laser at ${action.target.name}...`;
         }
         outputColor = COLORS.TEXT_ERROR;
         
@@ -759,20 +786,32 @@ const EncounterMenu = (() => {
             // Mark enemy ship as acted
             action.ship.acted = true;
             
-            // Calculate distance moved
-            const finalDistance = Math.sqrt(
-                Math.pow(action.ship.x - action.target.x, 2) + 
-                Math.pow(action.ship.y - action.target.y, 2)
-            );
-            const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
-            
-            // Set message for the completed action
-            if (action.type === COMBAT_ACTIONS.PURSUE) {
-                outputMessage = `Enemy pursued ${action.target.name} ${distanceMoved} AU`;
-            } else if (action.type === COMBAT_ACTIONS.FLEE) {
-                outputMessage = `Enemy fled ${distanceMoved} AU from ${action.target.name}`;
+            // Set message based on action type
+            if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
+                // Laser message
+                if (action.hit) {
+                    outputMessage = `Enemy hit ${action.target.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
+                    outputColor = COLORS.TEXT_ERROR;
+                } else {
+                    outputMessage = `Enemy missed ${action.target.name}! (${Math.floor(action.distance)} AU, ${Math.floor((action.ship.radar / action.distance) * 100)}% hit chance)`;
+                    outputColor = COLORS.TEXT_DIM;
+                }
+            } else {
+                // Calculate distance moved
+                const finalDistance = Math.sqrt(
+                    Math.pow(action.ship.x - action.target.x, 2) + 
+                    Math.pow(action.ship.y - action.target.y, 2)
+                );
+                const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
+                
+                // Set message for the completed action
+                if (action.actionType === COMBAT_ACTIONS.PURSUE) {
+                    outputMessage = `Enemy pursued ${action.target.name} ${distanceMoved} AU`;
+                } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
+                    outputMessage = `Enemy fled ${distanceMoved} AU from ${action.target.name}`;
+                }
+                outputColor = COLORS.TEXT_ERROR;
             }
-            outputColor = COLORS.TEXT_ERROR;
             
             // Store continuation function
             continueEnemyTurn = () => {

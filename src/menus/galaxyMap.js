@@ -120,6 +120,7 @@ const GalaxyMap = (() => {
                 const systemIndex = gameState.systems.indexOf(item.system);
                 const isVisited = gameState.visitedSystems.includes(systemIndex);
                 const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y);
+                const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
                 
                 // Determine symbol and color
                 let symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
@@ -129,8 +130,12 @@ const GalaxyMap = (() => {
                 if (isSelected) {
                     // Selected: yellow if reachable, red if not
                     color = canReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
-                } else if (canReach) {
+                } else if (hasQuest) {
+                    // Systems with quests are cyan (whether reachable or not)
                     color = COLORS.CYAN;
+                } else if (canReach) {
+                    // Reachable systems are white
+                    color = COLORS.TEXT_NORMAL;
                 }
                 
                 // Only draw if not overlapping current system
@@ -231,6 +236,17 @@ const GalaxyMap = (() => {
             
             UI.addText(startX, y++, 'Reachable:', COLORS.TEXT_DIM);
             UI.addText(startX + 11, y - 1, canReach ? 'Yes' : 'No', canReach ? COLORS.GREEN : COLORS.TEXT_ERROR);
+            
+            // Has Quest
+            const systemIndex = gameState.systems.indexOf(selected.system);
+            const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
+            UI.addText(startX, y++, 'Has Quest:', COLORS.TEXT_DIM);
+            UI.addText(startX + 11, y - 1, hasQuest ? 'Yes' : 'No', hasQuest ? COLORS.CYAN : COLORS.GRAY);
+            
+            // Visited
+            const isVisited = gameState.visitedSystems.includes(systemIndex);
+            UI.addText(startX, y++, 'Visited:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, y - 1, isVisited ? 'Yes' : 'No', isVisited ? COLORS.TEXT_NORMAL : COLORS.GRAY);
             
             UI.addText(startX, y++, 'Pop:', COLORS.TEXT_DIM);
             UI.addText(startX + 5, y - 1, `${selected.system.population}M`, COLORS.TEXT_NORMAL);

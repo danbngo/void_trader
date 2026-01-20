@@ -17,18 +17,44 @@ const QUESTS = {
         (gameState) => {
             // Add completion message
             gameState.messages.push(MESSAGES.GUILD_REACHED);
-        }
+        },
+        ['Proxima'] // Related systems
     ),
     
-    PLACEHOLDER_QUEST: new Quest(
-        'PLACEHOLDER_QUEST',
-        'To Be Determined',
-        'More challenges await... (Placeholder quest)',
-        5000,
+    ATTAIN_VISA: new Quest(
+        'ATTAIN_VISA',
+        'Attain Proxima Visa',
+        'Upgrade your citizenship to Visa status at Proxima',
+        2000,
         (gameState) => {
-            // Placeholder - never completes
+            // Check if player has Visa or higher at Proxima
+            const proximaIndex = gameState.systems.findIndex(s => s.name === 'Proxima');
+            if (proximaIndex !== -1) {
+                const proximaRankId = gameState.systemRanks[proximaIndex] || 'NONE';
+                const proximaRank = RANKS[proximaRankId] || RANKS.NONE;
+                return proximaRank.level >= RANKS.VISA.level;
+            }
             return false;
         },
-        null
+        (gameState) => {
+            // Add completion message
+            gameState.messages.push(MESSAGES.VISA_ATTAINED);
+        },
+        ['Proxima'] // Related systems
+    ),
+    
+    LEARN_CARGO_HANDLING: new Quest(
+        'LEARN_CARGO_HANDLING',
+        'Learn Cargo Handling',
+        'Visit the Guild and learn the Cargo Handling: Fragile skill',
+        4000,
+        (gameState) => {
+            // Check if player has learned CARGO_FRAGILE perk
+            return gameState.perks.has('CARGO_FRAGILE');
+        },
+        (gameState) => {
+            // TODO: Add next message when ready
+        },
+        ['Proxima'] // Related systems
     )
 };

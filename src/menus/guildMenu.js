@@ -43,12 +43,18 @@ const GuildMenu = (() => {
             const alreadyLearned = gameState.perks.has(perk.id);
             const canAfford = gameState.credits >= perk.baseCost;
             
+            // Check if player has all required perks
+            const hasRequiredPerks = perk.requiredPerks.every(reqPerkId => gameState.perks.has(reqPerkId));
+            
             let statusText = '';
             let statusColor = COLORS.TEXT_NORMAL;
             
             if (alreadyLearned) {
                 statusText = 'Learned';
                 statusColor = COLORS.TEXT_DIM;
+            } else if (!hasRequiredPerks) {
+                statusText = 'Locked';
+                statusColor = COLORS.TEXT_ERROR;
             } else if (canAfford) {
                 statusText = 'Available';
                 statusColor = COLORS.GREEN;
@@ -76,14 +82,24 @@ const GuildMenu = (() => {
         UI.addButton(5, buttonY, '1', 'Next Perk', () => nextPerk(onReturn), COLORS.BUTTON, 'Select next perk');
         UI.addButton(5, buttonY + 1, '2', 'Previous Perk', () => prevPerk(onReturn), COLORS.BUTTON, 'Select previous perk');
         
-        // Learn button - gray out if already learned or can't afford
+        // Learn button - gray out if already learned, locked, or can't afford
         const selectedPerk = ALL_PERKS[selectedPerkIndex];
         const alreadyLearned = gameState.perks.has(selectedPerk.id);
         const canAfford = gameState.credits >= selectedPerk.baseCost;
-        const canLearn = !alreadyLearned && canAfford;
+        const hasRequiredPerks = selectedPerk.requiredPerks.every(reqPerkId => gameState.perks.has(reqPerkId));
+        const canLearn = !alreadyLearned && canAfford && hasRequiredPerks;
         const learnColor = canLearn ? COLORS.GREEN : COLORS.TEXT_DIM;
         
-        UI.addButton(25, buttonY, '3', 'Learn Perk', () => learnPerk(onReturn), learnColor, 'Learn selected perk');
+        let learnHelpText = 'Learn selected perk';
+        if (alreadyLearned) {
+            learnHelpText = 'Already learned this perk';
+        } else if (!hasRequiredPerks) {
+            learnHelpText = 'Must learn prerequisite perks first';
+        } else if (!canAfford) {
+            learnHelpText = `Need ${selectedPerk.baseCost} CR`;
+        }
+        
+        UI.addButton(25, buttonY, '3', 'Learn Perk', () => learnPerk(onReturn), learnColor, learnHelpText);
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message
@@ -111,6 +127,16 @@ const GuildMenu = (() => {
         
         if (gameState.perks.has(perk.id)) {
             outputMessage = 'You already know this perk!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        // Check if player has all required perks
+        const missingPerks = perk.requiredPerks.filter(reqPerkId => !gameState.perks.has(reqPerkId));
+        if (missingPerks.length > 0) {
+            const missingPerkNames = missingPerks.map(id => PERKS[id].name).join(', ');
+            outputMessage = `Must learn ${missingPerkNames} first!`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;

@@ -29,6 +29,7 @@ const MESSAGES = {
             const quest = QUESTS.REACH_GUILD;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
             }
         }
     ),
@@ -39,14 +40,18 @@ const MESSAGES = {
         [
             'Well done, my nephew!',
             '',
-            'You have reached the Merchant\'s Guild and taken your',
-            'first step toward becoming a true void trader.',
+            `You have reached Proxima. However, to access the Merchant's Guild`,
+            'and its valuable services, you must first upgrade your citizenship',
+            'status to at least Visa level.',
             '',
-            'As promised, I have deposited credits into your account.',
-            'Use them wisely.',
+            'Visit the Courthouse to upgrade your citizenship. The Visa costs',
+            'credits, but it unlocks the Guild, Shipyard, and Tavern.',
             '',
-            'Your next challenge will test your skills further.',
-            'Stay vigilant among the stars.',
+            'The Guild is where true merchants are forged. There you can learn',
+            'to handle more lucrative cargo types and acquire licenses for',
+            'fancier ship types.',
+            '',
+            'Trade the basic cargo types until you can afford the Visa upgrade.',
             '',
             '- Uncle'
         ],
@@ -54,10 +59,45 @@ const MESSAGES = {
             // Award credits
             gameState.credits += 1000;
             
-            // Add next quest (placeholder for now)
-            const quest = QUESTS.PLACEHOLDER_QUEST;
+            // Add next quest
+            const quest = QUESTS.ATTAIN_VISA;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        }
+    ),
+    
+    VISA_ATTAINED: new Message(
+        'VISA_ATTAINED',
+        'A New Path Opens',
+        [
+            'Excellent work, nephew!',
+            '',
+            'You have acquired Visa status at Proxima. The Guild is now',
+            'open to you, and with it, the path to true prosperity.',
+            '',
+            'Your next task: visit the Guild and learn the Cargo Handling:',
+            'Fragile skill. This will allow you to trade in Holocubes, Medicine,',
+            'and Nanites - far more profitable than basic cargo.',
+            '',
+            'The training costs credits, so continue trading until you can',
+            'afford it. Once you master fragile cargo handling, greater',
+            'opportunities will follow.',
+            '',
+            'As always, credits have been deposited for your progress.',
+            '',
+            '- Uncle'
+        ],
+        (gameState) => {
+            // Award credits (double the previous reward)
+            gameState.credits += 2000;
+            
+            // Add next quest
+            const quest = QUESTS.LEARN_CARGO_HANDLING;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
             }
         }
     )

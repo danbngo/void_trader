@@ -313,6 +313,7 @@ const GalaxyMap = (() => {
         UI.addButton(5, buttonY, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
+                outputMessage = ''; // Clear error messages when navigating
                 render(gameState);
             }
         }, COLORS.BUTTON, 'Select the previous system in the list');
@@ -320,6 +321,7 @@ const GalaxyMap = (() => {
         UI.addButton(5, buttonY + 1, '2', 'Next System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex + 1) % nearbySystems.length;
+                outputMessage = ''; // Clear error messages when navigating
                 render(gameState);
             }
         }, COLORS.BUTTON, 'Select the next system in the list');
@@ -341,6 +343,28 @@ const GalaxyMap = (() => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
+        
+        // Travel button - gray out if can't afford fuel
+        let canTravel = false;
+        let travelHelpText = 'Begin travel to the selected system';
+        
+        if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
+            const targetSystem = nearbySystems[selectedIndex].system;
+            const currentSystem = gameState.getCurrentSystem();
+            const distance = currentSystem.distanceTo(targetSystem);
+            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+            const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+            
+            if (totalFuel < fuelCost) {
+                travelHelpText = `Insufficient fuel (need ${fuelCost}, have ${totalFuel})`;
+            } else {
+                canTravel = true;
+            }
+        } else {
+            travelHelpText = 'No system selected';
+        }
+        
+        const travelColor = canTravel ? COLORS.GREEN : COLORS.TEXT_DIM;
         
         UI.addButton(28, buttonY + 2, '6', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
@@ -369,7 +393,7 @@ const GalaxyMap = (() => {
                     TravelConfirmMenu.show(gameState, targetSystem);
                 }
             }
-        }, COLORS.GREEN, 'Begin travel to the selected system');
+        }, travelColor, travelHelpText);
         
         UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GRAY, 'Return to the docking menu');
         

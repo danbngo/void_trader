@@ -94,7 +94,13 @@ const ShipyardMenu = (() => {
         const buttonY = grid.height - 4;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
-        UI.addButton(25, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship for credits');
+        
+        // Sell Ship - gray out if it's the last ship
+        const isLastShip = gameState.ships.length === 1;
+        const sellColor = isLastShip ? COLORS.TEXT_DIM : COLORS.TEXT_ERROR;
+        const sellHelpText = isLastShip ? 'Cannot sell your last ship' : 'Sell selected ship for credits';
+        UI.addButton(25, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), sellColor, sellHelpText);
+        
         UI.addButton(40, buttonY, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
@@ -133,9 +139,14 @@ const ShipyardMenu = (() => {
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             
+            // Calculate trade-in value (first ship's value)
+            const tradeInValue = gameState.ships.length > 0 ? gameState.ships[0].getValue() : 0;
+            const netCost = price - tradeInValue;
+            
             // If no license, make entire row grey
             const textColor = hasLicense ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             const statColor = (ratio) => hasLicense ? UI.calcStatColor(ratio) : COLORS.TEXT_DIM;
+            const priceColor = hasLicense ? (netCost > 0 ? COLORS.TEXT_ERROR : COLORS.GREEN) : COLORS.TEXT_DIM;
             
             return [
                 { text: shipType.name, color: textColor },
@@ -145,11 +156,12 @@ const ShipyardMenu = (() => {
                 { text: String(ship.engine), color: statColor(engineRatio) },
                 { text: String(ship.radar), color: statColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: textColor },
-                { text: `${price}`, color: textColor }
+                { text: `${price}`, color: textColor },
+                { text: `${netCost}`, color: priceColor }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price', 'Trade-In'], rows, selectedShipIndex, 2, (rowIndex) => {
             selectedShipIndex = rowIndex;
             outputMessage = '';
             render(onReturn);

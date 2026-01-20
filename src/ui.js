@@ -437,12 +437,10 @@ const UI = (() => {
         const selectionChanged = selectedButtonIndex !== lastSelectedButtonIndex;
         if (selectionChanged) {
             lastSelectedButtonIndex = selectedButtonIndex;
-            // Only clear output row if it was showing helpText
-            if (outputRowIsHelpText) {
-                outputRowText = '';
-                outputRowColor = 'white';
-                outputRowIsHelpText = false;
-            }
+            // Clear output row when selection changes (allows help text to replace error messages)
+            outputRowText = '';
+            outputRowColor = 'white';
+            outputRowIsHelpText = false;
         }
         
         registeredButtons.forEach((btn, index) => {

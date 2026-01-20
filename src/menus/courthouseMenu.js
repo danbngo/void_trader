@@ -16,6 +16,7 @@ const CourthouseMenu = (() => {
     function show(state, onReturn) {
         gameState = state;
         outputMessage = '';
+        UI.resetSelection();
         render(onReturn);
     }
     
@@ -24,7 +25,6 @@ const CourthouseMenu = (() => {
      */
     function render(onReturn) {
         UI.clear();
-        UI.resetSelection();
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
@@ -85,9 +85,29 @@ const CourthouseMenu = (() => {
         const hasBounty = gameState.bounty > 0;
         const canPayBounty = hasBounty && gameState.credits >= gameState.bounty;
         const bountyColor = (!hasBounty || !canPayBounty) ? COLORS.TEXT_DIM : COLORS.GREEN;
-        UI.addButton(5, buttonY, '1', 'Pay Bounty', () => payBounty(onReturn), bountyColor, 'Pay off your bounty');
+        const bountyHelpText = !hasBounty ? 'No bounty to pay' : (!canPayBounty ? `Need ${gameState.bounty} CR to pay bounty` : 'Pay off your bounty');
+        UI.addButton(5, buttonY, '1', 'Pay Bounty', () => payBounty(onReturn), bountyColor, bountyHelpText);
         
-        UI.addButton(5, buttonY + 1, '2', 'Upgrade Rank', () => upgradeRank(onReturn), COLORS.BUTTON, 'Purchase next citizenship rank');
+        // Upgrade Rank - gray out if can't upgrade
+        const nextRank = ALL_RANKS.find(r => r.level === currentRank.level + 1);
+        let canUpgrade = false;
+        let upgradeHelpText = 'Purchase next citizenship rank';
+        
+        if (!nextRank) {
+            upgradeHelpText = 'Already at highest rank';
+        } else if (gameState.bounty > 0) {
+            upgradeHelpText = 'Pay bounty first';
+        } else if (gameState.credits < nextRank.fee) {
+            upgradeHelpText = `Need ${nextRank.fee} CR to upgrade`;
+        } else if (gameState.reputation < nextRank.minReputation) {
+            upgradeHelpText = `Need ${nextRank.minReputation} reputation`;
+        } else {
+            canUpgrade = true;
+        }
+        
+        const upgradeColor = canUpgrade ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        UI.addButton(5, buttonY + 1, '2', 'Upgrade Rank', () => upgradeRank(onReturn), upgradeColor, upgradeHelpText);
+        
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message

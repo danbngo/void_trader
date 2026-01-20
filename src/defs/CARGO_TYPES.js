@@ -9,7 +9,7 @@ const CARGO_TYPES = {
         name: 'Air',
         description: 'Compressed breathable atmosphere for life support systems',
         baseValue: 20,
-        illegal: false
+        illegal: false,
     },
     WATER: {
         id: 'WATER',
@@ -25,7 +25,6 @@ const CARGO_TYPES = {
         baseValue: 40,
         illegal: false
     },
-    
     HOLOCUBES: {
         id: 'HOLOCUBES',
         name: 'Holocubes',
@@ -93,3 +92,8 @@ const CARGO_TYPES = {
 
 // Array of all cargo types for iteration
 const ALL_CARGO_TYPES = Object.values(CARGO_TYPES);
+
+const CARGO_TYPES_SAFE = [CARGO_TYPES.AIR, CARGO_TYPES.WATER, CARGO_TYPES.FOOD];
+const CARGO_TYPES_FRAGILE = [CARGO_TYPES.HOLOCUBES, CARGO_TYPES.MEDICINE, CARGO_TYPES.NANITES];
+const CARGO_TYPES_DANGEROUS = [CARGO_TYPES.PLASMA, CARGO_TYPES.FUEL, CARGO_TYPES.ISOTOPES];
+const CARGO_TYPES_ILLEGAL = [CARGO_TYPES.WEAPONS, CARGO_TYPES.DRUGS, CARGO_TYPES.ANTIMATTER];

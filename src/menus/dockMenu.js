@@ -4,6 +4,9 @@
  */
 
 const DockMenu = (() => {
+    let outputMessage = '';
+    let outputColor = COLORS.TEXT_NORMAL;
+    
     /**
      * Show the dock menu
      * @param {GameState} gameState - Current game state
@@ -11,6 +14,19 @@ const DockMenu = (() => {
     function show(gameState) {
         // Check for completed quests when docking
         checkQuestCompletion(gameState);
+        
+        outputMessage = '';
+        outputColor = COLORS.TEXT_NORMAL;
+        
+        render(gameState);
+    }
+    
+    /**
+     * Render the dock menu
+     * @param {GameState} gameState - Current game state
+     */
+    function render(gameState) {
+        console.log(`[DockMenu] render called. outputMessage:`, outputMessage, `outputColor:`, outputColor);
         
         UI.clear();
         UI.resetSelection();
@@ -36,10 +52,10 @@ const DockMenu = (() => {
         // Define all possible buildings (always shown)
         const allBuildings = [
             {
-                id: 'SHIPYARD',
-                name: 'Shipyard',
-                buildingType: BUILDING_TYPES.SHIPYARD,
-                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
+                id: 'DOCK',
+                name: 'Dock Services',
+                buildingType: BUILDING_TYPES.DOCK,
+                openMenu: () => DockServicesMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'MARKET',
@@ -52,6 +68,12 @@ const DockMenu = (() => {
                 name: 'Courthouse',
                 buildingType: BUILDING_TYPES.COURTHOUSE,
                 openMenu: () => CourthouseMenu.show(gameState, () => show(gameState))
+            },
+            {
+                id: 'SHIPYARD',
+                name: 'Shipyard',
+                buildingType: BUILDING_TYPES.SHIPYARD,
+                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'TAVERN',
@@ -102,6 +124,14 @@ const DockMenu = (() => {
         UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
         UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
+        
+        // Set output message if there is one
+        if (outputMessage) {
+            console.log(`[DockMenu] Setting output row with message:`, outputMessage, `color:`, outputColor);
+            UI.setOutputRow(outputMessage, outputColor);
+        } else {
+            console.log(`[DockMenu] No output message to display`);
+        }
         
         UI.draw();
     }
@@ -300,17 +330,29 @@ const DockMenu = (() => {
      * @param {boolean} hasRank - Whether player has required rank
      */
     function tryOpenBuilding(gameState, building, hasBuilding, hasRank) {
+        console.log(`[DockMenu] tryOpenBuilding called:`, {
+            buildingName: building.name,
+            buildingId: building.id,
+            hasBuilding,
+            hasRank
+        });
+        
         if (!hasBuilding) {
             // System doesn't have this building
-            UI.setOutputRow(`${building.name} not available in this system!`, COLORS.TEXT_ERROR);
-            show(gameState);
+            outputMessage = `${building.name} not available in this system!`;
+            outputColor = COLORS.TEXT_ERROR;
+            console.log(`[DockMenu] Building not available. Setting outputMessage:`, outputMessage);
+            render(gameState);
         } else if (!hasRank) {
             // Player lacks required rank
             const requiredRank = ALL_RANKS.find(r => r.level === building.buildingType.minRankLevel);
-            UI.setOutputRow(`Requires ${requiredRank.name} citizenship!`, COLORS.TEXT_ERROR);
-            show(gameState);
+            outputMessage = `Requires ${requiredRank.name} citizenship!`;
+            outputColor = COLORS.TEXT_ERROR;
+            console.log(`[DockMenu] Insufficient rank. Setting outputMessage:`, outputMessage);
+            render(gameState);
         } else {
             // Player has access
+            console.log(`[DockMenu] Player has access, opening menu`);
             building.openMenu();
         }
     }

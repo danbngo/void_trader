@@ -91,27 +91,11 @@ const ShipyardMenu = (() => {
         });
         
         // Buttons
-        const buttonY = grid.height - 6;
+        const buttonY = grid.height - 4;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
-        
-        // Refuel - gray out if already full or insufficient credits
-        const ship = gameState.ships[selectedShipIndex];
-        const fuelNeeded = ship.maxFuel - ship.fuel;
-        const fuelCost = fuelNeeded * 5;
-        const canRefuel = fuelNeeded > 0 && gameState.credits >= fuelCost;
-        const refuelColor = canRefuel ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), refuelColor, 'Refuel selected ship to maximum capacity');
-        
-        // Repair - gray out if already full or insufficient credits
-        const hullNeeded = ship.maxHull - ship.hull;
-        const repairCost = hullNeeded * 10;
-        const canRepair = hullNeeded > 0 && gameState.credits >= repairCost;
-        const repairColor = canRepair ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), repairColor, 'Repair hull and shields to maximum');
-        
-        UI.addButton(40, buttonY, '5', 'Sell Ship', () => initiateSell(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship for credits');
-        UI.addButton(55, buttonY, '6', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
+        UI.addButton(25, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship for credits');
+        UI.addButton(40, buttonY, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
@@ -291,50 +275,6 @@ const ShipyardMenu = (() => {
         }
         selectedShipIndex = (selectedShipIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
         outputMessage = '';
-        render(onReturn);
-    }
-    
-    function refuel(onReturn) {
-        const ship = gameState.ships[selectedShipIndex];
-        const fuelNeeded = ship.maxFuel - ship.fuel;
-        const fuelCost = 5; // 5 CR per fuel unit
-        const totalCost = fuelNeeded * fuelCost;
-        
-        if (fuelNeeded === 0) {
-            outputMessage = 'Ship is already fully fueled!';
-            outputColor = COLORS.TEXT_ERROR;
-        } else if (gameState.credits < totalCost) {
-            outputMessage = `Not enough credits! Need ${totalCost} CR, have ${gameState.credits} CR.`;
-            outputColor = COLORS.TEXT_ERROR;
-        } else {
-            gameState.credits -= totalCost;
-            ship.fuel = ship.maxFuel;
-            outputMessage = `Refueled for ${totalCost} CR!`;
-            outputColor = COLORS.TEXT_SUCCESS;
-        }
-        
-        render(onReturn);
-    }
-    
-    function repair(onReturn) {
-        const ship = gameState.ships[selectedShipIndex];
-        const hullNeeded = ship.maxHull - ship.hull;
-        const repairCost = 10; // 10 CR per hull point
-        const totalCost = hullNeeded * repairCost;
-        
-        if (hullNeeded === 0) {
-            outputMessage = 'Ship is already fully repaired!';
-            outputColor = COLORS.TEXT_ERROR;
-        } else if (gameState.credits < totalCost) {
-            outputMessage = `Not enough credits! Need ${totalCost} CR, have ${gameState.credits} CR.`;
-            outputColor = COLORS.TEXT_ERROR;
-        } else {
-            gameState.credits -= totalCost;
-            ship.hull = ship.maxHull;
-            outputMessage = `Repaired for ${totalCost} CR!`;
-            outputColor = COLORS.TEXT_SUCCESS;
-        }
-        
         render(onReturn);
     }
     

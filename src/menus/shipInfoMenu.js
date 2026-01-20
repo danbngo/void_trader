@@ -18,11 +18,8 @@ const ShipInfoMenu = (() => {
         // Title
         UI.addTextCentered(3, 'Fleet Status', COLORS.TITLE);
         
-        // Use ship table utility
-        const endY = ShipTableRenderer.addPlayerFleet(5, 6, null, gameState.ships, true, gameState.activeShipIndex);
-        
-        // Legend
-        UI.addText(5, endY, 'Active ship shown in green', COLORS.TEXT_DIM);
+        // Use ship table utility (no active ship highlighting)
+        const endY = ShipTableRenderer.addPlayerFleet(5, 6, null, gameState.ships, true, -1);
         
         // Back button
         UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);

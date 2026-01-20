@@ -34,7 +34,8 @@ const TravelMenu = (() => {
         
         const currentSystem = gameState.getCurrentSystem();
         const distance = currentSystem.distanceTo(destination);
-        const activeShip = gameState.ship;
+        // Use first ship for engine calculation (fleet moves together)
+        const activeShip = gameState.ships[0];
         
         // Calculate duration based on engine level
         // Engine level of AVERAGE_SHIP_ENGINE_LEVEL means normal speed

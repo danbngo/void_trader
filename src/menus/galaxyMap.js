@@ -96,7 +96,8 @@ const GalaxyMap = (() => {
         // Draw current system (center)
         UI.addText(mapCenterX, mapCenterY, '@', COLORS.GREEN);
         
-        const activeShip = gameState.ship;
+        // Use first ship for display purposes
+        const activeShip = gameState.ships[0];
         
         // Store selected system screen coordinates for line drawing
         let selectedScreenX = null;

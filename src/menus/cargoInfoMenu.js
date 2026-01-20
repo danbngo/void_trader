@@ -14,21 +14,24 @@ const CargoInfoMenu = (() => {
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
-        const ship = gameState.ship;
         
         // Title
         UI.addTextCentered(3, 'Cargo Manifest', COLORS.TITLE);
         
         // Cargo summary using TableRenderer
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
+        const totalCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
+        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         const summaryY = TableRenderer.renderKeyValueList(5, 6, [
-            { label: 'Total Cargo:', value: `${ship.getTotalCargo()} / ${ship.cargoCapacity}`, valueColor: 'white' },
-            { label: 'Available Space:', value: `${ship.getAvailableCargoSpace()} units`, valueColor: 'white' }
+            { label: 'Total Cargo:', value: `${totalCargo} / ${totalCapacity}`, valueColor: 'white' },
+            { label: 'Available Space:', value: `${availableSpace} units`, valueColor: 'white' }
         ]);
         
         // Cargo details
         const startY = summaryY + 1;
         const rows = ALL_CARGO_TYPES.map(cargoType => {
-            const quantity = ship.cargo[cargoType.id] || 0;
+            const quantity = fleetCargo[cargoType.id] || 0;
             const totalValue = quantity * cargoType.baseValue;
             return [
                 { text: cargoType.name, color: 'white' },
@@ -41,7 +44,7 @@ const CargoInfoMenu = (() => {
         
         // Total value
         const totalValue = ALL_CARGO_TYPES.reduce((sum, type) => {
-            return sum + (ship.cargo[type.id] || 0) * type.baseValue;
+            return sum + (fleetCargo[type.id] || 0) * type.baseValue;
         }, 0);
         
         TableRenderer.renderKeyValueList(5, y + 1, [

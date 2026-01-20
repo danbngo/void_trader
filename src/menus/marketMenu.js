@@ -30,14 +30,16 @@ const MarketMenu = (() => {
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
-        const ship = gameState.ship;
         
         // Title
         UI.addTextCentered(3, `${currentSystem.name}: Market`, COLORS.TITLE);
         
         // Player info
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
+        const totalCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
         UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
-        UI.addText(5, 6, `Cargo: ${ship.getTotalCargo()} / ${ship.cargoCapacity}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, 6, `Cargo: ${totalCargo} / ${totalCapacity}`, COLORS.TEXT_NORMAL);
         
         // Market table
         const startY = 9;
@@ -45,7 +47,7 @@ const MarketMenu = (() => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
             const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
-            const playerQuantity = ship.cargo[cargoType.id] || 0;
+            const playerQuantity = fleetCargo[cargoType.id] || 0;
             
             // Calculate ratios for color coding
             const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
@@ -113,11 +115,10 @@ const MarketMenu = (() => {
     function buyCargo(amount, onReturn) {
         const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
-        const ship = gameState.ship;
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const availableStock = currentSystem.cargoStock[cargoType.id];
-        const availableSpace = ship.getAvailableCargoSpace();
+        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         
         // Adjust amount if not enough stock or space
         const actualAmount = Math.min(amount, availableStock, availableSpace);
@@ -140,7 +141,7 @@ const MarketMenu = (() => {
             // Execute purchase
             gameState.credits -= totalCost;
             currentSystem.cargoStock[cargoType.id] -= actualAmount;
-            ship.cargo[cargoType.id] = (ship.cargo[cargoType.id] || 0) + actualAmount;
+            Ship.addCargoToFleet(gameState.ships, cargoType.id, actualAmount);
             
             const message = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
             outputMessage = message;
@@ -156,11 +157,11 @@ const MarketMenu = (() => {
     function sellCargo(amount, onReturn) {
         const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
-        const ship = gameState.ship;
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);
-        const playerQuantity = ship.cargo[cargoType.id] || 0;
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const playerQuantity = fleetCargo[cargoType.id] || 0;
         
         // Adjust amount if player doesn't have enough
         const actualAmount = Math.min(amount, playerQuantity);
@@ -173,7 +174,7 @@ const MarketMenu = (() => {
         } else {
             // Execute sale
             gameState.credits += totalValue;
-            ship.cargo[cargoType.id] -= actualAmount;
+            Ship.removeCargoFromFleet(gameState.ships, cargoType.id, actualAmount);
             currentSystem.cargoStock[cargoType.id] += actualAmount;
             
             const message = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;

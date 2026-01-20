@@ -10,6 +10,7 @@ const ENCOUNTER_TYPES = {
         description: 'Law enforcement patrol scanning for illegal cargo and fugitives',
         shipTypes: ['CORVETTE', 'DESTROYER'],
         cargoTypes: [],
+        maxCredits: 500,
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }
@@ -20,6 +21,7 @@ const ENCOUNTER_TYPES = {
         description: 'Fellow trader looking to exchange goods or information',
         shipTypes: ['FREIGHTER', 'HAULER'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(!ct.illegal))],
+        maxCredits: 2000,
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }
@@ -30,6 +32,7 @@ const ENCOUNTER_TYPES = {
         description: 'Hostile vessel demanding cargo or credits',
         shipTypes: ['SCOUT', 'RAIDER', 'CORVETTE'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(ct.illegal))],
+        maxCredits: 1000,
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }

@@ -39,7 +39,7 @@ const SaveLoadManager = (() => {
                 currentSystemIndex: gameState.currentSystemIndex,
                 x: gameState.x,
                 y: gameState.y,
-                ship: gameState.ship,
+                ships: gameState.ships,
                 officers: gameState.officers,
                 systems: gameState.systems,
                 visitedSystems: gameState.visitedSystems,
@@ -109,14 +109,20 @@ const SaveLoadManager = (() => {
         gameState.encounterShips = data.encounterShips || [];
         gameState.encounter = data.encounter || false;
         
-        // Reconstruct ship
-        gameState.ship = new Ship(
-            data.ship.name,
-            data.ship.fuel,
-            data.ship.maxFuel,
-            data.ship.cargoCapacity
-        );
-        gameState.ship.cargo = data.ship.cargo;
+        // Reconstruct ships
+        gameState.ships = (data.ships || []).map(s => {
+            const ship = new Ship(s.name, s.fuel, s.maxFuel, s.cargoCapacity);
+            ship.cargo = s.cargo || {};
+            ship.hull = s.hull !== undefined ? s.hull : s.maxHull;
+            ship.maxHull = s.maxHull || 100;
+            ship.shields = s.shields !== undefined ? s.shields : s.maxShields;
+            ship.maxShields = s.maxShields || 0;
+            ship.engine = s.engine || 5;
+            ship.radar = s.radar || 5;
+            ship.lasers = s.lasers || 5;
+            ship.type = s.type || 'FREIGHTER';
+            return ship;
+        });
         
         // Reconstruct officers
         gameState.officers = data.officers.map(o => 

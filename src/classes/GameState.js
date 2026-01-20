@@ -34,26 +34,6 @@ class GameState {
     }
     
     /**
-     * Get the active ship
-     * @returns {Ship|null}
-     */
-    get ship() {
-        return this.ships[this.activeShipIndex] || null;
-    }
-    
-    /**
-     * Set the active ship (for compatibility)
-     */
-    set ship(newShip) {
-        if (this.ships.length === 0) {
-            this.ships.push(newShip);
-            this.activeShipIndex = 0;
-        } else {
-            this.ships[this.activeShipIndex] = newShip;
-        }
-    }
-    
-    /**
      * Get the current star system the player is in
      * @returns {StarSystem|null}
      */

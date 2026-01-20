@@ -5,11 +5,11 @@
 
 const ShipyardMenu = (() => {
     let gameState = null;
-    let mode = 'manage'; // 'manage' or 'buy' or 'confirm'
+    let mode = 'manage'; // 'manage', 'buy', 'sell', 'confirm-buy', 'confirm-sell', 'confirm-tradein'
     let selectedShipIndex = 0;
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
-    let pendingPurchase = null; // {ship, tradeInValue, cost, netCost}
+    let pendingTransaction = null;
     
     /**
      * Show the shipyard menu
@@ -34,7 +34,7 @@ const ShipyardMenu = (() => {
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
-        if (mode === 'confirm') {
+        if (mode.startsWith('confirm-')) {
             renderConfirmation(onReturn);
             return;
         }
@@ -47,6 +47,8 @@ const ShipyardMenu = (() => {
             renderManageMode(onReturn, grid);
         } else if (mode === 'buy') {
             renderBuyMode(onReturn, grid);
+        } else if (mode === 'sell') {
+            renderSellMode(onReturn, grid);
         }
     }
     
@@ -89,12 +91,13 @@ const ShipyardMenu = (() => {
         });
         
         // Buttons
-        const buttonY = grid.height - 5;
+        const buttonY = grid.height - 6;
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
         UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), COLORS.GREEN, 'Refuel selected ship to maximum capacity');
         UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), COLORS.GREEN, 'Repair hull and shields to maximum');
-        UI.addButton(40, buttonY, '5', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
+        UI.addButton(40, buttonY, '5', 'Sell Ship', () => initiateSell(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship for credits');
+        UI.addButton(55, buttonY, '6', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
         UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
@@ -120,18 +123,14 @@ const ShipyardMenu = (() => {
         
         // Available ships table
         const startY = 8;
-        const currentShip = gameState.ships[gameState.activeShipIndex];
-        const tradeInValue = currentShip.getValue();
         
         const rows = currentSystem.ships.map((ship, index) => {
             const price = ship.getValue();
-            const netCost = price - tradeInValue;
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             return [
-                //{ text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
                 { text: `${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.maxShields}`, color: COLORS.TEXT_NORMAL },
@@ -139,13 +138,52 @@ const ShipyardMenu = (() => {
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: `${price}`, color: COLORS.TEXT_NORMAL },
-                { text: `${netCost}`, color: netCost > 0 ? COLORS.TEXT_NORMAL : COLORS.GREEN }
+                { text: `${price}`, color: COLORS.GREEN }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price', 'Trade'], rows, selectedShipIndex, 2, (rowIndex) => {
-            // When a row is clicked, select that ship
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price'], rows, selectedShipIndex, 2, (rowIndex) => {
+            selectedShipIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
+        
+        // Buttons
+        const buttonY = grid.height - 5;
+        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
+        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
+        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), COLORS.GREEN, 'Purchase selected ship');
+        UI.addButton(25, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), COLORS.BUTTON, 'Trade in one of your ships for this one');
+        UI.addButton(5, buttonY + 2, '0', 'Back to Fleet', () => switchToManageMode(onReturn), COLORS.BUTTON);
+        
+        // Set output message in UI output row system if there's a message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+        
+        UI.draw();
+    }
+    
+    /**
+     * Render sell mode (select which ship to sell)
+     */
+    function renderSellMode(onReturn, grid) {
+        // Player ships table (for selling)
+        const startY = 8;
+        UI.addText(5, 7, 'Select a ship to sell:', COLORS.YELLOW);
+        
+        const rows = gameState.ships.map((ship, index) => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            return [
+                { text: ship.name, color: COLORS.TEXT_NORMAL },
+                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
+                { text: `${ship.getValue()}`, color: COLORS.GREEN }
+            ];
+        });
+        
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Cargo', 'Sell Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             selectedShipIndex = rowIndex;
             outputMessage = '';
             render(onReturn);
@@ -153,12 +191,11 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
-        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiatePurchase(onReturn), COLORS.GREEN, 'Purchase selected ship (trades in active ship)');
-        UI.addButton(5, buttonY + 2, '0', 'Back', () => switchToManageMode(onReturn), COLORS.BUTTON);
+        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON);
+        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON);
+        UI.addButton(25, buttonY, '3', 'Confirm Sell', () => confirmSellFromSellMode(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship');
+        UI.addButton(5, buttonY + 2, '0', 'Cancel', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
-        // Set output message in UI output row system if there's a message
         if (outputMessage) {
             UI.setOutputRow(outputMessage, outputColor);
         }
@@ -172,34 +209,61 @@ const ShipyardMenu = (() => {
     function renderConfirmation(onReturn) {
         const grid = UI.getGridSize();
         
-        UI.addTextCentered(8, 'Confirm Purchase', COLORS.TITLE);
+        UI.addTextCentered(10, '=== Confirm Transaction ===', COLORS.YELLOW);
         
-        UI.addText(10, 11, `Ship: ${pendingPurchase.ship.name}`, COLORS.TEXT_NORMAL);
-        UI.addText(10, 12, `Price: ${pendingPurchase.cost} CR`, COLORS.TEXT_NORMAL);
-        UI.addText(10, 13, `Your Ship Trade-In: ${pendingPurchase.tradeInValue} CR`, COLORS.GREEN);
-        UI.addText(10, 14, `Net Cost: ${pendingPurchase.netCost} CR`, COLORS.YELLOW);
+        let y = 13;
         
-        if (pendingPurchase.netCost > 0) {
-            UI.addText(10, 16, `Remaining Credits: ${gameState.credits - pendingPurchase.netCost} CR`, COLORS.TEXT_NORMAL);
-        } else {
-            UI.addText(10, 16, `Credits After Sale: ${gameState.credits + Math.abs(pendingPurchase.netCost)} CR`, COLORS.GREEN);
+        if (mode === 'confirm-buy') {
+            UI.addText(10, y++, `Ship: ${pendingTransaction.ship.name}`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `Cost: ${pendingTransaction.cost} CR`, COLORS.TEXT_ERROR);
+            y++;
+            UI.addText(10, y++, `Your Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `After Purchase: ${gameState.credits - pendingTransaction.cost} CR`, COLORS.GREEN);
+        } else if (mode === 'confirm-sell') {
+            UI.addText(10, y++, `Selling: ${pendingTransaction.ship.name}`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `Sell Value: ${pendingTransaction.value} CR`, COLORS.GREEN);
+            y++;
+            UI.addText(10, y++, `Your Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `After Sale: ${gameState.credits + pendingTransaction.value} CR`, COLORS.GREEN);
+        } else if (mode === 'confirm-tradein') {
+            UI.addText(10, y++, `Trading In: ${pendingTransaction.oldShip.name}`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `Trade-In Value: ${pendingTransaction.tradeInValue} CR`, COLORS.GREEN);
+            y++;
+            UI.addText(10, y++, `New Ship: ${pendingTransaction.newShip.name}`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `Cost: ${pendingTransaction.cost} CR`, COLORS.TEXT_ERROR);
+            y++;
+            UI.addText(10, y++, `Net Cost: ${pendingTransaction.netCost} CR`, pendingTransaction.netCost > 0 ? COLORS.TEXT_ERROR : COLORS.GREEN);
+            y++;
+            UI.addText(10, y++, `Your Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
+            UI.addText(10, y++, `After Trade: ${gameState.credits - pendingTransaction.netCost} CR`, COLORS.GREEN);
         }
         
-        UI.addButton(10, grid.height - 4, '1', 'Confirm', () => confirmPurchase(onReturn), COLORS.GREEN);
-        UI.addButton(10, grid.height - 3, '0', 'Cancel', () => switchToBuyMode(onReturn), COLORS.BUTTON);
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Confirm', () => executeTransaction(onReturn), COLORS.GREEN);
+        UI.addButton(10, buttonY + 1, '0', 'Cancel', () => cancelTransaction(onReturn), COLORS.BUTTON);
         
         UI.draw();
     }
     
     function nextShip(onReturn) {
-        const maxIndex = mode === 'manage' ? gameState.ships.length - 1 : gameState.getCurrentSystem().ships.length - 1;
+        let maxIndex;
+        if (mode === 'manage' || mode === 'sell') {
+            maxIndex = gameState.ships.length - 1;
+        } else if (mode === 'buy') {
+            maxIndex = gameState.getCurrentSystem().ships.length - 1;
+        }
         selectedShipIndex = (selectedShipIndex + 1) % (maxIndex + 1);
         outputMessage = '';
         render(onReturn);
     }
     
     function prevShip(onReturn) {
-        const maxIndex = mode === 'manage' ? gameState.ships.length - 1 : gameState.getCurrentSystem().ships.length - 1;
+        let maxIndex;
+        if (mode === 'manage' || mode === 'sell') {
+            maxIndex = gameState.ships.length - 1;
+        } else if (mode === 'buy') {
+            maxIndex = gameState.getCurrentSystem().ships.length - 1;
+        }
         selectedShipIndex = (selectedShipIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
         outputMessage = '';
         render(onReturn);
@@ -261,17 +325,79 @@ const ShipyardMenu = (() => {
         mode = 'manage';
         selectedShipIndex = 0;
         outputMessage = '';
-        pendingPurchase = null;
+        pendingTransaction = null;
         UI.resetSelection();
         render(onReturn);
     }
     
-    function initiatePurchase(onReturn) {
+    // Buy ship (outright purchase)
+    function initiateBuy(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
-        const newShip = currentSystem.ships[selectedShipIndex];
-        const currentShip = gameState.ships[gameState.activeShipIndex];
+        if (!currentSystem.ships || currentSystem.ships.length === 0) {
+            outputMessage = 'No ships available!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
         
-        const tradeInValue = currentShip.getValue();
+        const ship = currentSystem.ships[selectedShipIndex];
+        const cost = ship.getValue();
+        
+        if (cost > gameState.credits) {
+            outputMessage = `Not enough credits! Need ${cost} CR, have ${gameState.credits} CR.`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        pendingTransaction = { ship, cost };
+        mode = 'confirm-buy';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    // Sell ship
+    function initiateSell(onReturn) {
+        // Check if this is the last ship
+        if (gameState.ships.length === 1) {
+            outputMessage = 'Cannot sell your last ship! Use Trade In instead.';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        mode = 'sell';
+        selectedShipIndex = 0;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    function confirmSellFromSellMode(onReturn) {
+        const ship = gameState.ships[selectedShipIndex];
+        const value = ship.getValue();
+        
+        pendingTransaction = { ship, value, shipIndex: selectedShipIndex };
+        mode = 'confirm-sell';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    // Trade in (replace a ship)
+    function initiateTradeIn(onReturn) {
+        const currentSystem = gameState.getCurrentSystem();
+        if (!currentSystem.ships || currentSystem.ships.length === 0) {
+            outputMessage = 'No ships available!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        // Trade in the first ship (could be enhanced to let player choose)
+        const oldShip = gameState.ships[0];
+        const newShip = currentSystem.ships[selectedShipIndex];
+        
+        const tradeInValue = oldShip.getValue();
         const cost = newShip.getValue();
         const netCost = cost - tradeInValue;
         
@@ -282,28 +408,59 @@ const ShipyardMenu = (() => {
             return;
         }
         
-        pendingPurchase = { ship: newShip, tradeInValue, cost, netCost };
-        mode = 'confirm';
+        pendingTransaction = { oldShip, newShip, tradeInValue, cost, netCost, buyShipIndex: selectedShipIndex };
+        mode = 'confirm-tradein';
         UI.resetSelection();
         render(onReturn);
     }
     
-    function confirmPurchase(onReturn) {
+    // Execute transaction
+    function executeTransaction(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
         
-        // Apply credits change
-        gameState.credits -= pendingPurchase.netCost;
-        
-        // Replace active ship with new ship
-        gameState.ships[gameState.activeShipIndex] = pendingPurchase.ship;
-        
-        // Remove ship from system
-        currentSystem.ships.splice(selectedShipIndex, 1);
-        
-        outputMessage = `Purchased ${pendingPurchase.ship.name}!`;
-        outputColor = COLORS.TEXT_SUCCESS;
+        if (mode === 'confirm-buy') {
+            // Buy ship
+            gameState.credits -= pendingTransaction.cost;
+            gameState.ships.push(pendingTransaction.ship);
+            currentSystem.ships.splice(currentSystem.ships.indexOf(pendingTransaction.ship), 1);
+            
+            outputMessage = `Purchased ${pendingTransaction.ship.name}!`;
+            outputColor = COLORS.TEXT_SUCCESS;
+            
+        } else if (mode === 'confirm-sell') {
+            // Sell ship
+            gameState.credits += pendingTransaction.value;
+            gameState.ships.splice(pendingTransaction.shipIndex, 1);
+            
+            outputMessage = `Sold ${pendingTransaction.ship.name} for ${pendingTransaction.value} CR!`;
+            outputColor = COLORS.TEXT_SUCCESS;
+            
+        } else if (mode === 'confirm-tradein') {
+            // Trade in
+            gameState.credits -= pendingTransaction.netCost;
+            gameState.ships[0] = pendingTransaction.newShip; // Replace first ship
+            currentSystem.ships.splice(pendingTransaction.buyShipIndex, 1);
+            
+            outputMessage = `Traded in ${pendingTransaction.oldShip.name} for ${pendingTransaction.newShip.name}!`;
+            outputColor = COLORS.TEXT_SUCCESS;
+        }
         
         switchToManageMode(onReturn);
+    }
+    
+    function cancelTransaction(onReturn) {
+        if (mode === 'confirm-buy' || mode === 'confirm-tradein') {
+            // Go back to buy mode
+            mode = 'buy';
+        } else if (mode === 'confirm-sell') {
+            // Go back to manage mode
+            mode = 'manage';
+        }
+        
+        pendingTransaction = null;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
     }
     
     return {

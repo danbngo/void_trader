@@ -37,14 +37,7 @@ const DockMenu = (() => {
         
         // Highlight assistant button if there are unread messages
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
-        console.log('[DockMenu] Messages check:', {
-            messagesExists: !!gameState.messages,
-            messageCount: gameState.messages?.length || 0,
-            messages: gameState.messages?.map(m => ({ id: m.id, isRead: m.isRead })),
-            hasUnreadMessages: hasUnreadMessages
-        });
         const assistantColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
-        console.log('[DockMenu] Assistant color:', assistantColor, 'YELLOW:', COLORS.YELLOW, 'BUTTON:', COLORS.BUTTON);
         UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
         UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');

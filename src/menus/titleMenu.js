@@ -161,8 +161,7 @@ const TitleMenu = (() => {
             
             // Generate player ships and crew (2 ships for testing)
             gameState.ships.push(ShipGenerator.generateStartingShip());
-            gameState.ships.push(ShipGenerator.generateStartingShip());
-            gameState.activeShipIndex = 0;
+            //gameState.ships.push(ShipGenerator.generateStartingShip());
             gameState.officers = OfficerGenerator.generateCrew(2);
             
             // Store game state globally for access

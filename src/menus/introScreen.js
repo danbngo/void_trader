@@ -33,7 +33,7 @@ const IntroScreen = (() => {
         UI.addTextCentered(18, 'Accumulate as many credits as possible!', COLORS.YELLOW);
         
         // Ship and credit info
-        UI.addTextCentered(21, `Your Ship: ${gameState.ship.name}`, COLORS.CYAN);
+        UI.addTextCentered(21, `Your Ships: ${gameState.ships.length}`, COLORS.CYAN);
         UI.addTextCentered(22, `Starting Credits: ${gameState.credits} CR`, COLORS.GREEN);
         
         UI.addTextCentered(24, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);

@@ -534,7 +534,7 @@ const EncounterMenu = (() => {
      */
     function drawButtons(gameState, startX, mapHeight) {
         const grid = UI.getGridSize();
-        const buttonY = grid.height - 5;
+        const buttonY = grid.height - 6;
         
         // Set output message in UI output row if there's a message
         if (outputMessage) {
@@ -799,6 +799,54 @@ const EncounterMenu = (() => {
     }
     
     /**
+     * Check if player has won (all enemies disabled or fled)
+     */
+    function checkForVictory() {
+        const allEnemiesDefeated = currentGameState.encounterShips.every(
+            ship => ship.disabled || ship.fled || ship.escaped
+        );
+        
+        if (allEnemiesDefeated) {
+            // Get disabled enemy ships for looting
+            const defeatedShips = currentGameState.encounterShips.filter(ship => ship.disabled);
+            
+            // Clean up combat properties before showing loot
+            currentGameState.ships.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounterShips.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            
+            // Show loot menu
+            LootMenu.show(currentGameState, defeatedShips, encounterType, () => {
+                // After looting, continue journey
+                TravelMenu.resume();
+            });
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
      * Execute a player action
      */
     function executePlayerAction(actionType) {
@@ -888,6 +936,11 @@ const EncounterMenu = (() => {
         outputMessage = '';
         waitingForContinue = false; // Allow next ship to become active
         
+        // Check for victory before proceeding
+        if (checkForVictory()) {
+            return;
+        }
+        
         // Check if there are more player ships to move
         if (!advanceToNextPlayerShip()) {
             // All player ships moved, start enemy turn
@@ -941,6 +994,11 @@ const EncounterMenu = (() => {
         
         // Execute enemy actions sequentially
         executeEnemyActionsSequentially(enemyActions, 0, () => {
+            // Check for victory before starting new turn
+            if (checkForVictory()) {
+                return;
+            }
+            
             // Reset acted flags for new turn
             currentGameState.ships.forEach(ship => ship.acted = false);
             currentGameState.encounterShips.forEach(ship => ship.acted = false);

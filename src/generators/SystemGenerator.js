@@ -86,9 +86,9 @@ const SystemGenerator = (() => {
             const stockRange = MAX_CARGO_AMOUNT_IN_MARKET - MIN_CARGO_AMOUNT_IN_MARKET + 1;
             system.cargoStock[cargoType.id] = Math.floor(Math.random() * stockRange) + MIN_CARGO_AMOUNT_IN_MARKET;
             
-            // Price modifier: MIN to MAX cargo price modifier
-            const range = MAX_CARGO_PRICE_MODIFIER - MIN_CARGO_PRICE_MODIFIER;
-            system.cargoPriceModifier[cargoType.id] = MIN_CARGO_PRICE_MODIFIER + Math.random() * range;
+            // Price modifier: logarithmic distribution for equal chance above/below 1.0
+            // Range is [0.25, 4.0] which is symmetric around 1.0 in log space
+            system.cargoPriceModifier[cargoType.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
         });
         
         // Generate ships for shipyard
@@ -97,11 +97,11 @@ const SystemGenerator = (() => {
             system.ships.push(ShipGenerator.generateRandomShip());
         }
         
-        // Generate encounter weights
-        const weightRange = MAX_ENCOUNTER_WEIGHT - MIN_ENCOUNTER_WEIGHT;
-        system.pirateWeight = MIN_ENCOUNTER_WEIGHT + Math.random() * weightRange;
-        system.policeWeight = MIN_ENCOUNTER_WEIGHT + Math.random() * weightRange;
-        system.merchantWeight = MIN_ENCOUNTER_WEIGHT + Math.random() * weightRange;
+        // Generate encounter weights using logarithmic distribution
+        // Range is [0.25, 4.0] with average 1.0, symmetric around 1.0 in log space
+        system.pirateWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
+        system.policeWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
+        system.merchantWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         
         return system;
     }

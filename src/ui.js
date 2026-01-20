@@ -5,11 +5,7 @@
 
 const UI = (() => {
     // Configuration
-    const GRID_WIDTH = 80;  // Characters wide
-    const GRID_HEIGHT = 40; // Characters tall
-    const FONT_FAMILY = 'Courier New, monospace';
-    const MIN_FONT_SIZE = 16;   // Minimum font size in pixels
-    const MAX_FONT_SIZE = 32;  // Maximum font size in pixels
+
     
     let canvas = null;
     let ctx = null;

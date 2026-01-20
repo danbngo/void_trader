@@ -138,6 +138,7 @@ const EncounterMenu = (() => {
         encounterType = encType;
         outputMessage = '';
         targetIndex = 0;
+        waitingForContinue = false;
         
         // Initialize combat if not already done
         if (!gameState.ships[0].hasOwnProperty('x')) {
@@ -193,8 +194,8 @@ const EncounterMenu = (() => {
         const grid = UI.getGridSize();
         
         // Draw map on left side (50% of width + 5)
-        const mapWidth = Math.floor(grid.width * ENCOUNTER_MAP_WIDTH_PERCENT) + ENCOUNTER_MAP_WIDTH_BONUS;
-        const mapHeight = Math.floor(grid.height * ENCOUNTER_MAP_HEIGHT_PERCENT) + ENCOUNTER_MAP_HEIGHT_BONUS;
+        const mapWidth = COMBAT_MAP_WIDTH;
+        const mapHeight = COMBAT_MAP_HEIGHT;
         
         drawMap(currentGameState, mapWidth, mapHeight);
         
@@ -250,7 +251,8 @@ const EncounterMenu = (() => {
         }
         
         // Get active player ship (first non-fled, non-disabled, non-escaped, non-acted)
-        const activeShip = gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped && !s.acted);
+        // But only if not waiting for player to press Continue
+        const activeShip = waitingForContinue ? null : gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped && !s.acted);
         const targetShip = gameState.encounterShips[targetIndex];
         
         let activeShipScreenX = null;
@@ -655,6 +657,7 @@ const EncounterMenu = (() => {
         executeActionWithTicks(action, () => {
             // Mark ship as acted
             activeShip.acted = true;
+            waitingForContinue = true; // Wait for player to press Continue
             
             // Set completion message based on action type
             if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
@@ -695,6 +698,7 @@ const EncounterMenu = (() => {
      */
     function continueAfterAction() {
         outputMessage = '';
+        waitingForContinue = false; // Allow next ship to become active
         
         // Check if there are more player ships to move
         if (!advanceToNextPlayerShip()) {

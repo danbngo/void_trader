@@ -1,19 +1,22 @@
-const MIN_CARGO_PRICE_MODIFIER = 0.25
-const MAX_CARGO_PRICE_MODIFIER = 4.0
+const MAX_CARGO_PRICE_MODIFIER = 4.0 //which means min value is 1/4
 const MIN_CARGO_AMOUNT_IN_MARKET = 0
 const MAX_CARGO_AMOUNT_IN_MARKET = 100
 const MIN_NUM_SHIPS_IN_SHIPYARD = 0
 const MAX_NUM_SHIPS_IN_SHIPYARD = 3
-const MIN_ENCOUNTER_WEIGHT = 0.1
 const MAX_ENCOUNTER_WEIGHT = 4
 
 const MAP_VIEW_RANGE = 20 // in coordinate units
 const MIN_MAP_VIEW_RANGE = 10
 const MAX_MAP_VIEW_RANGE = 40
-const GALAXY_MAP_WIDTH_PERCENT = 0.5 // 50% of screen width
-const GALAXY_MAP_HEIGHT_PERCENT = 0.5 // 50% of screen height
-const GALAXY_MAP_WIDTH_BONUS = 5 // Extra columns
-const GALAXY_MAP_HEIGHT_BONUS = 5 // Extra rows
+const GRID_WIDTH = 80;  // Characters wide
+const GRID_HEIGHT = 40; // Characters tall
+const FONT_FAMILY = 'Courier New, monospace';
+const MIN_FONT_SIZE = 16;   // Minimum font size in pixels
+const MAX_FONT_SIZE = 32;  // Maximum font size in pixels
+const GALAXY_MAP_WIDTH = 50 // Characters
+const GALAXY_MAP_HEIGHT = 30 // Characters
+const COMBAT_MAP_WIDTH = 50 // Characters
+const COMBAT_MAP_HEIGHT = 30 // Characters
 
 const MIN_NUM_SYSTEMS = 200
 const MAX_NUM_SYSTEMS = 300
@@ -27,8 +30,8 @@ const MAX_SAVES = 5
 const SHIP_MIN_STAT_VARIATION = 0.5
 const SHIP_MAX_STAT_VARIATION = 2
 
-const AVERAGE_SHIP_HULL = 40
-const AVERAGE_SHIP_SHIELDS = 40
+const AVERAGE_SHIP_HULL = 20
+const AVERAGE_SHIP_SHIELDS = 10
 const AVERAGE_SHIP_CARGO = 20
 const AVERAGE_SHIP_FUEL = 10
 const AVERAGE_SHIP_ENGINE_LEVEL = 10
@@ -43,11 +46,6 @@ const ENCOUNTER_MAX_RADIUS = 100
 const ENCOUNTER_MAP_VIEW_RANGE = 80 // in coordinate units
 const ENCOUNTER_MIN_MAP_VIEW_RANGE = 20
 const ENCOUNTER_MAX_MAP_VIEW_RANGE = 120
-const ENCOUNTER_MAP_WIDTH_PERCENT = 0.5 // 50% of screen width
-const ENCOUNTER_MAP_HEIGHT_PERCENT = 0.5 // 50% of screen height
-const ENCOUNTER_MAP_WIDTH_BONUS = 5 // Extra columns
-const ENCOUNTER_MAP_HEIGHT_BONUS = 5 // Extra rows
 
 const STAR_SYSTEM_MIN_DISTANCE_FROM_NEIGHBORS = 5
 const STAR_SYSTEM_MAX_DISTANCE_FROM_NEIGHBORS = 20
-

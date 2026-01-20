@@ -50,8 +50,8 @@ const GalaxyMap = (() => {
         }
         
         // Draw map on left side (50% of width + 5)
-        const mapWidth = Math.floor(grid.width * GALAXY_MAP_WIDTH_PERCENT) + GALAXY_MAP_WIDTH_BONUS;
-        const mapHeight = Math.floor(grid.height * GALAXY_MAP_HEIGHT_PERCENT) + GALAXY_MAP_HEIGHT_BONUS;
+        const mapWidth = GALAXY_MAP_WIDTH;
+        const mapHeight = GALAXY_MAP_HEIGHT;
         
         drawMap(gameState, mapWidth, mapHeight);
         
@@ -272,8 +272,8 @@ const GalaxyMap = (() => {
         }
         
         // Draw map on left side (50% of width + 5)
-        const mapWidth = Math.floor(grid.width * GALAXY_MAP_WIDTH_PERCENT) + GALAXY_MAP_WIDTH_BONUS;
-        const mapHeight = Math.floor(grid.height * GALAXY_MAP_HEIGHT_PERCENT) + GALAXY_MAP_HEIGHT_BONUS;
+        const mapWidth = GALAXY_MAP_WIDTH;
+        const mapHeight = GALAXY_MAP_HEIGHT;
 
         drawMap(gameState, mapWidth, mapHeight);
         

@@ -9,6 +9,7 @@ const PirateEncounter = {
     show: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Pirate Threat ===`, COLORS.TEXT_ERROR);
         y += 2;
@@ -23,17 +24,17 @@ const PirateEncounter = {
         
         // Show pirate ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Pirate Forces:', gameState.encounterShips);
-        y++;
         
-        UI.addButton(10, y++, '1', 'Allow Boarding', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
         }, COLORS.YELLOW, 'Surrender cargo to pirates (lose valuable cargo, no reputation loss)');
         
-        UI.addButton(10, y++, '2', 'Resist', () => {
+        UI.addButton(10, buttonY + 1, '2', 'Resist', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Fight the pirates (no reputation/bounty changes)');
         
-        UI.addButton(10, y++, '3', 'Attack', () => {
+        UI.addButton(10, buttonY + 2, '3', 'Attack', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.GREEN, 'Attack criminals (+5 reputation, no bounty)');
         
@@ -123,6 +124,7 @@ const PirateEncounter = {
     showAttackConsequences: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Attacking Criminals ===`, COLORS.GREEN);
         y += 2;
@@ -135,9 +137,9 @@ const PirateEncounter = {
         UI.addText(10, y++, `Reputation: +${REPUTATION_EFFECT_ON_ATTACK_CRIMINALS}`, COLORS.GREEN);
         y++;
         UI.addText(10, y++, `Fighting criminals improves your standing!`, COLORS.TEXT_NORMAL);
-        y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.GREEN);
         

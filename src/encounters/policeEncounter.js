@@ -9,6 +9,7 @@ const PoliceEncounter = {
     show: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Police Inspection ===`, COLORS.CYAN);
         y += 2;
@@ -23,19 +24,16 @@ const PoliceEncounter = {
         
         // Show enemy ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Police Forces:', gameState.encounterShips);
-        y++;
         
-        UI.addButton(10, y++, '1', 'Allow Inspection', () => {
+        // Buttons at bottom
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Allow Inspection', () => {
             this.handleInspection(gameState, encType);
         }, COLORS.GREEN, 'Let police scan your cargo (50% chance to find illegal goods)');
         
-        UI.addButton(10, y++, '2', 'Resist', () => {
+        UI.addButton(10, buttonY + 1, '2', 'Resist', () => {
             this.showResistConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Refuse inspection and fight (-10 reputation, +2000 bounty)');
-        
-        UI.addButton(10, y++, '3', 'Attack', () => {
-            this.showAttackConsequences(gameState, encType);
-        }, COLORS.TEXT_ERROR, 'Launch unprovoked attack (-10 reputation, +2000 bounty)');
         
         UI.draw();
     },
@@ -123,6 +121,7 @@ const PoliceEncounter = {
     showResistConsequences: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Resisting Arrest ===`, COLORS.TEXT_ERROR);
         y += 2;
@@ -137,9 +136,9 @@ const PoliceEncounter = {
         UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, COLORS.TEXT_ERROR);
         y++;
         UI.addText(10, y++, `The police open fire!`, COLORS.TEXT_NORMAL);
-        y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR);
         
@@ -152,6 +151,7 @@ const PoliceEncounter = {
     showAttackConsequences: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Attacking Authorities ===`, COLORS.TEXT_ERROR);
         y += 2;
@@ -166,9 +166,9 @@ const PoliceEncounter = {
         UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, COLORS.TEXT_ERROR);
         y++;
         UI.addText(10, y++, `You are now a wanted criminal!`, COLORS.TEXT_ERROR);
-        y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR);
         

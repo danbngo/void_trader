@@ -9,6 +9,7 @@ const MerchantEncounter = {
     show: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Merchant Encounter ===`, COLORS.CYAN);
         y += 2;
@@ -23,18 +24,18 @@ const MerchantEncounter = {
         
         // Show merchant ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Merchant Vessels:', gameState.encounterShips);
-        y++;
         
-        UI.addButton(10, y++, '1', 'Accept Trade Offer', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Accept Trade Offer', () => {
             this.handleTrade(gameState, encType);
         }, COLORS.GREEN, 'Trade with merchants (buy or sell cargo at base price)');
         
-        UI.addButton(10, y++, '2', 'Ignore', () => {
+        UI.addButton(10, buttonY + 1, '2', 'Ignore', () => {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.TEXT_DIM, 'Continue journey without trading');
         
-        UI.addButton(10, y++, '3', 'Attack', () => {
+        UI.addButton(10, buttonY + 2, '3', 'Attack', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Attack innocent traders (-5 reputation, +1000 bounty)');
         
@@ -158,6 +159,7 @@ const MerchantEncounter = {
     showTradeComplete: function(gameState, message) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Trade Complete ===`, COLORS.CYAN);
         y += 2;
@@ -165,9 +167,9 @@ const MerchantEncounter = {
         UI.addText(10, y++, message, COLORS.GREEN);
         y++;
         UI.addText(10, y++, `"Pleasure doing business with you, captain."`, COLORS.YELLOW);
-        y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN);
         
@@ -180,6 +182,7 @@ const MerchantEncounter = {
     showAttackConsequences: function(gameState, encType) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Attacking Civilians ===`, COLORS.TEXT_ERROR);
         y += 2;
@@ -194,9 +197,9 @@ const MerchantEncounter = {
         UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_CIVILIANS} credits`, COLORS.TEXT_ERROR);
         y++;
         UI.addText(10, y++, `The merchants try to defend themselves!`, COLORS.TEXT_NORMAL);
-        y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue to Combat', () => {
+        const buttonY = grid.height - 4;
+        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR);
         

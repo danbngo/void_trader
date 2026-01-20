@@ -114,13 +114,8 @@ const TravelMenu = (() => {
             y++;
             
             UI.addButton(5, y++, '1', 'Continue', () => {
-                // Call the encounter type's onGreet function
-                if (encounterType.onGreet) {
-                    encounterType.onGreet(currentGameState, encounterType);
-                } else {
-                    // Fallback to decision menu if no onGreet defined
-                    EncounterDecisionMenu.show(currentGameState, encounterType);
-                }
+                // Check for undetected encounter (radar comparison)
+                UndetectedEncounter.check(currentGameState, encounterType);
             }, COLORS.GREEN);
         } else if (paused) {
             UI.addText(5, y++, 'Journey paused...', COLORS.TEXT_DIM);

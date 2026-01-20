@@ -37,14 +37,15 @@ const AssistantMenu = (() => {
         
         UI.addButton(menuX, menuY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View detailed ship specifications');
         UI.addButton(menuX, menuY + 1, '2', 'Cargo Manifest', () => CargoInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View cargo hold contents and capacity');
-        UI.addButton(menuX, menuY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View captain and officer details');
+        UI.addButton(menuX, menuY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View captain and perk details');
+        UI.addButton(menuX, menuY + 3, '4', 'Crew', () => CrewInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View crew and officer details');
         
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(menuX, menuY + 3, '4', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
+        UI.addButton(menuX, menuY + 4, '5', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
-        UI.addButton(menuX, menuY + 4, '5', 'Quests', () => QuestsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View active and completed quests');
-        UI.addButton(menuX, menuY + 5, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
-        UI.addButton(menuX, menuY + 6, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        UI.addButton(menuX, menuY + 5, '6', 'Quests', () => QuestsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View active and completed quests');
+        UI.addButton(menuX, menuY + 6, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
+        UI.addButton(menuX, menuY + 7, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         UI.draw();
     }

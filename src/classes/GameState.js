@@ -27,6 +27,10 @@ class GameState {
         this.activeQuests = []; // Array of active quest IDs
         this.completedQuests = []; // Array of completed quest IDs
         
+        // Perk system
+        this.perks = new Set(); // Set of perk IDs the player has learned
+        this.enabledCargoTypes = [...CARGO_TYPES_SAFE]; // Array of cargo types player can buy/loot
+        
         // Rank system - maps system index to rank ID
         this.systemRanks = {}; // { systemIndex: 'RANK_ID' }
         

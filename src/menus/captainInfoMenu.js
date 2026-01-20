@@ -1,6 +1,6 @@
 /**
  * Captain Info Menu
- * Shows captain and crew information
+ * Shows captain information and learned perks
  */
 
 const CaptainInfoMenu = (() => {
@@ -22,21 +22,25 @@ const CaptainInfoMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         TableRenderer.renderKeyValueList(5, 6, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.YELLOW },
-            { label: 'Location:', value: currentSystem.name, valueColor: COLORS.CYAN }
+            { label: 'Location:', value: currentSystem.name, valueColor: COLORS.CYAN },
+            { label: 'Reputation:', value: String(gameState.reputation), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL }
         ]);
         
-        // Crew section
-        UI.addText(5, 10, 'Crew', COLORS.TITLE);
+        // Perks section
+        UI.addText(5, 12, 'Learned Perks', COLORS.TITLE);
         
-        if (gameState.officers.length === 0) {
-            UI.addText(5, 12, 'No crew members', COLORS.TEXT_DIM);
+        if (gameState.perks.size === 0) {
+            UI.addText(5, 14, 'No perks learned yet', COLORS.TEXT_DIM);
         } else {
-            const rows = gameState.officers.map(officer => [
-                { text: officer.name, color: COLORS.TEXT_NORMAL },
-                { text: officer.role, color: COLORS.TEXT_NORMAL },
-                { text: String(officer.skill), color: COLORS.GREEN }
-            ]);
-            TableRenderer.renderTable(5, 12, ['Name', 'Role', 'Skill'], rows);
+            let y = 14;
+            gameState.perks.forEach(perkId => {
+                const perk = PERKS[perkId];
+                if (perk) {
+                    UI.addText(7, y++, `${perk.name}`, COLORS.GREEN);
+                    UI.addText(9, y++, perk.description, COLORS.TEXT_DIM);
+                }
+            });
         }
         
         // Back button

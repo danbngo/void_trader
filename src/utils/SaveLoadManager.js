@@ -58,7 +58,10 @@ const SaveLoadManager = (() => {
                 // Save rank system
                 systemRanks: gameState.systemRanks,
                 reputation: gameState.reputation,
-                bounty: gameState.bounty
+                bounty: gameState.bounty,
+                // Save perk system
+                perks: Array.from(gameState.perks),
+                enabledCargoTypes: gameState.enabledCargoTypes
             },
             timestamp: new Date().toISOString()
         };
@@ -177,6 +180,10 @@ const SaveLoadManager = (() => {
         gameState.systemRanks = data.systemRanks || {};
         gameState.reputation = data.reputation !== undefined ? data.reputation : 0;
         gameState.bounty = data.bounty !== undefined ? data.bounty : 0;
+        
+        // Restore perk system
+        gameState.perks = new Set(data.perks || []);
+        gameState.enabledCargoTypes = data.enabledCargoTypes || [...CARGO_TYPES_SAFE];
         
         return gameState;
     }

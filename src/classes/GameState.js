@@ -91,4 +91,15 @@ class GameState {
             .filter(item => item.distance <= range && item.distance > 0)
             .sort((a, b) => a.distance - b.distance);
     }
+    
+    /**
+     * Check if 50 years have passed (retirement time)
+     * @returns {boolean}
+     */
+    hasRetirementTimePassed() {
+        const startDate = new Date(3000, 0, 1);
+        const currentDate = this.date;
+        const yearsPassed = (currentDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
+        return yearsPassed >= 50;
+    }
 }

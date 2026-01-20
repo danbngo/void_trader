@@ -78,8 +78,14 @@ const GalaxyMap = (() => {
         }
         UI.addText(0, mapHeight - 1, '╚' + '═'.repeat(mapWidth - 2) + '╝', COLORS.GRAY);
         
-        // Title with zoom level
-        UI.addText(2, 0, '[ GALAXY MAP ]', COLORS.TITLE);
+        // Title with date and zoom level
+        UI.addText(2, 0, 'GALAXY MAP', COLORS.TITLE);
+        
+        // Format and display current date in center
+        const dateStr = formatDate(gameState.date);
+        const dateCenterX = Math.floor(mapWidth / 2) - Math.floor(dateStr.length / 2);
+        UI.addText(dateCenterX, 0, dateStr, COLORS.TEXT_NORMAL);
+        
         UI.addText(mapWidth - 12, 0, `Zoom: ${mapViewRange.toFixed(1)}`, COLORS.TEXT_DIM);
         
         // Calculate scale to fit systems in map
@@ -337,6 +343,16 @@ const GalaxyMap = (() => {
         
         UI.addButton(28, buttonY + 2, '6', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
+                // Check if retirement time has passed (50 years)
+                if (gameState.hasRetirementTimePassed()) {
+                    outputMessage = '50 years have passed. Time for retirement!';
+                    outputColor = COLORS.TEXT_ERROR;
+                    render(gameState);
+                    const score = ScoreMenu.calculateScore(gameState);
+                    ScoreMenu.showGameOver(gameState, score.totalScore, false);
+                    return;
+                }
+                
                 const targetSystem = nearbySystems[selectedIndex].system;
                 const currentSystem = gameState.getCurrentSystem();
                 const distance = currentSystem.distanceTo(targetSystem);
@@ -360,6 +376,17 @@ const GalaxyMap = (() => {
         if (outputMessage) {
             UI.setOutputRow(outputMessage, outputColor);
         }
+    }
+    
+    /**
+     * Format date for display
+     * @param {Date} date 
+     * @returns {string}
+     */
+    function formatDate(date) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     }
     
     return {

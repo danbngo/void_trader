@@ -85,7 +85,7 @@ const TravelConfirmMenu = (() => {
         
         // Pirates: 2x weight = 0.5x ratio (bad), Police/Merchants: 2x weight = 2x ratio (good)
         const pirateColor = UI.calcStatColor(1 / Math.max(0.5, avgPirateWeight));
-        const policeColor = UI.calcStatColor(avgPoliceWeight);
+        const policeColor = COLORS.WHITE // UI.calcStatColor(avgPoliceWeight); //police dont actually do anything good for the player per-se
         const merchantColor = UI.calcStatColor(avgMerchantWeight);
         
         y = TableRenderer.renderKeyValueList(5, y, [

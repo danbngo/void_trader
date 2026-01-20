@@ -29,12 +29,15 @@ const IntroScreen = (() => {
         UI.addTextCentered(14, 'opportunity awaits those bold enough to', COLORS.TEXT_NORMAL);
         UI.addTextCentered(15, 'traverse the void between stars.', COLORS.TEXT_NORMAL);
         
-        // Ship and credit info
-        UI.addTextCentered(18, `Your Ship: ${gameState.ship.name}`, COLORS.CYAN);
-        UI.addTextCentered(19, `Starting Credits: ${gameState.credits} CR`, COLORS.GREEN);
+        UI.addTextCentered(17, 'You have 50 years until retirement.', COLORS.YELLOW);
+        UI.addTextCentered(18, 'Accumulate as many credits as possible!', COLORS.YELLOW);
         
-        UI.addTextCentered(21, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);
-        UI.addTextCentered(22, 'Or perish among the stars?', COLORS.TEXT_DIM);
+        // Ship and credit info
+        UI.addTextCentered(21, `Your Ship: ${gameState.ship.name}`, COLORS.CYAN);
+        UI.addTextCentered(22, `Starting Credits: ${gameState.credits} CR`, COLORS.GREEN);
+        
+        UI.addTextCentered(24, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);
+        UI.addTextCentered(25, 'Or perish among the stars?', COLORS.TEXT_DIM);
         
         // Continue button
         UI.addButton(Math.floor(grid.width / 2) - 12, grid.height - 4, '1', 'Begin Your Journey', () => DockMenu.show(gameState), COLORS.BUTTON);

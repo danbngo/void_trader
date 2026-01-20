@@ -10,7 +10,7 @@ const Starfield = (() => {
     const resetRange = 5; // Stars reset to 0-5 distance from origin
     
     // Star characters to choose from
-    const starChars = ['*', '·', '.'];
+    const starChars = ['·']// ['*', '·', '.'];
     
     // Grayscale colors from almost black to white
     const starColors = [

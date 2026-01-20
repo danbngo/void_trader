@@ -7,6 +7,7 @@ const TravelMenu = (() => {
     let progress = 0;
     let paused = false;
     let encounterTriggered = false;
+    let arrivedAtDestination = false;
     let currentGameState = null;
     let targetSystem = null;
     let totalDuration = 0;
@@ -28,6 +29,7 @@ const TravelMenu = (() => {
         progress = 0;
         paused = false;
         encounterTriggered = false;
+        arrivedAtDestination = false;
         encounterType = null;
         
         const currentSystem = gameState.getCurrentSystem();
@@ -117,6 +119,14 @@ const TravelMenu = (() => {
                 // Check for undetected encounter (radar comparison)
                 UndetectedEncounter.check(currentGameState, encounterType);
             }, COLORS.GREEN);
+        } else if (arrivedAtDestination) {
+            y++;
+            UI.addText(5, y++, `You have arrived at ${targetSystem.name}!`, COLORS.GREEN);
+            y++;
+            
+            UI.addButton(5, y++, '1', 'Continue', () => {
+                completeJourney();
+            }, COLORS.GREEN);
         } else if (paused) {
             UI.addText(5, y++, 'Journey paused...', COLORS.TEXT_DIM);
         }
@@ -158,7 +168,9 @@ const TravelMenu = (() => {
             // Complete journey
             if (progress >= 1.0 && !encounterTriggered) {
                 clearInterval(interval);
-                completeJourney();
+                arrivedAtDestination = true;
+                paused = true;
+                render();
             }
         }, tickInterval);
     }

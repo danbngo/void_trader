@@ -35,11 +35,11 @@ const UndetectedEncounter = {
         
         const grid = UI.getGridSize();
         let y = 5;
-        UI.addTextCentered(y++, `=== Undetected Contact ===`, COLORS.GREEN);
+        UI.addTextCentered(y++, `=== ${encType.name}: Undetected ===`, COLORS.GREEN);
         y += 2;
         
-        UI.addText(10, y++, `Your sensors detect ${encType.name.toLowerCase()} ships ahead!`, COLORS.GREEN);
-        UI.addText(10, y++, `They haven't noticed your fleet yet.`, COLORS.TEXT_DIM);
+        UI.addText(10, y++, `Your sensors detect ${encType.name.toLowerCase()} ships ahead!`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `They haven't noticed your fleet yet.`, COLORS.GREEN);
         y += 2;
         
         // Show player ships
@@ -53,7 +53,7 @@ const UndetectedEncounter = {
         UI.addButton(10, buttonY, '1', 'Approach', () => {
             // Proceed with normal encounter
             encType.onGreet(gameState, encType);
-        }, COLORS.YELLOW, 'Engage with the encounter normally');
+        }, COLORS.YELLOW, `Engage with the ${encType.name} normally`);
         
         UI.addButton(10, buttonY + 1, '2', 'Avoid', () => {
             // Player successfully avoids encounter
@@ -70,7 +70,7 @@ const UndetectedEncounter = {
             }, COLORS.GREEN);
             
             UI.draw();
-        }, COLORS.GREEN, 'Avoid the encounter and continue your journey');
+        }, COLORS.GREEN, `Avoid the ${encType.name}`);
         
         UI.draw();
     }

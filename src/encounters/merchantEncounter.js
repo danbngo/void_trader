@@ -23,10 +23,7 @@ const MerchantEncounter = {
         
         UI.addButton(10, y++, '2', 'Ignore', () => {
             // Return to travel menu
-            gameState.encounter = false;
-            gameState.encounterShips = [];
-            gameState.encounterCargo = {};
-            TravelMenu.show(gameState);
+            TravelMenu.resume();
         }, COLORS.TEXT_DIM);
         
         UI.draw();
@@ -109,10 +106,7 @@ const MerchantEncounter = {
                 UI.addText(10, y++, `They scoff at your lack of industry.`, COLORS.TEXT_DIM);
                 y += 2;
                 UI.addButton(10, y++, '1', 'Continue Journey', () => {
-                    gameState.encounter = false;
-                    gameState.encounterShips = [];
-                    gameState.encounterCargo = {};
-                    TravelMenu.show(gameState);
+                    TravelMenu.resume();
                 }, COLORS.GREEN);
                 UI.draw();
                 return;
@@ -139,10 +133,7 @@ const MerchantEncounter = {
             }, COLORS.GREEN);
             
             UI.addButton(10, y++, '2', 'Decline', () => {
-                gameState.encounter = false;
-                gameState.encounterShips = [];
-                gameState.encounterCargo = {};
-                TravelMenu.show(gameState);
+                TravelMenu.resume();
             }, COLORS.TEXT_DIM);
         }
         
@@ -165,10 +156,7 @@ const MerchantEncounter = {
         y += 2;
         
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
-            gameState.encounter = false;
-            gameState.encounterShips = [];
-            gameState.encounterCargo = {};
-            TravelMenu.show(gameState);
+            TravelMenu.resume();
         }, COLORS.GREEN);
         
         UI.draw();

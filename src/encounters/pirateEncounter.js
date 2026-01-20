@@ -53,10 +53,7 @@ const PirateEncounter = {
             y += 2;
             
             UI.addButton(10, y++, '1', 'Continue Journey', () => {
-                gameState.encounter = false;
-                gameState.encounterShips = [];
-                gameState.encounterCargo = {};
-                TravelMenu.show(gameState);
+                TravelMenu.resume();
             }, COLORS.GREEN);
             
             UI.draw();
@@ -102,10 +99,7 @@ const PirateEncounter = {
         y += 2;
         
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
-            gameState.encounter = false;
-            gameState.encounterShips = [];
-            gameState.encounterCargo = {};
-            TravelMenu.show(gameState);
+            TravelMenu.resume();
         }, COLORS.GREEN);
         
         UI.draw();

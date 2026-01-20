@@ -45,10 +45,7 @@ const EncounterDecisionMenu = {
         
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
             // Return to travel menu
-            gameState.encounter = false;
-            gameState.encounterShips = [];
-            gameState.encounterCargo = {};
-            TravelMenu.show(gameState);
+            TravelMenu.resume();
         }, COLORS.GREEN);
         
         UI.draw();

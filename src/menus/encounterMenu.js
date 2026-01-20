@@ -650,6 +650,11 @@ const EncounterMenu = (() => {
             }, COLORS.BUTTON, fleeHelpText);
             currentButtonY++;
             
+            UI.addButton(5, currentButtonY, '6', 'Surrender', () => {
+                handleSurrender(gameState);
+            }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
+            currentButtonY++;
+            
             UI.addButton(28, buttonY, '8', 'Zoom In', () => {
                 mapViewRange = Math.max(ENCOUNTER_MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
                 render();
@@ -688,6 +693,78 @@ const EncounterMenu = (() => {
         } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
         
         render();
+    }
+    
+    /**
+     * Handle player surrender
+     */
+    function handleSurrender(gameState) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Surrender ===`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addText(10, y++, `You signal your surrender to the enemy forces.`, COLORS.TEXT_NORMAL);
+        y++;
+        
+        const playerCargo = Ship.getFleetCargo(gameState.ships);
+        const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
+        
+        // Calculate enemy cargo capacity
+        const enemyCapacity = gameState.encounterShips.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
+        
+        // Enemy takes cargo
+        if (hasAnyCargo && enemyCapacity > 0) {
+            // Sort cargo by value (most valuable first)
+            const cargoByValue = Object.keys(playerCargo)
+                .filter(cargoId => playerCargo[cargoId] > 0)
+                .map(cargoId => ({
+                    id: cargoId,
+                    type: CARGO_TYPES[cargoId],
+                    amount: playerCargo[cargoId],
+                    value: CARGO_TYPES[cargoId].baseValue
+                }))
+                .sort((a, b) => b.value - a.value);
+            
+            // Loot cargo up to enemy capacity
+            let remainingCapacity = enemyCapacity;
+            const lootedCargo = [];
+            
+            for (const cargo of cargoByValue) {
+                if (remainingCapacity <= 0) break;
+                
+                const amountToLoot = Math.min(cargo.amount, remainingCapacity);
+                Ship.removeCargoFromFleet(gameState.ships, cargo.id, amountToLoot);
+                lootedCargo.push({ type: cargo.type, amount: amountToLoot });
+                remainingCapacity -= amountToLoot;
+            }
+            
+            if (lootedCargo.length > 0) {
+                UI.addText(10, y++, `The enemy takes your cargo:`, COLORS.TEXT_ERROR);
+                lootedCargo.forEach(loot => {
+                    UI.addText(10, y++, `  Surrendered: ${loot.amount} ${loot.type.name}`, COLORS.TEXT_ERROR);
+                });
+                y++;
+            }
+        }
+        
+        // Enemy takes credits (25% of player's credits)
+        const creditsTaken = Math.floor(gameState.credits * 0.25);
+        if (creditsTaken > 0) {
+            gameState.credits -= creditsTaken;
+            UI.addText(10, y++, `The enemy demands ${creditsTaken} credits.`, COLORS.TEXT_ERROR);
+            y++;
+        }
+        
+        UI.addText(10, y++, `The enemy allows you to go free.`, COLORS.TEXT_NORMAL);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+            TravelMenu.resume();
+        }, COLORS.GREEN);
+        
+        UI.draw();
     }
     
     /**

@@ -114,8 +114,13 @@ const TravelMenu = (() => {
             y++;
             
             UI.addButton(5, y++, '1', 'Continue', () => {
-                // Go to encounter decision menu
-                EncounterDecisionMenu.show(currentGameState, encounterType);
+                // Call the encounter type's onGreet function
+                if (encounterType.onGreet) {
+                    encounterType.onGreet(currentGameState, encounterType);
+                } else {
+                    // Fallback to decision menu if no onGreet defined
+                    EncounterDecisionMenu.show(currentGameState, encounterType);
+                }
             }, COLORS.GREEN);
         } else if (paused) {
             UI.addText(5, y++, 'Journey paused...', COLORS.TEXT_DIM);
@@ -310,7 +315,24 @@ const TravelMenu = (() => {
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     }
     
+    /**
+     * Resume travel after encounter
+     */
+    function resume() {
+        // Clear encounter state
+        currentGameState.encounter = false;
+        currentGameState.encounterShips = [];
+        currentGameState.encounterCargo = {};
+        encounterTriggered = false;
+        encounterType = null;
+        
+        // Resume travel
+        paused = false;
+        render();
+    }
+    
     return {
-        show
+        show,
+        resume
     };
 })();

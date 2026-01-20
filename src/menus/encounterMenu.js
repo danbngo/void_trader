@@ -730,15 +730,22 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `The police accept your surrender.`, COLORS.TEXT_NORMAL);
         y++;
         
-        // Confiscate all illegal cargo
-        const playerCargo = Ship.getFleetCargo(gameState.ships);
+        // Confiscate all illegal cargo from non-escaped ships only
+        const nonEscapedShips = gameState.ships.filter(s => !s.escaped);
         const illegalCargo = [];
         
         CARGO_TYPES_ILLEGAL.forEach(cargoType => {
-            const amount = playerCargo[cargoType.id] || 0;
-            if (amount > 0) {
-                Ship.removeCargoFromFleet(gameState.ships, cargoType.id, amount);
-                illegalCargo.push({ type: cargoType, amount });
+            let totalAmount = 0;
+            nonEscapedShips.forEach(ship => {
+                const amount = ship.cargo[cargoType.id] || 0;
+                if (amount > 0) {
+                    ship.cargo[cargoType.id] = 0;
+                    totalAmount += amount;
+                }
+            });
+            
+            if (totalAmount > 0) {
+                illegalCargo.push({ type: cargoType, amount: totalAmount });
             }
         });
         
@@ -807,7 +814,9 @@ const EncounterMenu = (() => {
     function handlePirateSurrender(gameState, startY) {
         let y = startY;
         
-        const playerCargo = Ship.getFleetCargo(gameState.ships);
+        // Only loot from non-escaped ships
+        const nonEscapedShips = gameState.ships.filter(s => !s.escaped);
+        const playerCargo = Ship.getFleetCargo(nonEscapedShips);
         const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
         
         // Calculate enemy cargo capacity
@@ -837,7 +846,7 @@ const EncounterMenu = (() => {
                 if (remainingCapacity <= 0) break;
                 
                 const amountToLoot = Math.min(cargo.amount, remainingCapacity);
-                Ship.removeCargoFromFleet(gameState.ships, cargo.id, amountToLoot);
+                Ship.removeCargoFromFleet(nonEscapedShips, cargo.id, amountToLoot);
                 lootedCargo.push({ type: cargo.type, amount: amountToLoot });
                 remainingCapacity -= amountToLoot;
             }
@@ -894,6 +903,263 @@ const EncounterMenu = (() => {
     }
     
     /**
+     * Handle all player ships escaped successfully
+     */
+    function handleAllShipsEscaped() {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Escape Successful ===`, COLORS.GREEN);
+        y += 2;
+        
+        UI.addText(10, y++, `All your ships escaped!`, COLORS.GREEN);
+        UI.addText(10, y++, `You continue your journey.`, COLORS.TEXT_NORMAL);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+            // Clean up combat properties
+            currentGameState.ships.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounterShips.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            
+            // Resume travel
+            TravelMenu.resume();
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle some ships escaped, some disabled
+     */
+    function handlePartialEscape(escapedShips, disabledShips) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Partial Escape ===`, COLORS.YELLOW);
+        y += 2;
+        
+        UI.addText(10, y++, `Some of your ships were disabled during combat.`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `They are permanently removed from your fleet along with their cargo.`, COLORS.TEXT_ERROR);
+        y++;
+        
+        UI.addText(10, y++, `Disabled ships:`, COLORS.TEXT_DIM);
+        disabledShips.forEach(ship => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            UI.addText(10, y++, `  ${ship.name} (${shipType.name})`, COLORS.TEXT_ERROR);
+        });
+        y++;
+        
+        UI.addText(10, y++, `Escaped ships:`, COLORS.TEXT_DIM);
+        escapedShips.forEach(ship => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            UI.addText(10, y++, `  ${ship.name} (${shipType.name})`, COLORS.GREEN);
+        });
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+            // Remove disabled ships from fleet
+            currentGameState.ships = currentGameState.ships.filter(s => !s.disabled);
+            
+            // Clean up combat properties
+            currentGameState.ships.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounterShips.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            
+            // Resume travel
+            TravelMenu.resume();
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle total defeat - all ships disabled, automatic surrender
+     */
+    function handleTotalDefeat() {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Total Defeat ===`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addText(10, y++, `All your ships have been disabled!`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `You are forced to surrender...`, COLORS.TEXT_ERROR);
+        y++;
+        
+        // Automatic surrender based on encounter type
+        if (encounterType.id === 'POLICE') {
+            handleTotalDefeatPolice(y);
+        } else if (encounterType.id === 'PIRATE') {
+            handleTotalDefeatPirate(y);
+        } else if (encounterType.id === 'MERCHANT') {
+            handleTotalDefeatMerchant(y);
+        }
+    }
+    
+    /**
+     * Handle total defeat to police - jail and tow
+     */
+    function handleTotalDefeatPolice(startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The police arrest you and impound all your ships.`, COLORS.TEXT_ERROR);
+        y++;
+        
+        // Calculate jail time based on bounty
+        if (currentGameState.bounty > 0) {
+            const jailDays = Math.ceil((currentGameState.bounty / 1000) * DAYS_IN_JAIL_PER_1000CR_BOUNTY);
+            
+            UI.addText(10, y++, `Bounty: ${currentGameState.bounty} CR`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `Sentence: ${jailDays} days in jail`, COLORS.TEXT_ERROR);
+            y++;
+            
+            // Clear bounty
+            currentGameState.bounty = 0;
+            
+            // Advance time by jail sentence
+            currentGameState.date.setDate(currentGameState.date.getDate() + jailDays);
+            
+            UI.addText(10, y++, `After serving your sentence, you are released.`, COLORS.TEXT_NORMAL);
+        } else {
+            UI.addText(10, y++, `The police process your arrest.`, COLORS.TEXT_NORMAL);
+        }
+        
+        y++;
+        UI.addText(10, y++, `A tow ship recovers your disabled vessels and tows you back.`, COLORS.CYAN);
+        
+        const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
+        UI.addText(10, y++, `You are returned to ${previousSystem.name}.`, COLORS.CYAN);
+        UI.addText(10, y++, `All ships and cargo have been impounded.`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue', () => {
+            // Remove all ships and cargo
+            currentGameState.ships = [];
+            
+            // End encounter and return to previous system
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            currentGameState.encounterCargo = {};
+            currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
+            
+            DockMenu.show(currentGameState);
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle total defeat to pirates - everything lost, tow back
+     */
+    function handleTotalDefeatPirate(startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The pirates board your disabled ships and take everything.`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `All cargo and credits are lost.`, COLORS.TEXT_ERROR);
+        y++;
+        
+        // Pirates take all credits
+        currentGameState.credits = 0;
+        
+        UI.addText(10, y++, `The pirates leave you stranded in space.`, COLORS.TEXT_DIM);
+        y++;
+        
+        UI.addText(10, y++, `You call for a tow ship...`, COLORS.CYAN);
+        const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
+        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.CYAN);
+        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.CYAN);
+        UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue', () => {
+            // Remove all ships and cargo
+            currentGameState.ships = [];
+            
+            // End encounter and return to previous system
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            currentGameState.encounterCargo = {};
+            currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
+            
+            DockMenu.show(currentGameState);
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle total defeat to merchants - they flee, tow back
+     */
+    function handleTotalDefeatMerchant(startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The merchants panic and flee the scene!`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `They leave you disabled in space.`, COLORS.TEXT_DIM);
+        y++;
+        
+        UI.addText(10, y++, `You call for a tow ship...`, COLORS.CYAN);
+        const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
+        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.CYAN);
+        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.CYAN);
+        UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addButton(10, y++, '1', 'Continue', () => {
+            // Remove all ships and cargo
+            currentGameState.ships = [];
+            
+            // End encounter and return to previous system
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            currentGameState.encounterCargo = {};
+            currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
+            
+            DockMenu.show(currentGameState);
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
      * End combat temporarily
      */
     function endCombat() {
@@ -931,6 +1197,29 @@ const EncounterMenu = (() => {
         const allEnemiesDefeated = currentGameState.encounterShips.every(
             ship => ship.disabled || ship.fled || ship.escaped
         );
+        
+        // Check for player escape/defeat scenarios
+        const activePlayerShips = currentGameState.ships.filter(s => !s.disabled && !s.escaped);
+        const escapedPlayerShips = currentGameState.ships.filter(s => s.escaped);
+        const disabledPlayerShips = currentGameState.ships.filter(s => s.disabled);
+        
+        // All player ships escaped
+        if (activePlayerShips.length === 0 && escapedPlayerShips.length > 0 && disabledPlayerShips.length === 0) {
+            handleAllShipsEscaped();
+            return true;
+        }
+        
+        // Some ships escaped, some disabled
+        if (escapedPlayerShips.length > 0 && disabledPlayerShips.length > 0 && activePlayerShips.length === 0) {
+            handlePartialEscape(escapedPlayerShips, disabledPlayerShips);
+            return true;
+        }
+        
+        // All ships disabled (none escaped) - automatic surrender
+        if (activePlayerShips.length === 0 && escapedPlayerShips.length === 0 && disabledPlayerShips.length > 0) {
+            handleTotalDefeat();
+            return true;
+        }
         
         if (allEnemiesDefeated) {
             // Get disabled enemy ships for looting

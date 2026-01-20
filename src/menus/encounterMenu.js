@@ -342,7 +342,7 @@ const EncounterMenu = (() => {
                 let color = COLORS.TEXT_ERROR;
                 
                 if (ship.disabled) {
-                    symbol = 'x';
+                    symbol = 'X';
                     color = COLORS.GRAY;
                 } else if (index === targetIndex) {
                     color = COLORS.YELLOW;
@@ -409,7 +409,7 @@ const EncounterMenu = (() => {
         }
         
         // Legend positioned right after map border
-        UI.addText(2, mapHeight, '▲ = Ship  x = Destroyed  O = Asteroid', COLORS.GRAY);
+        UI.addText(2, mapHeight, '▲ = Ship  X = Destroyed  O = Asteroid', COLORS.GRAY);
     }
     
     /**
@@ -503,6 +503,33 @@ const EncounterMenu = (() => {
     }
     
     /**
+     * Count obstructions between shooter and target
+     */
+    function countObstructions(shooter, target) {
+        let count = 0;
+        const allShips = [...currentGameState.ships, ...currentGameState.encounterShips];
+        
+        // Check asteroids
+        for (const asteroid of currentGameState.asteroids) {
+            if (asteroid.disabled) continue;
+            if (Geom.lineCircleIntersect(shooter.x, shooter.y, target.x, target.y, asteroid.x, asteroid.y, ASTEROID_SIZE)) {
+                count++;
+            }
+        }
+        
+        // Check ships (excluding shooter and target)
+        for (const ship of allShips) {
+            if (ship === shooter || ship === target) continue;
+            if (ship.disabled || ship.fled || ship.escaped) continue;
+            if (Geom.lineCircleIntersect(shooter.x, shooter.y, target.x, target.y, ship.x, ship.y, SHIP_SIZE)) {
+                count++;
+            }
+        }
+        
+        return count;
+    }
+    
+    /**
      * Draw action buttons
      */
     function drawButtons(gameState, startX, mapHeight) {
@@ -573,10 +600,17 @@ const EncounterMenu = (() => {
                 const dy = targetShip.y - activeShip.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
+                // Count obstructions in the way
+                const obstructionCount = countObstructions(activeShip, targetShip);
+                
                 // Laser help text: hit chance and damage
                 const hitChance = Math.min(100, Math.floor((activeShip.radar / distance) * 100));
                 const damageRange = `1-${activeShip.lasers}`;
-                laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg)`;
+                if (obstructionCount > 0) {
+                    laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg, ${obstructionCount} obstructions)`;
+                } else {
+                    laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg)`;
+                }
                 
                 // Pursue help text: check for ramming
                 const willRam = distance <= activeShip.engine;
@@ -730,6 +764,15 @@ const EncounterMenu = (() => {
                 if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
                     outputMessage = `${activeShip.name} starts turning to target ${targetShipType.name}`;
                     outputColor = COLORS.TEXT_NORMAL;
+                } else if (action.hitObstruction) {
+                    // Hit an obstruction
+                    if (action.hitObstruction.type === 'ship') {
+                        outputMessage = `${activeShip.name} hit ${action.hitObstruction.name} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                        outputColor = COLORS.YELLOW;
+                    } else {
+                        outputMessage = `${activeShip.name} hit an asteroid (obstruction)!`;
+                        outputColor = COLORS.YELLOW;
+                    }
                 } else if (action.hit) {
                     outputMessage = `${activeShip.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.GREEN;
@@ -896,6 +939,15 @@ const EncounterMenu = (() => {
                 if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
                     outputMessage = `${enemyShipType.name} starts turning to target ${action.targetShip.name}`;
                     outputColor = COLORS.TEXT_NORMAL;
+                } else if (action.hitObstruction) {
+                    // Hit an obstruction
+                    if (action.hitObstruction.type === 'ship') {
+                        outputMessage = `${enemyShipType.name} hit ${action.hitObstruction.name} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                        outputColor = COLORS.YELLOW;
+                    } else {
+                        outputMessage = `${enemyShipType.name} hit an asteroid (obstruction)!`;
+                        outputColor = COLORS.YELLOW;
+                    }
                 } else if (action.hit) {
                     outputMessage = `${enemyShipType.name} hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_ERROR;
@@ -938,7 +990,9 @@ const EncounterMenu = (() => {
      * Execute an action with visual tick updates
      */
     function executeActionWithTicks(action, onComplete) {
-        const handler = new CombatActionHandler(action, currentGameState.asteroids);
+        // Combine all ships for obstruction checking
+        const allShips = [...currentGameState.ships, ...currentGameState.encounterShips];
+        const handler = new CombatActionHandler(action, currentGameState.asteroids, allShips);
         
         // Store in gameState to track action in progress
         currentGameState.combatAction = action;

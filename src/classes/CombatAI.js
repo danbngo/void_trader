@@ -28,11 +28,17 @@ class CombatAI {
         });
         
         if (nearestShip) {
+            // Check if we should flee (low hull)
+            const hullRatio = enemyShip.hull / enemyShip.maxHull;
+            if (hullRatio <= ENEMY_FLEE_AT_HULL_RATIO) {
+                return new CombatAction(enemyShip, COMBAT_ACTIONS.FLEE, nearestShip);
+            }
+            
             // Calculate hit chance if we were to fire laser
             const hitChance = Math.min(1, enemyShip.radar / nearestDistance);
             
-            // Fire laser if hit chance > 30% (prefer ranged combat when possible)
-            if (hitChance > 0.3) {
+            // Fire laser if hit chance meets minimum threshold
+            if (hitChance >= ENEMY_MIN_LASER_HIT_CHANCE) {
                 return new CombatAction(enemyShip, COMBAT_ACTIONS.FIRE_LASER, nearestShip);
             }
             

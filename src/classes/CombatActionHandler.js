@@ -8,10 +8,12 @@ class CombatActionHandler {
      * Create an action handler
      * @param {CombatAction} action - The action to execute
      * @param {Array<Asteroid>} asteroids - Asteroids in the encounter
+     * @param {Array<Ship>} allShips - All ships in the encounter (for obstruction checking)
      */
-    constructor(action, asteroids = []) {
+    constructor(action, asteroids = [], allShips = []) {
         this.action = action;
         this.asteroids = asteroids;
+        this.allShips = allShips;
         this.ship = action.ship;
         this.targetAngle = null;
         this.remainingDistance = 0;
@@ -238,12 +240,44 @@ class CombatActionHandler {
         this.action.projectile.y += this.movementPerTick.y;
         this.remainingDistance -= moveAmount;
         
-        // Check for asteroid collisions along the path
-        const hitAsteroid = this.checkAsteroidCollision(oldX, oldY, this.action.projectile.x, this.action.projectile.y);
-        if (hitAsteroid) {
-            // Hit an asteroid - disable it and stop the laser
-            hitAsteroid.disabled = true;
-            this.action.hit = false; // Didn't hit the target ship
+        // Check for obstruction collisions (asteroids and ships)
+        const hitObstruction = this.checkObstructionCollision(oldX, oldY, this.action.projectile.x, this.action.projectile.y);
+        if (hitObstruction) {
+            // Hit an obstruction
+            if (hitObstruction.type === 'asteroid') {
+                hitObstruction.object.disabled = true;
+                this.action.hitObstruction = { type: 'asteroid', name: 'asteroid' };
+            } else if (hitObstruction.type === 'ship') {
+                // Apply damage to the obstructing ship
+                const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                const hitShip = hitObstruction.object;
+                
+                // Apply damage to shields first, then hull
+                if (hitShip.shields > 0) {
+                    const shieldDamage = Math.min(damage, hitShip.shields);
+                    hitShip.shields -= shieldDamage;
+                    const remainingDamage = damage - shieldDamage;
+                    if (remainingDamage > 0) {
+                        hitShip.hull -= remainingDamage;
+                    }
+                } else {
+                    hitShip.hull -= damage;
+                }
+                
+                // Check if ship is disabled
+                if (hitShip.hull <= 0) {
+                    hitShip.hull = 0;
+                    hitShip.disabled = true;
+                }
+                
+                this.action.hitObstruction = { 
+                    type: 'ship', 
+                    ship: hitShip,
+                    damage: damage
+                };
+            }
+            
+            this.action.hit = false; // Didn't hit the intended target
             this.action.projectile = null;
             this.action.complete();
             return true;
@@ -284,11 +318,11 @@ class CombatActionHandler {
     }
     
     /**
-     * Check if laser path collides with any asteroids
-     * Returns the nearest asteroid hit, or null
+     * Check if laser path collides with any obstructions (asteroids and ships)
+     * Returns the nearest obstruction hit with type, or null
      */
-    checkAsteroidCollision(x1, y1, x2, y2) {
-        let nearestAsteroid = null;
+    checkObstructionCollision(x1, y1, x2, y2) {
+        let nearestObstruction = null;
         let nearestDistance = Infinity;
         
         // Check all non-disabled asteroids
@@ -297,16 +331,37 @@ class CombatActionHandler {
             
             // Check if line segment intersects asteroid circle
             if (Geom.lineCircleIntersect(x1, y1, x2, y2, asteroid.x, asteroid.y, ASTEROID_SIZE)) {
-                // Calculate distance from laser start to asteroid
-                const distance = Geom.distance(this.ship.x, this.ship.y, asteroid.x, asteroid.y);
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearestAsteroid = asteroid;
+                // Roll for obstruction chance
+                if (Math.random() < CHANCE_TO_LASER_OBSTRUCTION) {
+                    const distance = Geom.distance(this.ship.x, this.ship.y, asteroid.x, asteroid.y);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestObstruction = { type: 'asteroid', object: asteroid };
+                    }
                 }
             }
         }
         
-        return nearestAsteroid;
+        // Check all ships (except the shooter and the target)
+        for (const ship of this.allShips) {
+            if (ship === this.ship) continue; // Skip shooter
+            if (ship === this.action.targetShip) continue; // Skip intended target
+            if (ship.disabled || ship.fled || ship.escaped) continue; // Skip disabled/fled
+            
+            // Check if line segment intersects ship circle
+            if (Geom.lineCircleIntersect(x1, y1, x2, y2, ship.x, ship.y, SHIP_SIZE)) {
+                // Roll for obstruction chance
+                if (Math.random() < CHANCE_TO_LASER_OBSTRUCTION) {
+                    const distance = Geom.distance(this.ship.x, this.ship.y, ship.x, ship.y);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestObstruction = { type: 'ship', object: ship };
+                    }
+                }
+            }
+        }
+        
+        return nearestObstruction;
     }
     
     /**

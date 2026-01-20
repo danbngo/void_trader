@@ -122,4 +122,74 @@ class Ship {
         const totalFuel = ships.reduce((sum, ship) => sum + ship.fuel, 0);
         return totalFuel >= fleetFuelCost;
     }
+    
+    /**
+     * Get total available cargo space across fleet
+     * @param {Array<Ship>} ships - Array of ships
+     * @returns {number} Total available cargo space
+     */
+    static getFleetAvailableCargoSpace(ships) {
+        return ships.reduce((sum, ship) => sum + ship.getAvailableCargoSpace(), 0);
+    }
+    
+    /**
+     * Get all cargo across fleet
+     * @param {Array<Ship>} ships - Array of ships
+     * @returns {Object} Object with cargo type IDs as keys and total amounts as values
+     */
+    static getFleetCargo(ships) {
+        const totalCargo = {};
+        ships.forEach(ship => {
+            Object.keys(ship.cargo).forEach(cargoId => {
+                totalCargo[cargoId] = (totalCargo[cargoId] || 0) + ship.cargo[cargoId];
+            });
+        });
+        return totalCargo;
+    }
+    
+    /**
+     * Add cargo to fleet (distributes across ships with available space)
+     * @param {Array<Ship>} ships - Array of ships
+     * @param {string} cargoId - Cargo type ID
+     * @param {number} amount - Amount to add
+     * @returns {number} Amount actually added
+     */
+    static addCargoToFleet(ships, cargoId, amount) {
+        let remainingAmount = amount;
+        
+        for (const ship of ships) {
+            if (remainingAmount <= 0) break;
+            
+            const availableSpace = ship.getAvailableCargoSpace();
+            const amountToAdd = Math.min(availableSpace, remainingAmount);
+            
+            ship.cargo[cargoId] = (ship.cargo[cargoId] || 0) + amountToAdd;
+            remainingAmount -= amountToAdd;
+        }
+        
+        return amount - remainingAmount;
+    }
+    
+    /**
+     * Remove cargo from fleet (removes from ships that have it)
+     * @param {Array<Ship>} ships - Array of ships
+     * @param {string} cargoId - Cargo type ID
+     * @param {number} amount - Amount to remove
+     * @returns {number} Amount actually removed
+     */
+    static removeCargoFromFleet(ships, cargoId, amount) {
+        let remainingAmount = amount;
+        
+        for (const ship of ships) {
+            if (remainingAmount <= 0) break;
+            
+            const currentAmount = ship.cargo[cargoId] || 0;
+            const amountToRemove = Math.min(currentAmount, remainingAmount);
+            
+            ship.cargo[cargoId] = currentAmount - amountToRemove;
+            remainingAmount -= amountToRemove;
+        }
+        
+        return amount - remainingAmount;
+    }
 }

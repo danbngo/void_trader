@@ -114,8 +114,8 @@ const TravelMenu = (() => {
             y++;
             
             UI.addButton(5, y++, '1', 'Continue', () => {
-                // Go to encounter menu
-                EncounterMenu.show(currentGameState, encounterType);
+                // Go to encounter decision menu
+                EncounterDecisionMenu.show(currentGameState, encounterType);
             }, COLORS.GREEN);
         } else if (paused) {
             UI.addText(5, y++, 'Journey paused...', COLORS.TEXT_DIM);
@@ -216,7 +216,50 @@ const TravelMenu = (() => {
             ];
             
             const ship = ShipGenerator.generateShipOfType(randomShipType);
+            
+            // Optionally damage the ship
+            if (Math.random() < ENEMY_SHIP_HULL_DAMAGED_CHANCE) {
+                const hullRatio = ENEMY_DAMAGED_SHIP_MIN_HULL_RATIO + 
+                    Math.random() * (ENEMY_DAMAGED_SHIP_MAX_HULL_RATIO - ENEMY_DAMAGED_SHIP_MIN_HULL_RATIO);
+                ship.hull = Math.floor(ship.maxHull * hullRatio);
+            }
+            
             currentGameState.encounterShips.push(ship);
+        }
+        
+        // Calculate total cargo capacity and generate encounter cargo
+        const totalCargoCapacity = currentGameState.encounterShips.reduce((sum, ship) => sum + ship.maxCargo, 0);
+        const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
+        const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
+        
+        // Initialize encounter cargo with random cargo types
+        currentGameState.encounterCargo = {};
+        if (totalCargoAmount > 0) {
+            const cargoTypes = Object.keys(CARGO_TYPES);
+            const numCargoTypes = Math.floor(Math.random() * Math.min(3, cargoTypes.length)) + 1;
+            
+            // Select random cargo types
+            const selectedTypes = [];
+            for (let i = 0; i < numCargoTypes; i++) {
+                const randomType = cargoTypes[Math.floor(Math.random() * cargoTypes.length)];
+                if (!selectedTypes.includes(randomType)) {
+                    selectedTypes.push(randomType);
+                }
+            }
+            
+            // Distribute cargo amount among selected types
+            let remainingAmount = totalCargoAmount;
+            selectedTypes.forEach((type, index) => {
+                if (index === selectedTypes.length - 1) {
+                    // Last type gets remaining amount
+                    currentGameState.encounterCargo[type] = remainingAmount;
+                } else {
+                    // Random distribution
+                    const amount = Math.floor(Math.random() * remainingAmount);
+                    currentGameState.encounterCargo[type] = amount;
+                    remainingAmount -= amount;
+                }
+            });
         }
     }
     

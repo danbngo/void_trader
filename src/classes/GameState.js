@@ -18,6 +18,7 @@ class GameState {
         this.encounterShips = []; // Ships involved in current encounter
         this.encounter = false; // Whether an encounter is active
         this.asteroids = []; // Asteroids in current combat encounter
+        this.encounterCargo = {}; // Cargo held by encounter ships
         
         // Combat state
         this.combatAction = null; // Current combat action being executed

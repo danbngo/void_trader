@@ -726,8 +726,11 @@ const EncounterMenu = (() => {
             
             // Set completion message based on action type
             if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
-                // Laser message
-                if (action.hit) {
+                // Check if ship just turned instead of firing
+                if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
+                    outputMessage = `${activeShip.name} starts turning to target ${targetShipType.name}`;
+                    outputColor = COLORS.TEXT_NORMAL;
+                } else if (action.hit) {
                     outputMessage = `${activeShip.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.GREEN;
                 } else {
@@ -867,16 +870,16 @@ const EncounterMenu = (() => {
             Math.pow(action.ship.y - action.targetShip.y, 2)
         );
         
-        // Get target ship type for messages
-        const targetShipType = SHIP_TYPES[action.targetShip.type] || { name: 'Unknown' };
+        // Get enemy ship type for messages
+        const enemyShipType = SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
         
         // Set initial message
         if (action.actionType === COMBAT_ACTIONS.PURSUE) {
-            outputMessage = `Enemy pursuing ${action.targetShip.name}...`;
+            outputMessage = `${enemyShipType.name} pursuing ${action.targetShip.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
-            outputMessage = `Enemy fleeing from ${action.targetShip.name}...`;
+            outputMessage = `${enemyShipType.name} fleeing from ${action.targetShip.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
-            outputMessage = `Enemy firing laser at ${action.targetShip.name}...`;
+            outputMessage = `${enemyShipType.name} firing laser at ${action.targetShip.name}...`;
         }
         outputColor = COLORS.TEXT_ERROR;
         
@@ -886,12 +889,18 @@ const EncounterMenu = (() => {
             
             // Set message based on action type
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
-                // Laser message
-                if (action.hit) {
-                    outputMessage = `Enemy hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                // Get enemy ship type name
+                const enemyShipType = SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+                
+                // Check if ship just turned instead of firing
+                if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
+                    outputMessage = `${enemyShipType.name} starts turning to target ${action.targetShip.name}`;
+                    outputColor = COLORS.TEXT_NORMAL;
+                } else if (action.hit) {
+                    outputMessage = `${enemyShipType.name} hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_ERROR;
                 } else {
-                    outputMessage = `Enemy missed ${action.targetShip.name}! (${Math.floor(action.distance)} AU)`;
+                    outputMessage = `${enemyShipType.name} missed ${action.targetShip.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
@@ -902,11 +911,14 @@ const EncounterMenu = (() => {
                 );
                 const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
                 
+                // Get enemy ship type for messages
+                const enemyShipType = SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+                
                 // Set message for the completed action
                 if (action.actionType === COMBAT_ACTIONS.PURSUE) {
-                    outputMessage = `Enemy pursued ${action.targetShip.name} ${distanceMoved} AU`;
+                    outputMessage = `${enemyShipType.name} pursued ${action.targetShip.name} ${distanceMoved} AU`;
                 } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
-                    outputMessage = `Enemy fled ${distanceMoved} AU from ${action.targetShip.name}`;
+                    outputMessage = `${enemyShipType.name} fled ${distanceMoved} AU from ${action.targetShip.name}`;
                 }
                 outputColor = COLORS.TEXT_ERROR;
             }

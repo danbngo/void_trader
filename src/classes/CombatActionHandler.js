@@ -17,6 +17,66 @@ class CombatActionHandler {
         this.remainingDistance = 0;
         this.movementPerTick = { x: 0, y: 0 };
         this.initialized = false;
+        this.justTurned = false; // Flag if ship turned instead of firing
+    }
+    
+    /**
+     * Check if target is within 90-degree firing arc in front of ship
+     */
+    isTargetInFiringArc(targetAngle) {
+        // Normalize angles to 0-2π range
+        const normalizeAngle = (angle) => {
+            while (angle < 0) angle += Math.PI * 2;
+            while (angle >= Math.PI * 2) angle -= Math.PI * 2;
+            return angle;
+        };
+        
+        const shipAngle = normalizeAngle(this.ship.angle);
+        const targetNormalized = normalizeAngle(targetAngle);
+        
+        // Calculate angular difference
+        let diff = targetNormalized - shipAngle;
+        // Normalize to -π to π range
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        
+        // Check if within 45 degrees (π/4) on either side (90 degree total cone)
+        return Math.abs(diff) <= Math.PI / 4;
+    }
+    
+    /**
+     * Turn ship toward target angle, limited by engine
+     */
+    turnTowardTarget(targetAngle) {
+        // Normalize angles
+        const normalizeAngle = (angle) => {
+            while (angle < 0) angle += Math.PI * 2;
+            while (angle >= Math.PI * 2) angle -= Math.PI * 2;
+            return angle;
+        };
+        
+        const shipAngle = normalizeAngle(this.ship.angle);
+        const targetNormalized = normalizeAngle(targetAngle);
+        
+        // Calculate angular difference
+        let diff = targetNormalized - shipAngle;
+        // Normalize to -π to π range (shortest path)
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        
+        // Each engine point allows 45 degrees of turn (π/4 radians)
+        const maxTurn = this.ship.engine * (Math.PI / 4);
+        
+        // Turn as much as possible
+        if (Math.abs(diff) <= maxTurn) {
+            // Can reach target angle
+            this.ship.angle = targetNormalized;
+            return true; // Successfully aligned
+        } else {
+            // Turn as far as possible toward target
+            this.ship.angle = normalizeAngle(shipAngle + (diff > 0 ? maxTurn : -maxTurn));
+            return false; // Not yet aligned
+        }
     }
     
     /**
@@ -75,7 +135,25 @@ class CombatActionHandler {
                     const dx = this.action.targetShip.x - this.ship.x;
                     const dy = this.action.targetShip.y - this.ship.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
+                    const targetAngle = Math.atan2(dy, dx);
                     
+                    // Check if target is in firing arc
+                    if (!this.isTargetInFiringArc(targetAngle)) {
+                        // Need to turn toward target
+                        const aligned = this.turnTowardTarget(targetAngle);
+                        this.justTurned = true;
+                        
+                        if (!aligned) {
+                            // Couldn't turn far enough, action just turns
+                            this.action.hit = false;
+                            this.action.distance = distance;
+                            this.action.complete();
+                            return;
+                        }
+                        // If aligned, fall through to fire laser
+                    }
+                    
+                    // Target is in arc (or we just turned to align), fire laser
                     // Calculate hit chance: radar / distance
                     const hitChance = Math.min(1, this.ship.radar / distance);
                     const hit = Math.random() < hitChance;
@@ -91,7 +169,7 @@ class CombatActionHandler {
                     }
                     
                     // Set up projectile movement
-                    this.targetAngle = Math.atan2(dy, dx);
+                    this.targetAngle = targetAngle;
                     this.remainingDistance = distance;
                     
                     // Projectile moves at 10 units per tick (faster than ships)

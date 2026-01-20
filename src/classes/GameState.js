@@ -22,6 +22,11 @@ class GameState {
         this.asteroids = []; // Asteroids in current combat encounter
         this.encounterCargo = {}; // Cargo held by encounter ships
         
+        // Quest and message system
+        this.messages = []; // Array of Message objects
+        this.activeQuests = []; // Array of active quest IDs
+        this.completedQuests = []; // Array of completed quest IDs
+        
         // Combat state
         this.combatAction = null; // Current combat action being executed
         this.combatHandler = null; // Current combat action handler

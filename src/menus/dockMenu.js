@@ -9,6 +9,9 @@ const DockMenu = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
+        // Check for completed quests when docking
+        checkQuestCompletion(gameState);
+        
         UI.clear();
         UI.resetSelection();
         
@@ -31,7 +34,12 @@ const DockMenu = (() => {
         UI.addButton(menuX, menuY++, '2', 'Market', () => MarketMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'Buy and sell cargo');
         
         UI.addButton(menuX, menuY++, '3', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
-        UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), COLORS.BUTTON, 'View ship, cargo, and captain information');
+        
+        // Highlight assistant button if there are unread messages
+        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
+        const assistantColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
+        UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
+        
         UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
         
         UI.draw();
@@ -68,6 +76,36 @@ const DockMenu = (() => {
             // All good, go straight to galaxy map
             GalaxyMap.show(gameState);
         }
+    }
+    
+    /**
+     * Check if any active quests have been completed
+     * @param {GameState} gameState - Current game state
+     */
+    function checkQuestCompletion(gameState) {
+        const completedThisDock = [];
+        
+        // Check each active quest
+        gameState.activeQuests.forEach(questId => {
+            const quest = Object.values(QUESTS).find(q => q.id === questId);
+            if (quest && quest.checkCompleted(gameState)) {
+                // Move from active to completed
+                gameState.activeQuests = gameState.activeQuests.filter(id => id !== questId);
+                gameState.completedQuests.push(questId);
+                
+                // Award credits
+                gameState.credits += quest.creditReward;
+                
+                // Call onCompleted callback
+                if (quest.onCompleted) {
+                    quest.onCompleted(gameState);
+                }
+                
+                completedThisDock.push(quest);
+            }
+        });
+        
+        return completedThisDock;
     }
     
     return {

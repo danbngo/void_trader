@@ -103,6 +103,13 @@ const SystemGenerator = (() => {
         system.policeWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         system.merchantWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         
+        // Generate buildings based on generation chances
+        Object.values(BUILDING_TYPES).forEach(buildingType => {
+            if (Math.random() < buildingType.generationChance) {
+                system.buildings.push(buildingType.id);
+            }
+        });
+        
         return system;
     }
     

@@ -153,6 +153,15 @@ const TitleMenu = (() => {
             
             gameState.setCurrentSystem(bestSystemIndex);
             
+            // Remove guild from starting system if present
+            const startingSystem = gameState.getCurrentSystem();
+            if (startingSystem.buildings.includes('GUILD')) {
+                startingSystem.buildings = startingSystem.buildings.filter(b => b !== 'GUILD');
+            }
+            
+            // Add initial welcome message from uncle
+            gameState.messages.push(MESSAGES.UNCLE_WELCOME);
+            
             // Generate player ships and crew (2 ships for testing)
             gameState.ships.push(ShipGenerator.generateStartingShip());
             gameState.ships.push(ShipGenerator.generateStartingShip());

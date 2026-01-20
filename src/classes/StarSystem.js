@@ -18,6 +18,9 @@ class StarSystem {
         this.population = population;
         this.economy = economy;
         
+        // Buildings available in this system
+        this.buildings = []; // Array of building IDs (e.g., 'MARKET', 'SHIPYARD', 'GUILD')
+        
         // Market data
         this.cargoStock = {}; // Amount of each cargo type available
         this.cargoPriceModifier = {}; // Price multipliers for each cargo type

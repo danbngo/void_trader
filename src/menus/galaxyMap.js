@@ -350,36 +350,6 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'View detailed information about the selected system');
         
-        UI.addButton(28, buttonY + 1, '8', 'Zoom In', () => {
-            mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
-            render(gameState);
-        }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
-        
-        UI.addButton(28, buttonY + 2, '9', 'Zoom Out', () => {
-            mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
-            render(gameState);
-        }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
-        
-        // Travel button - gray out if can't afford fuel
-        let canTravel = false;
-        let travelHelpText = 'Begin travel to the selected system';
-        
-        if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
-            const targetSystem = nearbySystems[selectedIndex].system;
-            const currentSystem = gameState.getCurrentSystem();
-            const distance = currentSystem.distanceTo(targetSystem);
-            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
-            const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
-            
-            if (totalFuel < fuelCost) {
-                travelHelpText = `Insufficient fuel (need ${fuelCost}, have ${totalFuel})`;
-            } else {
-                canTravel = true;
-            }
-        } else {
-            travelHelpText = 'No system selected';
-        }
-        
         const travelColor = canTravel ? COLORS.GREEN : COLORS.TEXT_DIM;
         
         UI.addButton(28, buttonY, '6', 'Travel', () => {
@@ -410,6 +380,36 @@ const GalaxyMap = (() => {
                 }
             }
         }, travelColor, travelHelpText);
+
+        UI.addButton(28, buttonY + 1, '8', 'Zoom In', () => {
+            mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
+            render(gameState);
+        }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
+        
+        UI.addButton(28, buttonY + 2, '9', 'Zoom Out', () => {
+            mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
+            render(gameState);
+        }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
+        
+        // Travel button - gray out if can't afford fuel
+        let canTravel = false;
+        let travelHelpText = 'Begin travel to the selected system';
+        
+        if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
+            const targetSystem = nearbySystems[selectedIndex].system;
+            const currentSystem = gameState.getCurrentSystem();
+            const distance = currentSystem.distanceTo(targetSystem);
+            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+            const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+            
+            if (totalFuel < fuelCost) {
+                travelHelpText = `Insufficient fuel (need ${fuelCost}, have ${totalFuel})`;
+            } else {
+                canTravel = true;
+            }
+        } else {
+            travelHelpText = 'No system selected';
+        }
         
         UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
         

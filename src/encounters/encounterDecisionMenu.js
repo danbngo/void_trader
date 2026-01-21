@@ -44,6 +44,13 @@ const EncounterDecisionMenu = {
         UI.addText(10, y++, `They don't seem interested in you.`, COLORS.TEXT_DIM);
         y += 2;
         
+        // Show warning if enemy gained radar advantage (but chose to ignore)
+        if (gameState.enemyRadarAdvantage) {
+            UI.addText(10, y++, `NOTE: They detected you first but ignored you.`, COLORS.YELLOW);
+            UI.addText(10, y++, `Your shields would have been disabled.`, COLORS.TEXT_DIM);
+            y++;
+        }
+        
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
         y++;

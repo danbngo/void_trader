@@ -18,6 +18,13 @@ const PoliceEncounter = {
         UI.addText(10, y++, `"This is System Authority. Prepare for routine inspection."`, COLORS.YELLOW);
         y += 2;
         
+        // Show warning if enemy gained radar advantage
+        if (gameState.enemyRadarAdvantage) {
+            UI.addText(10, y++, `WARNING: Enemy detected you first!`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `All shields disabled by surprise approach.`, COLORS.TEXT_ERROR);
+            y++;
+        }
+        
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
         y++;

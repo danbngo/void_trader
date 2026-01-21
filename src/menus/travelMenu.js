@@ -13,6 +13,7 @@ const TravelMenu = (() => {
     let totalDuration = 0;
     let elapsedDays = 0;
     let encounterType = null;
+    let flashInterval = null;
     
     /**
      * Show the travel menu
@@ -31,6 +32,12 @@ const TravelMenu = (() => {
         encounterTriggered = false;
         arrivedAtDestination = false;
         encounterType = null;
+        
+        // Clear any existing flash interval
+        if (flashInterval) {
+            clearInterval(flashInterval);
+            flashInterval = null;
+        }
         
         // Track where we departed from (for police surrender jail mechanic)
         gameState.previousSystemIndex = gameState.currentSystemIndex;
@@ -115,7 +122,9 @@ const TravelMenu = (() => {
         // Encounter output row
         if (encounterTriggered && encounterType) {
             y++;
-            UI.addText(5, y++, `Alert: ${encounterType.name} Detected!`, COLORS.YELLOW);
+            // Flash between encounter color and white for emphasis
+            const flashColor = (Date.now() % 400 < 200) ? encounterType.color : COLORS.WHITE;
+            UI.addText(5, y++, `Alert: ${encounterType.name} Detected!`, flashColor);
             //UI.addText(5, y++, encounterType.description, COLORS.TEXT_NORMAL);
             y++;
             
@@ -209,8 +218,19 @@ const TravelMenu = (() => {
         
         // Set encounter flag
         currentGameState.encounter = true;
+                // Start flashing interval for the alert (200ms = 5 flashes per second, runs for ~2 seconds)
+        flashInterval = setInterval(() => {
+            render();
+        }, 200);
         
-        render();
+        // Stop flashing after 2 seconds
+        setTimeout(() => {
+            if (flashInterval) {
+                clearInterval(flashInterval);
+                flashInterval = null;
+            }
+        }, 2000);
+                render();
     }
     
     /**

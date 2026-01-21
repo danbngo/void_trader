@@ -34,6 +34,23 @@ const ResupplyMenu = (() => {
         // Use ship table utility (without cargo column)
         const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, false);
         
+        // Calculate total costs
+        const currentSystem = gameState.getCurrentSystem();
+        let totalRefuelCost = 0;
+        let totalRepairCost = 0;
+        
+        gameState.ships.forEach(ship => {
+            const fuelNeeded = ship.maxFuel - ship.fuel;
+            const hullDamage = ship.maxHull - ship.hull;
+            const shieldDamage = ship.maxShields - ship.shields;
+            totalRefuelCost += fuelNeeded * currentSystem.fuelCostPerUnit;
+            totalRepairCost += (hullDamage + shieldDamage) * currentSystem.repairCostPerPoint;
+        });
+        
+        // Display costs
+        UI.addText(5, endY + 2, `Total Refuel Cost: ${totalRefuelCost} CR`, totalRefuelCost > 0 ? COLORS.YELLOW : COLORS.TEXT_DIM);
+        UI.addText(5, endY + 3, `Total Repair Cost: ${totalRepairCost} CR`, totalRepairCost > 0 ? COLORS.YELLOW : COLORS.TEXT_DIM);
+        
         // Check if all ships are ready
         const allRepaired = gameState.ships.every(ship => ship.hull >= ship.maxHull && ship.shields >= ship.maxShields);
         const allRefueled = gameState.ships.every(ship => ship.fuel >= ship.maxFuel);

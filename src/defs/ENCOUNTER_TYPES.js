@@ -7,6 +7,7 @@ const ENCOUNTER_TYPES = {
     POLICE: {
         id: 'POLICE',
         name: 'Police',
+        color: COLORS.CYAN,
         description: 'Law enforcement patrol scanning for illegal cargo and fugitives',
         shipTypes: ['CORVETTE', 'DESTROYER'],
         cargoTypes: [],
@@ -18,6 +19,7 @@ const ENCOUNTER_TYPES = {
     MERCHANT: {
         id: 'MERCHANT',
         name: 'Merchant',
+        color: COLORS.YELLOW,
         description: 'Fellow trader looking to exchange goods or information',
         shipTypes: ['FREIGHTER', 'HAULER'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(!ct.illegal))],
@@ -29,6 +31,7 @@ const ENCOUNTER_TYPES = {
     PIRATE: {
         id: 'PIRATE',
         name: 'Pirate',
+        color: COLORS.TEXT_ERROR,
         description: 'Hostile vessel demanding cargo or credits',
         shipTypes: ['SCOUT', 'RAIDER', 'CORVETTE'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(ct.illegal))],

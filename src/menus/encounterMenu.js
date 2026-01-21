@@ -1298,6 +1298,22 @@ const EncounterMenu = (() => {
             activeShip.acted = true;
             waitingForContinue = true; // Wait for player to press Continue
             
+            // Clear target selection so yellow highlighting is removed
+            targetIndex = -1;
+            
+            // Auto-select next valid target for convenience
+            const enemies = currentGameState.encounterShips.filter(s => !s.fled && !s.disabled && !s.escaped);
+            if (enemies.length > 0) {
+                // Find first valid target
+                for (let i = 0; i < currentGameState.encounterShips.length; i++) {
+                    const enemy = currentGameState.encounterShips[i];
+                    if (!enemy.fled && !enemy.disabled && !enemy.escaped) {
+                        targetIndex = i;
+                        break;
+                    }
+                }
+            }
+            
             // Set completion message based on action type
             if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
                 // Check if ship just turned instead of firing

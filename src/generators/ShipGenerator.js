@@ -26,7 +26,7 @@ const ShipGenerator = (() => {
      */
     function generateStartingShip() {
         const name = shipNames[Math.floor(Math.random() * shipNames.length)];
-        const shipType = SHIP_TYPES.BATTLESHIP;
+        const shipType = SHIP_TYPES.SHUTTLE;
         
         const maxFuel = shipType.baseMaxFuel;
         const fuel = maxFuel;

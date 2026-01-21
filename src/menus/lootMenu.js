@@ -81,20 +81,17 @@ const LootMenu = (() => {
             return;
         }
         
-        // Loot table
+        // Loot table - filter to only enabled cargo types with loot
         const startY = 9;
         const rows = ALL_CARGO_TYPES
-            .filter(cargoType => lootCargo[cargoType.id] > 0)
+            .filter(cargoType => lootCargo[cargoType.id] > 0 && 
+                gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id))
             .map((cargoType, index) => {
                 const lootQuantity = lootCargo[cargoType.id] || 0;
                 
-                // Check if player has training for this cargo type
-                const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
-                const textColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
-                
                 return [
-                    { text: cargoType.name, color: textColor },
-                    { text: String(lootQuantity), color: textColor }
+                    { text: cargoType.name, color: COLORS.TEXT_NORMAL },
+                    { text: String(lootQuantity), color: COLORS.TEXT_NORMAL }
                 ];
             });
         
@@ -114,19 +111,16 @@ const LootMenu = (() => {
         const buttonY = grid.height - 4;
         
         // Get selected cargo type and check training
-        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => lootCargo[ct.id] > 0);
+        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
+            lootCargo[ct.id] > 0 && gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
+        );
         const selectedCargoType = availableCargoTypes[selectedCargoIndex];
-        const hasTraining = selectedCargoType ? gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id) : false;
         const lootQuantity = selectedCargoType ? (lootCargo[selectedCargoType.id] || 0) : 0;
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         
         // Build help text for Take buttons
         let take1HelpText = 'Take 1 unit of selected cargo';
         let take10HelpText = 'Take 10 units of selected cargo';
-        if (!hasTraining) {
-            take1HelpText = 'Requires training - Visit the Guild';
-            take10HelpText = 'Requires training - Visit the Guild';
-        } else if (lootQuantity === 0) {
             take1HelpText = 'No cargo available';
             take10HelpText = 'No cargo available';
         } else if (availableSpace === 0) {
@@ -168,8 +162,10 @@ const LootMenu = (() => {
      * Take cargo from loot
      */
     function takeCargo(amount, onContinue) {
-        // Get the selected cargo type from filtered list
-        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => lootCargo[ct.id] > 0);
+        // Get the selected cargo type from filtered list (only enabled cargo with loot)
+        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
+            lootCargo[ct.id] > 0 && gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
+        );
         if (selectedCargoIndex >= availableCargoTypes.length) {
             outputMessage = 'Invalid cargo selection.';
             outputColor = COLORS.TEXT_ERROR;
@@ -178,15 +174,6 @@ const LootMenu = (() => {
         }
         
         const cargoType = availableCargoTypes[selectedCargoIndex];
-        
-        // Check if player has training for this cargo type
-        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
-        if (!hasTraining) {
-            outputMessage = `You lack training to handle ${cargoType.name}. Visit the Guild!`;
-            outputColor = COLORS.TEXT_ERROR;
-            render(onContinue);
-            return;
-        }
         
         const availableLoot = lootCargo[cargoType.id] || 0;
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
@@ -222,8 +209,10 @@ const LootMenu = (() => {
      * Dump cargo from loot into space
      */
     function dumpCargo(amount, onContinue) {
-        // Get the selected cargo type from filtered list
-        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => lootCargo[ct.id] > 0);
+        // Get the selected cargo type from filtered list (only enabled cargo with loot)
+        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
+            lootCargo[ct.id] > 0 && gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
+        );
         if (selectedCargoIndex >= availableCargoTypes.length) {
             outputMessage = 'Invalid cargo selection.';
             outputColor = COLORS.TEXT_ERROR;

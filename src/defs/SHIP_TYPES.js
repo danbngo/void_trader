@@ -4,6 +4,18 @@
  */
 
 const SHIP_TYPES = {
+    SHUTTLE: {
+        id: 'SHUTTLE',
+        name: 'Shuttle',
+        description: 'Basic starter ship with minimal capabilities',
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.5,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.5,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.5
+    },
     SCOUT: {
         id: 'SCOUT',
         name: 'Scout',
@@ -93,7 +105,7 @@ const SHIP_TYPES = {
 // Array of all ship types for iteration
 const ALL_SHIP_TYPES = Object.values(SHIP_TYPES);
 
-const SHIP_TYPES_BASIC = [SHIP_TYPES.SCOUT]
+const SHIP_TYPES_BASIC = [SHIP_TYPES.SHUTTLE, SHIP_TYPES.SCOUT]
 const SHIP_TYPES_MERCANTILE = [SHIP_TYPES.FREIGHTER, SHIP_TYPES.HAULER]
 const SHIP_TYPES_PARAMILITARY = [SHIP_TYPES.CORVETTE, SHIP_TYPES.RAIDER]
 const SHIP_TYPES_MILITARY = [SHIP_TYPES.DESTROYER, SHIP_TYPES.BATTLESHIP]

@@ -18,11 +18,18 @@ const UndetectedEncounter = {
         const playerRadarRoll = playerRadarTotal * Math.random();
         const enemyRadarRoll = enemyRadarTotal * Math.random();
         
-        if (playerRadarRoll > enemyRadarRoll) {
-            // Player detects enemy first - show undetected screen
+        if (playerRadarRoll > enemyRadarRoll * 2) {
+            // Player detects enemy first (requires 2x advantage) - show undetected screen
             this.showUndetectedScreen(gameState, encType);
+        } else if (enemyRadarRoll > playerRadarRoll * 2) {
+            // Enemy has 2x radar advantage - player ships start with 0 shields
+            gameState.ships.forEach(ship => {
+                ship.shields = 0;
+            });
+            // Enemy detects player first - normal encounter flow
+            encType.onGreet(gameState, encType);
         } else {
-            // Enemy detects player first or simultaneous - normal encounter flow
+            // Simultaneous detection or neither has 2x advantage - normal encounter flow
             encType.onGreet(gameState, encType);
         }
     },

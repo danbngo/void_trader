@@ -67,7 +67,7 @@ const TravelConfirmMenu = (() => {
             { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Distance:', value: `${distance.toFixed(1)} LY`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Fuel Cost:', value: String(fuelCost), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
+            { label: 'Fuel Cost:', value: `${fuelCost} / ${totalFuel}`, valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Fuel After:', value: String(fuelAfter), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Duration:', value: `${durationDays} days`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_NORMAL },

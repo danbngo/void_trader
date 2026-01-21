@@ -41,33 +41,38 @@ const MarketMenu = (() => {
         UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
         UI.addText(5, 6, `Cargo: ${totalCargo} / ${totalCapacity}`, COLORS.TEXT_NORMAL);
         
+        // Filter to only enabled cargo types
+        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
+            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
+        );
+        
+        // Ensure selectedCargoIndex is valid
+        if (selectedCargoIndex >= enabledCargoTypes.length) {
+            selectedCargoIndex = Math.max(0, enabledCargoTypes.length - 1);
+        }
+        
         // Market table
         const startY = 9;
-        const rows = ALL_CARGO_TYPES.map((cargoType, index) => {
+        const rows = enabledCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
             const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
             const playerQuantity = fleetCargo[cargoType.id] || 0;
             
-            // Check if player has training for this cargo type
-            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
-            
             // Calculate ratios for color coding
             const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
             const sellRatio = sellPrice / cargoType.baseValue; // Higher sell price = higher ratio = better
             
-            // If no training, make entire row grey
-            const buyColor = hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
-            const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
-            const textColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            const buyColor = UI.calcStatColor(buyRatio);
+            const sellColor = UI.calcStatColor(sellRatio);
             
             return [
-                { text: cargoType.name, color: textColor },
-                { text: String(stock), color: textColor },
-                { text: String(cargoType.baseValue), color: hasTraining ? COLORS.TEXT_DIM : COLORS.TEXT_DIM },
+                { text: cargoType.name, color: COLORS.TEXT_NORMAL },
+                { text: String(stock), color: COLORS.TEXT_NORMAL },
+                { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
                 { text: `${buyPrice}`, color: buyColor },
                 { text: `${sellPrice}`, color: sellColor },
-                { text: String(playerQuantity), color: textColor }
+                { text: String(playerQuantity), color: COLORS.TEXT_NORMAL }
             ];
         });
         
@@ -83,22 +88,23 @@ const MarketMenu = (() => {
         UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
         UI.addButton(5, buttonY + 1, '2', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
         
+        // Get enabled cargo types
+        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
+            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
+        );
+        
         // Get cargo info for selected type
-        const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        const selectedCargoType = enabledCargoTypes[selectedCargoIndex];
         const buyPrice = Math.floor(selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);
         const marketStock = currentSystem.cargoStock[selectedCargoType.id];
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         const playerStock = fleetCargo[selectedCargoType.id] || 0;
-        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id);
         
         // Build help text for buy buttons
         let buy1HelpText = 'Purchase 1 unit of selected cargo';
         let buy10HelpText = 'Purchase 10 units of selected cargo';
-        if (!hasTraining) {
-            buy1HelpText = 'Requires training - Visit the Guild';
-            buy10HelpText = 'Requires training - Visit the Guild';
-        } else if (marketStock === 0) {
+        if (marketStock === 0) {
             buy1HelpText = 'No stock available in market';
             buy10HelpText = 'No stock available in market';
         } else if (availableSpace === 0) {
@@ -150,19 +156,25 @@ const MarketMenu = (() => {
     }
     
     /**
-     * Select next cargo type
+     * Select next cargo type (only enabled ones)
      */
     function nextCargo(onReturn) {
-        selectedCargoIndex = (selectedCargoIndex + 1) % ALL_CARGO_TYPES.length;
+        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
+            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
+        );
+        selectedCargoIndex = (selectedCargoIndex + 1) % enabledCargoTypes.length;
         outputMessage = '';
         render(onReturn);
     }
     
     /**
-     * Select previous cargo type
+     * Select previous cargo type (only enabled ones)
      */
     function prevCargo(onReturn) {
-        selectedCargoIndex = (selectedCargoIndex - 1 + ALL_CARGO_TYPES.length) % ALL_CARGO_TYPES.length;
+        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
+            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
+        );
+        selectedCargoIndex = (selectedCargoIndex - 1 + enabledCargoTypes.length) % enabledCargoTypes.length;
         outputMessage = '';
         render(onReturn);
     }
@@ -171,17 +183,11 @@ const MarketMenu = (() => {
      * Buy cargo
      */
     function buyCargo(amount, onReturn) {
-        const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
+            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
+        );
+        const cargoType = enabledCargoTypes[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
-        
-        // Check if player has training
-        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
-        if (!hasTraining) {
-            outputMessage = `You lack training to handle ${cargoType.name}. Visit the Guild!`;
-            outputColor = COLORS.TEXT_ERROR;
-            render(onReturn);
-            return;
-        }
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
         const availableStock = currentSystem.cargoStock[cargoType.id];
@@ -222,7 +228,10 @@ const MarketMenu = (() => {
      * Sell cargo
      */
     function sellCargo(amount, onReturn) {
-        const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
+            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
+        );
+        const cargoType = enabledCargoTypes[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
         
         const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);

@@ -330,10 +330,10 @@ const DockMenu = (() => {
                 gameState.activeQuests = gameState.activeQuests.filter(id => id !== questId);
                 gameState.completedQuests.push(questId);
                 
-                // Award credits
-                gameState.credits += quest.creditReward;
+                // Note: Credits are awarded via the message system, not here
+                // quest.creditReward is only used for display purposes
                 
-                // Call onCompleted callback
+                // Call onCompleted callback (which typically adds a message)
                 if (quest.onCompleted) {
                     quest.onCompleted(gameState);
                 }

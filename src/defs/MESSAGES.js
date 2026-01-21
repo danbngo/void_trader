@@ -100,5 +100,40 @@ const MESSAGES = {
                 updateSystemsWithQuests(gameState);
             }
         }
+    ),
+    
+    CARGO_HANDLING_ATTAINED: new Message(
+        'CARGO_HANDLING_ATTAINED',
+        'The Path of the Merchant',
+        [
+            'Outstanding, nephew!',
+            '',
+            'You have mastered the handling of fragile cargo. Already I can',
+            'see your profits growing with each successful trade.',
+            '',
+            'But a true merchant needs more than cargo expertise - they need',
+            'a vessel truly fit for commerce. Your current ships serve you well,',
+            'but they pale in comparison to proper mercantile vessels.',
+            '',
+            'Your next challenge: return to the Guild and acquire the Ship',
+            'License: Mercantile. This will grant you access to Freighters and',
+            'Haulers - ships with cargo holds that dwarf your current capacity.',
+            '',
+            'Trade wisely, save your credits, and soon you will command',
+            'a fleet worthy of the void trader legacy.',
+            '',
+            '- Uncle'
+        ],
+        (gameState) => {
+            // Award credits (double the previous reward)
+            gameState.credits += 4000;
+            
+            // Add next quest
+            const quest = QUESTS.LEARN_SHIP_HANDLING;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        }
     )
 };

@@ -53,6 +53,22 @@ const QUESTS = {
             return gameState.perks.has('CARGO_FRAGILE');
         },
         (gameState) => {
+            // Add completion message
+            gameState.messages.push(MESSAGES.CARGO_HANDLING_ATTAINED);
+        },
+        ['Proxima'] // Related systems
+    ),
+    
+    LEARN_SHIP_HANDLING: new Quest(
+        'LEARN_SHIP_HANDLING',
+        'Learn Ship Handling',
+        'Visit the Guild and learn the Ship License: Mercantile',
+        8000,
+        (gameState) => {
+            // Check if player has learned SHIP_MERCANTILE perk
+            return gameState.perks.has('SHIP_MERCANTILE');
+        },
+        (gameState) => {
             // TODO: Add next message when ready
         },
         ['Proxima'] // Related systems

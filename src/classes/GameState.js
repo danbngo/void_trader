@@ -27,6 +27,7 @@ class GameState {
         this.messages = []; // Array of Message objects
         this.activeQuests = []; // Array of active quest IDs
         this.completedQuests = []; // Array of completed quest IDs
+        this.systemsWithQuests = []; // Array of system indices that have related quests
         
         // Perk system
         this.perks = new Set(); // Set of perk IDs the player has learned

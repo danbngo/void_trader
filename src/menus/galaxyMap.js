@@ -120,6 +120,7 @@ const GalaxyMap = (() => {
                 const systemIndex = gameState.systems.indexOf(item.system);
                 const isVisited = gameState.visitedSystems.includes(systemIndex);
                 const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y);
+                const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
                 
                 // Determine symbol and color
                 let symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
@@ -129,8 +130,12 @@ const GalaxyMap = (() => {
                 if (isSelected) {
                     // Selected: yellow if reachable, red if not
                     color = canReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
-                } else if (canReach) {
+                } else if (hasQuest) {
+                    // Systems with quests are cyan (whether reachable or not)
                     color = COLORS.CYAN;
+                } else if (canReach) {
+                    // Reachable systems are white
+                    color = COLORS.TEXT_NORMAL;
                 }
                 
                 // Only draw if not overlapping current system
@@ -231,6 +236,17 @@ const GalaxyMap = (() => {
             
             UI.addText(startX, y++, 'Reachable:', COLORS.TEXT_DIM);
             UI.addText(startX + 11, y - 1, canReach ? 'Yes' : 'No', canReach ? COLORS.GREEN : COLORS.TEXT_ERROR);
+            
+            // Has Quest
+            const systemIndex = gameState.systems.indexOf(selected.system);
+            const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
+            UI.addText(startX, y++, 'Has Quest:', COLORS.TEXT_DIM);
+            UI.addText(startX + 11, y - 1, hasQuest ? 'Yes' : 'No', hasQuest ? COLORS.CYAN : COLORS.GRAY);
+            
+            // Visited
+            const isVisited = gameState.visitedSystems.includes(systemIndex);
+            UI.addText(startX, y++, 'Visited:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, y - 1, isVisited ? 'Yes' : 'No', isVisited ? COLORS.TEXT_NORMAL : COLORS.GRAY);
             
             UI.addText(startX, y++, 'Pop:', COLORS.TEXT_DIM);
             UI.addText(startX + 5, y - 1, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
@@ -334,12 +350,12 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'View detailed information about the selected system');
         
-        UI.addButton(28, buttonY, '8', 'Zoom In', () => {
+        UI.addButton(28, buttonY + 1, '8', 'Zoom In', () => {
             mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
         
-        UI.addButton(28, buttonY + 1, '9', 'Zoom Out', () => {
+        UI.addButton(28, buttonY + 2, '9', 'Zoom Out', () => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
@@ -366,7 +382,7 @@ const GalaxyMap = (() => {
         
         const travelColor = canTravel ? COLORS.GREEN : COLORS.TEXT_DIM;
         
-        UI.addButton(28, buttonY + 2, '6', 'Travel', () => {
+        UI.addButton(28, buttonY, '6', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 // Check if retirement time has passed (50 years)
                 if (gameState.hasRetirementTimePassed()) {
@@ -395,7 +411,7 @@ const GalaxyMap = (() => {
             }
         }, travelColor, travelHelpText);
         
-        UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.GRAY, 'Return to the docking menu');
+        UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

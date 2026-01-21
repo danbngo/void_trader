@@ -94,7 +94,15 @@ const DockMenu = (() => {
         allBuildings.forEach((building, index) => {
             const hasBuilding = currentSystem.buildings.includes(building.id);
             const hasRank = currentRank.level >= building.buildingType.minRankLevel;
-            const isAccessible = hasBuilding && hasRank;
+            let isAccessible = hasBuilding && hasRank;
+            
+            // Special check for Dock Services: also gray out if all ships are at full fuel and hull
+            if (building.id === 'DOCK' && isAccessible) {
+                const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
+                if (allShipsFull) {
+                    isAccessible = false;
+                }
+            }
             
             const color = isAccessible ? COLORS.BUTTON : COLORS.TEXT_DIM;
             const key = String(index + 1);
@@ -107,6 +115,11 @@ const DockMenu = (() => {
             } else if (!hasRank) {
                 const requiredRank = ALL_RANKS.find(r => r.level === building.buildingType.minRankLevel);
                 helpText += ` - Requires ${requiredRank.name} citizenship`;
+            } else if (building.id === 'DOCK') {
+                const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
+                if (allShipsFull) {
+                    helpText += ' - All ships at full fuel and hull';
+                }
             }
             
             UI.addButton(menuX, menuY++, key, building.name, 
@@ -261,7 +274,16 @@ const DockMenu = (() => {
         // Continue button
         const buttonY = grid.height - 4;
         UI.addButton(10, buttonY, '1', 'Continue', () => {
-            show(gameState);
+            // Check if there are more unread messages
+            const nextUnreadMessage = gameState.messages.find(m => !m.isRead && !m.suppressWarning);
+            
+            if (nextUnreadMessage) {
+                // Show next unread message warning
+                showUnreadMessageWarning(gameState, nextUnreadMessage);
+            } else {
+                // No more unread messages, proceed to galaxy map
+                proceedToGalaxyMap(gameState);
+            }
         }, COLORS.GREEN);
         
         UI.draw();
@@ -308,10 +330,10 @@ const DockMenu = (() => {
                 gameState.activeQuests = gameState.activeQuests.filter(id => id !== questId);
                 gameState.completedQuests.push(questId);
                 
-                // Award credits
-                gameState.credits += quest.creditReward;
+                // Note: Credits are awarded via the message system, not here
+                // quest.creditReward is only used for display purposes
                 
-                // Call onCompleted callback
+                // Call onCompleted callback (which typically adds a message)
                 if (quest.onCompleted) {
                     quest.onCompleted(gameState);
                 }
@@ -351,6 +373,18 @@ const DockMenu = (() => {
             outputColor = COLORS.TEXT_ERROR;
             console.log(`[DockMenu] Insufficient rank. Setting outputMessage:`, outputMessage);
             render(gameState);
+        } else if (building.id === 'DOCK') {
+            // Special check for Dock Services: if all ships are at full fuel and hull
+            const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
+            if (allShipsFull) {
+                outputMessage = 'All ships at full fuel and hull!';
+                outputColor = COLORS.TEXT_ERROR;
+                render(gameState);
+            } else {
+                // Player has access
+                console.log(`[DockMenu] Player has access, opening menu`);
+                building.openMenu();
+            }
         } else {
             // Player has access
             console.log(`[DockMenu] Player has access, opening menu`);

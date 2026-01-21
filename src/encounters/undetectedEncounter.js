@@ -60,7 +60,7 @@ const UndetectedEncounter = {
         UI.addButton(10, buttonY, '1', 'Approach', () => {
             // Proceed with normal encounter
             encType.onGreet(gameState, encType);
-        }, COLORS.YELLOW, `Engage with the ${encType.name} normally`);
+        }, COLORS.GREEN, `Engage with the ${encType.name} normally`);
         
         UI.addButton(10, buttonY + 1, '2', 'Avoid', () => {
             // Player successfully avoids encounter

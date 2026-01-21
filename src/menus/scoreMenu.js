@@ -97,6 +97,13 @@ const ScoreMenu = (() => {
         const totalColor = score.totalScore >= 0 ? COLORS.YELLOW : COLORS.TEXT_ERROR;
         UI.addText(leftX + 25, y++, `${score.totalScore.toLocaleString()}`, totalColor);
         
+        y += 2;
+        
+        // Show what rank the player would get if they retired
+        const retirementRank = getScoreRank(score.totalScore);
+        UI.addText(leftX, y, 'Retirement Rank:', COLORS.CYAN);
+        UI.addText(leftX + 25, y++, retirementRank.name, COLORS.YELLOW);
+        
         // Buttons
         const buttonY = grid.height - 4;
         UI.addButton(10, buttonY, 'R', 'Retire Early', () => {

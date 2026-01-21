@@ -96,8 +96,8 @@ const TravelConfirmMenu = (() => {
         y++;
         
         if (!isVisited) {
-            UI.addText(5, y++, 'Target system unvisited - exact encounter', COLORS.TEXT_DIM);
-            UI.addText(5, y++, 'rates unknown until arrival.', COLORS.TEXT_DIM);
+            UI.addText(5, y++, 'Target system unvisited - exact encounter', COLORS.YELLOW);
+            UI.addText(5, y++, 'rates unknown until arrival.', COLORS.YELLOW);
             y++;
         }
         

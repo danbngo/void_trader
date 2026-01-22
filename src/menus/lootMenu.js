@@ -121,6 +121,7 @@ const LootMenu = (() => {
         // Build help text for Take buttons
         let take1HelpText = 'Take 1 unit of selected cargo';
         let take10HelpText = 'Take 10 units of selected cargo';
+        if (lootQuantity === 0) {
             take1HelpText = 'No cargo available';
             take10HelpText = 'No cargo available';
         } else if (availableSpace === 0) {

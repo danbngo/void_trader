@@ -88,12 +88,7 @@ const MarketMenu = (() => {
         UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
         UI.addButton(5, buttonY + 1, '2', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
         
-        // Get enabled cargo types
-        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
-            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
-        );
-        
-        // Get cargo info for selected type
+        // Get cargo info for selected type (reuse enabledCargoTypes from above)
         const selectedCargoType = enabledCargoTypes[selectedCargoIndex];
         const buyPrice = Math.floor(selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);

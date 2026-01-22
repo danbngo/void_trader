@@ -72,8 +72,8 @@ const TitleMenu = (() => {
         // Render starfield FIRST (background layer)
         Starfield.render();
         
-        // Reset selection for buttons
-        UI.resetSelection();
+        // Don't reset selection here - it causes buttons to reset every frame
+        // UI.resetSelection();
         
         const grid = UI.getGridSize();
         const centerX = Math.floor(grid.width / 2);

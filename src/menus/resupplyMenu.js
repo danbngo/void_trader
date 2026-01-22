@@ -35,7 +35,6 @@ const ResupplyMenu = (() => {
         const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, false);
         
         // Calculate total costs
-        const currentSystem = gameState.getCurrentSystem();
         let totalRefuelCost = 0;
         let totalRepairCost = 0;
         

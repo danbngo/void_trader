@@ -35,7 +35,7 @@ class InputHandler {
             }
             
             if (this.onKeyPress) {
-                this.onKeyPress(e.key);
+                this.onKeyPress(e.key, e);
             }
         };
         

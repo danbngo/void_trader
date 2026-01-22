@@ -179,10 +179,11 @@ const UI = (() => {
         registeredButtons = [];
         registeredHighlights = [];
         registeredTableRows = [];
-        // Clear output row state
-        outputRowText = '';
-        outputRowColor = 'white';
-        outputRowIsHelpText = false;
+        // Clear output row state only if it's not help text (preserve help text during redraws)
+        if (!outputRowIsHelpText) {
+            outputRowText = '';
+            outputRowColor = 'white';
+        }
         // Stop any flashing when menu changes (but not during flash callback)
         if (!isInFlashCallback) {
             stopFlashing();

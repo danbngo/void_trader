@@ -118,6 +118,9 @@ const LootMenu = (() => {
         const lootQuantity = selectedCargoType ? (lootCargo[selectedCargoType.id] || 0) : 0;
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         
+        // Check if this cargo type is enabled (player has training for it)
+        const hasTraining = selectedCargoType ? gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id) : false;
+        
         // Build help text for Take buttons
         let take1HelpText = 'Take 1 unit of selected cargo';
         let take10HelpText = 'Take 10 units of selected cargo';

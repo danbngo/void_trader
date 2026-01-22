@@ -96,6 +96,9 @@ const MarketMenu = (() => {
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         const playerStock = fleetCargo[selectedCargoType.id] || 0;
         
+        // Check if this cargo type is enabled (player has training for it)
+        const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id);
+        
         // Build help text for buy buttons
         let buy1HelpText = 'Purchase 1 unit of selected cargo';
         let buy10HelpText = 'Purchase 10 units of selected cargo';

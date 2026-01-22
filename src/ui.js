@@ -4,13 +4,11 @@
  */
 
 const UI = (() => {
-    // Configuration
-
+    // Canvas wrapper instance
+    let canvasWrapper = null;
     
-    let canvas = null;
-    let ctx = null;
-    let charWidth = 0;
-    let charHeight = 0;
+    // Input handler instance
+    let inputHandler = null;
     
     // Registered UI elements (registration phase)
     let registeredTexts = [];
@@ -20,7 +18,6 @@ const UI = (() => {
     let selectedButtonIndex = 0;
     let lastSelectedButtonIndex = -1; // Track last selection to detect changes
     let preservedButtonKey = null; // Track button key to preserve selection across re-renders
-    let keyListener = null;
     let wheelZoomHandler = null; // Handler for mouse wheel zoom
     
     // Output row state
@@ -35,138 +32,63 @@ const UI = (() => {
     let flashState = false; // Toggles between true/false each flash
     let isInFlashCallback = false; // Prevents clear() from stopping flash during callback
     
-    // Debounce timer for resize
-    let resizeTimeout = null;
-    
     /**
      * Initialize the UI system
      */
     function init() {
-        canvas = document.getElementById('gameCanvas');
-        ctx = canvas.getContext('2d');
+        // Create canvas wrapper
+        canvasWrapper = new CanvasWrapper('gameCanvas', GRID_WIDTH, GRID_HEIGHT, FONT_FAMILY, MIN_FONT_SIZE, MAX_FONT_SIZE);
+        canvasWrapper.init();
         
-        // Set canvas to fill window
-        resizeCanvas();
-        window.addEventListener('resize', debouncedResize);
+        // Create input handler
+        inputHandler = new InputHandler(canvasWrapper);
+        inputHandler.init();
         
-        // Setup keyboard listener
-        setupKeyListener();
+        // Setup input callbacks
+        setupInputCallbacks();
         
-        // Setup mouse listener
-        setupMouseListener();
-    }
-    
-    /**
-     * Debounced resize handler
-     */
-    function debouncedResize() {
-        // Clear existing timeout
-        if (resizeTimeout) {
-            clearTimeout(resizeTimeout);
-        }
-        
-        // Set new timeout to resize after 150ms of no resize events
-        resizeTimeout = setTimeout(() => {
-            resizeCanvas();
-        }, 150);
-    }
-    
-    /**
-     * Resize canvas and recalculate character dimensions
-     */
-    function resizeCanvas() {
-        // Calculate the aspect ratio for our character grid
-        const gridAspect = GRID_WIDTH / GRID_HEIGHT;
-        const windowAspect = window.innerWidth / window.innerHeight;
-        
-        let canvasWidth, canvasHeight;
-        
-        // Fit grid to window while preserving aspect ratio (letterbox/pillarbox)
-        if (windowAspect > gridAspect) {
-            // Window is wider - pillarbox (black bars on sides)
-            canvasHeight = window.innerHeight;
-            canvasWidth = canvasHeight * gridAspect;
-        } else {
-            // Window is taller - letterbox (black bars top/bottom)
-            canvasWidth = window.innerWidth;
-            canvasHeight = canvasWidth / gridAspect;
-        }
-        
-        // Calculate initial character dimensions
-        let tempCharHeight = canvasHeight / GRID_HEIGHT;
-        
-        // Calculate font size with min/max constraints
-        let fontSize = Math.floor(tempCharHeight * 0.9);
-        fontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fontSize));
-        
-        // Calculate actual character dimensions based on final font size
-        charHeight = fontSize / 0.9;
-        charWidth = fontSize * 0.6; // Monospace width approximation
-        
-        // Recalculate canvas size based on actual character dimensions
-        // This ensures the grid fits perfectly even when font is capped
-        canvasWidth = charWidth * GRID_WIDTH;
-        canvasHeight = charHeight * GRID_HEIGHT;
-        
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-        
-        // Center canvas in window
-        canvas.style.position = 'absolute';
-        canvas.style.left = `${(window.innerWidth - canvasWidth) / 2}px`;
-        canvas.style.top = `${(window.innerHeight - canvasHeight) / 2}px`;
-        
-        // Set font
-        ctx.font = `${fontSize}px ${FONT_FAMILY}`;
-        ctx.textBaseline = 'middle';
-        
-        // Redraw registered elements
+        // Initial draw
         draw();
     }
     
     /**
-     * Setup keyboard event listener
+     * Setup input callbacks to handle keyboard and mouse events
      */
-    function setupKeyListener() {
-        if (keyListener) {
-            document.removeEventListener('keydown', keyListener);
-        }
-        
-        keyListener = (e) => {
-            const key = e.key;
-            
+    function setupInputCallbacks() {
+        // Keyboard callback
+        inputHandler.setKeyPressCallback((key, event) => {
             // Handle button navigation
             if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'Tab') {
-                e.preventDefault();
+                event.preventDefault();
                 if (registeredButtons.length > 0) {
                     selectedButtonIndex = (selectedButtonIndex + 1) % registeredButtons.length;
-                    draw(); // Redraw with new selection
+                    draw();
                 }
                 return;
             }
             
             if (key === 'ArrowUp' || key === 'ArrowLeft') {
-                e.preventDefault();
+                event.preventDefault();
                 if (registeredButtons.length > 0) {
                     selectedButtonIndex = (selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length;
-                    draw(); // Redraw with new selection
+                    draw();
                 }
                 return;
             }
             
             // Handle button activation
             if (key === 'Enter' || key === ' ') {
-                e.preventDefault();
+                event.preventDefault();
                 if (registeredButtons.length > 0 && registeredButtons[selectedButtonIndex]) {
                     registeredButtons[selectedButtonIndex].callback();
                 }
                 return;
             }
 
-            if (key == 'Escape') {
+            if (key === 'Escape') {
                 const zeroBtn = registeredButtons.find(btn => btn.key === '0');
                 if (zeroBtn) {
-                    e.preventDefault();
+                    event.preventDefault();
                     zeroBtn.callback();
                 }
                 return;
@@ -174,49 +96,26 @@ const UI = (() => {
             
             // Check for PageUp/PageDown zoom
             if (key === 'PageUp' && wheelZoomHandler) {
-                e.preventDefault();
-                wheelZoomHandler(-100); // Negative delta = zoom in
+                event.preventDefault();
+                wheelZoomHandler(-100);
                 return;
             }
             if (key === 'PageDown' && wheelZoomHandler) {
-                e.preventDefault();
-                wheelZoomHandler(100); // Positive delta = zoom out
+                event.preventDefault();
+                wheelZoomHandler(100);
                 return;
             }
             
             // Check if this key has a button assigned (direct access)
             const button = registeredButtons.find(btn => btn.key === key);
             if (button) {
-                e.preventDefault();
+                event.preventDefault();
                 button.callback();
             }
-        };
-        
-        document.addEventListener('keydown', keyListener);
-        
-        // Mouse wheel zoom handler
-        canvas.addEventListener('wheel', (e) => {
-            if (wheelZoomHandler) {
-                e.preventDefault();
-                wheelZoomHandler(e.deltaY);
-            }
         });
-    }
-    
-    /**
-     * Setup mouse event listener
-     */
-    function setupMouseListener() {
-        // Mouse move for hover
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const pixelX = e.clientX - rect.left;
-            const pixelY = e.clientY - rect.top;
-            
-            // Convert pixel position to grid position
-            const gridX = Math.floor(pixelX / charWidth);
-            const gridY = Math.floor(pixelY / charHeight);
-            
+        
+        // Mouse move callback (for hover)
+        inputHandler.setMouseMoveCallback((gridX, gridY) => {
             // Check if hovering over any button
             let hoveredButtonIndex = -1;
             registeredButtons.forEach((btn, index) => {
@@ -235,16 +134,8 @@ const UI = (() => {
             }
         });
         
-        // Mouse click to activate button or table row
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const pixelX = e.clientX - rect.left;
-            const pixelY = e.clientY - rect.top;
-            
-            // Convert pixel position to grid position
-            const gridX = Math.floor(pixelX / charWidth);
-            const gridY = Math.floor(pixelY / charHeight);
-            
+        // Mouse click callback
+        inputHandler.setMouseClickCallback((gridX, gridY) => {
             // Check if clicking on any button
             let clickedButton = false;
             registeredButtons.forEach((btn, index) => {
@@ -267,8 +158,12 @@ const UI = (() => {
             }
         });
         
-        // Change cursor style when hovering over canvas
-        canvas.style.cursor = 'default';
+        // Mouse wheel callback (for zoom)
+        inputHandler.setMouseWheelCallback((deltaY) => {
+            if (wheelZoomHandler) {
+                wheelZoomHandler(deltaY);
+            }
+        });
     }
     
     /**
@@ -408,80 +303,65 @@ const UI = (() => {
         }
         
         // Clear canvas
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        canvasWrapper.clear();
         
         // Draw selection highlights first (under text)
         registeredHighlights.forEach(item => {
-            const pixelX = item.x * charWidth;
-            const pixelY = item.y * charHeight;
-            const pixelWidth = item.width * charWidth;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(pixelX, pixelY, pixelWidth, charHeight);
+            canvasWrapper.drawRect(item.x, item.y, item.width, 1, 'white');
         });
         
         // Draw all registered texts
         registeredTexts.forEach(item => {
-            const pixelX = item.x * charWidth;
-            const pixelY = item.y * charHeight;
-            const textWidth = item.text.length * charWidth;
+            const textWidth = item.text.length;
             
             // Clear the area before drawing to prevent overlapping artifacts
             // BUT don't clear if text is black (selected text on white background)
             if (item.color !== 'black') {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(pixelX, pixelY, textWidth, charHeight);
+                canvasWrapper.drawRect(item.x, item.y, textWidth, 1, 'black');
             }
             
-            // Calculate font size based on multiplier
-            const baseFontSize = Math.floor(charHeight * 0.9);
-            const actualFontSize = Math.floor(baseFontSize * item.fontSize);
-            ctx.font = `${actualFontSize}px ${FONT_FAMILY}`;
-            
-            // Draw the text (centered vertically in grid cell)
-            ctx.fillStyle = item.color;
-            ctx.fillText(item.text, pixelX, pixelY + charHeight / 2);
+            // Draw the text
+            canvasWrapper.drawText(item.x, item.y, item.text, item.color, item.fontSize);
         });
         
         // Draw all registered buttons
         // Check if button selection changed
         const selectionChanged = selectedButtonIndex !== lastSelectedButtonIndex;
+        const isCurrentlyFlashing = isFlashing();
         if (selectionChanged) {
             lastSelectedButtonIndex = selectedButtonIndex;
             // Clear output row when selection changes (allows help text to replace error messages)
-            outputRowText = '';
-            outputRowColor = 'white';
-            outputRowIsHelpText = false;
+            // But only if not flashing (preserve output during flash)
+            if (!isCurrentlyFlashing) {
+                outputRowText = '';
+                outputRowColor = 'white';
+                outputRowIsHelpText = false;
+            }
         }
         
         registeredButtons.forEach((btn, index) => {
             const buttonText = `[${btn.key}] ${btn.label}`;
-            const pixelX = btn.x * charWidth;
-            const pixelY = btn.y * charHeight;
-            const buttonWidth = buttonText.length * charWidth;
+            const buttonWidth = buttonText.length;
             const isSelected = (index === selectedButtonIndex);
             
             // Clear the area before drawing
-            ctx.fillStyle = 'black';
-            ctx.fillRect(pixelX, pixelY, buttonWidth, charHeight);
+            canvasWrapper.drawRect(btn.x, btn.y, buttonWidth, 1, 'black');
             
             // Draw background if selected
             if (isSelected) {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(pixelX, pixelY, buttonWidth, charHeight);
-                ctx.fillStyle = 'black';
-                ctx.fillText(buttonText, pixelX, pixelY + charHeight / 2);
+                canvasWrapper.drawRect(btn.x, btn.y, buttonWidth, 1, 'white');
+                canvasWrapper.drawText(btn.x, btn.y, buttonText, 'black');
                 
                 // Show helpText only if:
                 // 1. Button has help text
                 // 2. Button label is not forbidden (Continue, Back)
                 // 3. Output row is empty OR already showing help text (don't override error/success messages)
-                // 4. Selection changed (moving to a new button)
+                // 4. Selection changed (moving to a new button) OR currently flashing (show help immediately)
                 if (
                     btn.helpText &&
                     !['Continue', 'Back'].includes(btn.label) &&
                     (!outputRowText || outputRowIsHelpText) &&
-                    selectionChanged
+                    (selectionChanged || isCurrentlyFlashing)
                 ) {
                     outputRowText = btn.helpText;
                     outputRowColor = 'aqua';
@@ -490,15 +370,11 @@ const UI = (() => {
             } else {
                 // Draw button - if yellow (special highlight) or gray (disabled), color entire button
                 if (btn.color === COLORS.YELLOW || btn.color === COLORS.TEXT_DIM) {
-                    // Highlight entire button text in yellow or gray
-                    ctx.fillStyle = btn.color;
-                    ctx.fillText(buttonText, pixelX, pixelY + charHeight / 2);
+                    canvasWrapper.drawText(btn.x, btn.y, buttonText, btn.color);
                 } else {
                     // Draw colored key and white label
-                    ctx.fillStyle = btn.color;
-                    ctx.fillText(`[${btn.key}] `, pixelX, pixelY + charHeight / 2);
-                    ctx.fillStyle = 'white';
-                    ctx.fillText(`${btn.label}`, pixelX + (4 * charWidth), pixelY + charHeight / 2);
+                    canvasWrapper.drawText(btn.x, btn.y, `[${btn.key}] `, btn.color);
+                    canvasWrapper.drawText(btn.x + 4, btn.y, `${btn.label}`, 'white');
                 }
             }
         });
@@ -514,10 +390,8 @@ const UI = (() => {
             // Position output row 2 rows above the topmost button
             const y = minButtonY - 2;
             const x = Math.floor((GRID_WIDTH - outputRowText.length) / 2);
-            ctx.fillStyle = 'black';
-            ctx.fillRect(x * charWidth, y * charHeight, outputRowText.length * charWidth, charHeight);
-            ctx.fillStyle = outputRowColor;
-            ctx.fillText(outputRowText, x * charWidth, y * charHeight + charHeight / 2);
+            canvasWrapper.drawRect(x, y, outputRowText.length, 1, 'black');
+            canvasWrapper.drawText(x, y, outputRowText, outputRowColor);
         }
         
         // Debug output
@@ -569,80 +443,6 @@ const UI = (() => {
         output += `Texts: ${registeredTexts.length}, Buttons: ${registeredButtons.length}, Selected: ${selectedButtonIndex}`;
         
         console.log(output);
-    }
-    
-    /**
-     * Calculate stat color based on ratio
-     * @param {number} ratio - Value ratio (0 to 4+)
-     * @param {boolean} maxAsGreen - If true, ratio of 1.0 shows as light green instead of white
-     * @returns {string} Color string
-     */
-    function calcStatColor(ratio, maxAsGreen = false) {
-        // Special case: if maxAsGreen is true and ratio is exactly 1.0, return light green
-        if (maxAsGreen && ratio >= 0.9999 && ratio <= 1.0001) {
-            return '#90EE90'; // Light green
-        }
-        
-        if (ratio <= 0) return '#8B0000'; // Dark red
-        if (ratio <= 0.25) {
-            // Interpolate between dark red and red
-            const t = ratio / 0.25;
-            return interpolateColor('#8B0000', '#FF0000', t);
-        }
-        if (ratio <= 0.5) {
-            // Interpolate between red and orange
-            const t = (ratio - 0.25) / 0.25;
-            return interpolateColor('#FF0000', '#FFA500', t);
-        }
-        if (ratio <= 0.75) {
-            // Interpolate between orange and yellow
-            const t = (ratio - 0.5) / 0.25;
-            return interpolateColor('#FFA500', '#FFFF00', t);
-        }
-        if (ratio <= 1.0) {
-            // Interpolate between yellow and white
-            const t = (ratio - 0.75) / 0.25;
-            return interpolateColor('#FFFF00', '#FFFFFF', t);
-        }
-        if (ratio <= 1.5) {
-            // Interpolate between white and light green
-            const t = (ratio - 1.0) / 0.5;
-            return interpolateColor('#FFFFFF', '#90EE90', t);
-        }
-        if (ratio <= 2.0) {
-            // Interpolate between light green and green
-            const t = (ratio - 1.5) / 0.5;
-            return interpolateColor('#90EE90', '#00FF00', t);
-        }
-        if (ratio <= 4.0) {
-            // Interpolate between green and dark green
-            const t = (ratio - 2.0) / 2.0;
-            return interpolateColor('#00FF00', '#006400', t);
-        }
-        return '#006400'; // Dark green for 4.0+
-    }
-    
-    /**
-     * Interpolate between two hex colors
-     * @param {string} color1 - Start color in hex format
-     * @param {string} color2 - End color in hex format
-     * @param {number} t - Interpolation factor (0 to 1)
-     * @returns {string} Interpolated color in hex format
-     */
-    function interpolateColor(color1, color2, t) {
-        const r1 = parseInt(color1.slice(1, 3), 16);
-        const g1 = parseInt(color1.slice(3, 5), 16);
-        const b1 = parseInt(color1.slice(5, 7), 16);
-        
-        const r2 = parseInt(color2.slice(1, 3), 16);
-        const g2 = parseInt(color2.slice(3, 5), 16);
-        const b2 = parseInt(color2.slice(5, 7), 16);
-        
-        const r = Math.round(r1 + (r2 - r1) * t);
-        const g = Math.round(g1 + (g2 - g1) * t);
-        const b = Math.round(b1 + (b2 - b1) * t);
-        
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
     
     /**
@@ -843,7 +643,7 @@ const UI = (() => {
         getOutputRow,
         addClickable,
         setWheelZoomHandler,
-        calcStatColor,
+        calcStatColor: ColorUtils.calcStatColor, // Re-export from ColorUtils for convenience
         startFlashing,
         stopFlashing,
         isFlashing,

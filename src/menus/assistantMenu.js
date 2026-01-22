@@ -21,7 +21,14 @@ const AssistantMenu = (() => {
         
         UI.clear();
         UI.resetSelection();
-        render(gameState, onReturn);
+        
+        // Start flashing if there are unread messages
+        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
+        if (hasUnreadMessages) {
+            UI.startFlashing(() => render(gameState, onReturn), 300, 2000, true); // Flash for 2 seconds
+        } else {
+            render(gameState, onReturn);
+        }
     }
     
     /**
@@ -39,7 +46,9 @@ const AssistantMenu = (() => {
         // Check for unread messages
         const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
         if (hasUnreadMessages) {
-            UI.addTextCentered(8, 'You have unread messages!', COLORS.YELLOW);
+            // Flash between white and green, ending in white
+            const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
+            UI.addTextCentered(8, 'You have unread messages!', flashColor);
         }
         
         // Check criteria for buttons
@@ -50,9 +59,9 @@ const AssistantMenu = (() => {
         const hasQuests = (gameState.activeQuests && gameState.activeQuests.length > 0) || 
                           (gameState.completedQuests && gameState.completedQuests.length > 0);
         
-        // Menu buttons
+        // Menu buttons - positioned near bottom of screen
         const menuX = Math.floor(grid.width / 2) - 12;
-        const menuY = 11;
+        const menuY = grid.height - 12;
         
         UI.addButton(menuX, menuY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View detailed ship specifications');
         

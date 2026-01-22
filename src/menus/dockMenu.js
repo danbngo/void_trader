@@ -206,8 +206,16 @@ const DockMenu = (() => {
         UI.addTextCentered(y++, '=== Unread Message ===', COLORS.YELLOW);
         y += 2;
         
-        UI.addTextCentered(y++, 'You have an unread message:', COLORS.TEXT_NORMAL);
-        UI.addTextCentered(y++, message.title, COLORS.CYAN);
+        const unreadTextY = y++;
+        y++; // Skip a line for the message title
+        
+        // Flash "You have an unread message:" text
+        UI.startFlashing(() => {
+            UI.addTextCentered(unreadTextY, 'You have an unread message:', UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE);
+            UI.addTextCentered(unreadTextY + 1, message.title, COLORS.CYAN);
+        }, 200, 2000, true);
+        
+        UI.addTextCentered(unreadTextY + 1, message.title, COLORS.CYAN);
         
         // Buttons at bottom
         const buttonY = grid.height - 6;

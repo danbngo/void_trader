@@ -107,7 +107,12 @@ const ScoreMenu = (() => {
         // Buttons
         const buttonY = grid.height - 4;
         UI.addButton(10, buttonY, 'R', 'Retire Early', () => {
-            showGameOver(gameState, score.totalScore, true);
+            RetirementConfirmMenu.show(
+                gameState, 
+                score.totalScore,
+                () => showGameOver(gameState, score.totalScore, true),
+                () => show(gameState, returnCallback)
+            );
         }, COLORS.TEXT_ERROR, 'End your career and see final rank');
         
         UI.addButton(10, buttonY + 1, '0', 'Back', () => {

@@ -353,16 +353,14 @@ const UI = (() => {
                 canvasWrapper.drawRect(btn.x, btn.y, buttonWidth, 1, 'white');
                 canvasWrapper.drawText(btn.x, btn.y, buttonText, 'black');
                 
-                // Show helpText only if:
+                // Show helpText if:
                 // 1. Button has help text
                 // 2. Button label is not forbidden (Continue, Back)
                 // 3. Output row is empty OR already showing help text (don't override error/success messages)
-                // 4. Selection changed (moving to a new button) OR currently flashing (show help immediately)
                 if (
                     btn.helpText &&
                     !['Continue', 'Back'].includes(btn.label) &&
-                    (!outputRowText || outputRowIsHelpText) &&
-                    (selectionChanged || isCurrentlyFlashing)
+                    (!outputRowText || outputRowIsHelpText)
                 ) {
                     outputRowText = btn.helpText;
                     outputRowColor = 'aqua';

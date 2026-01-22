@@ -33,11 +33,13 @@ const CourthouseMenu = (() => {
         // Title
         UI.addTextCentered(3, `${currentSystem.name}: COURTHOUSE`, COLORS.TITLE);
         
-        // Player info
-        UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
-        UI.addText(5, 6, `Reputation: ${gameState.reputation}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, 7, `Bounty: ${gameState.bounty} CR`, gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL);
-        UI.addText(5, 8, `Current Rank: ${currentRank.name}`, COLORS.CYAN);
+        // Player info using renderKeyValueList
+        TableRenderer.renderKeyValueList(5, 5, [
+            { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Reputation:', value: `${gameState.reputation}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL },
+            { label: 'Current Rank:', value: currentRank.name, valueColor: COLORS.CYAN }
+        ]);
         
         // Available ranks
         let y = 11;

@@ -13,8 +13,8 @@ const EncounterUtils = (() => {
      */
     function showRadarAdvantageWarning(gameState, y, enemyName = "Enemy") {
         if (gameState.enemyRadarAdvantage) {
-            UI.addText(10, y++, `WARNING: ${enemyName} detected you first!`, COLORS.TEXT_ERROR);
-            UI.addText(10, y++, `All shields disabled by surprise approach.`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `WARNING: Your radar did not detect the ${enemyName} aproaching!`, COLORS.YELLOW);
+            UI.addText(10, y++, `Your shields have not been raised!`, COLORS.TEXT_ERROR);
             y++;
         }
         return y;

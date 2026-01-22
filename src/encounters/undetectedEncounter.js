@@ -61,10 +61,14 @@ const UndetectedEncounter = {
         y = ShipTableRenderer.addNPCFleet(10, y, `Detected ${encType.name}:`, gameState.encounterShips);
         
         const buttonY = grid.height - 4;
+        const approachHelpText = encType.name === 'Police' 
+            ? 'Approach the Police (they will inspect your cargo)'
+            : `Engage with the ${encType.name} normally`;
+        
         UI.addButton(10, buttonY, '1', 'Approach', () => {
             // Proceed with normal encounter
             encType.onGreet(gameState, encType);
-        }, COLORS.GREEN, `Engage with the ${encType.name} normally`);
+        }, COLORS.GREEN, approachHelpText);
         
         UI.addButton(10, buttonY + 1, '2', 'Avoid', () => {
             // Player successfully avoids encounter

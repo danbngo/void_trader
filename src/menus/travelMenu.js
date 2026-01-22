@@ -78,21 +78,29 @@ const TravelMenu = (() => {
         const eta = new Date(startDate);
         eta.setDate(eta.getDate() + Math.ceil(totalDuration));
         
-        // Journey info
-        UI.addText(5, y++, `From: ${currentSystem.name}`, COLORS.TEXT_DIM);
-        UI.addText(5, y++, `To: ${targetSystem.name}`, COLORS.TEXT_DIM);
-        y++;
-        
-        UI.addText(5, y++, `Start Date: ${formatDate(startDate)}`, COLORS.TEXT_DIM);
-        UI.addText(5, y++, `ETA: ${formatDate(eta)}`, COLORS.TEXT_DIM);
-        y++;
-        
+        // Journey info using renderKeyValueList
         const totalFuel = Ship.calculateFleetFuelCost(currentSystem.distanceTo(targetSystem), currentGameState.ships.length);
-        UI.addText(5, y++, `Fuel Used: ${fuelConsumed}/${totalFuel}`, fuelRemaining > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR);
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_DIM },
+            { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_DIM },
+        ]);
+        y++;
+        
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Start Date:', value: formatDate(startDate), valueColor: COLORS.TEXT_DIM },
+            { label: 'ETA:', value: formatDate(eta), valueColor: COLORS.TEXT_DIM },
+        ]);
+        y++;
+        
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Fuel Used:', value: `${fuelConsumed}/${totalFuel}`, valueColor: fuelRemaining > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
+        ]);
         y++;
         
         // Days elapsed
-        UI.addText(5, y++, `Days Elapsed: ${elapsedDays.toFixed(1)} / ${totalDuration.toFixed(1)}`, COLORS.TEXT_NORMAL);
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Days Elapsed:', value: `${elapsedDays.toFixed(1)} / ${totalDuration.toFixed(1)}`, valueColor: COLORS.TEXT_NORMAL },
+        ]);
         y++;
         
         // Progress bar
@@ -361,8 +369,17 @@ const TravelMenu = (() => {
         encounterTriggered = false;
         encounterType = null;
         
+        // Reset selection to clear help text from previous menu
+        UI.resetSelection();
+        
         // Resume travel
         paused = false;
+        
+        // Restart travel tick interval if not already running
+        if (!travelTickInterval) {
+            startTravelTick();
+        }
+        
         render();
     }
     

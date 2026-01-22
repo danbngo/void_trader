@@ -207,38 +207,41 @@ const DockMenu = (() => {
         y += 2;
         
         const unreadTextY = y++;
-        y++; // Skip a line for the message title
+        const messageTitleY = y++;
+        
+        // Add message title (static)
+        UI.addTextCentered(messageTitleY, message.title, COLORS.CYAN);
         
         // Flash "You have an unread message:" text
         UI.startFlashing(() => {
+            UI.clear();
+            UI.addTextCentered(3, '=== Unread Message ===', COLORS.YELLOW);
             UI.addTextCentered(unreadTextY, 'You have an unread message:', UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE);
-            UI.addTextCentered(unreadTextY + 1, message.title, COLORS.CYAN);
+            UI.addTextCentered(messageTitleY, message.title, COLORS.CYAN);
+            
+            // Re-add buttons
+            const buttonY = grid.height - 6;
+            const menuX = Math.floor(grid.width / 2) - 15;
+            
+            UI.addButton(menuX, buttonY, '1', 'Read Message', () => {
+                readMessageDirect(gameState, message);
+            }, COLORS.YELLOW, 'Read the message now');
+            
+            UI.addButton(menuX, buttonY + 1, '2', 'Ignore Message', () => {
+                proceedToGalaxyMap(gameState);
+            }, COLORS.BUTTON, 'Continue to galaxy map');
+            
+            UI.addButton(menuX, buttonY + 2, '9', 'Don\'t Show This Warning Again', () => {
+                message.suppressWarning = true;
+                proceedToGalaxyMap(gameState);
+            }, COLORS.TEXT_DIM, 'Suppress this warning for this message');
+            
+            UI.addButton(menuX, buttonY + 3, '0', 'Back', () => {
+                show(gameState);
+            }, COLORS.BUTTON, 'Return to dock');
+            
+            UI.draw();
         }, 200, 2000, true);
-        
-        UI.addTextCentered(unreadTextY + 1, message.title, COLORS.CYAN);
-        
-        // Buttons at bottom
-        const buttonY = grid.height - 6;
-        const menuX = Math.floor(grid.width / 2) - 15;
-        
-        UI.addButton(menuX, buttonY, '1', 'Read Message', () => {
-            readMessageDirect(gameState, message);
-        }, COLORS.GREEN, 'Read the message now');
-        
-        UI.addButton(menuX, buttonY + 1, '2', 'Ignore Message', () => {
-            proceedToGalaxyMap(gameState);
-        }, COLORS.BUTTON, 'Continue to galaxy map');
-        
-        UI.addButton(menuX, buttonY + 2, '9', 'Don\'t Show This Warning Again', () => {
-            message.suppressWarning = true;
-            proceedToGalaxyMap(gameState);
-        }, COLORS.TEXT_DIM, 'Suppress this warning for this message');
-        
-        UI.addButton(menuX, buttonY + 3, '0', 'Back', () => {
-            show(gameState);
-        }, COLORS.BUTTON, 'Return to dock');
-        
-        UI.draw();
     }
     
     /**

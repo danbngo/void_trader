@@ -113,7 +113,7 @@ const PoliceEncounter = {
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
             // Return to travel menu
             TravelMenu.resume();
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Resume your journey');
         
         UI.draw();
     },
@@ -135,9 +135,13 @@ const PoliceEncounter = {
         
         UI.addText(10, y++, `You refuse to submit to inspection!`, COLORS.TEXT_ERROR);
         y++;
-        UI.addText(10, y++, `Reputation: ${REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES}`, COLORS.TEXT_ERROR);
-        UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, COLORS.TEXT_ERROR);
+        
+        y = TableRenderer.renderKeyValueList(10, y, [
+            { label: 'Reputation:', value: `${REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES}`, valueColor: COLORS.TEXT_ERROR },
+            { label: 'Bounty:', value: `+${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, valueColor: COLORS.TEXT_ERROR }
+        ]);
         y++;
+        
         UI.addText(10, y++, `The police open fire!`, COLORS.TEXT_NORMAL);
         
         const buttonY = grid.height - 4;
@@ -165,9 +169,13 @@ const PoliceEncounter = {
         
         UI.addText(10, y++, `You launch an unprovoked attack on law enforcement!`, COLORS.TEXT_ERROR);
         y++;
-        UI.addText(10, y++, `Reputation: ${REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES}`, COLORS.TEXT_ERROR);
-        UI.addText(10, y++, `Bounty: +${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, COLORS.TEXT_ERROR);
+        
+        y = TableRenderer.renderKeyValueList(10, y, [
+            { label: 'Reputation:', value: `${REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES}`, valueColor: COLORS.TEXT_ERROR },
+            { label: 'Bounty:', value: `+${BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES} credits`, valueColor: COLORS.TEXT_ERROR }
+        ]);
         y++;
+        
         UI.addText(10, y++, `You are now a wanted criminal!`, COLORS.TEXT_ERROR);
         
         const buttonY = grid.height - 4;

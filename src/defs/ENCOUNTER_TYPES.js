@@ -7,7 +7,7 @@ const ENCOUNTER_TYPES = {
     POLICE: {
         id: 'POLICE',
         name: 'Police',
-        color: COLORS.CYAN,
+        color: COLORS.BLUE,
         description: 'Law enforcement patrol scanning for illegal cargo and fugitives',
         shipTypes: ['CORVETTE', 'DESTROYER'],
         cargoTypes: [],

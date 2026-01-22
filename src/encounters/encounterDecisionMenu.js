@@ -95,17 +95,29 @@ const EncounterDecisionMenu = {
             // Show attack consequence screen
             UI.clear();
             let y = 5;
-            UI.addTextCentered(y++, `=== Surprise Attack ===`, COLORS.TEXT_ERROR);
+            UI.addTextCentered(y++, `=== Surprise Attack ===`, COLORS.CYAN);
             y += 2;
-            UI.addText(10, y++, `You launch an unprovoked attack!`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `You launch an unprovoked attack!`, COLORS.TEXT_NORMAL);
             y++;
+            
+            // Build key-value pairs for consequences
+            const consequences = [];
             if (reputationEffect !== 0) {
                 const sign = reputationEffect > 0 ? '+' : '';
-                UI.addText(10, y++, `Reputation: ${sign}${reputationEffect}`, reputationEffect > 0 ? COLORS.GREEN : COLORS.TEXT_ERROR);
+                consequences.push({
+                    label: 'Reputation:',
+                    value: `${sign}${reputationEffect}`,
+                    valueColor: reputationEffect > 0 ? COLORS.GREEN : COLORS.TEXT_ERROR
+                });
             }
             if (bountyEffect > 0) {
-                UI.addText(10, y++, `Bounty: +${bountyEffect} credits`, COLORS.TEXT_ERROR);
+                consequences.push({
+                    label: 'Bounty:',
+                    value: `+${bountyEffect} credits`,
+                    valueColor: COLORS.TEXT_ERROR
+                });
             }
+            y = TableRenderer.renderKeyValueList(10, y, consequences);
             
             const continueY = grid.height - 4;
             UI.addButton(10, continueY, '1', 'Continue to Combat', () => {

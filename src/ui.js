@@ -38,6 +38,7 @@ const UI = (() => {
     function init() {
         // Create canvas wrapper
         canvasWrapper = new CanvasWrapper('gameCanvas', GRID_WIDTH, GRID_HEIGHT, FONT_FAMILY, MIN_FONT_SIZE, MAX_FONT_SIZE);
+        canvasWrapper.onResize = () => draw(); // Redraw UI after canvas resize
         canvasWrapper.init();
         
         // Create input handler

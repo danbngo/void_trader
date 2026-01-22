@@ -16,6 +16,7 @@ class CanvasWrapper {
         this.charHeight = 0;
         
         this.resizeTimeout = null;
+        this.onResize = null; // Callback to trigger after resize
     }
     
     /**
@@ -71,6 +72,11 @@ class CanvasWrapper {
         
         this.ctx.font = `${fontSize}px ${this.fontFamily}`;
         this.ctx.textBaseline = 'middle';
+        
+        // Trigger callback after resize completes
+        if (this.onResize) {
+            this.onResize();
+        }
     }
     
     /**

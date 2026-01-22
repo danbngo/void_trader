@@ -17,13 +17,11 @@ const MerchantEncounter = {
         UI.addText(10, y++, `A merchant vessel hails your fleet.`, COLORS.TEXT_NORMAL);
         UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
         y += 2;
-                // Show warning if enemy gained radar advantage
-        if (gameState.enemyRadarAdvantage) {
-            UI.addText(10, y++, `WARNING: They detected you first!`, COLORS.TEXT_ERROR);
-            UI.addText(10, y++, `All shields disabled by surprise approach.`, COLORS.TEXT_ERROR);
-            y++;
-        }
-                // Show player ships
+        
+        // Show warning if enemy gained radar advantage
+        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Merchants");
+        
+        // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
         y++;
         

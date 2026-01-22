@@ -19,11 +19,7 @@ const PoliceEncounter = {
         y += 2;
         
         // Show warning if enemy gained radar advantage
-        if (gameState.enemyRadarAdvantage) {
-            UI.addText(10, y++, `WARNING: Enemy detected you first!`, COLORS.TEXT_ERROR);
-            UI.addText(10, y++, `All shields disabled by surprise approach.`, COLORS.TEXT_ERROR);
-            y++;
-        }
+        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Police");
         
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);

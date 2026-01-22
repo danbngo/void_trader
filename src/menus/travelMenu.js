@@ -13,7 +13,7 @@ const TravelMenu = (() => {
     let totalDuration = 0;
     let elapsedDays = 0;
     let encounterType = null;
-    let flashInterval = null;
+    let travelTickInterval = null;
     
     /**
      * Show the travel menu
@@ -32,12 +32,6 @@ const TravelMenu = (() => {
         encounterTriggered = false;
         arrivedAtDestination = false;
         encounterType = null;
-        
-        // Clear any existing flash interval
-        if (flashInterval) {
-            clearInterval(flashInterval);
-            flashInterval = null;
-        }
         
         // Track where we departed from (for police surrender jail mechanic)
         gameState.previousSystemIndex = gameState.currentSystemIndex;
@@ -123,7 +117,15 @@ const TravelMenu = (() => {
         if (encounterTriggered && encounterType) {
             y++;
             // Flash between encounter color and white for emphasis
-            const flashColor = (Date.now() % 400 < 200) ? encounterType.color : COLORS.WHITE;
+            const flashState = UI.getFlashState();
+            const flashColor = flashState ? encounterType.color : COLORS.WHITE;
+            console.log('[TravelMenu] Flashing alert:', {
+                isFlashing: UI.isFlashing(),
+                flashState: flashState,
+                encounterTypeName: encounterType.name,
+                encounterTypeColor: encounterType.color,
+                flashColor: flashColor
+            });
             UI.addText(5, y++, `Alert: ${encounterType.name} Detected!`, flashColor);
             //UI.addText(5, y++, encounterType.description, COLORS.TEXT_NORMAL);
             y++;
@@ -154,7 +156,7 @@ const TravelMenu = (() => {
         const tickInterval = 100; // milliseconds
         const progressPerTick = 0.04; // 4% per tick (2x faster progress)
         
-        const interval = setInterval(() => {
+        travelTickInterval = setInterval(() => {
             if (!paused && progress < 1.0) {
                 // Update progress
                 progress = Math.min(1.0, progress + progressPerTick);
@@ -180,7 +182,8 @@ const TravelMenu = (() => {
             
             // Complete journey
             if (progress >= 1.0 && !encounterTriggered) {
-                clearInterval(interval);
+                clearInterval(travelTickInterval);
+                travelTickInterval = null;
                 arrivedAtDestination = true;
                 paused = true;
                 render();
@@ -218,19 +221,20 @@ const TravelMenu = (() => {
         
         // Set encounter flag
         currentGameState.encounter = true;
-                // Start flashing interval for the alert (200ms = 5 flashes per second, runs for ~2 seconds)
-        flashInterval = setInterval(() => {
-            render();
-        }, 200);
         
-        // Stop flashing after 2 seconds
-        setTimeout(() => {
-            if (flashInterval) {
-                clearInterval(flashInterval);
-                flashInterval = null;
-            }
-        }, 2000);
-                render();
+        // Stop travel tick to prevent render() conflicts with flash animation
+        if (travelTickInterval) {
+            console.log('[TravelMenu] Clearing travel tick interval');
+            clearInterval(travelTickInterval);
+            travelTickInterval = null;
+        }
+        
+        // Start flashing the alert for 2 seconds
+        console.log('[TravelMenu] Starting flash animation for encounter:', encounterType.name);
+        UI.startFlashing(() => {
+            console.log('[TravelMenu] Flash callback triggered, calling render()');
+            render();
+        }, 200, 2000, true); // true = call callback immediately for first render
     }
     
     /**

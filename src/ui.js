@@ -28,6 +28,13 @@ const UI = (() => {
     let outputRowColor = 'white';
     let outputRowIsHelpText = false;
     
+    // Flashing state
+    let flashInterval = null;
+    let flashCallback = null;
+    let flashStartTime = null;
+    let flashState = false; // Toggles between true/false each flash
+    let isInFlashCallback = false; // Prevents clear() from stopping flash during callback
+    
     // Debounce timer for resize
     let resizeTimeout = null;
     
@@ -281,6 +288,10 @@ const UI = (() => {
         outputRowText = '';
         outputRowColor = 'white';
         outputRowIsHelpText = false;
+        // Stop any flashing when menu changes (but not during flash callback)
+        if (!isInFlashCallback) {
+            stopFlashing();
+        }
         // Don't reset selectedButtonIndex - let draw() handle bounds checking
     }
     
@@ -727,6 +738,93 @@ const UI = (() => {
         });
     }
     
+    /**
+     * Start flashing animation by calling a callback repeatedly
+     * The callback should re-render the UI with flashing elements
+     * Flash automatically stops when clear() is called (menu change)
+     * @param {Function} callback - Function to call periodically (should call draw())
+     * @param {number} interval - Milliseconds between flashes (default: 200)
+     * @param {number} duration - Total duration in milliseconds (default: 2000, 0 = infinite)
+     * @param {boolean} callImmediately - If true, call callback immediately before starting interval (default: false)
+     */
+    function startFlashing(callback, interval = 200, duration = 2000, callImmediately = false) {
+        // Stop any existing flash
+        stopFlashing();
+        
+        console.log('[UI] startFlashing called:', { interval, duration, callImmediately });
+        
+        flashCallback = callback;
+        flashStartTime = Date.now();
+        
+        // Call immediately if requested (within flash callback context)
+        if (callImmediately && flashCallback) {
+            console.log('[UI] Calling flash callback immediately');
+            isInFlashCallback = true;
+            flashCallback();
+            // Don't set isInFlashCallback back to false yet - keep it true
+            // until after we create the interval and return from this function
+        }
+        
+        flashInterval = setInterval(() => {
+            // Check if duration has elapsed (if duration is set)
+            if (duration > 0 && Date.now() - flashStartTime >= duration) {
+                console.log('[UI] Flash duration expired, stopping flash');
+                stopFlashing();
+                return;
+            }
+            
+            // Toggle flash state
+            flashState = !flashState;
+            console.log('[UI] Flash state toggled to:', flashState);
+            
+            // Call the callback (should re-register and re-draw UI)
+            if (flashCallback) {
+                isInFlashCallback = true;
+                flashCallback();
+                isInFlashCallback = false;
+            }
+        }, interval);
+        
+        console.log('[UI] Flash interval started with ID:', flashInterval);
+        
+        // Reset isInFlashCallback after a short delay to allow function to return
+        // and prevent any immediate render() calls from stopping the flash
+        setTimeout(() => {
+            isInFlashCallback = false;
+            console.log('[UI] isInFlashCallback reset to false');
+        }, 50);
+    }
+    
+    /**
+     * Stop flashing animation
+     */
+    function stopFlashing() {
+        if (flashInterval) {
+            console.log('[UI] stopFlashing called, clearing interval:', flashInterval);
+            clearInterval(flashInterval);
+            flashInterval = null;
+        }
+        flashCallback = null;
+        flashStartTime = null;
+        flashState = false;
+    }
+    
+    /**
+     * Check if currently flashing
+     * @returns {boolean} True if flashing is active
+     */
+    function isFlashing() {
+        return flashInterval !== null;
+    }
+    
+    /**
+     * Get current flash state (true/false, toggles each interval)
+     * @returns {boolean} Current flash state
+     */
+    function getFlashState() {
+        return flashState;
+    }
+    
     // Public API
     return {
         init,
@@ -745,6 +843,10 @@ const UI = (() => {
         getOutputRow,
         addClickable,
         setWheelZoomHandler,
-        calcStatColor
+        calcStatColor,
+        startFlashing,
+        stopFlashing,
+        isFlashing,
+        getFlashState
     };
 })();

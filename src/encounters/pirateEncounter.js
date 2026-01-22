@@ -19,11 +19,7 @@ const PirateEncounter = {
         y += 2;
         
         // Show warning if enemy gained radar advantage
-        if (gameState.enemyRadarAdvantage) {
-            UI.addText(10, y++, `WARNING: Pirates ambushed you!`, COLORS.TEXT_ERROR);
-            UI.addText(10, y++, `All shields disabled by surprise approach.`, COLORS.TEXT_ERROR);
-            y++;
-        }
+        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Pirates");
         
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);

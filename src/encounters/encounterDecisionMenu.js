@@ -46,8 +46,8 @@ const EncounterDecisionMenu = {
         
         // Show warning if enemy gained radar advantage (but chose to ignore)
         if (gameState.enemyRadarAdvantage) {
-            UI.addText(10, y++, `NOTE: They detected you first but ignored you.`, COLORS.YELLOW);
-            UI.addText(10, y++, `Your shields would have been disabled.`, COLORS.TEXT_DIM);
+            UI.addText(10, y++, `Your radar failed to detect them in time to raise your shields.`, COLORS.YELLOW);
+            UI.addText(10, y++, `(Fortunately, they ignored you)`, COLORS.TEXT_DIM);
             y++;
         }
         

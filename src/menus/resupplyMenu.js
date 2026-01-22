@@ -42,8 +42,8 @@ const ResupplyMenu = (() => {
             const fuelNeeded = ship.maxFuel - ship.fuel;
             const hullDamage = ship.maxHull - ship.hull;
             const shieldDamage = ship.maxShields - ship.shields;
-            totalRefuelCost += fuelNeeded * currentSystem.fuelCostPerUnit;
-            totalRepairCost += (hullDamage + shieldDamage) * currentSystem.repairCostPerPoint;
+            totalRefuelCost += fuelNeeded * FUEL_COST_PER_UNIT;
+            totalRepairCost += (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
         });
         
         // Display costs
@@ -111,12 +111,12 @@ const ResupplyMenu = (() => {
             // Repair cost
             const hullDamage = ship.maxHull - ship.hull;
             const shieldDamage = ship.maxShields - ship.shields;
-            const repairCost = (hullDamage + shieldDamage) * currentSystem.repairCostPerPoint;
+            const repairCost = (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
             if (repairCost > 0) anyRepaired = true;
             
             // Refuel cost
             const fuelNeeded = ship.maxFuel - ship.fuel;
-            const refuelCost = fuelNeeded * currentSystem.fuelCostPerUnit;
+            const refuelCost = fuelNeeded * FUEL_COST_PER_UNIT;
             if (fuelNeeded > 0) anyRefueled = true;
             
             totalCost += repairCost + refuelCost;
@@ -165,7 +165,7 @@ const ResupplyMenu = (() => {
             const fuelNeeded = ship.maxFuel - ship.fuel;
             if (fuelNeeded > 0) {
                 anyRefueled = true;
-                totalCost += fuelNeeded * currentSystem.fuelCostPerUnit;
+                totalCost += fuelNeeded * FUEL_COST_PER_UNIT;
             }
         });
         
@@ -209,7 +209,7 @@ const ResupplyMenu = (() => {
         gameState.ships.forEach(ship => {
             const hullDamage = ship.maxHull - ship.hull;
             const shieldDamage = ship.maxShields - ship.shields;
-            const repairCost = (hullDamage + shieldDamage) * currentSystem.repairCostPerPoint;
+            const repairCost = (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
             if (repairCost > 0) {
                 anyRepaired = true;
                 totalCost += repairCost;

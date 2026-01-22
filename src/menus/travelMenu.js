@@ -280,34 +280,37 @@ const TravelMenu = (() => {
         const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
         const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
         
-        // Initialize encounter cargo with random cargo types
-        currentGameState.encounterCargo = {};
-        if (totalCargoAmount > 0) {
-            const cargoTypes = Object.keys(CARGO_TYPES);
-            const numCargoTypes = Math.floor(Math.random() * Math.min(3, cargoTypes.length)) + 1;
+        // Generate cargo (with retry logic for merchants)
+        const maxRetries = encounterType.id === 'MERCHANT' ? 100 : 1;
+        let retryCount = 0;
+        let cargoGenerated = false;
+        
+        while (!cargoGenerated && retryCount < maxRetries) {
+            retryCount++;
+            currentGameState.encounterCargo = {};
             
-            // Select random cargo types
-            const selectedTypes = [];
-            for (let i = 0; i < numCargoTypes; i++) {
-                const randomType = cargoTypes[Math.floor(Math.random() * cargoTypes.length)];
-                if (!selectedTypes.includes(randomType)) {
-                    selectedTypes.push(randomType);
-                }
+            if (totalCargoAmount > 0) {
+                const cargoTypes = Object.keys(CARGO_TYPES);
+                
+                // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
+                cargoTypes.forEach(cargoTypeId => {
+                    if (Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
+                        // This cargo type is included - give it a random amount
+                        const amount = Math.floor(Math.random() * totalCargoAmount) + 1;
+                        currentGameState.encounterCargo[cargoTypeId] = amount;
+                    }
+                });
             }
             
-            // Distribute cargo amount among selected types
-            let remainingAmount = totalCargoAmount;
-            selectedTypes.forEach((type, index) => {
-                if (index === selectedTypes.length - 1) {
-                    // Last type gets remaining amount
-                    currentGameState.encounterCargo[type] = remainingAmount;
-                } else {
-                    // Random distribution
-                    const amount = Math.floor(Math.random() * remainingAmount);
-                    currentGameState.encounterCargo[type] = amount;
-                    remainingAmount -= amount;
-                }
-            });
+            // Check if we generated any cargo
+            const hasAnyCargo = Object.values(currentGameState.encounterCargo).some(amount => amount > 0);
+            
+            // For merchants, keep trying until we get cargo. For others, accept even zero cargo.
+            if (encounterType.id === 'MERCHANT') {
+                cargoGenerated = hasAnyCargo;
+            } else {
+                cargoGenerated = true; // Accept whatever we got
+            }
         }
     }
     

@@ -31,11 +31,11 @@ const PirateEncounter = {
         const buttonY = grid.height - 4;
         UI.addButton(10, buttonY, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
-        }, COLORS.YELLOW, 'Surrender cargo to pirates (lose valuable cargo, no reputation loss)');
+        }, COLORS.BUTTON, 'Surrender cargo to pirates');
         
         UI.addButton(10, buttonY + 1, '2', 'Resist', () => {
             EncounterMenu.show(gameState, encType);
-        }, COLORS.TEXT_ERROR, 'Fight the pirates (no reputation/bounty changes)');
+        }, COLORS.TEXT_ERROR, 'Fight the pirates');
         
         UI.addButton(10, buttonY + 2, '3', 'Attack', () => {
             this.showAttackConsequences(gameState, encType);
@@ -70,7 +70,7 @@ const PirateEncounter = {
             
             UI.addButton(10, y++, '1', 'Continue Journey', () => {
                 TravelMenu.resume();
-            }, COLORS.GREEN);
+            }, COLORS.GREEN, 'Resume your journey');
             
             UI.draw();
             return;
@@ -116,7 +116,7 @@ const PirateEncounter = {
         
         UI.addButton(10, y++, '1', 'Continue Journey', () => {
             TravelMenu.resume();
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Resume your journey');
         
         UI.draw();
     },

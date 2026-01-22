@@ -42,8 +42,8 @@ const DockServicesMenu = (() => {
             const fuelRatio = ship.fuel / ship.maxFuel;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.shields / ship.maxShields;
-            const fuelCostForShip = (ship.maxFuel - ship.fuel) * 5;
-            const repairCostForShip = (ship.maxHull - ship.hull + ship.maxShields - ship.shields) * 10;
+            const fuelCostForShip = (ship.maxFuel - ship.fuel) * FUEL_COST_PER_UNIT;
+            const repairCostForShip = (ship.maxHull - ship.hull + ship.maxShields - ship.shields) * HULL_REPAIR_COST_PER_UNIT;
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
@@ -70,14 +70,14 @@ const DockServicesMenu = (() => {
         // Refuel - gray out if already full or insufficient credits
         const ship = gameState.ships[selectedShipIndex];
         const fuelNeeded = ship.maxFuel - ship.fuel;
-        const fuelCost = fuelNeeded * 5;
+        const fuelCost = fuelNeeded * FUEL_COST_PER_UNIT;
         const canRefuel = fuelNeeded > 0 && gameState.credits >= fuelCost;
         const refuelColor = canRefuel ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(25, buttonY, '3', 'Refuel', () => refuel(onReturn), refuelColor, 'Refuel selected ship to maximum capacity');
         
         // Repair - gray out if already full or insufficient credits
         const hullNeeded = ship.maxHull - ship.hull;
-        const repairCost = hullNeeded * 10;
+        const repairCost = hullNeeded * HULL_REPAIR_COST_PER_UNIT;
         const canRepair = hullNeeded > 0 && gameState.credits >= repairCost;
         const repairColor = canRepair ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(25, buttonY + 1, '4', 'Repair', () => repair(onReturn), repairColor, 'Repair hull and shields to maximum');
@@ -107,8 +107,7 @@ const DockServicesMenu = (() => {
     function refuel(onReturn) {
         const ship = gameState.ships[selectedShipIndex];
         const fuelNeeded = ship.maxFuel - ship.fuel;
-        const fuelCost = 5; // 5 CR per fuel unit
-        const totalCost = fuelNeeded * fuelCost;
+        const totalCost = fuelNeeded * FUEL_COST_PER_UNIT;
         
         if (fuelNeeded === 0) {
             outputMessage = 'Ship is already fully fueled!';
@@ -129,8 +128,7 @@ const DockServicesMenu = (() => {
     function repair(onReturn) {
         const ship = gameState.ships[selectedShipIndex];
         const hullNeeded = ship.maxHull - ship.hull;
-        const repairCost = 10; // 10 CR per hull point
-        const totalCost = hullNeeded * repairCost;
+        const totalCost = hullNeeded * HULL_REPAIR_COST_PER_UNIT;
         
         if (hullNeeded === 0) {
             outputMessage = 'Ship is already fully repaired!';

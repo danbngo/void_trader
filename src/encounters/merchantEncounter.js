@@ -70,7 +70,7 @@ const MerchantEncounter = {
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
                     TravelMenu.show(gameState);
-                }, COLORS.GREEN);
+                }, COLORS.GREEN, 'Resume your journey');
                 UI.draw();
                 return;
             }
@@ -123,7 +123,7 @@ const MerchantEncounter = {
                 y += 2;
                 UI.addButton(10, y++, '1', 'Continue Journey', () => {
                     TravelMenu.resume();
-                }, COLORS.GREEN);
+                }, COLORS.GREEN, 'Resume your journey');
                 UI.draw();
                 return;
             }
@@ -174,7 +174,7 @@ const MerchantEncounter = {
         const buttonY = grid.height - 4;
         UI.addButton(10, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Resume your journey');
         
         UI.draw();
     },

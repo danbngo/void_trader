@@ -180,11 +180,9 @@ const UI = (() => {
         registeredButtons = [];
         registeredHighlights = [];
         registeredTableRows = [];
-        // Clear output row state only if it's not help text (preserve help text during redraws)
-        if (!outputRowIsHelpText) {
-            outputRowText = '';
-            outputRowColor = 'white';
-        }
+        // Don't clear output row - it will be managed by draw() and resetSelection()
+        // This preserves both help text and action messages across redraws
+        
         // Stop any flashing when menu changes (but not during flash callback)
         if (!isInFlashCallback) {
             stopFlashing();

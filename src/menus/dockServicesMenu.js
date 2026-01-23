@@ -113,8 +113,11 @@ const DockServicesMenu = (() => {
             outputMessage = 'Ship is already fully fueled!';
             outputColor = COLORS.TEXT_ERROR;
         } else if (gameState.credits < totalCost) {
-            outputMessage = `Not enough credits! Need ${totalCost} CR, have ${gameState.credits} CR.`;
-            outputColor = COLORS.TEXT_ERROR;
+            // Pity refuel - they take what the player has and refuel anyway
+            ship.fuel = ship.maxFuel;
+            gameState.credits = 0;
+            outputMessage = `The mechanics take pity on you and refuel your ship for free.`;
+            outputColor = COLORS.CYAN;
         } else {
             gameState.credits -= totalCost;
             ship.fuel = ship.maxFuel;

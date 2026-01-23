@@ -28,17 +28,19 @@ const MerchantEncounter = {
         // Show merchant ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Merchant Vessels:', gameState.encounterShips);
         
+        // Buttons centered at bottom
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Accept Trade Offer', () => {
+        const buttonX = Math.floor((grid.width - 35) / 2); // Center buttons
+        UI.addButton(buttonX, buttonY, '1', 'Accept Trade Offer', () => {
             this.handleTrade(gameState, encType);
         }, COLORS.GREEN, 'Trade with merchants (buy or sell cargo at base price)');
         
-        UI.addButton(10, buttonY + 1, '2', 'Ignore', () => {
+        UI.addButton(buttonX, buttonY + 1, '2', 'Ignore', () => {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.TEXT_DIM, 'Continue journey without trading');
         
-        UI.addButton(10, buttonY + 2, '3', 'Attack', () => {
+        UI.addButton(buttonX, buttonY + 2, '3', 'Attack', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Attack innocent traders (-5 reputation, +1000 bounty)');
         
@@ -61,11 +63,20 @@ const MerchantEncounter = {
             // Merchant wants to sell cargo to player
             const availableCargo = Object.keys(gameState.encounterCargo).filter(cargoId => gameState.encounterCargo[cargoId] > 0);
             
+            console.log('[MerchantEncounter] Trade offer - merchant selling:', {
+                encounterCargo: gameState.encounterCargo,
+                availableCargo,
+                availableCargoCount: availableCargo.length
+            });
+            
             if (availableCargo.length === 0) {
                 // No cargo to sell
                 UI.addText(10, y++, `The merchant has nothing to offer.`, COLORS.TEXT_DIM);
-                y += 2;
-                UI.addButton(10, y++, '1', 'Continue Journey', () => {
+                
+                const grid = UI.getGridSize();
+                const buttonY = grid.height - 2;
+                const buttonX = Math.floor((grid.width - 25) / 2);
+                UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
@@ -88,10 +99,13 @@ const MerchantEncounter = {
             y++;
             UI.addText(10, y++, `Total cost: ${totalCost} credits`, COLORS.TEXT_NORMAL);
             UI.addText(10, y++, `Your credits: ${gameState.credits}`, COLORS.TEXT_DIM);
-            y += 2;
+            
+            const grid = UI.getGridSize();
+            const buttonY = grid.height - 3;
+            const buttonX = Math.floor((grid.width - 30) / 2);
             
             if (gameState.credits >= totalCost && maxAmount > 0) {
-                UI.addButton(10, y++, '1', `Buy ${maxAmount} ${cargoType.name}`, () => {
+                UI.addButton(buttonX, buttonY, '1', `Buy ${maxAmount} ${cargoType.name}`, () => {
                     // Execute trade
                     gameState.credits -= totalCost;
                     gameState.encounterCargo[randomCargoId] -= maxAmount;
@@ -99,29 +113,44 @@ const MerchantEncounter = {
                     
                     this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
                 }, COLORS.GREEN);
+                
+                UI.addButton(buttonX, buttonY + 1, '2', 'Decline', () => {
+                    gameState.encounter = false;
+                    gameState.encounterShips = [];
+                    gameState.encounterCargo = {};
+                    TravelMenu.show(gameState);
+                }, COLORS.TEXT_DIM);
             } else {
                 UI.addText(10, y++, `You cannot afford this purchase.`, COLORS.TEXT_ERROR);
-                y++;
+                
+                UI.addButton(buttonX, buttonY, '1', 'Decline', () => {
+                    gameState.encounter = false;
+                    gameState.encounterShips = [];
+                    gameState.encounterCargo = {};
+                    TravelMenu.show(gameState);
+                }, COLORS.TEXT_DIM);
             }
-            
-            UI.addButton(10, y++, '2', 'Decline', () => {
-                gameState.encounter = false;
-                gameState.encounterShips = [];
-                gameState.encounterCargo = {};
-                TravelMenu.show(gameState);
-            }, COLORS.TEXT_DIM);
             
         } else {
             // Merchant wants to buy cargo from player
             const playerCargo = Ship.getFleetCargo(gameState.ships);
             const availablePlayerCargo = Object.keys(playerCargo).filter(cargoId => playerCargo[cargoId] > 0);
             
+            console.log('[MerchantEncounter] Trade offer - merchant buying:', {
+                playerCargo,
+                availablePlayerCargo,
+                availablePlayerCargoCount: availablePlayerCargo.length
+            });
+            
             if (availablePlayerCargo.length === 0) {
                 // Player has no cargo
                 UI.addText(10, y++, `The merchants note you carry no cargo.`, COLORS.TEXT_DIM);
                 UI.addText(10, y++, `They scoff at your lack of industry.`, COLORS.TEXT_DIM);
-                y += 2;
-                UI.addButton(10, y++, '1', 'Continue Journey', () => {
+                
+                const grid = UI.getGridSize();
+                const buttonY = grid.height - 2;
+                const buttonX = Math.floor((grid.width - 25) / 2);
+                UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
                     TravelMenu.resume();
                 }, COLORS.GREEN, 'Resume your journey');
                 UI.draw();
@@ -138,9 +167,12 @@ const MerchantEncounter = {
             UI.addText(10, y++, `"I'll take all ${playerAmount} units at ${pricePerUnit} credits each."`, COLORS.YELLOW);
             y++;
             UI.addText(10, y++, `Total payment: ${totalRevenue} credits`, COLORS.GREEN);
-            y += 2;
             
-            UI.addButton(10, y++, '1', `Sell ${playerAmount} ${cargoType.name}`, () => {
+            const grid = UI.getGridSize();
+            const buttonY = grid.height - 3;
+            const buttonX = Math.floor((grid.width - 30) / 2);
+            
+            UI.addButton(buttonX, buttonY, '1', `Sell ${playerAmount} ${cargoType.name}`, () => {
                 // Execute trade
                 gameState.credits += totalRevenue;
                 Ship.removeCargoFromFleet(gameState.ships, randomCargoId, playerAmount);
@@ -148,7 +180,7 @@ const MerchantEncounter = {
                 this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`);
             }, COLORS.GREEN);
             
-            UI.addButton(10, y++, '2', 'Decline', () => {
+            UI.addButton(buttonX, buttonY + 1, '2', 'Decline', () => {
                 TravelMenu.resume();
             }, COLORS.TEXT_DIM);
         }

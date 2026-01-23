@@ -28,12 +28,14 @@ const PirateEncounter = {
         // Show pirate ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Pirate Forces:', gameState.encounterShips);
         
+        // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        UI.addButton(10, buttonY, '1', 'Allow Boarding', () => {
+        const buttonX = Math.floor((grid.width - 30) / 2); // Center buttons
+        UI.addButton(buttonX, buttonY, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
         }, COLORS.BUTTON, 'Surrender cargo to pirates');
         
-        UI.addButton(10, buttonY + 1, '2', 'Resist', () => {
+        UI.addButton(buttonX, buttonY + 1, '2', 'Resist', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
         
@@ -62,9 +64,11 @@ const PirateEncounter = {
             UI.addText(10, y++, `The pirates sourly note you carry no cargo.`, COLORS.TEXT_DIM);
             UI.addText(10, y++, `They furiously instruct you to work harder,`, COLORS.TEXT_DIM);
             UI.addText(10, y++, `so they can rob you next time!`, COLORS.TEXT_DIM);
-            y += 2;
             
-            UI.addButton(10, y++, '1', 'Continue Journey', () => {
+            const grid = UI.getGridSize();
+            const buttonY = grid.height - 2;
+            const buttonX = Math.floor((grid.width - 25) / 2);
+            UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
                 TravelMenu.resume();
             }, COLORS.GREEN, 'Resume your journey');
             
@@ -108,9 +112,11 @@ const PirateEncounter = {
         
         y++;
         UI.addText(10, y++, `"Much obliged, captain! Yohohoho!"`, COLORS.TEXT_ERROR);
-        y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        const grid = UI.getGridSize();
+        const buttonY = grid.height - 2;
+        const buttonX = Math.floor((grid.width - 25) / 2);
+        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
         

@@ -132,8 +132,15 @@ const ResupplyMenu = (() => {
         
         // Check if player has enough money
         if (gameState.credits < totalCost) {
-            outputMessage = `Insufficient funds. Need ${totalCost} CR (have ${gameState.credits} CR)`;
-            outputColor = COLORS.TEXT_ERROR;
+            // Pity refuel - they take what the player has and refuel anyway (but no repair)
+            gameState.ships.forEach(ship => {
+                ship.fuel = ship.maxFuel;
+            });
+            
+            gameState.credits = 0;
+            
+            outputMessage = `The mechanics take pity on you and refuel all ships for free (no repairs).`;
+            outputColor = COLORS.CYAN;
             render(gameState, onReturn, onDepart);
             return;
         }
@@ -179,8 +186,15 @@ const ResupplyMenu = (() => {
         
         // Check if player has enough money
         if (gameState.credits < totalCost) {
-            outputMessage = `Insufficient funds. Need ${totalCost} CR (have ${gameState.credits} CR)`;
-            outputColor = COLORS.TEXT_ERROR;
+            // Pity refuel - they take what the player has and refuel anyway
+            gameState.ships.forEach(ship => {
+                ship.fuel = ship.maxFuel;
+            });
+            
+            gameState.credits = 0;
+            
+            outputMessage = `The mechanics take pity on you and refuel all ships for free.`;
+            outputColor = COLORS.CYAN;
             render(gameState, onReturn, onDepart);
             return;
         }

@@ -228,6 +228,9 @@ const TravelMenu = (() => {
         // Generate encounter ships
         generateEncounterShips();
         
+        // Consume fuel for distance traveled so far
+        consumeFuelForProgress();
+        
         // Set encounter flag
         currentGameState.encounter = true;
         
@@ -313,6 +316,17 @@ const TravelMenu = (() => {
                 cargoGenerated = true; // Accept whatever we got
             }
         }
+        
+        // Log cargo generation results
+        console.log('[TravelMenu] Encounter cargo generated:', {
+            encounterType: encounterType.id,
+            retries: retryCount,
+            totalCargoCapacity,
+            totalCargoAmount,
+            cargoRatio,
+            encounterCargo: currentGameState.encounterCargo,
+            hasAnyCargo: Object.values(currentGameState.encounterCargo).some(amount => amount > 0)
+        });
     }
     
     /**
@@ -349,6 +363,40 @@ const TravelMenu = (() => {
         
         // Go to dock menu at destination
         DockMenu.show(currentGameState);
+    }
+    
+    /**
+     * Consume fuel based on current progress (used for encounters/defeats)
+     */
+    function consumeFuelForProgress() {
+        const currentSystem = currentGameState.getCurrentSystem();
+        const distance = currentSystem.distanceTo(targetSystem);
+        const distanceTraveled = distance * progress;
+        const fleetFuelCost = Ship.calculateFleetFuelCost(distanceTraveled, currentGameState.ships.length);
+        
+        console.log('[TravelMenu] Consuming fuel for progress:', {
+            progress,
+            distance,
+            distanceTraveled,
+            fleetFuelCost
+        });
+        
+        // Consume fuel proportionally from all ships based on their current fuel
+        const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        let remainingCost = fleetFuelCost;
+        
+        currentGameState.ships.forEach(ship => {
+            const shipFuelProportion = ship.fuel / totalFuel;
+            const shipFuelCost = Math.min(ship.fuel, Math.ceil(fleetFuelCost * shipFuelProportion));
+            ship.fuel -= shipFuelCost;
+            remainingCost -= shipFuelCost;
+        });
+        
+        // Handle any remaining fuel cost due to rounding (subtract from ship with most fuel)
+        if (remainingCost > 0) {
+            const shipWithMostFuel = currentGameState.ships.reduce((max, ship) => ship.fuel > max.fuel ? ship : max);
+            shipWithMostFuel.fuel = Math.max(0, shipWithMostFuel.fuel - remainingCost);
+        }
     }
     
     /**
@@ -389,6 +437,7 @@ const TravelMenu = (() => {
     
     return {
         show,
-        resume
+        resume,
+        consumeFuelForProgress
     };
 })();

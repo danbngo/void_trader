@@ -28,13 +28,14 @@ const PoliceEncounter = {
         // Show enemy ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Police Forces:', gameState.encounterShips);
         
-        // Buttons at bottom
-        const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Allow Inspection', () => {
+        // Buttons centered at bottom
+        const buttonY = grid.height - 3;
+        const buttonX = Math.floor((grid.width - 30) / 2); // Center buttons
+        UI.addButton(buttonX, buttonY, '1', 'Allow Inspection', () => {
             this.handleInspection(gameState, encType);
         }, COLORS.GREEN, 'Let police scan your cargo (50% chance to find illegal goods)');
         
-        UI.addButton(10, buttonY + 1, '2', 'Resist', () => {
+        UI.addButton(buttonX, buttonY + 1, '2', 'Resist', () => {
             this.showResistConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Refuse inspection and fight (-10 reputation, +2000 bounty)');
         
@@ -108,9 +109,10 @@ const PoliceEncounter = {
             UI.addText(10, y++, `"Safe travels, captain."`, COLORS.TEXT_NORMAL);
         }
         
-        y += 2;
-        
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        const grid = UI.getGridSize();
+        const buttonY = grid.height - 2;
+        const buttonX = Math.floor((grid.width - 25) / 2);
+        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');

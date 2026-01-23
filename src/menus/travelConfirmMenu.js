@@ -12,6 +12,7 @@ const TravelConfirmMenu = (() => {
     function show(gameState, targetSystem) {
         UI.clear();
         UI.resetSelection();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();

@@ -28,18 +28,14 @@ const PirateEncounter = {
         // Show pirate ships
         y = ShipTableRenderer.addNPCFleet(10, y, 'Pirate Forces:', gameState.encounterShips);
         
-        const buttonY = grid.height - 4;
+        const buttonY = grid.height - 3;
         UI.addButton(10, buttonY, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
         }, COLORS.BUTTON, 'Surrender cargo to pirates');
         
         UI.addButton(10, buttonY + 1, '2', 'Resist', () => {
-            EncounterMenu.show(gameState, encType);
-        }, COLORS.TEXT_ERROR, 'Fight the pirates');
-        
-        UI.addButton(10, buttonY + 2, '3', 'Attack', () => {
             this.showAttackConsequences(gameState, encType);
-        }, COLORS.GREEN, 'Attack criminals (+5 reputation, no bounty)');
+        }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
         
         UI.draw();
     },

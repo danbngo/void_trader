@@ -538,7 +538,10 @@ const EncounterMenu = (() => {
         
         // Set output message in UI output row if there's a message
         if (outputMessage) {
+            console.log('[EncounterMenu] Setting output row:', { outputMessage, outputColor });
             UI.setOutputRow(outputMessage, outputColor);
+        } else {
+            console.log('[EncounterMenu] No output message to set');
         }
         
         // Check if action is in progress

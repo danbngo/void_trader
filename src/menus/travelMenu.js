@@ -23,6 +23,7 @@ const TravelMenu = (() => {
     function show(gameState, destination) {
         UI.clear();
         UI.resetSelection();
+        UI.clearOutputRow();
         
         // Initialize travel state
         currentGameState = gameState;

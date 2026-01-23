@@ -171,6 +171,7 @@ const UI = (() => {
      * Clear all registered UI elements (selection preserved if possible)
      */
     function clear() {
+        console.log('[UI] clear() called, preserving outputRow:', { outputRowText, outputRowColor, outputRowIsHelpText });
         // Preserve current selected button key
         if (registeredButtons.length > 0 && selectedButtonIndex < registeredButtons.length) {
             preservedButtonKey = registeredButtons[selectedButtonIndex].key;
@@ -332,7 +333,9 @@ const UI = (() => {
             lastSelectedButtonIndex = selectedButtonIndex;
             // Clear output row when selection changes (allows help text to replace error messages)
             // But only if not flashing (preserve output during flash)
+            // Safe to clear all output because combat actions don't show buttons
             if (!isCurrentlyFlashing) {
+                console.log('[UI] Selection changed, clearing output row');
                 outputRowText = '';
                 outputRowColor = 'white';
                 outputRowIsHelpText = false;
@@ -379,6 +382,7 @@ const UI = (() => {
         
         // Draw output row (generalized)
         if (outputRowText) {
+            console.log('[UI] Drawing output row:', { outputRowText, outputRowColor, outputRowIsHelpText });
             const grid = getGridSize();
             // Find the minimum button Y position (topmost button)
             let minButtonY = grid.height - 3; // default if no buttons
@@ -390,6 +394,8 @@ const UI = (() => {
             const x = Math.floor((GRID_WIDTH - outputRowText.length) / 2);
             canvasWrapper.drawRect(x, y, outputRowText.length, 1, 'black');
             canvasWrapper.drawText(x, y, outputRowText, outputRowColor);
+        } else {
+            console.log('[UI] No output row text to draw');
         }
         
         // Debug output
@@ -454,11 +460,13 @@ const UI = (() => {
      * Reset button selection to first button (for entering new menus)
      */
     function resetSelection() {
+        console.log('[UI] resetSelection called, current outputRow:', { outputRowText, outputRowColor, outputRowIsHelpText });
         selectedButtonIndex = 0;
         lastSelectedButtonIndex = -1;
         preservedButtonKey = null; // Clear preserved key to prevent carryover
         // Only clear helpText, not action output
         if (outputRowIsHelpText) {
+            console.log('[UI] Clearing help text from output row');
             outputRowText = '';
             outputRowColor = 'white';
             outputRowIsHelpText = false;
@@ -471,8 +479,18 @@ const UI = (() => {
      * @param {string} color - Color of the text
      */
     function setOutputRow(text, color = 'white') {
+        console.log('[UI] setOutputRow called:', { text, color, isHelpText: false });
         outputRowText = text;
         outputRowColor = color;
+        outputRowIsHelpText = false;
+    }
+    
+    /**
+     * Clear output row (useful when transitioning between menus)
+     */
+    function clearOutputRow() {
+        outputRowText = '';
+        outputRowColor = 'white';
         outputRowIsHelpText = false;
     }
     

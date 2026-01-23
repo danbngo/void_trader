@@ -408,7 +408,7 @@ const GalaxyMap = (() => {
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
         
-        UI.addButton(5, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
+        UI.addButton(28, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

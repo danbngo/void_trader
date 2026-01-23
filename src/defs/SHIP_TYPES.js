@@ -13,7 +13,7 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 0.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.5
     },
     SCOUT: {
@@ -25,7 +25,7 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 1,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 3,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 2,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 2
     },
     FREIGHTER: {
@@ -33,7 +33,7 @@ const SHIP_TYPES = {
         name: 'Freighter',
         description: 'Medium cargo hauler with good capacity',
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1.5,
-        baseCargoCapacity: AVERAGE_SHIP_CARGO * 3,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 1.5,
         baseMaxHull: AVERAGE_SHIP_HULL * 1,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.25,
@@ -44,11 +44,11 @@ const SHIP_TYPES = {
         id: 'HAULER',
         name: 'Hauler',
         description: 'Massive cargo capacity, slow but durable',
-        baseMaxFuel: AVERAGE_SHIP_FUEL * 2,
-        baseCargoCapacity: AVERAGE_SHIP_CARGO * 4,
-        baseMaxHull: AVERAGE_SHIP_HULL * 2,
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1.5,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 2,
+        baseMaxHull: AVERAGE_SHIP_HULL * 1.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.25,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.5
     },
@@ -73,7 +73,7 @@ const SHIP_TYPES = {
         baseMaxHull: AVERAGE_SHIP_HULL * 1,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 2,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 2,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.5
     },
     DESTROYER: {

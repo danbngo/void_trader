@@ -200,7 +200,7 @@ const EncounterMenu = (() => {
      */
     function render() {
         UI.clear();
-        UI.resetSelection();
+        // Don't reset selection - preserve it across re-renders
         
         const grid = UI.getGridSize();
         
@@ -576,20 +576,23 @@ const EncounterMenu = (() => {
                 s => !s.fled && !s.disabled && !s.escaped
             ).length;
             
-            // Show normal action buttons
-            let currentButtonY = buttonY;
+            // 3-column layout
+            const leftX = 5;
+            const middleX = 28;
+            const rightX = 51;
+            
+            // Column 1: Previous Target, Next Target, Fire Laser
+            let col1Y = buttonY;
             
             // Only show target selection if there's more than one valid enemy
             if (validEnemyCount > 1) {
-                UI.addButton(5, currentButtonY, '1', 'Previous Target', () => {
+                UI.addButton(leftX, col1Y++, '1', 'Previous Target', () => {
                     prevTarget();
                 }, COLORS.BUTTON, 'Select previous enemy ship as target');
-                currentButtonY++;
                 
-                UI.addButton(5, currentButtonY, '2', 'Next Target', () => {
+                UI.addButton(leftX, col1Y++, '2', 'Next Target', () => {
                     nextTarget();
                 }, COLORS.BUTTON, 'Select next enemy ship as target');
-                currentButtonY++;
             }
             
             // Calculate action details for help text
@@ -638,32 +641,34 @@ const EncounterMenu = (() => {
                 }
             }
             
-            UI.addButton(5, currentButtonY, '3', 'Fire Laser', () => {
+            UI.addButton(leftX, col1Y++, '3', 'Fire Laser', () => {
                 executePlayerAction(COMBAT_ACTIONS.FIRE_LASER);
             }, COLORS.TEXT_ERROR, laserHelpText);
-            currentButtonY++;
 
-            UI.addButton(5, currentButtonY, '4', 'Pursue', () => {
+            // Column 2: Pursue, Flee, Surrender
+            let col2Y = buttonY;
+            
+            UI.addButton(middleX, col2Y++, '4', 'Pursue', () => {
                 executePlayerAction(COMBAT_ACTIONS.PURSUE);
             }, COLORS.GREEN, pursueHelpText);
-            currentButtonY++;
             
-            UI.addButton(5, currentButtonY, '5', 'Flee', () => {
+            UI.addButton(middleX, col2Y++, '5', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, fleeHelpText);
-            currentButtonY++;
             
-            UI.addButton(5, currentButtonY, '6', 'Surrender', () => {
+            UI.addButton(middleX, col2Y++, '6', 'Surrender', () => {
                 handleSurrender(gameState);
             }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
-            currentButtonY++;
             
-            UI.addButton(28, buttonY, '8', 'Zoom In', () => {
+            // Column 3: Zoom In, Zoom Out
+            let col3Y = buttonY;
+            
+            UI.addButton(rightX, col3Y++, '7', 'Zoom In', () => {
                 mapViewRange = Math.max(ENCOUNTER_MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
                 render();
             }, COLORS.BUTTON, 'Decrease view range to see closer');
             
-            UI.addButton(28, buttonY + 1, '9', 'Zoom Out', () => {
+            UI.addButton(rightX, col3Y++, '8', 'Zoom Out', () => {
                 mapViewRange = Math.min(ENCOUNTER_MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
                 render();
             }, COLORS.BUTTON, 'Increase view range to see farther');

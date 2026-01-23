@@ -13,8 +13,10 @@ const EncounterUtils = (() => {
      */
     function showRadarAdvantageWarning(gameState, y, enemyName = "Enemy") {
         if (gameState.enemyRadarAdvantage) {
-            UI.addText(10, y++, `WARNING: Your radar did not detect the ${enemyName} aproaching!`, COLORS.YELLOW);
-            UI.addText(10, y++, `Your shields have not been raised!`, COLORS.TEXT_ERROR);
+            const messages = DIALOGUE.getEnemyRadarAdvantageMessages(enemyName);
+            messages.forEach(msg => {
+                UI.addText(10, y++, msg.text, msg.color);
+            });
             y++;
         }
         return y;
@@ -30,8 +32,10 @@ const EncounterUtils = (() => {
      */
     function showPlayerRadarAdvantage(gameState, y, enemyName = "Enemy") {
         if (gameState.playerRadarAdvantage) {
-            UI.addText(10, y++, `SUCCESS: You caught the ${enemyName} unaware!`, COLORS.GREEN);
-            UI.addText(10, y++, `Their shields are down!`, COLORS.CYAN);
+            const messages = DIALOGUE.getPlayerRadarAdvantageMessages(enemyName);
+            messages.forEach(msg => {
+                UI.addText(10, y++, msg.text, msg.color);
+            });
             y++;
         }
         return y;

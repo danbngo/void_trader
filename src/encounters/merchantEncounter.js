@@ -119,7 +119,7 @@ const MerchantEncounter = {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
-                    TravelMenu.show(gameState);
+                    TravelMenu.resume();
                 }, COLORS.TEXT_DIM);
             } else {
                 UI.addText(10, y++, `You cannot afford this purchase.`, COLORS.TEXT_ERROR);
@@ -128,7 +128,7 @@ const MerchantEncounter = {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
-                    TravelMenu.show(gameState);
+                    TravelMenu.resume();
                 }, COLORS.TEXT_DIM);
             }
             

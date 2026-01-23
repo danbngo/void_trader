@@ -39,7 +39,8 @@ const PoliceEncounter = {
         UI.addText(10, y++, `"This is System Authority. Prepare for routine inspection."`, COLORS.YELLOW);
         y += 2;
         
-        // Show warning if enemy gained radar advantage
+        // Show radar advantage messages
+        y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, "Police");
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Police");
         
         // Show player ships

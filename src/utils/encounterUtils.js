@@ -20,7 +20,25 @@ const EncounterUtils = (() => {
         return y;
     }
 
+    /**
+     * Display player radar advantage message
+     * Shows success message and explains enemy shields are down
+     * @param {GameState} gameState - Current game state
+     * @param {number} y - Current y position for rendering
+     * @param {string} enemyName - Name of enemy type (e.g., "Pirates", "Police", "Merchants")
+     * @returns {number} Updated y position after rendering message
+     */
+    function showPlayerRadarAdvantage(gameState, y, enemyName = "Enemy") {
+        if (gameState.playerRadarAdvantage) {
+            UI.addText(10, y++, `SUCCESS: You caught the ${enemyName} unaware!`, COLORS.GREEN);
+            UI.addText(10, y++, `Their shields are down!`, COLORS.CYAN);
+            y++;
+        }
+        return y;
+    }
+
     return {
-        showRadarAdvantageWarning
+        showRadarAdvantageWarning,
+        showPlayerRadarAdvantage
     };
 })();

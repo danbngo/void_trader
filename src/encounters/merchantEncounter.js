@@ -18,7 +18,8 @@ const MerchantEncounter = {
         UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
         y += 2;
         
-        // Show warning if enemy gained radar advantage
+        // Show radar advantage messages
+        y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, "Merchants");
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Merchants");
         
         // Show player ships

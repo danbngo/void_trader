@@ -70,6 +70,8 @@ const UndetectedEncounter = {
             gameState.encounterShips.forEach(ship => {
                 ship.shields = 0;
             });
+            // Set flag for UI display
+            gameState.playerRadarAdvantage = true;
             // Proceed with normal encounter
             encType.onGreet(gameState, encType);
         }, COLORS.GREEN, approachHelpText);

@@ -28,7 +28,8 @@ const PirateEncounter = {
         UI.addText(10, y++, `"Hand over your cargo or we'll take it by force!"`, COLORS.TEXT_ERROR);
         y += 2;
         
-        // Show warning if enemy gained radar advantage
+        // Show radar advantage messages
+        y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, "Pirates");
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Pirates");
         
         // Show player ships

@@ -69,6 +69,7 @@ const PoliceEncounter = {
     showNoIllegalPolice: function(gameState) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Police Encounter ===`, COLORS.CYAN);
         y += 2;
@@ -78,13 +79,28 @@ const PoliceEncounter = {
         UI.addText(10, y++, `The police scan your ships, then pass by without hailing you.`, COLORS.GREEN);
         y++;
         UI.addText(10, y++, `Their scanners found nothing suspicious.`, COLORS.TEXT_DIM);
+        y += 2;
         
-        const grid = UI.getGridSize();
-        const buttonY = grid.height - 2;
-        const buttonX = Math.floor((grid.width - 25) / 2);
+        // Show warning if enemy gained radar advantage
+        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Police");
+        
+        // Show player ships
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y++;
+        
+        // Show police ships
+        y = ShipTableRenderer.addNPCFleet(10, y, 'Police Forces:', gameState.encounterShips);
+        
+        // Buttons centered at bottom
+        const buttonY = grid.height - 3;
+        const buttonX = Math.floor((grid.width - 30) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
+        
+        UI.addButton(buttonX, buttonY + 1, '2', 'Attack', () => {
+            this.showResistConsequences(gameState, ENCOUNTER_TYPES.POLICE);
+        }, COLORS.TEXT_ERROR, 'Attack authorities (-10 reputation, +2000 bounty)');
         
         UI.draw();
     },

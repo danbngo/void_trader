@@ -66,6 +66,10 @@ const UndetectedEncounter = {
             : `Engage with the ${encType.name} normally`;
         
         UI.addButton(10, buttonY, '1', 'Approach', () => {
+            // Player has radar advantage - enemy ships start with 0 shields
+            gameState.encounterShips.forEach(ship => {
+                ship.shields = 0;
+            });
             // Proceed with normal encounter
             encType.onGreet(gameState, encType);
         }, COLORS.GREEN, approachHelpText);

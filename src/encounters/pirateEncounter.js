@@ -58,6 +58,7 @@ const PirateEncounter = {
     showNoCargoPirates: function(gameState) {
         UI.clear();
         
+        const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Pirate Encounter ===`, COLORS.TEXT_ERROR);
         y += 2;
@@ -68,13 +69,28 @@ const PirateEncounter = {
         UI.addText(10, y++, `"No cargo, huh? We'll let you pass this time."`, COLORS.TEXT_ERROR);
         y++;
         UI.addText(10, y++, `They veer off in search of richer prey.`, COLORS.TEXT_DIM);
+        y += 2;
         
-        const grid = UI.getGridSize();
-        const buttonY = grid.height - 2;
-        const buttonX = Math.floor((grid.width - 25) / 2);
+        // Show warning if enemy gained radar advantage
+        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Pirates");
+        
+        // Show player ships
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y++;
+        
+        // Show pirate ships
+        y = ShipTableRenderer.addNPCFleet(10, y, 'Pirate Forces:', gameState.encounterShips);
+        
+        // Buttons centered at bottom
+        const buttonY = grid.height - 3;
+        const buttonX = Math.floor((grid.width - 30) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
+        
+        UI.addButton(buttonX, buttonY + 1, '2', 'Attack', () => {
+            this.showAttackConsequences(gameState, ENCOUNTER_TYPES.PIRATE);
+        }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
         
         UI.draw();
     },

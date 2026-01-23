@@ -38,14 +38,37 @@ class CombatAI {
             const hitChance = Math.min(1, enemyShip.radar / nearestDistance);
             
             // Calculate desperation factor based on target distance from center
-            // Target at center (0,0) = 0% desperation bonus
-            // Target at max radius = 100% desperation (will always shoot)
-            const targetDistanceFromCenter = Math.sqrt(nearestShip.x * nearestShip.x + nearestShip.y * nearestShip.y);
-            const desperationFactor = Math.min(1, targetDistanceFromCenter / ENCOUNTER_MAX_RADIUS);
+            // BUT only if target is facing AWAY from center (prevents camping exploit)
+            let desperationFactor = 0;
             
-            // Effective threshold decreases as target gets closer to edge
-            // At center: threshold = ENEMY_MIN_LASER_HIT_CHANCE (0.5)
-            // At edge: threshold = 0 (will always shoot)
+            const targetDistanceFromCenter = Math.sqrt(nearestShip.x * nearestShip.x + nearestShip.y * nearestShip.y);
+            
+            // Only apply desperation if target is near edge AND facing away from center
+            if (targetDistanceFromCenter > ENCOUNTER_MAX_RADIUS * 0.5) {
+                // Calculate angle from target to center (0,0)
+                const angleToCenter = Math.atan2(-nearestShip.y, -nearestShip.x);
+                
+                // Normalize angles to [0, 2π]
+                const normalizedTargetAngle = ((nearestShip.angle % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+                const normalizedAngleToCenter = ((angleToCenter % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+                
+                // Calculate angle difference (absolute shortest path)
+                let angleDiff = Math.abs(normalizedTargetAngle - normalizedAngleToCenter);
+                if (angleDiff > Math.PI) {
+                    angleDiff = 2 * Math.PI - angleDiff;
+                }
+                
+                // If target is facing away from center (angle difference > 90 degrees)
+                const facingAwayThreshold = Math.PI / 2; // 90 degrees
+                if (angleDiff > facingAwayThreshold) {
+                    // Target is facing away - apply desperation based on distance
+                    desperationFactor = Math.min(1, targetDistanceFromCenter / ENCOUNTER_MAX_RADIUS);
+                }
+            }
+            
+            // Effective threshold decreases as target gets closer to edge (when facing away)
+            // At center or facing toward center: threshold = ENEMY_MIN_LASER_HIT_CHANCE (0.5)
+            // At edge facing away: threshold = 0 (will always shoot)
             const effectiveThreshold = ENEMY_MIN_LASER_HIT_CHANCE * (1 - desperationFactor);
             
             // Fire laser if hit chance meets the (potentially reduced) threshold

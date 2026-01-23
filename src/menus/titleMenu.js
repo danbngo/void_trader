@@ -123,38 +123,52 @@ const TitleMenu = (() => {
             // Create game state
             const gameState = new GameState();
             
-            // Generate 100 star systems
-            // Generate systems
-            const numSystems = Math.floor(Math.random() * (MAX_NUM_SYSTEMS - MIN_NUM_SYSTEMS + 1)) + MIN_NUM_SYSTEMS;
-            gameState.systems = SystemGenerator.generateMany(numSystems);
+            // Generate galaxy with valid path from Nexus to Proxima
+            let galaxyValid = false;
+            let attempts = 0;
             
-            // Place player at system with most neighbors within 10ly
-            let bestSystemIndex = 0;
-            let maxNeighbors = 0;
-            
-            gameState.systems.forEach((system, index) => {
-                // Count neighbors within 10ly
-                let neighborCount = 0;
-                gameState.systems.forEach((otherSystem, otherIndex) => {
-                    if (index !== otherIndex) {
-                        const distance = system.distanceTo(otherSystem);
-                        if (distance <= 10) {
-                            neighborCount++;
+            while (!galaxyValid) {
+                attempts++;
+                
+                // Generate systems
+                const numSystems = Math.floor(Math.random() * (MAX_NUM_SYSTEMS - MIN_NUM_SYSTEMS + 1)) + MIN_NUM_SYSTEMS;
+                gameState.systems = SystemGenerator.generateMany(numSystems);
+                
+                // Place player at system with most neighbors within 10ly
+                let bestSystemIndex = 0;
+                let maxNeighbors = 0;
+                
+                gameState.systems.forEach((system, index) => {
+                    // Count neighbors within 10ly
+                    let neighborCount = 0;
+                    gameState.systems.forEach((otherSystem, otherIndex) => {
+                        if (index !== otherIndex) {
+                            const distance = system.distanceTo(otherSystem);
+                            if (distance <= 10) {
+                                neighborCount++;
+                            }
                         }
+                    });
+                    
+                    // Update best system if this one has more neighbors
+                    if (neighborCount > maxNeighbors) {
+                        maxNeighbors = neighborCount;
+                        bestSystemIndex = index;
                     }
                 });
                 
-                // Update best system if this one has more neighbors
-                if (neighborCount > maxNeighbors) {
-                    maxNeighbors = neighborCount;
-                    bestSystemIndex = index;
+                gameState.setCurrentSystem(bestSystemIndex);
+                
+                // Validate galaxy: name starting system, remove its guild, name nearest guild system
+                // Returns true if there's a valid path from Nexus to Proxima
+                galaxyValid = SystemGenerator.validateGalaxy(gameState.systems, bestSystemIndex);
+                
+                if (!galaxyValid) {
+                    console.log(`Galaxy generation attempt ${attempts} failed - no valid path from Nexus to Proxima. Retrying...`);
                 }
-            });
+            }
             
-            gameState.setCurrentSystem(bestSystemIndex);
-            
-            // Validate galaxy: name starting system, remove its guild, name nearest guild system
-            SystemGenerator.validateGalaxy(gameState.systems, bestSystemIndex);
+            console.log(`Galaxy generated successfully after ${attempts} attempt(s)`);
             
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);

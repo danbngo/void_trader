@@ -181,11 +181,51 @@ const SystemGenerator = (() => {
     }
     
     /**
+     * Check if there's a valid path between two systems using BFS
+     * @param {Array<StarSystem>} systems - All star systems
+     * @param {number} startIndex - Starting system index
+     * @param {number} targetIndex - Target system index
+     * @param {number} maxJumpDistance - Maximum jump distance in ly
+     * @returns {boolean} True if path exists
+     */
+    function hasPathBetweenSystems(systems, startIndex, targetIndex, maxJumpDistance) {
+        if (startIndex === targetIndex) return true;
+        
+        const visited = new Set();
+        const queue = [startIndex];
+        visited.add(startIndex);
+        
+        while (queue.length > 0) {
+            const currentIndex = queue.shift();
+            const currentSystem = systems[currentIndex];
+            
+            // Check all other systems
+            for (let i = 0; i < systems.length; i++) {
+                if (visited.has(i)) continue;
+                
+                const otherSystem = systems[i];
+                const dist = distance(currentSystem.x, currentSystem.y, otherSystem.x, otherSystem.y);
+                
+                if (dist <= maxJumpDistance) {
+                    if (i === targetIndex) {
+                        return true; // Found path to target
+                    }
+                    visited.add(i);
+                    queue.push(i);
+                }
+            }
+        }
+        
+        return false; // No path found
+    }
+    
+    /**
      * Validate and adjust galaxy for game start
      * Names the starting system "Nexus", removes its guild,
      * and names the nearest guild system "Proxima"
      * @param {Array<StarSystem>} systems - All star systems
      * @param {number} startSystemIndex - Index of starting system
+     * @returns {boolean} True if galaxy is valid (path exists from Nexus to Proxima)
      */
     function validateGalaxy(systems, startSystemIndex) {
         const startingSystem = systems[startSystemIndex];
@@ -200,6 +240,7 @@ const SystemGenerator = (() => {
         
         // Find nearest system with a guild and name it "Proxima"
         let nearestGuildSystem = null;
+        let nearestGuildIndex = -1;
         let nearestDistance = Infinity;
         
         systems.forEach((system, index) => {
@@ -208,13 +249,21 @@ const SystemGenerator = (() => {
                 if (dist < nearestDistance) {
                     nearestDistance = dist;
                     nearestGuildSystem = system;
+                    nearestGuildIndex = index;
                 }
             }
         });
         
         if (nearestGuildSystem) {
             nearestGuildSystem.name = 'Proxima';
+            
+            // Check if there's a valid path from Nexus to Proxima using 10ly jumps
+            const pathExists = hasPathBetweenSystems(systems, startSystemIndex, nearestGuildIndex, 10);
+            return pathExists;
         }
+        
+        // No guild system found - galaxy is invalid
+        return false;
     }
     
     return {

@@ -122,9 +122,10 @@ const TravelMenu = (() => {
         UI.addTextCentered(y++, `${(progress * 100).toFixed(1)}% complete`, COLORS.TEXT_DIM);
         y++;
         
-        // Encounter output row
+        // Encounter output row - positioned near bottom
+        const buttonY = grid.height - 3;
+        
         if (encounterTriggered && encounterType) {
-            y++;
             // Flash between encounter color and white for emphasis
             const flashState = UI.getFlashState();
             const flashColor = flashState ? encounterType.color : COLORS.WHITE;
@@ -135,24 +136,20 @@ const TravelMenu = (() => {
                 encounterTypeColor: encounterType.color,
                 flashColor: flashColor
             });
-            UI.addText(5, y++, `Alert: ${encounterType.name} Detected!`, flashColor);
-            //UI.addText(5, y++, encounterType.description, COLORS.TEXT_NORMAL);
-            y++;
+            UI.addText(5, buttonY - 3, `Alert: ${encounterType.name} Detected!`, flashColor);
             
-            UI.addButton(5, y++, '1', 'Continue', () => {
+            UI.addButton(5, buttonY, '1', 'Continue', () => {
                 // Check for undetected encounter (radar comparison)
                 UndetectedEncounter.check(currentGameState, encounterType);
             }, COLORS.GREEN);
         } else if (arrivedAtDestination) {
-            y++;
-            UI.addText(5, y++, `You have arrived at ${targetSystem.name}!`, COLORS.GREEN);
-            y++;
+            UI.addText(5, buttonY - 3, `You have arrived at ${targetSystem.name}!`, COLORS.GREEN);
             
-            UI.addButton(5, y++, '1', 'Continue', () => {
+            UI.addButton(5, buttonY, '1', 'Continue', () => {
                 completeJourney();
             }, COLORS.GREEN);
         } else if (paused) {
-            UI.addText(5, y++, 'Journey paused...', COLORS.TEXT_DIM);
+            UI.addText(5, buttonY - 3, 'Journey paused...', COLORS.TEXT_DIM);
         }
         
         UI.draw();

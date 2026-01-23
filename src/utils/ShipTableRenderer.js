@@ -35,7 +35,7 @@ const ShipTableRenderer = (() => {
         const rows = ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const isActive = (index === activeShipIndex);
-            const nameColor = isActive ? COLORS.GREEN : COLORS.CYAN;
+            const nameColor = isActive ? COLORS.GREEN : COLORS.TEXT_NORMAL;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.maxShields > 0 ? ship.shields / ship.maxShields : 0;
             const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
@@ -45,7 +45,7 @@ const ShipTableRenderer = (() => {
             
             const row = [
                 { text: ship.name, color: nameColor },
-                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
@@ -82,7 +82,7 @@ const ShipTableRenderer = (() => {
         
         // Add label
         if (label) {
-            UI.addText(x, y, label, COLORS.CYAN);
+            UI.addText(x, y, label, COLORS.TEXT_NORMAL);
             y += 2;
         }
         
@@ -99,7 +99,7 @@ const ShipTableRenderer = (() => {
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             
             return [
-                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },

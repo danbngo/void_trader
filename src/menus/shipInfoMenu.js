@@ -22,7 +22,7 @@ const ShipInfoMenu = (() => {
         const endY = ShipTableRenderer.addPlayerFleet(5, 6, null, gameState.ships, true, -1);
         
         // Back button
-        UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addCenteredButton(grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
         
         UI.draw();
     }

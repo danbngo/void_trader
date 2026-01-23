@@ -52,12 +52,11 @@ const PoliceEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - '[1] Allow Inspection'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Allow Inspection', () => {
+        UI.addCenteredButton(buttonY, '1', 'Allow Inspection', () => {
             this.handleInspection(gameState, encType);
         }, COLORS.GREEN, 'Let police scan your cargo (50% chance to find illegal goods)');
         
-        UI.addButton(buttonX, buttonY + 1, '2', 'Resist', () => {
+        UI.addCenteredButton(buttonY + 1, '2', 'Resist', () => {
             this.showResistConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Refuse inspection and fight (-10 reputation, +2000 bounty)');
         
@@ -94,12 +93,11 @@ const PoliceEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
         
-        UI.addButton(buttonX, buttonY + 1, '2', 'Attack', () => {
+        UI.addCenteredButton(buttonY + 1, '2', 'Attack', () => {
             this.showResistConsequences(gameState, ENCOUNTER_TYPES.POLICE);
         }, COLORS.TEXT_ERROR, 'Attack authorities (-10 reputation, +2000 bounty)');
         
@@ -175,8 +173,7 @@ const PoliceEncounter = {
         
         const grid = UI.getGridSize();
         const buttonY = grid.height - 2;
-        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
@@ -200,6 +197,7 @@ const PoliceEncounter = {
         gameState.bounty += BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES;
         
         UI.addText(10, y++, `You refuse to submit to inspection!`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `The police open fire!`, COLORS.TEXT_NORMAL);
         y++;
         
         y = TableRenderer.renderKeyValueList(10, y, [
@@ -208,10 +206,8 @@ const PoliceEncounter = {
         ]);
         y++;
         
-        UI.addText(10, y++, `The police open fire!`, COLORS.TEXT_NORMAL);
-        
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR);
         
@@ -245,7 +241,7 @@ const PoliceEncounter = {
         UI.addText(10, y++, `You are now a wanted criminal!`, COLORS.TEXT_ERROR);
         
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR);
         

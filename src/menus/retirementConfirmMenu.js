@@ -48,13 +48,14 @@ const RetirementConfirmMenu = (() => {
         
         // Buttons at bottom
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, 'Y', 'Yes, retire early', () => {
-            if (onRetire) onRetire();
-        }, COLORS.TEXT_ERROR, 'End your career and see final rank');
-        
-        UI.addButton(10, buttonY + 1, '0', 'Cancel', () => {
-            if (onCancel) onCancel();
-        }, COLORS.BUTTON, 'Continue playing');
+        UI.addCenteredButtons(buttonY, [
+            { key: 'Y', label: 'Yes, retire early', callback: () => {
+                if (onRetire) onRetire();
+            }, color: COLORS.TEXT_ERROR, helpText: 'End your career and see final rank' },
+            { key: '0', label: 'Cancel', callback: () => {
+                if (onCancel) onCancel();
+            }, color: COLORS.BUTTON, helpText: 'Continue playing' }
+        ]);
         
         UI.draw();
     }

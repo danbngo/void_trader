@@ -110,15 +110,14 @@ const TravelConfirmMenu = (() => {
         
         // Buttons - centered at bottom
         const buttonY = grid.height - 5;
-        const buttonX = Math.floor((grid.width - '[0] Cancel'.length) / 2);
         
         if (fuelAfter >= 0) {
-            UI.addButton(buttonX, buttonY, '1', 'Launch', () => {
+            UI.addCenteredButton(buttonY, '1', 'Launch', () => {
                 TravelMenu.show(gameState, targetSystem);
             }, COLORS.GREEN);
         }
         
-        UI.addButton(buttonX, buttonY + 1, '0', 'Cancel', () => {
+        UI.addCenteredButton(buttonY + 1, '0', 'Cancel', () => {
             GalaxyMap.show(gameState);
         }, COLORS.BUTTON);
         

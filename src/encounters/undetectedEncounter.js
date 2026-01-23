@@ -65,33 +65,35 @@ const UndetectedEncounter = {
             ? 'Approach the Police (they will inspect your cargo)'
             : `Engage with the ${encType.name} normally`;
         
-        UI.addButton(10, buttonY, '1', 'Approach', () => {
-            // Player has radar advantage - enemy ships start with 0 shields
-            gameState.encounterShips.forEach(ship => {
-                ship.shields = 0;
-            });
-            // Set flag for UI display
-            gameState.playerRadarAdvantage = true;
-            // Proceed with normal encounter
-            encType.onGreet(gameState, encType);
-        }, COLORS.GREEN, approachHelpText);
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Approach', callback: () => {
+                // Player has radar advantage - enemy ships start with 0 shields
+                gameState.encounterShips.forEach(ship => {
+                    ship.shields = 0;
+                });
+                // Set flag for UI display
+                gameState.playerRadarAdvantage = true;
+                // Proceed with normal encounter
+                encType.onGreet(gameState, encType);
+            }, color: COLORS.GREEN, helpText: approachHelpText },
+            { key: '2', label: 'Avoid', callback: () => {
+                // Player successfully avoids encounter
+                UI.clear();
+                let y = 5;
+                UI.addTextCentered(y++, `=== Encounter Avoided ===`, COLORS.GREEN);
+                y += 2;
+                UI.addText(10, y++, `You carefully navigate around the ${encType.name.toLowerCase()} ships.`, COLORS.GREEN);
+                UI.addText(10, y++, `They never detected your presence.`, COLORS.TEXT_DIM);
+                
+                const continueY = grid.height - 4;
+                UI.addCenteredButton(continueY, '1', 'Continue Journey', () => {
+                    TravelMenu.resume(gameState);
+                }, COLORS.GREEN);
+                
+                UI.draw();
+            }, color: COLORS.GREEN, helpText: `Avoid the ${encType.name}` }
+        ]);
         
-        UI.addButton(10, buttonY + 1, '2', 'Avoid', () => {
-            // Player successfully avoids encounter
-            UI.clear();
-            let y = 5;
-            UI.addTextCentered(y++, `=== Encounter Avoided ===`, COLORS.GREEN);
-            y += 2;
-            UI.addText(10, y++, `You carefully navigate around the ${encType.name.toLowerCase()} ships.`, COLORS.GREEN);
-            UI.addText(10, y++, `They never detected your presence.`, COLORS.TEXT_DIM);
-            
-            const continueY = grid.height - 4;
-            UI.addButton(10, continueY, '1', 'Continue Journey', () => {
-                TravelMenu.resume(gameState);
-            }, COLORS.GREEN);
-            
-            UI.draw();
-        }, COLORS.GREEN, `Avoid the ${encType.name}`);
         
         UI.draw();
     }

@@ -84,20 +84,21 @@ const TitleMenu = (() => {
         
         // Menu buttons positioned at bottom
         const buttonY = grid.height - 5;
-        const menuX = centerX - 10;
         
-        UI.addButton(menuX, buttonY, '1', 'New Game', () => {
-            stopAnimation();
-            newGame();
-        }, COLORS.BUTTON, 'Start a new adventure');
-        UI.addButton(menuX, buttonY + 1, '2', 'Load Game', () => {
-            stopAnimation();
-            LoadMenu.show(() => TitleMenu.show());
-        }, COLORS.BUTTON, 'Load a previously saved game');
-        UI.addButton(menuX, buttonY + 2, '3', 'About', () => {
-            stopAnimation();
-            showAbout();
-        }, COLORS.BUTTON, 'Learn about the game');
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'New Game', callback: () => {
+                stopAnimation();
+                newGame();
+            }, color: COLORS.BUTTON, helpText: 'Start a new adventure' },
+            { key: '2', label: 'Load Game', callback: () => {
+                stopAnimation();
+                LoadMenu.show(() => TitleMenu.show());
+            }, color: COLORS.BUTTON, helpText: 'Load a previously saved game' },
+            { key: '3', label: 'About', callback: () => {
+                stopAnimation();
+                showAbout();
+            }, color: COLORS.BUTTON, helpText: 'Learn about the game' }
+        ]);
         
         UI.addTextCentered(grid.height - 1, '(Use mouse, arrow keys or numbers to select)', COLORS.TEXT_DIM);
         
@@ -204,8 +205,7 @@ const TitleMenu = (() => {
         UI.addTextCentered(17, 'Controls: Number keys', COLORS.BUTTON);
         UI.addTextCentered(18, 'Version: 0.1.0', COLORS.TEXT_DIM);
         
-        const buttonX = Math.floor(grid.width / 2) - 10;
-        UI.addButton(buttonX, 22, '1', 'Back to Title', () => show(), COLORS.BUTTON);
+        UI.addCenteredButton(22, '1', 'Back to Title', () => show(), COLORS.BUTTON);
         
         UI.draw();
     }

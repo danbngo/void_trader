@@ -87,35 +87,40 @@ const QuestsMenu = (() => {
         // Buttons
         const buttonY = grid.height - 5;
         
+        // Build button array dynamically
+        const buttons = [];
+        
         // Toggle between active/completed
         const toggleLabel = showingActive ? 'Show Completed' : 'Show Active';
-        UI.addButton(10, buttonY, 'T', toggleLabel, () => {
+        buttons.push({ key: 'T', label: toggleLabel, callback: () => {
             showingActive = !showingActive;
             currentPage = 0;
             render();
-        }, COLORS.BUTTON, 'Toggle between active and completed quests');
+        }, color: COLORS.BUTTON, helpText: 'Toggle between active and completed quests' });
         
         // Pagination buttons
         if (currentPage > 0) {
-            UI.addButton(10, buttonY + 1, '8', 'Previous Page', () => {
+            buttons.push({ key: '8', label: 'Previous Page', callback: () => {
                 currentPage--;
                 render();
-            }, COLORS.BUTTON);
+            }, color: COLORS.BUTTON });
         }
         
         const pageQuestIds = showingActive ? currentGameState.activeQuests : currentGameState.completedQuests;
         const totalPages = Math.ceil(pageQuestIds.length / QUESTS_PER_PAGE);
         if (currentPage < totalPages - 1) {
-            UI.addButton(10, buttonY + 2, '9', 'Next Page', () => {
+            buttons.push({ key: '9', label: 'Next Page', callback: () => {
                 currentPage++;
                 render();
-            }, COLORS.BUTTON);
+            }, color: COLORS.BUTTON });
         }
         
         // Back button
-        UI.addButton(10, grid.height - 4, '0', 'Back', () => {
+        buttons.push({ key: '0', label: 'Back', callback: () => {
             if (returnCallback) returnCallback();
-        }, COLORS.BUTTON);
+        }, color: COLORS.BUTTON });
+        
+        UI.addCenteredButtons(buttonY, buttons);
         
         UI.draw();
     }

@@ -38,7 +38,7 @@ const ScanSystemMenu = (() => {
         UI.addText(5, startY + 10, flavorText, COLORS.TEXT_NORMAL);
         
         // Back button
-        UI.addButton(5, grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addCenteredButton(grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
         
         UI.draw();
     }

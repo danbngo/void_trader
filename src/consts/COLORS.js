@@ -30,6 +30,7 @@ const COLORS = {
     TEXT_WARNING: '#FFFF00',
     TEXT_ERROR: '#FF0000',
     TEXT_SUCCESS: '#00FF00',
+    TEXT_HIGHLIGHT: '#66FFFF',
     
     // Space theme
     SPACE_BLUE: '#1E90FF',

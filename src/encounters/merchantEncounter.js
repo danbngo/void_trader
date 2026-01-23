@@ -31,17 +31,16 @@ const MerchantEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 4;
-        const buttonX = Math.floor((grid.width - '[1] Accept Trade Offer'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Accept Trade Offer', () => {
+        UI.addCenteredButton(buttonY, '1', 'Accept Trade Offer', () => {
             this.handleTrade(gameState, encType);
         }, COLORS.GREEN, 'Trade with merchants (buy or sell cargo at base price)');
         
-        UI.addButton(buttonX, buttonY + 1, '2', 'Ignore', () => {
+        UI.addCenteredButton(buttonY + 1, '2', 'Ignore', () => {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.TEXT_DIM, 'Continue journey without trading');
         
-        UI.addButton(buttonX, buttonY + 2, '3', 'Attack', () => {
+        UI.addCenteredButton(buttonY + 2, '3', 'Attack', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Attack innocent traders (-5 reputation, +1000 bounty)');
         
@@ -76,8 +75,7 @@ const MerchantEncounter = {
                 
                 const grid = UI.getGridSize();
                 const buttonY = grid.height - 2;
-                const buttonX = Math.floor((grid.width - 25) / 2);
-                UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+                UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
@@ -107,11 +105,9 @@ const MerchantEncounter = {
             
             const grid = UI.getGridSize();
             const buttonY = grid.height - 3;
-            const longestButtonText = `[1] Buy ${maxAmount} ${cargoType.name}`;
-            const buttonX = Math.floor((grid.width - longestButtonText.length) / 2);
             
             if (gameState.credits >= totalCost && maxAmount > 0) {
-                UI.addButton(buttonX, buttonY, '1', `Buy ${maxAmount} ${cargoType.name}`, () => {
+                UI.addCenteredButton(buttonY, '1', `Buy ${maxAmount} ${cargoType.name}`, () => {
                     // Execute trade
                     gameState.credits -= totalCost;
                     gameState.encounterCargo[randomCargoId] -= maxAmount;
@@ -120,7 +116,7 @@ const MerchantEncounter = {
                     this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
                 }, COLORS.GREEN);
                 
-                UI.addButton(buttonX, buttonY + 1, '2', 'Decline', () => {
+                UI.addCenteredButton(buttonY + 1, '2', 'Decline', () => {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
@@ -129,8 +125,7 @@ const MerchantEncounter = {
             } else {
                 UI.addText(10, y++, `You cannot afford this purchase.`, COLORS.TEXT_ERROR);
                 
-                const buttonX = Math.floor((grid.width - '[1] Decline'.length) / 2);
-                UI.addButton(buttonX, buttonY, '1', 'Decline', () => {
+                UI.addCenteredButton(buttonY, '1', 'Decline', () => {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
@@ -156,8 +151,7 @@ const MerchantEncounter = {
                 
                 const grid = UI.getGridSize();
                 const buttonY = grid.height - 2;
-                const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-                UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+                UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
                     TravelMenu.resume();
                 }, COLORS.GREEN, 'Resume your journey');
                 UI.draw();
@@ -181,10 +175,8 @@ const MerchantEncounter = {
             
             const grid = UI.getGridSize();
             const buttonY = grid.height - 3;
-            const longestButtonText = `[1] Sell ${playerAmount} ${cargoType.name}`;
-            const buttonX = Math.floor((grid.width - longestButtonText.length) / 2);
             
-            UI.addButton(buttonX, buttonY, '1', `Sell ${playerAmount} ${cargoType.name}`, () => {
+            UI.addCenteredButton(buttonY, '1', `Sell ${playerAmount} ${cargoType.name}`, () => {
                 // Execute trade
                 gameState.credits += totalRevenue;
                 Ship.removeCargoFromFleet(gameState.ships, randomCargoId, playerAmount);
@@ -192,7 +184,7 @@ const MerchantEncounter = {
                 this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`);
             }, COLORS.GREEN);
             
-            UI.addButton(buttonX, buttonY + 1, '2', 'Decline', () => {
+            UI.addCenteredButton(buttonY + 1, '2', 'Decline', () => {
                 TravelMenu.resume();
             }, COLORS.TEXT_DIM);
         }
@@ -216,8 +208,7 @@ const MerchantEncounter = {
         UI.addText(10, y++, `"Pleasure doing business with you, captain."`, COLORS.YELLOW);
         
         const buttonY = grid.height - 4;
-        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
         
@@ -247,8 +238,7 @@ const MerchantEncounter = {
         UI.addText(10, y++, `The merchants try to defend themselves!`, COLORS.TEXT_NORMAL);
         
         const buttonY = grid.height - 4;
-        const buttonX = Math.floor((grid.width - '[1] Continue to Combat'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue to Combat', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.TEXT_ERROR);
         

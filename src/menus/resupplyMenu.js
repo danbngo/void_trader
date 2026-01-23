@@ -46,9 +46,12 @@ const ResupplyMenu = (() => {
             totalRepairCost += (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
         });
         
-        // Display costs
-        UI.addText(5, endY + 2, `Total Refuel Cost: ${totalRefuelCost} CR`, totalRefuelCost > 0 ? COLORS.YELLOW : COLORS.TEXT_DIM);
-        UI.addText(5, endY + 3, `Total Repair Cost: ${totalRepairCost} CR`, totalRepairCost > 0 ? COLORS.YELLOW : COLORS.TEXT_DIM);
+        // Display costs using renderKeyValueList
+        let y = endY + 2;
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Total Refuel Cost:', value: `${totalRefuelCost} CR`, valueColor: totalRefuelCost > 0 ? COLORS.YELLOW : COLORS.TEXT_DIM },
+            { label: 'Total Repair Cost:', value: `${totalRepairCost} CR`, valueColor: totalRepairCost > 0 ? COLORS.YELLOW : COLORS.TEXT_DIM }
+        ]);
         
         // Check if all ships are ready
         const allRepaired = gameState.ships.every(ship => ship.hull >= ship.maxHull && ship.shields >= ship.maxShields);
@@ -60,34 +63,38 @@ const ResupplyMenu = (() => {
         
         if (allReady) {
             // All ships ready - show simple Depart button
-            UI.addButton(5, buttonY, '1', 'Depart', () => {
-                outputMessage = '';
-                onDepart();
-            }, COLORS.GREEN, 'Leave the station');
+            UI.addCenteredButtons(buttonY, [
+                { key: '1', label: 'Depart', callback: () => {
+                    outputMessage = '';
+                    onDepart();
+                }, color: COLORS.GREEN, helpText: 'Leave the station' },
+                { key: '0', label: 'Cancel', callback: () => {
+                    outputMessage = '';
+                    onReturn();
+                }, color: COLORS.BUTTON, helpText: 'Return to dock' }
+            ]);
         } else {
             // Ships need attention - show resupply options
-            UI.addButton(5, buttonY, '1', 'Refuel and Repair All', () => {
-                refuelAndRepairAll(gameState, onReturn, onDepart);
-            }, COLORS.GREEN, 'Refuel and repair all ships');
-            
-            UI.addButton(5, buttonY + 1, '2', 'Refuel All', () => {
-                refuelAll(gameState, onReturn, onDepart);
-            }, COLORS.BUTTON, 'Refuel all ships to maximum');
-            
-            UI.addButton(5, buttonY + 2, '3', 'Repair All', () => {
-                repairAll(gameState, onReturn, onDepart);
-            }, COLORS.BUTTON, 'Repair all ships to maximum');
-            
-            UI.addButton(5, buttonY + 3, '4', 'Depart Anyway', () => {
-                outputMessage = '';
-                onDepart();
-            }, COLORS.YELLOW, 'Leave without resupplying');
+            UI.addCenteredButtons(buttonY, [
+                { key: '1', label: 'Refuel and Repair All', callback: () => {
+                    refuelAndRepairAll(gameState, onReturn, onDepart);
+                }, color: COLORS.GREEN, helpText: 'Refuel and repair all ships' },
+                { key: '2', label: 'Refuel All', callback: () => {
+                    refuelAll(gameState, onReturn, onDepart);
+                }, color: COLORS.BUTTON, helpText: 'Refuel all ships to maximum' },
+                { key: '3', label: 'Repair All', callback: () => {
+                    repairAll(gameState, onReturn, onDepart);
+                }, color: COLORS.BUTTON, helpText: 'Repair all ships to maximum' },
+                { key: '4', label: 'Depart Anyway', callback: () => {
+                    outputMessage = '';
+                    onDepart();
+                }, color: COLORS.TEXT_NORMAL, helpText: 'Leave without resupplying', keyColor: COLORS.TEXT_ERROR },
+                { key: '0', label: 'Cancel', callback: () => {
+                    outputMessage = '';
+                    onReturn();
+                }, color: COLORS.BUTTON, helpText: 'Return to dock' }
+            ]);
         }
-        
-        UI.addButton(5, buttonY + 4, '0', 'Cancel', () => {
-            outputMessage = '';
-            onReturn();
-        }, COLORS.BUTTON, 'Return to dock');
         
         // Set output message
         if (outputMessage) {

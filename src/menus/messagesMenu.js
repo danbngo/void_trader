@@ -68,18 +68,16 @@ const MessagesMenu = (() => {
         
         // Buttons - centered at bottom
         const buttonY = grid.height - 3;
-        const longestButton = '[T] Show Unread'; // Longest of 'Show Read' or 'Show Unread'
-        const buttonX = Math.floor((grid.width - longestButton.length) / 2);
         
         // Toggle between unread/read
         const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
-        UI.addButton(buttonX, buttonY, 'T', toggleLabel, () => {
+        UI.addCenteredButton(buttonY, 'T', toggleLabel, () => {
             showingUnread = !showingUnread;
             render();
         }, COLORS.BUTTON);
         
         // Back button
-        UI.addButton(buttonX, buttonY + 1, '0', 'Back', () => {
+        UI.addCenteredButton(buttonY + 1, '0', 'Back', () => {
             if (returnCallback) returnCallback();
         }, COLORS.BUTTON);
         
@@ -147,7 +145,7 @@ const MessagesMenu = (() => {
         
         // Continue button
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Continue', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue', () => {
             render();
         }, COLORS.GREEN);
         

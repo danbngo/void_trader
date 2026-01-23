@@ -41,12 +41,11 @@ const PirateEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - '[1] Allow Boarding'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Allow Boarding', () => {
+        UI.addCenteredButton(buttonY, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
         }, COLORS.BUTTON, 'Surrender cargo to pirates');
         
-        UI.addButton(buttonX, buttonY + 1, '2', 'Resist', () => {
+        UI.addCenteredButton(buttonY + 1, '2', 'Resist', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
         
@@ -84,12 +83,11 @@ const PirateEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
         
-        UI.addButton(buttonX, buttonY + 1, '2', 'Attack', () => {
+        UI.addCenteredButton(buttonY + 1, '2', 'Attack', () => {
             this.showAttackConsequences(gameState, ENCOUNTER_TYPES.PIRATE);
         }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
         
@@ -121,8 +119,7 @@ const PirateEncounter = {
             
             const grid = UI.getGridSize();
             const buttonY = grid.height - 2;
-            const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-            UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+            UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
                 TravelMenu.resume();
             }, COLORS.GREEN, 'Resume your journey');
             
@@ -169,8 +166,7 @@ const PirateEncounter = {
         
         const grid = UI.getGridSize();
         const buttonY = grid.height - 2;
-        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
         
@@ -198,7 +194,7 @@ const PirateEncounter = {
         UI.addText(10, y++, `Fighting criminals improves your standing!`, COLORS.TEXT_NORMAL);
         
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Continue to Combat', () => {
+        UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
         }, COLORS.GREEN);
         

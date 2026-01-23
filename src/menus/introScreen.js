@@ -40,7 +40,7 @@ const IntroScreen = (() => {
         UI.addTextCentered(25, 'Or perish among the stars?', COLORS.TEXT_DIM);
         
         // Continue button
-        UI.addButton(Math.floor(grid.width / 2) - 12, grid.height - 4, '1', 'Begin Your Journey', () => DockMenu.show(gameState), COLORS.BUTTON);
+        UI.addCenteredButton(grid.height - 4, '1', 'Begin Your Journey', () => DockMenu.show(gameState), COLORS.BUTTON);
         
         UI.draw();
     }

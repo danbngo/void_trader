@@ -241,8 +241,10 @@ const UI = (() => {
      * @param {string} label - Button label text
      * @param {Function} callback - Function to call when button is pressed
      * @param {string} color - Color of the button text (default: cyan)
+     * @param {string} helpText - Help text to display (optional)
+     * @param {string} keyColor - Custom color for the key only (optional)
      */
-    function addButton(x, y, key, label, callback, color = 'cyan') {
+    function addButton(x, y, key, label, callback, color = 'cyan', helpText = '', keyColor = null) {
         // Bounds checking
         if (x < 0 || x >= GRID_WIDTH) {
             throw new Error(`addButton: x position ${x} is out of bounds (0-${GRID_WIDTH-1})`);
@@ -261,7 +263,58 @@ const UI = (() => {
         }
         
         // Register the button
-        registeredButtons.push({ x, y, key, label, callback, color, helpText: arguments[6] || '' });
+        registeredButtons.push({ x, y, key, label, callback, color, helpText, keyColor });
+    }
+    
+    /**
+     * Register a centered button (registration phase - doesn't render yet)
+     * Automatically calculates x position to center the button horizontally
+     * @param {number} y - Grid Y position
+     * @param {string} key - Key to press (e.g., '1', '2', '3')
+     * @param {string} label - Button label text
+     * @param {Function} callback - Function to call when button is pressed
+     * @param {string} color - Color of the button text (default: cyan)
+     * @param {string} helpText - Help text to display (optional)
+     * @param {string} keyColor - Custom color for the key only (optional)
+     */
+    function addCenteredButton(y, key, label, callback, color = 'cyan', helpText = '', keyColor = null) {
+        const buttonText = `[${key}] ${label}`;
+        const x = Math.floor((GRID_WIDTH - buttonText.length) / 2);
+        addButton(x, y, key, label, callback, color, helpText, keyColor);
+    }
+    
+    /**
+     * Register multiple centered buttons as a group (registration phase - doesn't render yet)
+     * All buttons are left-aligned with each other, with the group centered based on the longest button
+     * @param {number} startY - Grid Y position for first button
+     * @param {Array} buttons - Array of button objects: {key, label, callback, color?, helpText?, keyColor?}
+     */
+    function addCenteredButtons(startY, buttons) {
+        if (!buttons || buttons.length === 0) return;
+        
+        // Calculate the width of each button and find the maximum
+        let maxWidth = 0;
+        buttons.forEach(btn => {
+            const buttonText = `[${btn.key}] ${btn.label}`;
+            maxWidth = Math.max(maxWidth, buttonText.length);
+        });
+        
+        // Calculate x position to center the longest button
+        const x = Math.floor((GRID_WIDTH - maxWidth) / 2);
+        
+        // Add all buttons at that x position
+        buttons.forEach((btn, index) => {
+            addButton(
+                x, 
+                startY + index, 
+                btn.key, 
+                btn.label, 
+                btn.callback, 
+                btn.color || 'cyan', 
+                btn.helpText || '', 
+                btn.keyColor || null
+            );
+        });
     }
     
     /**
@@ -372,6 +425,10 @@ const UI = (() => {
                 // Draw button - if yellow (special highlight) or gray (disabled), color entire button
                 if (btn.color === COLORS.YELLOW || btn.color === COLORS.TEXT_DIM) {
                     canvasWrapper.drawText(btn.x, btn.y, buttonText, btn.color);
+                } else if (btn.keyColor) {
+                    // Draw custom key color and label with button color
+                    canvasWrapper.drawText(btn.x, btn.y, `[${btn.key}] `, btn.keyColor);
+                    canvasWrapper.drawText(btn.x + 4, btn.y, `${btn.label}`, btn.color);
                 } else {
                     // Draw colored key and white label
                     canvasWrapper.drawText(btn.x, btn.y, `[${btn.key}] `, btn.color);
@@ -648,6 +705,7 @@ const UI = (() => {
         addText,
         addTextCentered,
         addButton,
+        addCenteredButton,
         addSelectionHighlight,
         registerTableRow,
         debugRegisteredTexts,
@@ -663,6 +721,7 @@ const UI = (() => {
         startFlashing,
         stopFlashing,
         isFlashing,
-        getFlashState
+        getFlashState,
+        addCenteredButtons
     };
 })();

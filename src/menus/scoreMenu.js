@@ -106,18 +106,19 @@ const ScoreMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, 'R', 'Retire Early', () => {
-            RetirementConfirmMenu.show(
-                gameState, 
-                score.totalScore,
-                () => showGameOver(gameState, score.totalScore, true),
-                () => show(gameState, returnCallback)
-            );
-        }, COLORS.TEXT_ERROR, 'End your career and see final rank');
-        
-        UI.addButton(10, buttonY + 1, '0', 'Back', () => {
-            if (returnCallback) returnCallback();
-        }, COLORS.BUTTON);
+        UI.addCenteredButtons(buttonY, [
+            { key: 'R', label: 'Retire Early', callback: () => {
+                RetirementConfirmMenu.show(
+                    gameState, 
+                    score.totalScore,
+                    () => showGameOver(gameState, score.totalScore, true),
+                    () => show(gameState, returnCallback)
+                );
+            }, color: COLORS.TEXT_ERROR, helpText: 'End your career and see final rank' },
+            { key: '0', label: 'Back', callback: () => {
+                if (returnCallback) returnCallback();
+            }, color: COLORS.BUTTON }
+        ]);
         
         UI.draw();
     }
@@ -158,7 +159,7 @@ const ScoreMenu = (() => {
         
         // Button
         const buttonY = grid.height - 4;
-        UI.addButton(Math.floor(grid.width / 2) - 15, buttonY, '1', 'Return to Title Screen', () => {
+        UI.addCenteredButton(buttonY, '1', 'Return to Title Screen', () => {
             TitleMenu.show();
         }, COLORS.BUTTON);
         

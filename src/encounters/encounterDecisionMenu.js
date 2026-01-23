@@ -74,11 +74,6 @@ const EncounterDecisionMenu = {
         y = ShipTableRenderer.addNPCFleet(10, y, `${encType.name} Ships:`, gameState.encounterShips);
         
         const buttonY = grid.height - 4;
-        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
-        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
-            // Return to travel menu
-            TravelMenu.resume();
-        }, COLORS.GREEN, 'Resume your journey');
         
         // Add attack option for ignored encounters
         let hoverText = '';
@@ -103,58 +98,64 @@ const EncounterDecisionMenu = {
                 break;
         }
         
-        UI.addButton(10, buttonY + 1, '2', 'Attack', () => {
-            // Apply consequences
-            gameState.reputation += reputationEffect;
-            gameState.bounty += bountyEffect;
-            
-            // Show attack consequence screen
-            UI.clear();
-            let y = 5;
-            UI.addTextCentered(y++, `=== Surprise Attack ===`, COLORS.CYAN);
-            y += 2;
-            UI.addText(10, y++, `You launch an unprovoked attack!`, COLORS.TEXT_NORMAL);
-            y++;
-            
-            // Build key-value pairs for consequences
-            const consequences = [];
-            if (reputationEffect !== 0) {
-                const sign = reputationEffect > 0 ? '+' : '';
-                let repLabel = 'Reputation:';
-                let repValue = `${sign}${reputationEffect}`;
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Continue Journey', callback: () => {
+                // Return to travel menu
+                TravelMenu.resume();
+            }, color: COLORS.GREEN, helpText: 'Resume your journey' },
+            { key: '2', label: 'Attack', callback: () => {
+                // Apply consequences
+                gameState.reputation += reputationEffect;
+                gameState.bounty += bountyEffect;
                 
-                // Add descriptive text based on encounter type
-                if (encType.id === 'PIRATE') {
-                    repValue = `${sign}${reputationEffect} for attacking criminals`;
-                } else if (encType.id === 'POLICE') {
-                    repValue = `${sign}${reputationEffect} for attacking authorities`;
-                } else if (encType.id === 'MERCHANT') {
-                    repValue = `${sign}${reputationEffect} for attacking civilians`;
+                // Show attack consequence screen
+                UI.clear();
+                let y = 5;
+                UI.addTextCentered(y++, `=== Surprise Attack ===`, COLORS.CYAN);
+                y += 2;
+                UI.addText(10, y++, `You launch an unprovoked attack!`, COLORS.TEXT_NORMAL);
+                y++;
+                
+                // Build key-value pairs for consequences
+                const consequences = [];
+                if (reputationEffect !== 0) {
+                    const sign = reputationEffect > 0 ? '+' : '';
+                    let repLabel = 'Reputation:';
+                    let repValue = `${sign}${reputationEffect}`;
+                    
+                    // Add descriptive text based on encounter type
+                    if (encType.id === 'PIRATE') {
+                        repValue = `${sign}${reputationEffect} for attacking criminals`;
+                    } else if (encType.id === 'POLICE') {
+                        repValue = `${sign}${reputationEffect} for attacking authorities`;
+                    } else if (encType.id === 'MERCHANT') {
+                        repValue = `${sign}${reputationEffect} for attacking civilians`;
+                    }
+                    
+                    consequences.push({
+                        label: repLabel,
+                        value: repValue,
+                        valueColor: reputationEffect > 0 ? COLORS.GREEN : COLORS.TEXT_ERROR
+                    });
                 }
+                if (bountyEffect > 0) {
+                    consequences.push({
+                        label: 'Bounty:',
+                        value: `+${bountyEffect} credits`,
+                        valueColor: COLORS.TEXT_ERROR
+                    });
+                }
+                y = TableRenderer.renderKeyValueList(10, y, consequences);
                 
-                consequences.push({
-                    label: repLabel,
-                    value: repValue,
-                    valueColor: reputationEffect > 0 ? COLORS.GREEN : COLORS.TEXT_ERROR
-                });
-            }
-            if (bountyEffect > 0) {
-                consequences.push({
-                    label: 'Bounty:',
-                    value: `+${bountyEffect} credits`,
-                    valueColor: COLORS.TEXT_ERROR
-                });
-            }
-            y = TableRenderer.renderKeyValueList(10, y, consequences);
-            
-            const buttonY = grid.height - 2;
-            const buttonX = Math.floor((grid.width - '[1] Continue to Combat'.length) / 2);
-            UI.addButton(buttonX, buttonY, '1', 'Continue to Combat', () => {
-                EncounterMenu.show(gameState, encType);
-            }, COLORS.TEXT_ERROR);
-            
-            UI.draw();
-        }, COLORS.TEXT_ERROR, hoverText);
+                const buttonY = grid.height - 2;
+                UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
+                    EncounterMenu.show(gameState, encType);
+                }, COLORS.TEXT_ERROR);
+                
+                UI.draw();
+            }, color: COLORS.TEXT_ERROR, helpText: hoverText }
+        ]);
+
         
         UI.draw();
     }

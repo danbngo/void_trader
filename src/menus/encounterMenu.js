@@ -554,7 +554,7 @@ const EncounterMenu = (() => {
         
         // Check if waiting for enemy turn continuation
         if (continueEnemyTurn) {
-            UI.addButton(5, buttonY, '1', 'Continue', () => {
+            UI.addCenteredButton(buttonY, '1', 'Continue', () => {
                 continueEnemyTurn();
             }, COLORS.GREEN, 'Continue to next enemy ship');
             return;
@@ -567,7 +567,7 @@ const EncounterMenu = (() => {
         
         if (needsContinue && outputMessage) {
             // Show Continue button to advance to next ship or enemy turn
-            UI.addButton(5, buttonY, '1', 'Continue', () => {
+            UI.addCenteredButton(buttonY, '1', 'Continue', () => {
                 continueAfterAction();
             }, COLORS.GREEN, 'Continue to next action');
         } else {
@@ -792,7 +792,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You are returned to ${previousSystem.name}.`, COLORS.CYAN);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue', () => {
+        UI.addCenteredButton(y++, '1', 'Continue', () => {
             // End encounter and return to previous system
             gameState.encounter = false;
             gameState.encounterShips = [];
@@ -881,7 +881,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `The pirates allow you to go free.`, COLORS.TEXT_NORMAL);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
             // Resume travel
             TravelMenu.resume();
         }, COLORS.GREEN);
@@ -902,7 +902,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You are left alone in space.`, COLORS.TEXT_DIM);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
             // Resume travel
             TravelMenu.resume();
         }, COLORS.GREEN);
@@ -915,6 +915,7 @@ const EncounterMenu = (() => {
      */
     function handleAllShipsEscaped() {
         UI.clear();
+        UI.clearOutputRow();
         
         let y = 5;
         UI.addTextCentered(y++, `=== Escape Successful ===`, COLORS.GREEN);
@@ -924,7 +925,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You continue your journey.`, COLORS.TEXT_NORMAL);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
             // Clean up combat properties
             currentGameState.ships.forEach(ship => {
                 delete ship.x;
@@ -984,7 +985,7 @@ const EncounterMenu = (() => {
         });
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue Journey', () => {
+        UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
             // Remove disabled ships from fleet
             currentGameState.ships = currentGameState.ships.filter(s => !s.disabled);
             
@@ -1083,7 +1084,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue', () => {
+        UI.addCenteredButton(y++, '1', 'Continue', () => {
             // Find weakest disabled ship (lowest maxHull)
             const disabledShips = currentGameState.ships.filter(s => s.disabled);
             if (disabledShips.length > 0) {
@@ -1147,7 +1148,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue', () => {
+        UI.addCenteredButton(y++, '1', 'Continue', () => {
             // Find weakest disabled ship (lowest maxHull)
             const disabledShips = currentGameState.ships.filter(s => s.disabled);
             if (disabledShips.length > 0) {
@@ -1205,7 +1206,7 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
         y += 2;
         
-        UI.addButton(10, y++, '1', 'Continue', () => {
+        UI.addCenteredButton(y++, '1', 'Continue', () => {
             // Find weakest disabled ship (lowest maxHull)
             const disabledShips = currentGameState.ships.filter(s => s.disabled);
             if (disabledShips.length > 0) {

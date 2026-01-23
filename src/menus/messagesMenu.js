@@ -66,18 +66,19 @@ const MessagesMenu = (() => {
             });
         }
         
-        // Buttons
-        const buttonY = grid.height - 5;
+        // Buttons - centered at bottom
+        const buttonY = grid.height - 3;
+        const buttonX = Math.floor((grid.width - 20) / 2);
         
         // Toggle between unread/read
         const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
-        UI.addButton(10, buttonY, 'T', toggleLabel, () => {
+        UI.addButton(buttonX, buttonY, 'T', toggleLabel, () => {
             showingUnread = !showingUnread;
             render();
         }, COLORS.BUTTON);
         
         // Back button
-        UI.addButton(10, buttonY + 2, '0', 'Back', () => {
+        UI.addButton(buttonX, buttonY + 1, '0', 'Back', () => {
             if (returnCallback) returnCallback();
         }, COLORS.BUTTON);
         

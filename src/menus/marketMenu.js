@@ -83,10 +83,15 @@ const MarketMenu = (() => {
             render(onReturn);
         });
         
-        // Buttons
+        // Buttons - 3 column layout
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
-        UI.addButton(5, buttonY + 1, '2', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
+        
+        // Column 1: Previous Cargo, Next Cargo
+        UI.addButton(leftX, buttonY, '1', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
+        UI.addButton(leftX, buttonY + 1, '2', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
         
         // Get cargo info for selected type (reuse enabledCargoTypes from above)
         const selectedCargoType = enabledCargoTypes[selectedCargoIndex];
@@ -123,27 +128,29 @@ const MarketMenu = (() => {
             sell10HelpText = `Only have ${playerStock} to sell`;
         }
         
+        // Column 2: Buy 1, Buy 10, Sell 1, Sell 10
         // Buy 1 - gray out if no training, no stock, no space, or insufficient credits
         const canBuy1 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
         const buy1Color = canBuy1 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, buy1HelpText);
-        
-        // Sell 1 - gray out if no player stock
-        const canSell1 = playerStock >= 1;
-        const sell1Color = canSell1 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY + 1, '4', 'Sell 1', () => sellCargo(1, onReturn), sell1Color, sell1HelpText);
+        UI.addButton(middleX, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, buy1HelpText);
         
         // Buy 10 - gray out if no training, no stock, no space, or insufficient credits
         const canBuy10 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
         const buy10Color = canBuy10 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(40, buttonY, '5', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, buy10HelpText);
+        UI.addButton(middleX, buttonY + 1, '4', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, buy10HelpText);
+        
+        // Sell 1 - gray out if no player stock
+        const canSell1 = playerStock >= 1;
+        const sell1Color = canSell1 ? COLORS.GREEN : COLORS.TEXT_DIM;
+        UI.addButton(middleX, buttonY + 2, '5', 'Sell 1', () => sellCargo(1, onReturn), sell1Color, sell1HelpText);
         
         // Sell 10 - gray out if no player stock
         const canSell10 = playerStock >= 1;
         const sell10Color = canSell10 ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(40, buttonY + 1, '6', 'Sell 10', () => sellCargo(10, onReturn), sell10Color, sell10HelpText);
+        UI.addButton(middleX, buttonY + 3, '6', 'Sell 10', () => sellCargo(10, onReturn), sell10Color, sell10HelpText);
         
-        UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
+        // Column 3: Back
+        UI.addButton(rightX, buttonY, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

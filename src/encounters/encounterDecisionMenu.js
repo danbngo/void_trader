@@ -134,8 +134,9 @@ const EncounterDecisionMenu = {
             }
             y = TableRenderer.renderKeyValueList(10, y, consequences);
             
-            const continueY = grid.height - 4;
-            UI.addButton(10, continueY, '1', 'Continue to Combat', () => {
+            const buttonY = grid.height - 2;
+            const buttonX = Math.floor((grid.width - 25) / 2);
+            UI.addButton(buttonX, buttonY, '1', 'Continue to Combat', () => {
                 EncounterMenu.show(gameState, encType);
             }, COLORS.TEXT_ERROR);
             

@@ -80,7 +80,7 @@ const MerchantEncounter = {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
-                    TravelMenu.show(gameState);
+                    TravelMenu.resume();
                 }, COLORS.GREEN, 'Resume your journey');
                 UI.draw();
                 return;

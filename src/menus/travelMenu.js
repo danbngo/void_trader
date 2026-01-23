@@ -277,7 +277,7 @@ const TravelMenu = (() => {
         }
         
         // Calculate total cargo capacity and generate encounter cargo
-        const totalCargoCapacity = currentGameState.encounterShips.reduce((sum, ship) => sum + ship.maxCargo, 0);
+        const totalCargoCapacity = currentGameState.encounterShips.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
         const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
         const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
         

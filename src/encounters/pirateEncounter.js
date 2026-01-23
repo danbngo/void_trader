@@ -7,6 +7,16 @@ const PirateEncounter = {
      * Show pirate encounter - boarding threat
      */
     show: function(gameState, encType) {
+        // Check if player has any cargo
+        const playerCargo = Ship.getFleetCargo(gameState.ships);
+        const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
+        
+        if (!hasAnyCargo) {
+            // Pirates don't bother demanding cargo if there's none
+            this.showNoCargoPirates(gameState);
+            return;
+        }
+        
         UI.clear();
         
         const grid = UI.getGridSize();
@@ -38,6 +48,33 @@ const PirateEncounter = {
         UI.addButton(buttonX, buttonY + 1, '2', 'Resist', () => {
             this.showAttackConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
+        
+        UI.draw();
+    },
+    
+    /**
+     * Show pirates passing by when player has no cargo
+     */
+    showNoCargoPirates: function(gameState) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Pirate Encounter ===`, COLORS.TEXT_ERROR);
+        y += 2;
+        
+        UI.addText(10, y++, `Pirate vessels close in on your fleet!`, COLORS.TEXT_NORMAL);
+        y++;
+        UI.addText(10, y++, `The pirates scan your ships, then broadcast:`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `"No cargo, huh? We'll let you pass this time."`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `They veer off in search of richer prey.`, COLORS.TEXT_DIM);
+        
+        const grid = UI.getGridSize();
+        const buttonY = grid.height - 2;
+        const buttonX = Math.floor((grid.width - 25) / 2);
+        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+            TravelMenu.resume();
+        }, COLORS.GREEN, 'Resume your journey');
         
         UI.draw();
     },

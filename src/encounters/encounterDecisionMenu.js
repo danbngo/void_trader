@@ -40,9 +40,24 @@ const EncounterDecisionMenu = {
         UI.addTextCentered(y++, `=== ${encType.name} Encounter ===`, COLORS.CYAN);
         y += 2;
         
-        UI.addText(10, y++, `The ${encType.name.toLowerCase()} ships pass by without incident.`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `They don't seem interested in you.`, COLORS.TEXT_DIM);
-        y += 2;
+        // Different messages based on encounter type
+        let ignoreMessage = '';
+        switch(encType.id) {
+            case 'POLICE':
+                ignoreMessage = `The police speed past in a hurry. They seem too busy to worry about you.`;
+                break;
+            case 'PIRATE':
+                ignoreMessage = `The pirates scan your fleet briefly, then veer off. Maybe they're hunting bigger game.`;
+                break;
+            case 'MERCHANT':
+                ignoreMessage = `The merchant ships alter course to avoid you. Perhaps they suspect you're a threat.`;
+                break;
+            default:
+                ignoreMessage = `The ${encType.name.toLowerCase()} ships pass by without incident.`;
+        }
+        
+        UI.addText(10, y++, ignoreMessage, COLORS.TEXT_NORMAL);
+        y++;
         
         // Show warning if enemy gained radar advantage (but chose to ignore)
         if (gameState.enemyRadarAdvantage) {

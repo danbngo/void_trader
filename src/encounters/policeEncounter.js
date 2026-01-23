@@ -7,6 +7,27 @@ const PoliceEncounter = {
      * Show police encounter - routine inspection
      */
     show: function(gameState, encType) {
+        // Check if player has any illegal cargo
+        let hasIllegalCargo = false;
+        
+        gameState.ships.forEach(ship => {
+            Object.keys(ship.cargo).forEach(cargoId => {
+                const amount = ship.cargo[cargoId];
+                if (amount > 0) {
+                    const cargoType = CARGO_TYPES[cargoId];
+                    if (cargoType && cargoType.illegal) {
+                        hasIllegalCargo = true;
+                    }
+                }
+            });
+        });
+        
+        if (!hasIllegalCargo) {
+            // Police don't pull over if there's nothing illegal
+            this.showNoIllegalPolice(gameState);
+            return;
+        }
+        
         UI.clear();
         
         const grid = UI.getGridSize();
@@ -38,6 +59,32 @@ const PoliceEncounter = {
         UI.addButton(buttonX, buttonY + 1, '2', 'Resist', () => {
             this.showResistConsequences(gameState, encType);
         }, COLORS.TEXT_ERROR, 'Refuse inspection and fight (-10 reputation, +2000 bounty)');
+        
+        UI.draw();
+    },
+    
+    /**
+     * Show police passing by when player has no illegal cargo
+     */
+    showNoIllegalPolice: function(gameState) {
+        UI.clear();
+        
+        let y = 5;
+        UI.addTextCentered(y++, `=== Police Encounter ===`, COLORS.CYAN);
+        y += 2;
+        
+        UI.addText(10, y++, `Police cruisers approach and scan your fleet.`, COLORS.TEXT_NORMAL);
+        y++;
+        UI.addText(10, y++, `The police scan your ships, then pass by without hailing you.`, COLORS.GREEN);
+        y++;
+        UI.addText(10, y++, `Their scanners found nothing suspicious.`, COLORS.TEXT_DIM);
+        
+        const grid = UI.getGridSize();
+        const buttonY = grid.height - 2;
+        const buttonX = Math.floor((grid.width - 25) / 2);
+        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
+            TravelMenu.resume();
+        }, COLORS.GREEN, 'Resume your journey');
         
         UI.draw();
     },

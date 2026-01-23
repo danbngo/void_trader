@@ -21,7 +21,7 @@ const ShipTableRenderer = (() => {
         
         // Add label
         if (label) {
-            UI.addText(x, y, label, COLORS.CYAN);
+            UI.addText(x, y, label, COLORS.TEXT_NORMAL);
             y += 2;
         }
         

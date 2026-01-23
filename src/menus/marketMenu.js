@@ -41,38 +41,43 @@ const MarketMenu = (() => {
         UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
         UI.addText(5, 6, `Cargo: ${totalCargo} / ${totalCapacity}`, COLORS.TEXT_NORMAL);
         
-        // Filter to only enabled cargo types
-        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
-            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
-        );
+        // Use ALL cargo types (not just enabled ones)
+        const allCargoTypes = ALL_CARGO_TYPES;
         
         // Ensure selectedCargoIndex is valid
-        if (selectedCargoIndex >= enabledCargoTypes.length) {
-            selectedCargoIndex = Math.max(0, enabledCargoTypes.length - 1);
+        if (selectedCargoIndex >= allCargoTypes.length) {
+            selectedCargoIndex = Math.max(0, allCargoTypes.length - 1);
         }
         
         // Market table
         const startY = 9;
-        const rows = enabledCargoTypes.map((cargoType, index) => {
+        const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
             const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
             const playerQuantity = fleetCargo[cargoType.id] || 0;
             
+            // Check if player has training for this cargo type
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            
             // Calculate ratios for color coding
             const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
             const sellRatio = sellPrice / cargoType.baseValue; // Higher sell price = higher ratio = better
             
-            const buyColor = UI.calcStatColor(buyRatio);
-            const sellColor = UI.calcStatColor(sellRatio);
+            const buyColor = hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
+            const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
+            const nameColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            const stockColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            const baseValueColor = hasTraining ? COLORS.TEXT_DIM : COLORS.TEXT_DIM;
+            const playerQuantityColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             
             return [
-                { text: cargoType.name, color: COLORS.TEXT_NORMAL },
-                { text: String(stock), color: COLORS.TEXT_NORMAL },
-                { text: String(cargoType.baseValue), color: COLORS.TEXT_DIM },
+                { text: cargoType.name, color: nameColor },
+                { text: String(stock), color: stockColor },
+                { text: String(cargoType.baseValue), color: baseValueColor },
                 { text: `${buyPrice}`, color: buyColor },
                 { text: `${sellPrice}`, color: sellColor },
-                { text: String(playerQuantity), color: COLORS.TEXT_NORMAL }
+                { text: String(playerQuantity), color: playerQuantityColor }
             ];
         });
         
@@ -93,8 +98,8 @@ const MarketMenu = (() => {
         UI.addButton(leftX, buttonY, '1', 'Previous Cargo', () => prevCargo(onReturn), COLORS.BUTTON, 'Select previous cargo type');
         UI.addButton(leftX, buttonY + 1, '2', 'Next Cargo', () => nextCargo(onReturn), COLORS.BUTTON, 'Select next cargo type');
         
-        // Get cargo info for selected type (reuse enabledCargoTypes from above)
-        const selectedCargoType = enabledCargoTypes[selectedCargoIndex];
+        // Get cargo info for selected type (use allCargoTypes from above)
+        const selectedCargoType = allCargoTypes[selectedCargoIndex];
         const buyPrice = Math.floor(selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id]);
         const sellPrice = Math.floor(buyPrice * 0.8);
         const marketStock = currentSystem.cargoStock[selectedCargoType.id];
@@ -107,7 +112,10 @@ const MarketMenu = (() => {
         // Build help text for buy buttons
         let buy1HelpText = 'Purchase 1 unit of selected cargo';
         let buy10HelpText = 'Purchase 10 units of selected cargo';
-        if (marketStock === 0) {
+        if (!hasTraining) {
+            buy1HelpText = 'No training for this cargo type (visit Guild to learn)';
+            buy10HelpText = 'No training for this cargo type (visit Guild to learn)';
+        } else if (marketStock === 0) {
             buy1HelpText = 'No stock available in market';
             buy10HelpText = 'No stock available in market';
         } else if (availableSpace === 0) {
@@ -121,7 +129,10 @@ const MarketMenu = (() => {
         // Build help text for sell buttons
         let sell1HelpText = 'Sell 1 unit of selected cargo';
         let sell10HelpText = 'Sell 10 units of selected cargo';
-        if (playerStock === 0) {
+        if (!hasTraining) {
+            sell1HelpText = 'No training for this cargo type (visit Guild to learn)';
+            sell10HelpText = 'No training for this cargo type (visit Guild to learn)';
+        } else if (playerStock === 0) {
             sell1HelpText = 'You have none to sell';
             sell10HelpText = 'You have none to sell';
         } else if (playerStock < 10) {
@@ -164,22 +175,16 @@ const MarketMenu = (() => {
      * Select next cargo type (only enabled ones)
      */
     function nextCargo(onReturn) {
-        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
-            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
-        );
-        selectedCargoIndex = (selectedCargoIndex + 1) % enabledCargoTypes.length;
+        selectedCargoIndex = (selectedCargoIndex + 1) % ALL_CARGO_TYPES.length;
         outputMessage = '';
         render(onReturn);
     }
     
     /**
-     * Select previous cargo type (only enabled ones)
+     * Select previous cargo type (all cargo types, not just enabled ones)
      */
     function prevCargo(onReturn) {
-        const enabledCargoTypes = ALL_CARGO_TYPES.filter(cargoType => 
-            gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id)
-        );
-        selectedCargoIndex = (selectedCargoIndex - 1 + enabledCargoTypes.length) % enabledCargoTypes.length;
+        selectedCargoIndex = (selectedCargoIndex - 1 + ALL_CARGO_TYPES.length) % ALL_CARGO_TYPES.length;
         outputMessage = '';
         render(onReturn);
     }
@@ -221,6 +226,10 @@ const MarketMenu = (() => {
             currentSystem.cargoStock[cargoType.id] -= actualAmount;
             Ship.addCargoToFleet(gameState.ships, cargoType.id, actualAmount);
             
+            // Track player records
+            gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] || 0) + actualAmount;
+            gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0) + totalCost;
+            
             const message = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
             outputMessage = message;
             outputColor = COLORS.TEXT_SUCCESS;
@@ -257,6 +266,10 @@ const MarketMenu = (() => {
             gameState.credits += totalValue;
             Ship.removeCargoFromFleet(gameState.ships, cargoType.id, actualAmount);
             currentSystem.cargoStock[cargoType.id] += actualAmount;
+            
+            // Track player records
+            gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] || 0) + actualAmount;
+            gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0) + totalValue;
             
             const message = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;
             outputMessage = message;

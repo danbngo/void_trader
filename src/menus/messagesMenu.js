@@ -98,6 +98,24 @@ const MessagesMenu = (() => {
         // Track active quests before reading to detect new quest
         const questsBefore = [...currentGameState.activeQuests];
         
+        // Check if this message completes a quest
+        let completedQuest = null;
+        if (message.completesQuestId) {
+            const questId = message.completesQuestId;
+            if (currentGameState.activeQuests.includes(questId)) {
+                completedQuest = Object.values(QUESTS).find(q => q.id === questId);
+                
+                // Move quest from active to completed
+                currentGameState.activeQuests = currentGameState.activeQuests.filter(id => id !== questId);
+                currentGameState.completedQuests.push(questId);
+                
+                // Award credits programmatically
+                if (completedQuest && completedQuest.creditReward > 0) {
+                    currentGameState.credits += completedQuest.creditReward;
+                }
+            }
+        }
+        
         // Mark as read and trigger onRead
         const wasUnread = !message.isRead;
         message.read(currentGameState);
@@ -133,6 +151,15 @@ const MessagesMenu = (() => {
         }
         
         y += 2;
+        
+        // Show quest completion and reward
+        if (completedQuest) {
+            UI.addText(leftX, y++, `Quest completed: ${completedQuest.name}!`, COLORS.GREEN);
+            if (completedQuest.creditReward > 0) {
+                UI.addText(leftX, y++, `Credits awarded: ${completedQuest.creditReward}`, COLORS.YELLOW);
+            }
+            y++;
+        }
         
         // Show quest added notification with quest name
         if (addedQuestId) {

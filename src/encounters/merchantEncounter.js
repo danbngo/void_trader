@@ -60,8 +60,11 @@ const MerchantEncounter = {
         const merchantSelling = Math.random() < 0.5;
         
         if (merchantSelling) {
-            // Merchant wants to sell cargo to player
-            const availableCargo = Object.keys(gameState.encounterCargo).filter(cargoId => gameState.encounterCargo[cargoId] > 0);
+            // Merchant wants to sell cargo to player - filter by player's training
+            const availableCargo = Object.keys(gameState.encounterCargo).filter(cargoId => 
+                gameState.encounterCargo[cargoId] > 0 &&
+                gameState.enabledCargoTypes.some(ct => ct.id === cargoId)
+            );
             
             console.log('[MerchantEncounter] Trade offer - merchant selling:', {
                 encounterCargo: gameState.encounterCargo,
@@ -70,8 +73,9 @@ const MerchantEncounter = {
             });
             
             if (availableCargo.length === 0) {
-                // No cargo to sell
-                UI.addText(10, y++, `The merchant has nothing to offer.`, COLORS.TEXT_DIM);
+                // No cargo player can handle
+                UI.addText(10, y++, `"Sorry, you lack training to handle the type`, COLORS.YELLOW);
+                UI.addText(10, y++, `of goods we're carrying."`, COLORS.YELLOW);
                 
                 const grid = UI.getGridSize();
                 const buttonY = grid.height - 2;
@@ -113,6 +117,10 @@ const MerchantEncounter = {
                         gameState.credits -= totalCost;
                         gameState.encounterCargo[randomCargoId] -= maxAmount;
                         Ship.addCargoToFleet(gameState.ships, randomCargoId, maxAmount);
+                        
+                        // Track player records
+                        gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] || 0) + maxAmount;
+                        gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0) + totalCost;
                         
                         this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
                     }, color: COLORS.GREEN },
@@ -182,6 +190,10 @@ const MerchantEncounter = {
                     // Execute trade
                     gameState.credits += totalRevenue;
                     Ship.removeCargoFromFleet(gameState.ships, randomCargoId, playerAmount);
+                    
+                    // Track player records
+                    gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] || 0) + playerAmount;
+                    gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0) + totalRevenue;
                     
                     this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`);
                 }, color: COLORS.GREEN },

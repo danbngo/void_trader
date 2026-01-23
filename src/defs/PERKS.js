@@ -29,21 +29,21 @@ const PERKS = {
         id: 'SHIP_MERCANTILE',
         name: 'Ship License: Mercantile',
         description: 'License to pilot mercantile vessels (Freighter, Hauler)',
-        baseCost: 5000,
+        baseCost: 10000,
         requiredPerks: [] // First ship perk - no requirements
     },
     SHIP_PARAMILITARY: {
         id: 'SHIP_PARAMILITARY',
         name: 'Ship License: Paramilitary',
         description: 'License to pilot paramilitary vessels (Corvette, Raider)',
-        baseCost: 10000,
+        baseCost: 20000,
         requiredPerks: ['SHIP_MERCANTILE'] // Requires mercantile license first
     },
     SHIP_MILITARY: {
         id: 'SHIP_MILITARY',
         name: 'Ship License: Military',
         description: 'License to pilot military capital ships (Destroyer, Battleship)',
-        baseCost: 20000,
+        baseCost: 40000,
         requiredPerks: ['SHIP_PARAMILITARY'] // Requires paramilitary license first
     }
 };

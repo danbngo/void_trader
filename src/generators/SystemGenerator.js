@@ -189,15 +189,15 @@ const SystemGenerator = (() => {
      * @returns {boolean} True if path exists
      */
     function hasPathBetweenSystems(systems, startIndex, targetIndex, maxJumpDistance) {
-        if (startIndex === targetIndex) return true;
+        if (startIndex === targetIndex) return { pathExists: true, hops: 0 };
         
         const visited = new Set();
-        const queue = [startIndex];
+        const queue = [{ index: startIndex, hops: 0 }];
         visited.add(startIndex);
         
         while (queue.length > 0) {
-            const currentIndex = queue.shift();
-            const currentSystem = systems[currentIndex];
+            const current = queue.shift();
+            const currentSystem = systems[current.index];
             
             // Check all other systems
             for (let i = 0; i < systems.length; i++) {
@@ -208,15 +208,15 @@ const SystemGenerator = (() => {
                 
                 if (dist <= maxJumpDistance) {
                     if (i === targetIndex) {
-                        return true; // Found path to target
+                        return { pathExists: true, hops: current.hops + 1 }; // Found path to target
                     }
                     visited.add(i);
-                    queue.push(i);
+                    queue.push({ index: i, hops: current.hops + 1 });
                 }
             }
         }
         
-        return false; // No path found
+        return { pathExists: false, hops: -1 }; // No path found
     }
     
     /**
@@ -238,7 +238,8 @@ const SystemGenerator = (() => {
             startingSystem.buildings = startingSystem.buildings.filter(b => b !== 'GUILD');
         }
         
-        // Find nearest system with a guild and name it "Proxima"
+        // Find nearest system with a guild that is >10ly away (requiring at least 2 jumps)
+        // and name it "Proxima"
         let nearestGuildSystem = null;
         let nearestGuildIndex = -1;
         let nearestDistance = Infinity;
@@ -246,7 +247,8 @@ const SystemGenerator = (() => {
         systems.forEach((system, index) => {
             if (index !== startSystemIndex && system.buildings.includes('GUILD')) {
                 const dist = distance(startingSystem.x, startingSystem.y, system.x, system.y);
-                if (dist < nearestDistance) {
+                // Only consider systems that are >10ly away (can't be reached in 1 jump)
+                if (dist > 10 && dist < nearestDistance) {
                     nearestDistance = dist;
                     nearestGuildSystem = system;
                     nearestGuildIndex = index;
@@ -258,11 +260,22 @@ const SystemGenerator = (() => {
             nearestGuildSystem.name = 'Proxima';
             
             // Check if there's a valid path from Nexus to Proxima using 10ly jumps
-            const pathExists = hasPathBetweenSystems(systems, startSystemIndex, nearestGuildIndex, 10);
-            return pathExists;
+            // This ensures it's reachable even though it's >10ly direct distance
+            const pathResult = hasPathBetweenSystems(systems, startSystemIndex, nearestGuildIndex, 10);
+            
+            console.log(`[Galaxy Validation] Proxima is ${pathResult.hops} hops from Nexus`);
+            
+            // Path must exist and require at most 4 hops
+            if (pathResult.pathExists && pathResult.hops > 0 && pathResult.hops <= 4) {
+                return true;
+            }
+            
+            console.log(`[Galaxy Validation] Invalid: requires ${pathResult.hops} hops (max 4 allowed)`);
+            return false;
         }
         
-        // No guild system found - galaxy is invalid
+        // No guild system found that meets criteria - galaxy is invalid
+        console.log('[Galaxy Validation] No suitable guild system found');
         return false;
     }
     

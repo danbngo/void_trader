@@ -18,54 +18,91 @@ const MESSAGES = {
             'To help you succeed, I have arranged a series of challenges.',
             'Complete them, and credits will be deposited into your account.',
             '',
-            'Your first task: reach Proxima, the nearest star system with',
-            'a Merchant\'s Guild. Only there can you become a true merchant.',
+            'Your first task is simple: learn the basics of trading.',
+            'Buy AND sell at least 1000 credits worth of goods.',
+            'You start with only 1000 credits, so you must be shrewd.',
+            'Buy low, sell high. Study the market prices carefully.',
             '',
             'May the void be kind to you.',
             '- Uncle'
         ],
         (gameState) => {
             // Add the first quest when message is read
+            const quest = QUESTS.LEARN_TO_TRADE;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
+        null // This message doesn't complete a quest
+    ),
+    
+    TRADING_BASICS_COMPLETE: new Message(
+        'TRADING_BASICS_COMPLETE',
+        'The First Step',
+        [
+            'Well done, nephew!',
+            '',
+            'You have grasped the fundamentals of commerce. Buy low, sell',
+            'high - this simple principle is the foundation of all wealth.',
+            '',
+            'But trading simple goods will only get you so far. The basic cargo',
+            'types available here offer modest profits at best.',
+            '',
+            'To truly prosper, you must reach Proxima - the nearest star',
+            'system with a Merchant\'s Guild. There you will find opportunities',
+            'far beyond what Nexus can offer.',
+            '',
+            'The journey is dangerous. You may encounter pirates, hostile',
+            'vessels, or worse. Ensure your ships are ready before you depart.',
+            '',
+            'Safe travels.',
+            '- Uncle'
+        ],
+        (gameState) => {
+            // Add next quest
             const quest = QUESTS.REACH_GUILD;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
                 updateSystemsWithQuests(gameState);
             }
-        }
+        },
+        'LEARN_TO_TRADE' // This message completes the LEARN_TO_TRADE quest
     ),
     
     GUILD_REACHED: new Message(
         'GUILD_REACHED',
-        'Congratulations from Beyond',
+        'Arrival at Proxima',
         [
-            'Well done, my nephew!',
+            'Congratulations, nephew!',
             '',
-            `You have reached Proxima. However, to access the Merchant's Guild`,
-            'and its valuable services, you must first upgrade your citizenship',
-            'status to at least Visa level.',
+            'You have reached Proxima - a significant accomplishment.',
+            'However, to access the Merchant\'s Guild and its valuable',
+            'services, you must first upgrade your citizenship status',
+            'to at least Visa level.',
             '',
-            'Visit the Courthouse to upgrade your citizenship. The Visa costs',
-            'credits, but it unlocks the Guild, Shipyard, and Tavern.',
+            'Visit the Courthouse to upgrade your citizenship. The Visa',
+            'requires credits and reputation, but it unlocks the Guild,',
+            'Shipyard, and Tavern - essential facilities for any trader.',
             '',
-            'The Guild is where true merchants are forged. There you can learn',
-            'to handle more lucrative cargo types and acquire licenses for',
-            'fancier ship types.',
+            'The Guild is where true merchants are forged. There you can',
+            'learn to handle more lucrative cargo types and acquire licenses',
+            'for larger, more capable ship classes.',
             '',
-            'Trade the basic cargo types until you can afford the Visa upgrade.',
+            'Continue trading until you have enough credits and reputation',
+            'to afford the Visa upgrade.',
             '',
             '- Uncle'
         ],
         (gameState) => {
-            // Award credits
-            gameState.credits += 1000;
-            
             // Add next quest
             const quest = QUESTS.ATTAIN_VISA;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
                 updateSystemsWithQuests(gameState);
             }
-        }
+        },
+        'REACH_GUILD' // This message completes the REACH_GUILD quest
     ),
     
     VISA_ATTAINED: new Message(
@@ -85,21 +122,17 @@ const MESSAGES = {
             'afford it. Once you master fragile cargo handling, greater',
             'opportunities will follow.',
             '',
-            'As always, credits have been deposited for your progress.',
-            '',
             '- Uncle'
         ],
         (gameState) => {
-            // Award credits (double the previous reward)
-            gameState.credits += 2000;
-            
             // Add next quest
             const quest = QUESTS.LEARN_CARGO_HANDLING;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
                 updateSystemsWithQuests(gameState);
             }
-        }
+        },
+        'ATTAIN_VISA' // This message completes the ATTAIN_VISA quest
     ),
     
     CARGO_HANDLING_ATTAINED: new Message(
@@ -125,15 +158,13 @@ const MESSAGES = {
             '- Uncle'
         ],
         (gameState) => {
-            // Award credits (double the previous reward)
-            gameState.credits += 4000;
-            
             // Add next quest
             const quest = QUESTS.LEARN_SHIP_HANDLING;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
                 updateSystemsWithQuests(gameState);
             }
-        }
+        },
+        'LEARN_CARGO_HANDLING' // This message completes the LEARN_CARGO_HANDLING quest
     )
 };

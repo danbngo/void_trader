@@ -336,6 +336,8 @@ const DockMenu = (() => {
     
     /**
      * Check if any active quests have been completed
+     * When quest objectives are met, add the completion message
+     * Quest is only moved to completedQuests when player reads the message
      * @param {GameState} gameState - Current game state
      */
     function checkQuestCompletion(gameState) {
@@ -345,19 +347,18 @@ const DockMenu = (() => {
         gameState.activeQuests.forEach(questId => {
             const quest = Object.values(QUESTS).find(q => q.id === questId);
             if (quest && quest.checkCompleted(gameState)) {
-                // Move from active to completed
-                gameState.activeQuests = gameState.activeQuests.filter(id => id !== questId);
-                gameState.completedQuests.push(questId);
-                
-                // Note: Credits are awarded via the message system, not here
-                // quest.creditReward is only used for display purposes
-                
-                // Call onCompleted callback (which typically adds a message)
-                if (quest.onCompleted) {
-                    quest.onCompleted(gameState);
+                // Check if we have a completion message to add
+                if (quest.messageOnComplete) {
+                    const messageToAdd = MESSAGES[quest.messageOnComplete];
+                    if (messageToAdd) {
+                        // Only add if not already in messages
+                        const alreadyAdded = gameState.messages.some(m => m.id === messageToAdd.id);
+                        if (!alreadyAdded) {
+                            gameState.messages.push(messageToAdd);
+                            completedThisDock.push(quest);
+                        }
+                    }
                 }
-                
-                completedThisDock.push(quest);
             }
         });
         

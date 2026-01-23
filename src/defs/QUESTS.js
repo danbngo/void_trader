@@ -4,20 +4,32 @@
  */
 
 const QUESTS = {
+    LEARN_TO_TRADE: new Quest(
+        'LEARN_TO_TRADE',
+        'Learn to Trade',
+        'Buy and sell 1000 credits worth of goods',
+        500,
+        (gameState) => {
+            // Check if player has bought AND sold at least 1000cr worth of goods
+            const totalBought = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0;
+            const totalSold = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0;
+            return totalBought >= 1000 && totalSold >= 1000;
+        },
+        'TRADING_BASICS_COMPLETE', // Message to add when complete
+        [] // No specific related systems
+    ),
+    
     REACH_GUILD: new Quest(
         'REACH_GUILD',
         'Reach the Guild',
-        'Travel to the nearest star system with a Merchant\'s Guild',
+        'Travel to Proxima, a star system with a Merchant\'s Guild',
         1000,
         (gameState) => {
             // Check if current system has a guild
             const currentSystem = gameState.getCurrentSystem();
             return currentSystem && currentSystem.buildings.includes('GUILD');
         },
-        (gameState) => {
-            // Add completion message
-            gameState.messages.push(MESSAGES.GUILD_REACHED);
-        },
+        'GUILD_REACHED', // Message to add when complete
         ['Proxima'] // Related systems
     ),
     
@@ -36,10 +48,7 @@ const QUESTS = {
             }
             return false;
         },
-        (gameState) => {
-            // Add completion message
-            gameState.messages.push(MESSAGES.VISA_ATTAINED);
-        },
+        'VISA_ATTAINED', // Message to add when complete
         ['Proxima'] // Related systems
     ),
     
@@ -52,10 +61,7 @@ const QUESTS = {
             // Check if player has learned CARGO_FRAGILE perk
             return gameState.perks.has('CARGO_FRAGILE');
         },
-        (gameState) => {
-            // Add completion message
-            gameState.messages.push(MESSAGES.CARGO_HANDLING_ATTAINED);
-        },
+        'CARGO_HANDLING_ATTAINED', // Message to add when complete
         ['Proxima'] // Related systems
     ),
     
@@ -68,9 +74,7 @@ const QUESTS = {
             // Check if player has learned SHIP_MERCANTILE perk
             return gameState.perks.has('SHIP_MERCANTILE');
         },
-        (gameState) => {
-            // TODO: Add next message when ready
-        },
+        null, // No completion message yet
         ['Proxima'] // Related systems
     )
 };

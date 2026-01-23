@@ -34,6 +34,9 @@ class GameState {
         this.enabledCargoTypes = [...CARGO_TYPES_SAFE]; // Array of cargo types player can buy/loot
         this.enabledShipTypes = [...SHIP_TYPES_BASIC]; // Array of ship types player can buy
         
+        // Player statistics and records
+        this.playerRecord = {}; // Object tracking player statistics (see PLAYER_RECORD_TYPES)
+        
         // Rank system - maps system index to rank ID
         this.systemRanks = {}; // { systemIndex: 'RANK_ID' }
         

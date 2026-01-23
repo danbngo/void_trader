@@ -43,7 +43,7 @@ const BUILDING_TYPES = {
         id: 'GUILD',
         name: 'Merchant\'s Guild',
         description: 'Quest hub and trading organization',
-        generationChance: 0.25, // 25% chance
+        generationChance: 0.1, // 10% chance
         minRankLevel: 1
     }
 };

@@ -9,12 +9,14 @@ class Message {
      * @param {string} title - Message title
      * @param {string} content - Message content (can be array of lines)
      * @param {Function} onRead - Function called when message is read
+     * @param {string} completesQuestId - Quest ID that this message completes when read
      */
-    constructor(id, title, content, onRead = null) {
+    constructor(id, title, content, onRead = null, completesQuestId = null) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.onRead = onRead;
+        this.completesQuestId = completesQuestId; // Quest ID this message completes
         this.isRead = false;
         this.suppressWarning = false; // Don't warn when departing with this unread
     }

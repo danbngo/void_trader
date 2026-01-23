@@ -110,7 +110,7 @@ const TravelConfirmMenu = (() => {
         
         // Buttons - centered at bottom
         const buttonY = grid.height - 5;
-        const buttonX = Math.floor((grid.width - 20) / 2);
+        const buttonX = Math.floor((grid.width - '[0] Cancel'.length) / 2);
         
         if (fuelAfter >= 0) {
             UI.addButton(buttonX, buttonY, '1', 'Launch', () => {

@@ -52,7 +52,7 @@ const PoliceEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - 30) / 2); // Center buttons
+        const buttonX = Math.floor((grid.width - '[1] Allow Inspection'.length) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Allow Inspection', () => {
             this.handleInspection(gameState, encType);
         }, COLORS.GREEN, 'Let police scan your cargo (50% chance to find illegal goods)');
@@ -94,7 +94,7 @@ const PoliceEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - 30) / 2);
+        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
@@ -175,7 +175,7 @@ const PoliceEncounter = {
         
         const grid = UI.getGridSize();
         const buttonY = grid.height - 2;
-        const buttonX = Math.floor((grid.width - 25) / 2);
+        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             // Return to travel menu
             TravelMenu.resume();

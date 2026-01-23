@@ -1024,6 +1024,7 @@ const EncounterMenu = (() => {
      */
     function handleTotalDefeat() {
         UI.clear();
+        UI.clearOutputRow();
         
         let y = 5;
         UI.addTextCentered(y++, `=== Total Defeat ===`, COLORS.TEXT_ERROR);

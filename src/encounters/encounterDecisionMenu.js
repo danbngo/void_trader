@@ -41,22 +41,22 @@ const EncounterDecisionMenu = {
         y += 2;
         
         // Different messages based on encounter type
-        let ignoreMessage = '';
         switch(encType.id) {
             case 'POLICE':
-                ignoreMessage = `The police speed past in a hurry. They seem too busy to worry about you.`;
+                UI.addText(10, y++, `The police speed past in a hurry.`, COLORS.TEXT_NORMAL);
+                UI.addText(10, y++, `They seem too busy to worry about you.`, COLORS.TEXT_NORMAL);
                 break;
             case 'PIRATE':
-                ignoreMessage = `The pirates scan your fleet briefly, then veer off. Maybe they're hunting bigger game.`;
+                UI.addText(10, y++, `The pirates scan your fleet briefly, then veer off.`, COLORS.TEXT_NORMAL);
+                UI.addText(10, y++, `Maybe they're hunting bigger game.`, COLORS.TEXT_NORMAL);
                 break;
             case 'MERCHANT':
-                ignoreMessage = `The merchant ships alter course to avoid you. Perhaps they suspect you're a threat.`;
+                UI.addText(10, y++, `The merchant ships alter course to avoid you.`, COLORS.TEXT_NORMAL);
+                UI.addText(10, y++, `Perhaps they suspect you're a threat.`, COLORS.TEXT_NORMAL);
                 break;
             default:
-                ignoreMessage = `The ${encType.name.toLowerCase()} ships pass by without incident.`;
+                UI.addText(10, y++, `The ${encType.name.toLowerCase()} ships pass by without incident.`, COLORS.TEXT_NORMAL);
         }
-        
-        UI.addText(10, y++, ignoreMessage, COLORS.TEXT_NORMAL);
         y++;
         
         // Show warning if enemy gained radar advantage (but chose to ignore)
@@ -74,7 +74,8 @@ const EncounterDecisionMenu = {
         y = ShipTableRenderer.addNPCFleet(10, y, `${encType.name} Ships:`, gameState.encounterShips);
         
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Continue Journey', () => {
+        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
+        UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             // Return to travel menu
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
@@ -119,9 +120,21 @@ const EncounterDecisionMenu = {
             const consequences = [];
             if (reputationEffect !== 0) {
                 const sign = reputationEffect > 0 ? '+' : '';
+                let repLabel = 'Reputation:';
+                let repValue = `${sign}${reputationEffect}`;
+                
+                // Add descriptive text based on encounter type
+                if (encType.id === 'PIRATE') {
+                    repValue = `${sign}${reputationEffect} for attacking criminals`;
+                } else if (encType.id === 'POLICE') {
+                    repValue = `${sign}${reputationEffect} for attacking authorities`;
+                } else if (encType.id === 'MERCHANT') {
+                    repValue = `${sign}${reputationEffect} for attacking civilians`;
+                }
+                
                 consequences.push({
-                    label: 'Reputation:',
-                    value: `${sign}${reputationEffect}`,
+                    label: repLabel,
+                    value: repValue,
                     valueColor: reputationEffect > 0 ? COLORS.GREEN : COLORS.TEXT_ERROR
                 });
             }
@@ -135,7 +148,7 @@ const EncounterDecisionMenu = {
             y = TableRenderer.renderKeyValueList(10, y, consequences);
             
             const buttonY = grid.height - 2;
-            const buttonX = Math.floor((grid.width - 25) / 2);
+            const buttonX = Math.floor((grid.width - '[1] Continue to Combat'.length) / 2);
             UI.addButton(buttonX, buttonY, '1', 'Continue to Combat', () => {
                 EncounterMenu.show(gameState, encType);
             }, COLORS.TEXT_ERROR);

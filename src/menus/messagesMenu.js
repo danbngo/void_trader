@@ -68,7 +68,8 @@ const MessagesMenu = (() => {
         
         // Buttons - centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - 20) / 2);
+        const longestButton = '[T] Show Unread'; // Longest of 'Show Read' or 'Show Unread'
+        const buttonX = Math.floor((grid.width - longestButton.length) / 2);
         
         // Toggle between unread/read
         const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';

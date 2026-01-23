@@ -41,7 +41,7 @@ const PirateEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - 30) / 2); // Center buttons
+        const buttonX = Math.floor((grid.width - '[1] Allow Boarding'.length) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Allow Boarding', () => {
             this.handleBoarding(gameState, encType);
         }, COLORS.BUTTON, 'Surrender cargo to pirates');
@@ -84,7 +84,7 @@ const PirateEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        const buttonX = Math.floor((grid.width - 30) / 2);
+        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');
@@ -121,7 +121,7 @@ const PirateEncounter = {
             
             const grid = UI.getGridSize();
             const buttonY = grid.height - 2;
-            const buttonX = Math.floor((grid.width - 25) / 2);
+            const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
             UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
                 TravelMenu.resume();
             }, COLORS.GREEN, 'Resume your journey');
@@ -169,7 +169,7 @@ const PirateEncounter = {
         
         const grid = UI.getGridSize();
         const buttonY = grid.height - 2;
-        const buttonX = Math.floor((grid.width - 25) / 2);
+        const buttonX = Math.floor((grid.width - '[1] Continue Journey'.length) / 2);
         UI.addButton(buttonX, buttonY, '1', 'Continue Journey', () => {
             TravelMenu.resume();
         }, COLORS.GREEN, 'Resume your journey');

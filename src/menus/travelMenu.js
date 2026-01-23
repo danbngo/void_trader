@@ -82,14 +82,14 @@ const TravelMenu = (() => {
         // Journey info using renderKeyValueList
         const totalFuel = Ship.calculateFleetFuelCost(currentSystem.distanceTo(targetSystem), currentGameState.ships.length);
         y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_DIM },
-            { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_DIM },
+            { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
         ]);
         y++;
         
         y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Start Date:', value: formatDate(startDate), valueColor: COLORS.TEXT_DIM },
-            { label: 'ETA:', value: formatDate(eta), valueColor: COLORS.TEXT_DIM },
+            { label: 'Start Date:', value: formatDate(startDate), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'ETA:', value: formatDate(eta), valueColor: COLORS.TEXT_NORMAL },
         ]);
         y++;
         
@@ -104,16 +104,27 @@ const TravelMenu = (() => {
         ]);
         y++;
         
-        // Progress bar
+        // Progress bar with dynamic color
         const barWidth = Math.floor(grid.width * 0.6);
         const barX = Math.floor((grid.width - barWidth) / 2);
         const filledWidth = Math.floor(barWidth * progress);
         
+        // Determine bar color based on progress
+        let barColor;
+        if (progress < 0.5) {
+            barColor = COLORS.TEXT_DIM; // Dark gray/cyan at start
+        } else if (progress < 1.0) {
+            barColor = COLORS.CYAN; // Cyan in middle
+        } else {
+            barColor = COLORS.TEXT_HIGHLIGHT; // Light cyan at 100%
+        }
+        
         UI.addText(barX, y, '[', COLORS.TEXT_NORMAL);
         UI.addText(barX + barWidth + 1, y, ']', COLORS.TEXT_NORMAL);
         
+        // Use block characters for progress bar
         for (let i = 0; i < filledWidth; i++) {
-            UI.addText(barX + 1 + i, y, '=', COLORS.CYAN);
+            UI.addText(barX + 1 + i, y, '▓', barColor);
         }
         
         y += 2;
@@ -124,6 +135,7 @@ const TravelMenu = (() => {
         
         // Encounter output row - positioned near bottom
         const buttonY = grid.height - 3;
+        const buttonX = Math.floor((grid.width - '[1] Continue'.length) / 2);
         
         if (encounterTriggered && encounterType) {
             // Flash between encounter color and white for emphasis
@@ -138,14 +150,14 @@ const TravelMenu = (() => {
             });
             UI.addText(5, buttonY - 3, `Alert: ${encounterType.name} Detected!`, flashColor);
             
-            UI.addButton(5, buttonY, '1', 'Continue', () => {
+            UI.addButton(buttonX, buttonY, '1', 'Continue', () => {
                 // Check for undetected encounter (radar comparison)
                 UndetectedEncounter.check(currentGameState, encounterType);
             }, COLORS.GREEN);
         } else if (arrivedAtDestination) {
             UI.addText(5, buttonY - 3, `You have arrived at ${targetSystem.name}!`, COLORS.GREEN);
             
-            UI.addButton(5, buttonY, '1', 'Continue', () => {
+            UI.addButton(buttonX, buttonY, '1', 'Continue', () => {
                 completeJourney();
             }, COLORS.GREEN);
         } else if (paused) {

@@ -37,8 +37,19 @@ class CombatAI {
             // Calculate hit chance if we were to fire laser
             const hitChance = Math.min(1, enemyShip.radar / nearestDistance);
             
-            // Fire laser if hit chance meets minimum threshold
-            if (hitChance >= ENEMY_MIN_LASER_HIT_CHANCE) {
+            // Calculate desperation factor based on target distance from center
+            // Target at center (0,0) = 0% desperation bonus
+            // Target at max radius = 100% desperation (will always shoot)
+            const targetDistanceFromCenter = Math.sqrt(nearestShip.x * nearestShip.x + nearestShip.y * nearestShip.y);
+            const desperationFactor = Math.min(1, targetDistanceFromCenter / ENCOUNTER_MAX_RADIUS);
+            
+            // Effective threshold decreases as target gets closer to edge
+            // At center: threshold = ENEMY_MIN_LASER_HIT_CHANCE (0.5)
+            // At edge: threshold = 0 (will always shoot)
+            const effectiveThreshold = ENEMY_MIN_LASER_HIT_CHANCE * (1 - desperationFactor);
+            
+            // Fire laser if hit chance meets the (potentially reduced) threshold
+            if (hitChance >= effectiveThreshold) {
                 return new CombatAction(enemyShip, COMBAT_ACTIONS.FIRE_LASER, nearestShip);
             }
             

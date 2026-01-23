@@ -31,18 +31,18 @@ const MerchantEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 4;
-        UI.addCenteredButton(buttonY, '1', 'Accept Trade Offer', () => {
-            this.handleTrade(gameState, encType);
-        }, COLORS.GREEN, 'Trade with merchants (buy or sell cargo at base price)');
-        
-        UI.addCenteredButton(buttonY + 1, '2', 'Ignore', () => {
-            // Return to travel menu
-            TravelMenu.resume();
-        }, COLORS.TEXT_DIM, 'Continue journey without trading');
-        
-        UI.addCenteredButton(buttonY + 2, '3', 'Attack', () => {
-            this.showAttackConsequences(gameState, encType);
-        }, COLORS.TEXT_ERROR, 'Attack innocent traders (-5 reputation, +1000 bounty)');
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Accept Trade Offer', callback: () => {
+                this.handleTrade(gameState, encType);
+            }, color: COLORS.GREEN, helpText: 'Trade with merchants (buy or sell cargo at base price)' },
+            { key: '2', label: 'Ignore', callback: () => {
+                // Return to travel menu
+                TravelMenu.resume();
+            }, color: COLORS.TEXT_DIM, helpText: 'Continue journey without trading' },
+            { key: '3', label: 'Attack', callback: () => {
+                this.showAttackConsequences(gameState, encType);
+            }, color: COLORS.TEXT_ERROR, helpText: 'Attack innocent traders (-5 reputation, +1000 bounty)' }
+        ]);
         
         UI.draw();
     },
@@ -107,21 +107,22 @@ const MerchantEncounter = {
             const buttonY = grid.height - 3;
             
             if (gameState.credits >= totalCost && maxAmount > 0) {
-                UI.addCenteredButton(buttonY, '1', `Buy ${maxAmount} ${cargoType.name}`, () => {
-                    // Execute trade
-                    gameState.credits -= totalCost;
-                    gameState.encounterCargo[randomCargoId] -= maxAmount;
-                    Ship.addCargoToFleet(gameState.ships, randomCargoId, maxAmount);
-                    
-                    this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
-                }, COLORS.GREEN);
-                
-                UI.addCenteredButton(buttonY + 1, '2', 'Decline', () => {
-                    gameState.encounter = false;
-                    gameState.encounterShips = [];
-                    gameState.encounterCargo = {};
-                    TravelMenu.resume();
-                }, COLORS.TEXT_DIM);
+                UI.addCenteredButtons(buttonY, [
+                    { key: '1', label: `Buy ${maxAmount} ${cargoType.name}`, callback: () => {
+                        // Execute trade
+                        gameState.credits -= totalCost;
+                        gameState.encounterCargo[randomCargoId] -= maxAmount;
+                        Ship.addCargoToFleet(gameState.ships, randomCargoId, maxAmount);
+                        
+                        this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
+                    }, color: COLORS.GREEN },
+                    { key: '2', label: 'Decline', callback: () => {
+                        gameState.encounter = false;
+                        gameState.encounterShips = [];
+                        gameState.encounterCargo = {};
+                        TravelMenu.resume();
+                    }, color: COLORS.TEXT_DIM }
+                ]);
             } else {
                 UI.addText(10, y++, `You cannot afford this purchase.`, COLORS.TEXT_ERROR);
                 
@@ -176,17 +177,18 @@ const MerchantEncounter = {
             const grid = UI.getGridSize();
             const buttonY = grid.height - 3;
             
-            UI.addCenteredButton(buttonY, '1', `Sell ${playerAmount} ${cargoType.name}`, () => {
-                // Execute trade
-                gameState.credits += totalRevenue;
-                Ship.removeCargoFromFleet(gameState.ships, randomCargoId, playerAmount);
-                
-                this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`);
-            }, COLORS.GREEN);
-            
-            UI.addCenteredButton(buttonY + 1, '2', 'Decline', () => {
-                TravelMenu.resume();
-            }, COLORS.TEXT_DIM);
+            UI.addCenteredButtons(buttonY, [
+                { key: '1', label: `Sell ${playerAmount} ${cargoType.name}`, callback: () => {
+                    // Execute trade
+                    gameState.credits += totalRevenue;
+                    Ship.removeCargoFromFleet(gameState.ships, randomCargoId, playerAmount);
+                    
+                    this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`);
+                }, color: COLORS.GREEN },
+                { key: '2', label: 'Decline', callback: () => {
+                    TravelMenu.resume();
+                }, color: COLORS.TEXT_DIM }
+            ]);
         }
         
         UI.draw();

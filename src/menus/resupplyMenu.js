@@ -58,42 +58,49 @@ const ResupplyMenu = (() => {
         const allRefueled = gameState.ships.every(ship => ship.fuel >= ship.maxFuel);
         const allReady = allRepaired && allRefueled;
         
-        // Buttons
+        // Buttons in 3 columns
         const buttonY = grid.height - 7;
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
         
         if (allReady) {
             // All ships ready - show simple Depart button
-            UI.addCenteredButtons(buttonY, [
-                { key: '1', label: 'Depart', callback: () => {
-                    outputMessage = '';
-                    onDepart();
-                }, color: COLORS.GREEN, helpText: 'Leave the station' },
-                { key: '0', label: 'Cancel', callback: () => {
-                    outputMessage = '';
-                    onReturn();
-                }, color: COLORS.BUTTON, helpText: 'Return to dock' }
-            ]);
+            UI.addButton(leftX, buttonY, '1', 'Depart', () => {
+                outputMessage = '';
+                onDepart();
+            }, COLORS.GREEN, 'Leave the station');
+            
+            UI.addButton(rightX, buttonY, '0', 'Cancel', () => {
+                outputMessage = '';
+                onReturn();
+            }, COLORS.BUTTON, 'Return to dock');
         } else {
             // Ships need attention - show resupply options
-            UI.addCenteredButtons(buttonY, [
-                { key: '1', label: 'Refuel and Repair All', callback: () => {
-                    refuelAndRepairAll(gameState, onReturn, onDepart);
-                }, color: COLORS.GREEN, helpText: 'Refuel and repair all ships' },
-                { key: '2', label: 'Refuel All', callback: () => {
-                    refuelAll(gameState, onReturn, onDepart);
-                }, color: COLORS.BUTTON, helpText: 'Refuel all ships to maximum' },
-                { key: '3', label: 'Repair All', callback: () => {
-                    repairAll(gameState, onReturn, onDepart);
-                }, color: COLORS.BUTTON, helpText: 'Repair all ships to maximum' },
-                { key: '4', label: 'Depart Anyway', callback: () => {
-                    outputMessage = '';
-                    onDepart();
-                }, color: COLORS.TEXT_NORMAL, helpText: 'Leave without resupplying', keyColor: COLORS.TEXT_ERROR },
-                { key: '0', label: 'Cancel', callback: () => {
-                    outputMessage = '';
-                    onReturn();
-                }, color: COLORS.BUTTON, helpText: 'Return to dock' }
-            ]);
+            // Column 1: Refuel and Repair All / Depart, Refuel All, Repair All
+            UI.addButton(leftX, buttonY, '1', 'Full Service', () => {
+                refuelAndRepairAll(gameState, onReturn, onDepart);
+            }, COLORS.GREEN, 'Refuel and repair all ships');
+            
+            UI.addButton(leftX, buttonY + 1, '2', 'Refuel Only', () => {
+                refuelAll(gameState, onReturn, onDepart);
+            }, COLORS.BUTTON, 'Refuel all ships to maximum');
+            
+            UI.addButton(leftX, buttonY + 2, '3', 'Repair Only', () => {
+                repairAll(gameState, onReturn, onDepart);
+            }, COLORS.BUTTON, 'Repair all ships to maximum');
+            
+            // Column 2: Depart Anyway
+            UI.addButton(middleX, buttonY, '4', 'Depart Anyway', () => {
+                outputMessage = '';
+                onDepart();
+            }, COLORS.TEXT_NORMAL, 'Leave without resupplying', COLORS.TEXT_ERROR);
+            
+            // Column 3: Cancel
+            UI.addButton(rightX, buttonY, '0', 'Cancel', () => {
+                outputMessage = '';
+                onReturn();
+            }, COLORS.BUTTON, 'Return to dock');
         }
         
         // Set output message

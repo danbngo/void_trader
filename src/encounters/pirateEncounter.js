@@ -41,13 +41,14 @@ const PirateEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        UI.addCenteredButton(buttonY, '1', 'Allow Boarding', () => {
-            this.handleBoarding(gameState, encType);
-        }, COLORS.BUTTON, 'Surrender cargo to pirates');
-        
-        UI.addCenteredButton(buttonY + 1, '2', 'Resist', () => {
-            this.showAttackConsequences(gameState, encType);
-        }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Allow Boarding', callback: () => {
+                this.handleBoarding(gameState, encType);
+            }, color: COLORS.BUTTON, helpText: 'Surrender cargo to pirates' },
+            { key: '2', label: 'Resist', callback: () => {
+                this.showAttackConsequences(gameState, encType);
+            }, color: COLORS.TEXT_ERROR, helpText: 'Attack criminals (+5 reputation, no bounty)' }
+        ]);
         
         UI.draw();
     },
@@ -83,13 +84,14 @@ const PirateEncounter = {
         
         // Buttons centered at bottom
         const buttonY = grid.height - 3;
-        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
-            TravelMenu.resume();
-        }, COLORS.GREEN, 'Resume your journey');
-        
-        UI.addCenteredButton(buttonY + 1, '2', 'Attack', () => {
-            this.showAttackConsequences(gameState, ENCOUNTER_TYPES.PIRATE);
-        }, COLORS.TEXT_ERROR, 'Attack criminals (+5 reputation, no bounty)');
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Continue Journey', callback: () => {
+                TravelMenu.resume();
+            }, color: COLORS.GREEN, helpText: 'Resume your journey' },
+            { key: '2', label: 'Attack', callback: () => {
+                this.showAttackConsequences(gameState, ENCOUNTER_TYPES.PIRATE);
+            }, color: COLORS.TEXT_ERROR, helpText: 'Attack criminals (+5 reputation, no bounty)' }
+        ]);
         
         UI.draw();
     },

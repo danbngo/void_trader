@@ -618,26 +618,28 @@ const EncounterMenu = (() => {
                     laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg)`;
                 }
                 
-                // Pursue help text: check for ramming
-                const willRam = distance <= activeShip.engine;
+                // Pursue help text: check for ramming (with variable speed)
+                const minSpeed = activeShip.engine * 0.5;
+                const maxSpeed = activeShip.engine * 1.5;
+                const willRam = distance <= maxSpeed;
                 if (willRam) {
                     const massRatio = activeShip.maxHull / targetShip.maxHull;
                     const knockback = Math.floor((activeShip.engine / 2) * massRatio);
                     const ramDamage = `1-${Math.floor(knockback)}`;
-                    pursueHelpText = `Pursue (WILL RAM for ${ramDamage} dmg, travel ${Math.floor(distance)} AU)`;
+                    pursueHelpText = `Pursue (MAY RAM for ${ramDamage} dmg, travel ${minSpeed.toFixed(1)}-${maxSpeed.toFixed(1)} AU)`;
                 } else {
-                    pursueHelpText = `Pursue (travel ${activeShip.engine} AU toward target)`;
+                    pursueHelpText = `Pursue (travel ${minSpeed.toFixed(1)}-${maxSpeed.toFixed(1)} AU toward target)`;
                 }
                 
-                // Flee help text: distance and escape check
-                const fleeDistance = activeShip.engine;
-                const newDistance = distance + fleeDistance;
+                // Flee help text: distance and escape check (with variable speed)
+                const minFleeDistance = minSpeed;
+                const maxFleeDistance = maxSpeed;
                 const currentDistanceFromCenter = Math.sqrt(activeShip.x * activeShip.x + activeShip.y * activeShip.y);
-                const willEscape = currentDistanceFromCenter + fleeDistance > ENCOUNTER_MAX_RADIUS;
+                const willEscape = currentDistanceFromCenter + minFleeDistance > ENCOUNTER_MAX_RADIUS;
                 if (willEscape) {
-                    fleeHelpText = `Flee ${fleeDistance} AU (WILL ESCAPE THE MAP)`;
+                    fleeHelpText = `Flee ${minFleeDistance.toFixed(1)}-${maxFleeDistance.toFixed(1)} AU (MAY ESCAPE THE MAP)`;
                 } else {
-                    fleeHelpText = `Flee ${fleeDistance} AU away from target`;
+                    fleeHelpText = `Flee ${minFleeDistance.toFixed(1)}-${maxFleeDistance.toFixed(1)} AU away from target`;
                 }
             }
             

@@ -95,7 +95,10 @@ class CombatActionHandler {
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     this.targetAngle = Math.atan2(dy, dx);
-                    this.remainingDistance = Math.min(this.ship.engine, distance);
+                    // Random speed multiplier between 0.5 and 1.5
+                    const speedMultiplier = 0.5 + Math.random();
+                    const effectiveSpeed = this.ship.engine * speedMultiplier;
+                    this.remainingDistance = Math.min(effectiveSpeed, distance);
                     
                     // Calculate movement per tick (1 engine = 1 unit of movement)
                     if (distance > 0) {
@@ -112,7 +115,9 @@ class CombatActionHandler {
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     this.targetAngle = Math.atan2(dy, dx);
-                    this.remainingDistance = this.ship.engine;
+                    // Random speed multiplier between 0.5 and 1.5
+                    const speedMultiplier = 0.5 + Math.random();
+                    this.remainingDistance = this.ship.engine * speedMultiplier;
                     
                     // Calculate movement per tick (1 engine = 1 unit of movement)
                     if (distance > 0) {

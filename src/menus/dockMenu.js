@@ -46,9 +46,11 @@ const DockMenu = (() => {
         const currentRank = gameState.getRankAtCurrentSystem();
         UI.addTextCentered(7, `Citizenship: ${currentRank.name}`, COLORS.CYAN);
         
-        // Menu buttons - positioned towards bottom
-        const menuX = Math.floor(grid.width / 2) - 12;
-        let menuY = grid.height - 14; // Start buttons near bottom
+        // Menu buttons - 3 column layout at bottom
+        const buttonY = grid.height - 5;
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
         
         // Define all possible buildings (always shown)
         const allBuildings = [
@@ -90,7 +92,7 @@ const DockMenu = (() => {
             }
         ];
         
-        // Add building buttons (always show all, gray out if unavailable)
+        // Add building buttons in 3 columns (2 per column)
         allBuildings.forEach((building, index) => {
             const hasBuilding = currentSystem.buildings.includes(building.id);
             const hasRank = currentRank.level >= building.buildingType.minRankLevel;
@@ -122,22 +124,26 @@ const DockMenu = (() => {
                 }
             }
             
-            UI.addButton(menuX, menuY++, key, building.name, 
+            // Determine column and row for 3-column layout (2 items per column)
+            const column = Math.floor(index / 2); // 0, 1, or 2
+            const row = index % 2; // 0 or 1
+            const buttonX = column === 0 ? leftX : (column === 1 ? middleX : rightX);
+            const btnY = buttonY + row;
+            
+            UI.addButton(buttonX, btnY, key, building.name, 
                 () => tryOpenBuilding(gameState, building, hasBuilding, hasRank),
                 color, helpText);
         });
         
-        menuY++; // Spacing
-        
-        // Always available buttons
-        UI.addButton(menuX, menuY++, '8', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
+        // Always available buttons in third column
+        UI.addButton(rightX, buttonY + 2, '8', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
         
         // Highlight assistant button if there are unread messages
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
         const assistantColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(menuX, menuY++, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
+        UI.addButton(rightX, buttonY + 3, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
-        UI.addButton(menuX, menuY++, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
+        UI.addButton(rightX, buttonY + 4, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
         
         // Set output message if there is one
         if (outputMessage) {

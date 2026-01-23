@@ -82,25 +82,25 @@ const TitleMenu = (() => {
         UI.addTextCentered(5, 'V O I D   T R A D E R', COLORS.TITLE);
         UI.addTextCentered(7, 'A Text-Based Space Trading Game', COLORS.TEXT_DIM);
         
-        // Menu buttons
+        // Menu buttons positioned at bottom
+        const buttonY = grid.height - 4;
         const menuX = centerX - 10;
-        const menuY = 12;
         
-        UI.addButton(menuX, menuY, '1', 'New Game', () => {
+        UI.addButton(menuX, buttonY, '1', 'New Game', () => {
             stopAnimation();
             newGame();
         }, COLORS.BUTTON, 'Start a new adventure');
-        UI.addButton(menuX, menuY + 1, '2', 'Load Game', () => {
+        UI.addButton(menuX, buttonY + 1, '2', 'Load Game', () => {
             stopAnimation();
             LoadMenu.show(() => TitleMenu.show());
         }, COLORS.BUTTON, 'Load a previously saved game');
-        UI.addButton(menuX, menuY + 2, '3', 'About', () => {
+        UI.addButton(menuX, buttonY + 2, '3', 'About', () => {
             stopAnimation();
             showAbout();
         }, COLORS.BUTTON, 'Learn about the game');
         
         // Footer
-        UI.addTextCentered(grid.height - 2, '(Use arrow keys or numbers to select)', COLORS.TEXT_DIM);
+        UI.addTextCentered(grid.height - 1, '(Use arrow keys or numbers to select)', COLORS.TEXT_DIM);
         
         // Draw everything
         UI.draw();

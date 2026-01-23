@@ -451,10 +451,8 @@ class CombatActionHandler {
                 
                 if (currentDistance < 1) {
                     // Collision! Create GET_RAMMED action for target
-                    // Calculate mass ratio (our mass vs their mass)
-                    const massRatio = this.ship.maxHull / this.action.targetShip.maxHull;
-                    // Base knockback is half engine level, multiplied by mass ratio
-                    const knockbackDistance = (this.ship.engine / 2) * massRatio;
+                    // Random knockback between 0 and half the ramming ship's engine rating
+                    const knockbackDistance = Math.random() * (this.ship.engine / 2);
                     const knockbackAngle = this.ship.angle;
                     
                     // Complete current action

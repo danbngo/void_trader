@@ -83,7 +83,7 @@ const TitleMenu = (() => {
         UI.addTextCentered(7, 'A Text-Based Space Trading Game', COLORS.TEXT_DIM);
         
         // Menu buttons positioned at bottom
-        const buttonY = grid.height - 4;
+        const buttonY = grid.height - 5;
         const menuX = centerX - 10;
         
         UI.addButton(menuX, buttonY, '1', 'New Game', () => {
@@ -99,8 +99,7 @@ const TitleMenu = (() => {
             showAbout();
         }, COLORS.BUTTON, 'Learn about the game');
         
-        // Footer
-        UI.addTextCentered(grid.height - 1, '(Use arrow keys or numbers to select)', COLORS.TEXT_DIM);
+        UI.addTextCentered(grid.height - 1, '(Use mouse, arrow keys or numbers to select)', COLORS.TEXT_DIM);
         
         // Draw everything
         UI.draw();

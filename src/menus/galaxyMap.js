@@ -325,8 +325,13 @@ const GalaxyMap = (() => {
         // Legend positioned right after map border
         UI.addText(2, mapHeight, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
         
-        // Buttons in columns on left side
-        UI.addButton(5, buttonY, '1', 'Previous System', () => {
+        // 3-column layout
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
+        
+        // First column: Previous System, Next System, Scan System
+        UI.addButton(leftX, buttonY, '1', 'Previous System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex - 1 + nearbySystems.length) % nearbySystems.length;
                 outputMessage = ''; // Clear error messages when navigating
@@ -334,7 +339,7 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'Select the previous system in the list');
         
-        UI.addButton(5, buttonY + 1, '2', 'Next System', () => {
+        UI.addButton(leftX, buttonY + 1, '2', 'Next System', () => {
             if (nearbySystems.length > 0) {
                 selectedIndex = (selectedIndex + 1) % nearbySystems.length;
                 outputMessage = ''; // Clear error messages when navigating
@@ -342,7 +347,7 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'Select the next system in the list');
         
-        UI.addButton(5, buttonY + 2, '3', 'Scan System', () => {
+        UI.addButton(leftX, buttonY + 2, '3', 'Scan System', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 const selectedSystem = nearbySystems[selectedIndex].system;
                 outputMessage = '';
@@ -350,6 +355,7 @@ const GalaxyMap = (() => {
             }
         }, COLORS.BUTTON, 'View detailed information about the selected system');
         
+        // Second column: Travel, Zoom In, Zoom Out
         // Travel button - calculate if travel is possible before using
         let canTravel = false;
         let travelHelpText = 'Begin travel to the selected system';
@@ -369,7 +375,7 @@ const GalaxyMap = (() => {
         
         const travelColor = canTravel ? COLORS.GREEN : COLORS.TEXT_DIM;
         
-        UI.addButton(28, buttonY, '6', 'Travel', () => {
+        UI.addButton(middleX, buttonY, '4', 'Travel', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 // Check if retirement time has passed (50 years)
                 if (gameState.hasRetirementTimePassed()) {
@@ -398,17 +404,18 @@ const GalaxyMap = (() => {
             }
         }, travelColor, travelHelpText);
 
-        UI.addButton(28, buttonY + 1, '8', 'Zoom In', () => {
+        UI.addButton(middleX, buttonY + 1, '5', 'Zoom In', () => {
             mapViewRange = Math.max(MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Decrease map view range to see fewer, closer systems');
         
-        UI.addButton(28, buttonY + 2, '9', 'Zoom Out', () => {
+        UI.addButton(middleX, buttonY + 2, '6', 'Zoom Out', () => {
             mapViewRange = Math.min(MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
         
-        UI.addButton(28, buttonY + 3, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
+        // Third column: Dock
+        UI.addButton(rightX, buttonY, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

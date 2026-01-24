@@ -35,7 +35,7 @@ const QuestsMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        let y = 5;
+        let y = 2;
         const title = showingActive ? '=== Active Quests ===' : '=== Completed Quests ===';
         UI.addTextCentered(y++, title, COLORS.TITLE);
         y += 2;
@@ -64,13 +64,9 @@ const QuestsMenu = (() => {
             const endIndex = Math.min(startIndex + questsPerPage, questIds.length);
             const pageQuestIds = questIds.slice(startIndex, endIndex);
             
-            // Table header
-            const leftX = 10;
-            UI.addText(leftX, y, 'Quest Name', COLORS.CYAN);
-            UI.addText(leftX + 40, y++, 'Status', COLORS.CYAN);
-            UI.addText(leftX, y++, '─'.repeat(60), COLORS.TEXT_DIM);
-            
             // Display quests
+            const leftX = 5;
+            let questNumber = startIndex + 1; // Start numbering from the first quest on this page
             pageQuestIds.forEach(questId => {
                 const quest = Object.values(QUESTS).find(q => q.id === questId);
                 if (quest) {
@@ -79,30 +75,44 @@ const QuestsMenu = (() => {
                         currentGameState.readQuests.push(questId);
                     }
                     
-                    const status = showingActive ? 'Active' : 'Completed';
-                    const statusColor = showingActive ? COLORS.YELLOW : COLORS.GREEN;
+                    // Quest number, name, and description on one line
+                    const questLine = `#${questNumber}: ${quest.name}: ${quest.description}`;
+                    UI.addText(leftX, y++, questLine, COLORS.TEXT_NORMAL);
                     
-                    UI.addText(leftX, y, quest.name, COLORS.TEXT_NORMAL);
-                    UI.addText(leftX + 40, y++, status, statusColor);
-                    
-                    // Show description below
-                    UI.addText(leftX + 2, y++, quest.description, COLORS.TEXT_DIM);
-                    y++; // Empty row between description and progress bar
+                    // Reward
+                    if (quest.creditReward > 0) {
+                        UI.addText(leftX + 4, y++, `Reward: ${quest.creditReward} CR`, COLORS.GREEN);
+                    }
                     
                     // Show progress bar for active quests with tracking
                     if (showingActive && quest.getQuestProgress) {
+                        y++; // Empty row before progress bar
                         const progress = quest.getQuestProgress(currentGameState);
                         const progressBarWidth = 50;
                         // ProgressBar.render expects x to be the CENTER of the bar
-                        const progressBarCenterX = leftX + 2 + Math.floor(progressBarWidth / 2);
-                        y = ProgressBar.render(progressBarCenterX, y, progress, progressBarWidth, quest.questProgressLabel);
-                        y++; // Extra spacing after progress bar
+                        const progressBarCenterX = leftX + 4 + Math.floor(progressBarWidth / 2);
+                        
+                        // Generate dynamic progress label with current/max values
+                        let progressLabel = quest.questProgressLabel;
+                        if (quest.id === 'ATTAIN_VISA') {
+                            const visaCost = RANKS.VISA.fee;
+                            progressLabel = `Credits vs Visa Cost: ${currentGameState.credits}/${visaCost}`;
+                        } else if (quest.id === 'LEARN_TO_TRADE') {
+                            const totalSold = currentGameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0;
+                            progressLabel = `Goods Sold: ${totalSold}/1000 CR`;
+                        } else if (quest.id === 'LEARN_CARGO_HANDLING') {
+                            const perk = PERKS.CARGO_FRAGILE;
+                            progressLabel = `Credits: ${currentGameState.credits}/${perk.cost}`;
+                        } else if (quest.id === 'LEARN_SHIP_HANDLING') {
+                            const perk = PERKS.SHIP_LICENSE_FRIGATE;
+                            progressLabel = `Credits: ${currentGameState.credits}/${perk.cost}`;
+                        }
+                        
+                        y = ProgressBar.render(progressBarCenterX, y, progress, progressBarWidth, progressLabel);
                     }
                     
-                    if (showingActive && quest.creditReward > 0) {
-                        UI.addText(leftX + 2, y, `Reward: ${quest.creditReward} CR`, COLORS.GREEN);
-                    }
-                    y++;
+                    y++; // Empty row between quests
+                    questNumber++;
                 }
             });
             

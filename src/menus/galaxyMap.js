@@ -320,10 +320,31 @@ const GalaxyMap = (() => {
      */
     function drawButtons(gameState, startX, mapHeight) {
         const grid = UI.getGridSize();
-        const buttonY = grid.height - 5;
+        const buttonY = grid.height - 3;
         
         // Legend positioned right after map border
         UI.addText(2, mapHeight, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
+        
+        // Trade recommendation - positioned in the middle of empty space
+        const recommendationY = mapHeight + 2;
+        const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
+        if (recommendation) {
+            UI.addText(5, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
+            const xOffset = 5 + 'Recommendation: '.length;
+            
+            if (recommendation.type === 'sell') {
+                UI.addText(xOffset, recommendationY, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
+                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length, recommendationY, recommendation.cargoName, recommendation.cargoColor);
+                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length + recommendation.cargoName.length, recommendationY, ` here (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+            } else {
+                UI.addText(xOffset, recommendationY, 'Buy ', COLORS.TEXT_NORMAL);
+                UI.addText(xOffset + 'Buy '.length, recommendationY, recommendation.cargoName, recommendation.cargoColor);
+                UI.addText(xOffset + 'Buy '.length + recommendation.cargoName.length, recommendationY, ` here and sell at ${recommendation.targetSystem.name} (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+            }
+        } else {
+            UI.addText(5, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
+            UI.addText(5 + 'Recommendation: '.length, recommendationY, 'No profitable trades available', COLORS.TEXT_DIM);
+        }
         
         // 3-column layout
         const leftX = 5;

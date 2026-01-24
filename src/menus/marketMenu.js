@@ -61,6 +61,11 @@ const MarketMenu = (() => {
                 UI.addText(xOffset + 'Buy '.length + recommendation.cargoName.length, 9, ` here and sell at ${recommendation.targetSystem.name} (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
             }
             startY = 11;
+        } else {
+            TableRenderer.renderKeyValueList(5, 9, [
+                { label: 'Recommendation:', value: 'No profitable trades available', valueColor: COLORS.TEXT_DIM }
+            ]);
+            startY = 11;
         }
         
         // Use ALL cargo types (not just enabled ones)
@@ -70,6 +75,9 @@ const MarketMenu = (() => {
         if (selectedCargoIndex >= allCargoTypes.length) {
             selectedCargoIndex = Math.max(0, allCargoTypes.length - 1);
         }
+        
+        // Get total fleet cargo capacity for stock ratio calculation
+        const totalCargoCapacity = Ship.getFleetCargoCapacity(gameState.ships);
         
         // Market table
         const rows = allCargoTypes.map((cargoType, index) => {
@@ -86,12 +94,17 @@ const MarketMenu = (() => {
             const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
             const sellRatio = sellPrice / cargoType.baseValue; // Higher sell price = higher ratio = better
             
+            // Calculate stock ratio: 0 stock = 1.0, max capacity = 4.0
+            const stockRatio = totalCargoCapacity > 0 
+                ? 1.0 + (playerQuantity / totalCargoCapacity) * 3.0 
+                : 1.0;
+            
             const buyColor = hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
             const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
             const nameColor = hasTraining ? cargoType.color : COLORS.TEXT_DIM;
             const stockColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             const baseValueColor = hasTraining ? COLORS.WHITE : COLORS.TEXT_DIM;
-            const playerQuantityColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            const playerQuantityColor = hasTraining ? UI.calcStatColor(stockRatio) : COLORS.TEXT_DIM;
             
             return [
                 { text: cargoType.name, color: nameColor },

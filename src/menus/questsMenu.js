@@ -75,13 +75,20 @@ const QuestsMenu = (() => {
                         currentGameState.readQuests.push(questId);
                     }
                     
-                    // Quest number, name, and description on one line
-                    const questLine = `#${questNumber}: ${quest.name}: ${quest.description}`;
-                    UI.addText(leftX, y++, questLine, COLORS.TEXT_NORMAL);
+                    // Quest number (cyan), name (white), and description (gray) on one line
+                    let xOffset = leftX;
+                    UI.addText(xOffset, y, `#${questNumber}: `, COLORS.CYAN);
+                    xOffset += `#${questNumber}: `.length;
+                    UI.addText(xOffset, y, quest.name, COLORS.TEXT_NORMAL);
+                    xOffset += quest.name.length;
+                    UI.addText(xOffset, y, `: ${quest.description}`, COLORS.TEXT_DIM);
+                    y++;
                     
-                    // Reward
+                    // Reward - label in white, value in green
                     if (quest.creditReward > 0) {
-                        UI.addText(leftX + 4, y++, `Reward: ${quest.creditReward} CR`, COLORS.GREEN);
+                        UI.addText(leftX + 4, y, `Reward: `, COLORS.TEXT_NORMAL);
+                        UI.addText(leftX + 4 + 'Reward: '.length, y, `${quest.creditReward} CR`, COLORS.GREEN);
+                        y++;
                     }
                     
                     // Show progress bar for active quests with tracking
@@ -92,23 +99,53 @@ const QuestsMenu = (() => {
                         // ProgressBar.render expects x to be the CENTER of the bar
                         const progressBarCenterX = leftX + 4 + Math.floor(progressBarWidth / 2);
                         
-                        // Generate dynamic progress label with current/max values
-                        let progressLabel = quest.questProgressLabel;
+                        // Render progress bar without label
+                        y = ProgressBar.render(progressBarCenterX, y, progress, progressBarWidth, null);
+                        
+                        // Generate and render custom colored progress label
+                        let currentValue, maxValue, descriptor, unit;
+                        
                         if (quest.id === 'ATTAIN_VISA') {
-                            const visaCost = RANKS.VISA.fee;
-                            progressLabel = `Credits vs Visa Cost: ${currentGameState.credits}/${visaCost}`;
+                            descriptor = 'Credits vs Visa Cost';
+                            currentValue = currentGameState.credits;
+                            maxValue = RANKS.VISA.fee;
+                            unit = '';
                         } else if (quest.id === 'LEARN_TO_TRADE') {
-                            const totalSold = currentGameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0;
-                            progressLabel = `Goods Sold: ${totalSold}/1000 CR`;
+                            descriptor = 'Goods Sold';
+                            currentValue = currentGameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0;
+                            maxValue = 1000;
+                            unit = ' CR';
                         } else if (quest.id === 'LEARN_CARGO_HANDLING') {
-                            const perk = PERKS.CARGO_FRAGILE;
-                            progressLabel = `Credits: ${currentGameState.credits}/${perk.cost}`;
+                            descriptor = 'Credits';
+                            currentValue = currentGameState.credits;
+                            maxValue = PERKS.CARGO_FRAGILE.cost;
+                            unit = '';
                         } else if (quest.id === 'LEARN_SHIP_HANDLING') {
-                            const perk = PERKS.SHIP_LICENSE_FRIGATE;
-                            progressLabel = `Credits: ${currentGameState.credits}/${perk.cost}`;
+                            descriptor = 'Credits';
+                            currentValue = currentGameState.credits;
+                            maxValue = PERKS.SHIP_LICENSE_FRIGATE.cost;
+                            unit = '';
                         }
                         
-                        y = ProgressBar.render(progressBarCenterX, y, progress, progressBarWidth, progressLabel);
+                        // Calculate stat color for current value (ratio based on progress)
+                        const currentRatio = 1.0 + progress * 3.0; // 1.0 to 4.0 range
+                        const currentColor = UI.calcStatColor(currentRatio);
+                        
+                        // Render centered label with multiple colors
+                        const labelText = `${descriptor}: ${currentValue}/${maxValue}${unit}`;
+                        const labelX = Math.floor((UI.getGridSize().width - labelText.length) / 2);
+                        
+                        let xPos = labelX;
+                        // Descriptor in gray
+                        UI.addText(xPos, y, `${descriptor}: `, COLORS.TEXT_DIM);
+                        xPos += `${descriptor}: `.length;
+                        // Current value in stat color
+                        UI.addText(xPos, y, `${currentValue}`, currentColor);
+                        xPos += `${currentValue}`.length;
+                        // Slash, max value and unit in white
+                        UI.addText(xPos, y, `/${maxValue}${unit}`, COLORS.TEXT_NORMAL);
+                        
+                        y++;
                     }
                     
                     y++; // Empty row between quests

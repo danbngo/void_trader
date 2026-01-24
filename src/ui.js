@@ -527,13 +527,12 @@ const UI = (() => {
         selectedButtonIndex = 0;
         lastSelectedButtonIndex = -1;
         preservedButtonKey = null; // Clear preserved key to prevent carryover
-        // Only clear helpText, not action output
-        if (outputRowIsHelpText) {
-            console.log('[UI] Clearing help text from output row');
-            outputRowText = '';
-            outputRowColor = 'white';
-            outputRowIsHelpText = false;
-        }
+        // Clear output row when transitioning to new menu
+        // This ensures previous menu's messages don't carry over
+        console.log('[UI] Clearing output row on menu transition');
+        outputRowText = '';
+        outputRowColor = 'white';
+        outputRowIsHelpText = false;
     }
     
     /**

@@ -26,8 +26,9 @@ const ShipTableRenderer = (() => {
         }
         
         // Build table headers
-        const headers = ['Ship', 'Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Fuel'];
+        const headers = ['Ship', 'Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr'];
         if (showCargo) {
+            headers.push('Fuel')
             headers.push('Cargo');
         }
         
@@ -51,10 +52,10 @@ const ShipTableRenderer = (() => {
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
-                { text: `${Math.floor(ship.fuel)}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) }
             ];
             
             if (showCargo) {
+                row.push({ text: `${Math.floor(ship.fuel)}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) });
                 row.push({ text: `${ship.getTotalCargo()}/${ship.cargoCapacity}`, color: COLORS.TEXT_NORMAL });
             }
             

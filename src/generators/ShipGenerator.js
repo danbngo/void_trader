@@ -17,7 +17,8 @@ const ShipGenerator = (() => {
     function applyStatVariation(baseStat) {
         const range = SHIP_MAX_STAT_VARIATION - SHIP_MIN_STAT_VARIATION;
         const multiplier = SHIP_MIN_STAT_VARIATION + Math.random() * range;
-        return Math.floor(baseStat * multiplier);
+        const val = Math.round(baseStat * multiplier);
+        return Math.max(val, 1) // Ensure at least 1
     }
     
     /**

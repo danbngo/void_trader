@@ -66,17 +66,7 @@ const UndetectedEncounter = {
             : `Engage with the ${encType.name} normally`;
         
         UI.addCenteredButtons(buttonY, [
-            { key: '1', label: 'Approach', callback: () => {
-                // Player has radar advantage - enemy ships start with 0 shields
-                gameState.encounterShips.forEach(ship => {
-                    ship.shields = 0;
-                });
-                // Set flag for UI display
-                gameState.playerRadarAdvantage = true;
-                // Proceed with normal encounter
-                encType.onGreet(gameState, encType);
-            }, color: COLORS.GREEN, helpText: approachHelpText },
-            { key: '2', label: 'Avoid', callback: () => {
+            { key: '1', label: 'Avoid', callback: () => {
                 // Player successfully avoids encounter
                 UI.clear();
                 let y = 5;
@@ -91,7 +81,17 @@ const UndetectedEncounter = {
                 }, COLORS.GREEN);
                 
                 UI.draw();
-            }, color: COLORS.GREEN, helpText: `Avoid the ${encType.name}` }
+            }, color: COLORS.GREEN, helpText: `Avoid the ${encType.name}` },
+            { key: '2', label: 'Approach', callback: () => {
+                // Player has radar advantage - enemy ships start with 0 shields
+                gameState.encounterShips.forEach(ship => {
+                    ship.shields = 0;
+                });
+                // Set flag for UI display
+                gameState.playerRadarAdvantage = true;
+                // Proceed with normal encounter
+                encType.onGreet(gameState, encType);
+            }, color: COLORS.GREEN, helpText: approachHelpText }
         ]);
         
         

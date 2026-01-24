@@ -83,10 +83,11 @@ const TradeRecommendationsMenu = (() => {
             }
             
             // Table header
-            const headers = ['System', 'Dist', 'ETA (days)', 'Fuel', 'Buy Price', 'Sell Price'];
+            const headers = ['System', 'Dist', 'ETA (days)', 'Fuel', 'Stock', 'Buy Price', 'Sell Price'];
             const rows = pageData.map(systemData => {
                 const buyPrice = systemData.buyPrice;
                 const sellPrice = systemData.sellPrice;
+                const stock = systemData.stock;
                 
                 // Calculate ratios for color coding (same as market menu)
                 const buyRatio = selectedCargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
@@ -94,6 +95,7 @@ const TradeRecommendationsMenu = (() => {
                 
                 const buyColor = UI.calcStatColor(buyRatio);
                 const sellColor = UI.calcStatColor(sellRatio);
+                const stockColor = stock > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
                 
                 // Format ETA
                 const etaText = systemData.eta.toFixed(1);
@@ -103,6 +105,7 @@ const TradeRecommendationsMenu = (() => {
                     { text: systemData.distance.toFixed(1), color: COLORS.TEXT_DIM },
                     { text: etaText, color: COLORS.TEXT_DIM },
                     { text: String(systemData.fuelCost), color: COLORS.TEXT_DIM },
+                    { text: String(stock), color: stockColor },
                     { text: String(buyPrice), color: buyColor },
                     { text: String(sellPrice), color: sellColor }
                 ];
@@ -179,6 +182,7 @@ const TradeRecommendationsMenu = (() => {
                 const basePrice = selectedCargoType.baseValue * system.cargoPriceModifier[selectedCargoType.id];
                 const buyPrice = Math.floor(basePrice * (1 + system.fees));
                 const sellPrice = Math.floor(basePrice / (1 + system.fees));
+                const stock = system.cargoStock[selectedCargoType.id];
                 
                 reachableSystems.push({
                     system: system,
@@ -187,6 +191,7 @@ const TradeRecommendationsMenu = (() => {
                     eta: eta,
                     buyPrice: buyPrice,
                     sellPrice: sellPrice,
+                    stock: stock,
                     isCurrent: i === currentGameState.currentSystemIndex
                 });
             }

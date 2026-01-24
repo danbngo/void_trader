@@ -52,14 +52,15 @@ const PoliceEncounter = {
         y = ShipTableRenderer.addNPCFleet(10, y, 'Police Forces:', gameState.encounterShips);
         
         // Buttons centered at bottom
-        const buttonY = grid.height - 3;
-        UI.addCenteredButton(buttonY, '1', 'Allow Inspection', () => {
-            this.handleInspection(gameState, encType);
-        }, COLORS.GREEN, 'Let police scan your cargo (50% chance to find illegal goods)');
-        
-        UI.addCenteredButton(buttonY + 1, '2', 'Resist', () => {
-            this.showResistConsequences(gameState, encType);
-        }, COLORS.TEXT_ERROR, 'Refuse inspection and fight (-10 reputation, +2000 bounty)');
+        const buttonY = grid.height - 4;
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Allow Inspection', callback: () => {
+                this.handleInspection(gameState, encType);
+            }, color: COLORS.GREEN, helpText: 'Let police scan your cargo (50% chance to find illegal goods)' },
+            { key: '2', label: 'Resist', callback: () => {
+                this.showResistConsequences(gameState, encType);
+            }, color: COLORS.TEXT_ERROR, helpText: 'Refuse inspection and fight (-10 reputation, +2000 bounty)' }
+        ]);
         
         UI.draw();
     },
@@ -94,14 +95,15 @@ const PoliceEncounter = {
         y = ShipTableRenderer.addNPCFleet(10, y, 'Police Forces:', gameState.encounterShips);
         
         // Buttons centered at bottom
-        const buttonY = grid.height - 3;
-        UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
-            TravelMenu.resume();
-        }, COLORS.GREEN, 'Resume your journey');
-        
-        UI.addCenteredButton(buttonY + 1, '2', 'Attack', () => {
-            this.showResistConsequences(gameState, ENCOUNTER_TYPES.POLICE);
-        }, COLORS.TEXT_ERROR, 'Attack authorities (-10 reputation, +2000 bounty)');
+        const buttonY = grid.height - 4;
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Continue Journey', callback: () => {
+                TravelMenu.resume();
+            }, color: COLORS.GREEN, helpText: 'Resume your journey' },
+            { key: '2', label: 'Attack', callback: () => {
+                this.showResistConsequences(gameState, ENCOUNTER_TYPES.POLICE);
+            }, color: COLORS.TEXT_ERROR, helpText: 'Attack authorities (-10 reputation, +2000 bounty)' }
+        ]);
         
         UI.draw();
     },

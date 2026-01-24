@@ -33,13 +33,13 @@ const MerchantEncounter = {
         // Buttons centered at bottom
         const buttonY = grid.height - 4;
         UI.addCenteredButtons(buttonY, [
-            { key: '1', label: 'Accept Trade Offer', callback: () => {
-                this.handleTrade(gameState, encType);
-            }, color: COLORS.GREEN, helpText: 'Trade with merchants (buy or sell cargo at base price)' },
-            { key: '2', label: 'Ignore', callback: () => {
+            { key: '1', label: 'Ignore', callback: () => {
                 // Return to travel menu
                 TravelMenu.resume();
             }, color: COLORS.TEXT_DIM, helpText: 'Continue journey without trading' },
+            { key: '2', label: 'Accept Trade Offer', callback: () => {
+                this.handleTrade(gameState, encType);
+            }, color: COLORS.GREEN, helpText: 'Trade with merchants (buy or sell cargo at base price)' },
             { key: '3', label: 'Attack', callback: () => {
                 this.showAttackConsequences(gameState, encType);
             }, color: COLORS.TEXT_ERROR, helpText: 'Attack innocent traders (-5 reputation, +1000 bounty)' }

@@ -48,10 +48,19 @@ const TradeRecommendationsMenu = (() => {
         let y = 5;
         const fleetCargo = Ship.getFleetCargo(currentGameState.ships);
         const playerQuantity = fleetCargo[selectedCargoType.id] || 0;
+        const totalCargoCapacity = Ship.getFleetCargoCapacity(currentGameState.ships);
         
-        UI.addText(5, y++, `Cargo Type: ${selectedCargoType.name}`, COLORS.CYAN);
-        UI.addText(5, y++, `Your Stock: ${playerQuantity}`, COLORS.TEXT_NORMAL);
-        UI.addText(5, y++, `Base Value: ${selectedCargoType.baseValue} CR`, COLORS.TEXT_NORMAL);
+        // Calculate stock ratio: 1.0 at 0 stock, 4.0 at full capacity
+        const stockRatio = totalCargoCapacity > 0 
+            ? 1.0 + (playerQuantity / totalCargoCapacity) * 3.0 
+            : 1.0;
+        const stockColor = UI.calcStatColor(stockRatio);
+        
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Cargo Type:', value: selectedCargoType.name, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Your Stock:', value: String(playerQuantity), valueColor: stockColor },
+            { label: 'Base Value:', value: `${selectedCargoType.baseValue} CR`, valueColor: COLORS.TEXT_NORMAL }
+        ]);
         y++;
         
         // Get reachable systems

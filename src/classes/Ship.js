@@ -124,6 +124,15 @@ class Ship {
     }
     
     /**
+     * Get total cargo capacity across fleet
+     * @param {Array<Ship>} ships - Array of ships
+     * @returns {number} Total cargo capacity
+     */
+    static getFleetCargoCapacity(ships) {
+        return ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
+    }
+    
+    /**
      * Get total available cargo space across fleet
      * @param {Array<Ship>} ships - Array of ships
      * @returns {number} Total available cargo space

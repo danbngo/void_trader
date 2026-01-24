@@ -38,7 +38,25 @@ const DockMenu = (() => {
         // Title
         UI.addTextCentered(3, `${currentSystem.name}: Dock`, COLORS.TITLE);
         
-        // Game info - Date and Retirement countdown
+        // Two-column layout for info
+        const leftColumnX = 5;
+        const rightColumnX = 42;
+        const startY = 6;
+        
+        // Left column title
+        UI.addText(leftColumnX, startY, 'System Info', COLORS.CYAN);
+        
+        // Left column: System info
+        TableRenderer.renderKeyValueList(leftColumnX, startY + 1, [
+            { label: 'Population:', value: `${currentSystem.population}M`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Economy:', value: currentSystem.economy, valueColor: COLORS.TEXT_NORMAL }
+        ]);
+        
+        // Right column title
+        UI.addText(rightColumnX, startY, 'Fleet Status', COLORS.CYAN);
+        
+        // Right column: Player info
+        const currentRank = gameState.getRankAtCurrentSystem();
         const startDate = new Date(3000, 0, 1);
         const currentDate = gameState.date;
         const daysPassed = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
@@ -48,18 +66,11 @@ const DockMenu = (() => {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const dateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
         
-        const infoY = TableRenderer.renderKeyValueList(5, 5, [
+        TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
+            { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color },
             { label: 'Date:', value: dateStr, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Days until Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
         ]);
-        
-        // System info
-        UI.addTextCentered(infoY + 1, `Population: ${currentSystem.population}M`, COLORS.TEXT_DIM);
-        UI.addTextCentered(infoY + 2, `Economy: ${currentSystem.economy}`, COLORS.TEXT_DIM);
-        
-        // Get player's rank at this system
-        const currentRank = gameState.getRankAtCurrentSystem();
-        UI.addTextCentered(infoY + 3, `Citizenship: ${currentRank.name}`, COLORS.CYAN);
         
         // Menu buttons - 3 column layout at bottom
         const buttonY = grid.height - 5;

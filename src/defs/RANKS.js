@@ -10,7 +10,8 @@ const RANKS = {
         description: 'No citizenship status',
         level: 0,
         fee: 0,
-        minReputation: 0
+        minReputation: 0,
+        color: COLORS.TEXT_DIM
     },
     VISA: {
         id: 'VISA',
@@ -18,7 +19,8 @@ const RANKS = {
         description: 'Basic visitor status - unlocks Shipyard, Tavern, and Guild',
         level: 1,
         fee: 2500,
-        minReputation: 0
+        minReputation: 0,
+        color: COLORS.TEXT_NORMAL
     },
     CITIZEN: {
         id: 'CITIZEN',
@@ -26,7 +28,8 @@ const RANKS = {
         description: 'Full citizenship status - unlocks additional services and privileges',
         level: 2,
         fee: 7500,
-        minReputation: 50
+        minReputation: 50,
+        color: COLORS.CYAN
     },
     ELITE: {
         id: 'ELITE',
@@ -34,7 +37,8 @@ const RANKS = {
         description: 'Elite status with highest privileges',
         level: 3,
         fee: 20000,
-        minReputation: 100
+        minReputation: 100,
+        color: COLORS.YELLOW
     }
 };
 

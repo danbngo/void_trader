@@ -38,7 +38,7 @@ const CourthouseMenu = (() => {
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Reputation:', value: `${gameState.reputation}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL },
-            { label: 'Current Rank:', value: currentRank.name, valueColor: COLORS.CYAN }
+            { label: 'Current Rank:', value: currentRank.name, valueColor: currentRank.color }
         ]);
         
         // Available ranks

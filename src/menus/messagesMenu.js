@@ -8,6 +8,8 @@ const MessagesMenu = (() => {
     let currentGameState = null;
     let selectedIndex = 0;
     let showingUnread = true; // true = unread messages, false = read messages
+    let outputMessage = '';
+    let outputColor = COLORS.TEXT_NORMAL;
     
     /**
      * Show the messages menu
@@ -19,6 +21,7 @@ const MessagesMenu = (() => {
         currentGameState = gameState;
         selectedIndex = 0;
         showingUnread = true;
+        outputMessage = '';
         
         render();
     }
@@ -33,7 +36,7 @@ const MessagesMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        let y = 5;
+        let y = 2;
         const title = showingUnread ? '=== Unread Messages ===' : '=== Read Messages ===';
         UI.addTextCentered(y++, title, COLORS.TITLE);
         y += 2;
@@ -47,68 +50,85 @@ const MessagesMenu = (() => {
             const message = showingUnread ? 'No unread messages' : 'No read messages';
             UI.addTextCentered(y++, message, COLORS.TEXT_DIM);
         } else {
-            // Show list of messages
-            const leftX = 10;
-            UI.addText(leftX, y++, 'Press number to read message:', COLORS.TEXT_DIM);
-            y++;
+            // Ensure selectedIndex is valid
+            if (selectedIndex >= filteredMessages.length) {
+                selectedIndex = Math.max(0, filteredMessages.length - 1);
+            }
             
-            filteredMessages.forEach((message, displayIndex) => {
-                const num = displayIndex + 1;
-                const status = message.isRead ? '' : '[NEW] ';
-                const color = message.isRead ? COLORS.TEXT_DIM : COLORS.YELLOW;
+            // Show messages in table format
+            const rows = filteredMessages.map((message, displayIndex) => {
+                const status = showingUnread ? '[NEW] ' : '';
+                const color = showingUnread ? COLORS.YELLOW : COLORS.TEXT_DIM;
                 
-                // Get original index for readMessage function
-                const originalIndex = currentGameState.messages.indexOf(message);
-                
-                UI.addButton(leftX, y++, num.toString(), `${status}${message.title}`, () => {
-                    readMessage(originalIndex);
-                }, color);
+                return [
+                    { text: `${status}${message.title}`, color: color }
+                ];
+            });
+            
+            TableRenderer.renderTable(5, y, ['Message'], rows, selectedIndex, 2, (rowIndex) => {
+                selectedIndex = rowIndex;
+                outputMessage = '';
+                render();
             });
         }
         
-        // Buttons - centered at bottom as a block
+        // Buttons
         const buttonY = grid.height - 3;
+        const leftX = 5;
+        const middleX = 28;
         
         // Check if there are any read messages
         const hasReadMessages = currentGameState.messages.some(m => m.isRead);
+        const hasUnreadMessages = currentGameState.messages.some(m => !m.isRead);
         
-        const buttons = [];
+        // Read Message button
+        const canRead = filteredMessages.length > 0;
+        const readColor = canRead ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        const readHelpText = canRead ? 'Read the selected message' : (showingUnread ? 'No unread messages to read' : 'No read messages available');
         
-        // Toggle button
+        UI.addButton(leftX, buttonY, '1', 'Read Message', () => {
+            if (canRead && selectedIndex < filteredMessages.length) {
+                const message = filteredMessages[selectedIndex];
+                const originalIndex = currentGameState.messages.indexOf(message);
+                outputMessage = '';
+                readMessage(originalIndex);
+            } else {
+                outputMessage = showingUnread ? 'No unread messages to read!' : 'No read messages available!';
+                outputColor = COLORS.TEXT_ERROR;
+                render();
+            }
+        }, readColor, readHelpText);
+        
+        // Show Read/Unread toggle
         const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
-        if (showingUnread && !hasReadMessages) {
-            // Disable "Show Read" button if no read messages
-            buttons.push({
-                key: 'T',
-                label: toggleLabel,
-                callback: () => {}, // No-op
-                color: COLORS.TEXT_DIM,
-                helpText: 'No read messages'
-            });
-        } else {
-            buttons.push({
-                key: 'T',
-                label: toggleLabel,
-                callback: () => {
-                    showingUnread = !showingUnread;
-                    render();
-                },
-                color: COLORS.BUTTON,
-                helpText: 'Toggle between unread and read messages'
-            });
-        }
+        const canToggle = showingUnread ? hasReadMessages : hasUnreadMessages;
+        const toggleColor = canToggle ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        const toggleHelpText = canToggle 
+            ? 'Toggle between unread and read messages' 
+            : (showingUnread ? 'No read messages' : 'No unread messages');
+        
+        UI.addButton(leftX, buttonY + 1, '2', toggleLabel, () => {
+            if (canToggle) {
+                showingUnread = !showingUnread;
+                selectedIndex = 0;
+                outputMessage = '';
+                render();
+            } else {
+                outputMessage = showingUnread ? 'No read messages!' : 'No unread messages!';
+                outputColor = COLORS.TEXT_ERROR;
+                render();
+            }
+        }, toggleColor, toggleHelpText);
         
         // Back button
-        buttons.push({
-            key: '0',
-            label: 'Back',
-            callback: () => {
-                if (returnCallback) returnCallback();
-            },
-            color: COLORS.BUTTON
-        });
+        UI.addButton(middleX, buttonY, '0', 'Back', () => {
+            if (returnCallback) returnCallback();
+        }, COLORS.BUTTON);
         
-        UI.addCenteredButtons(buttonY, buttons);
+        // Set output message if present
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
         
         UI.draw();
     }

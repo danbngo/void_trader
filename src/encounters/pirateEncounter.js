@@ -51,11 +51,14 @@ const PirateEncounter = {
         UI.addCenteredButtons(buttonY, [
             { key: '1', label: 'Allow Boarding', callback: () => {
                 this.handleBoarding(gameState, encType);
-            }, color: COLORS.BUTTON, helpText: 'Surrender cargo to pirates' },
+            }, color: COLORS.BUTTON, helpText: 'Surrender your cargo to the pirates without a fight' },
             { key: '2', label: 'Resist', callback: () => {
                 this.showAttackConsequences(gameState, encType);
-            }, color: COLORS.TEXT_ERROR, helpText: 'Attack criminals (+5 reputation, no bounty)' }
+            }, color: COLORS.TEXT_ERROR, helpText: 'Attack the pirates (+5 reputation, no bounty)' }
         ]);
+        
+        // Clear any lingering output row messages
+        UI.setOutputRow('', COLORS.TEXT_DIM);
         
         UI.draw();
     },
@@ -252,7 +255,7 @@ const PirateEncounter = {
         const buttonY = grid.height - 4;
         UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
-        }, COLORS.GREEN);
+        }, COLORS.GREEN, 'Enter combat with the pirates');
         
         UI.draw();
     }

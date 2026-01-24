@@ -150,7 +150,7 @@ const EncounterDecisionMenu = {
                 const buttonY = grid.height - 2;
                 UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
                     EncounterMenu.show(gameState, encType);
-                }, COLORS.TEXT_ERROR);
+                }, COLORS.TEXT_ERROR, 'Enter combat');
                 
                 UI.draw();
             }, color: COLORS.TEXT_ERROR, helpText: hoverText }

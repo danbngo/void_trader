@@ -72,7 +72,7 @@ const MarketMenu = (() => {
             const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
             const nameColor = hasTraining ? cargoType.color : COLORS.TEXT_DIM;
             const stockColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
-            const baseValueColor = hasTraining ? COLORS.TEXT_DIM : COLORS.TEXT_DIM;
+            const baseValueColor = hasTraining ? COLORS.WHITE : COLORS.TEXT_DIM;
             const playerQuantityColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             
             return [

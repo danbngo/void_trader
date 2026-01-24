@@ -361,7 +361,7 @@ const UI = (() => {
         
         // Draw selection highlights first (under text)
         registeredHighlights.forEach(item => {
-            canvasWrapper.drawRect(item.x, item.y, item.width, 1, 'white');
+            canvasWrapper.drawRect(item.x, item.y, item.width, 1, '#333333');
         });
         
         // Draw all registered texts

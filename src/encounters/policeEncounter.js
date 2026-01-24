@@ -250,7 +250,7 @@ const PoliceEncounter = {
         const buttonY = grid.height - 4;
         UI.addCenteredButton(buttonY, '1', 'Continue to Combat', () => {
             EncounterMenu.show(gameState, encType);
-        }, COLORS.TEXT_ERROR);
+        }, COLORS.TEXT_ERROR, 'Enter combat with police forces');
         
         UI.draw();
     }

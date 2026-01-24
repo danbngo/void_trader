@@ -228,6 +228,58 @@ const SystemGenerator = (() => {
     }
     
     /**
+     * Check if there's a valid profitable trade at Nexus (starting system)
+     * This ensures the player has something to trade right from the start
+     * @param {Object} gameState - Minimal game state with systems, currentSystemIndex, enabledCargoTypes, ships
+     * @returns {boolean} True if there's at least one profitable buy-and-sell opportunity
+     */
+    function checkForValidTradeAtNexus(gameState) {
+        const currentSystem = gameState.getCurrentSystem();
+        const activeShip = gameState.ships[0];
+        const maxFuel = activeShip.maxFuel;
+        
+        let bestProfit = 0;
+        
+        // Check each enabled cargo type
+        for (const cargoType of gameState.enabledCargoTypes) {
+            // Calculate buy price at Nexus
+            const currentBasePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+            const currentBuyPrice = Math.floor(currentBasePrice * (1 + currentSystem.fees));
+            
+            // Check if there's stock available at Nexus
+            const currentStock = currentSystem.cargoStock[cargoType.id];
+            if (currentStock <= 0) continue;
+            
+            // Check all reachable systems for best sell price
+            for (let i = 0; i < gameState.systems.length; i++) {
+                if (i === gameState.currentSystemIndex) continue; // Skip Nexus itself
+                
+                const targetSystem = gameState.systems[i];
+                const dist = distance(currentSystem.x, currentSystem.y, targetSystem.x, targetSystem.y);
+                const fuelCost = Ship.calculateFleetFuelCost(dist, gameState.ships.length);
+                
+                // Only consider reachable systems
+                if (maxFuel < fuelCost) continue;
+                
+                // Calculate sell price at target system
+                const targetBasePrice = cargoType.baseValue * targetSystem.cargoPriceModifier[cargoType.id];
+                const targetSellPrice = Math.floor(targetBasePrice / (1 + targetSystem.fees));
+                
+                // Calculate profit
+                const profit = targetSellPrice - currentBuyPrice;
+                
+                // Track best profit found
+                if (profit > bestProfit) {
+                    bestProfit = profit;
+                }
+            }
+        }
+        
+        // Return true if we found at least one profitable trade (profit > 0)
+        return bestProfit > 0;
+    }
+    
+    /**
      * Validate and adjust galaxy for game start
      * Names the starting system "Nexus", removes its guild,
      * and names the nearest guild system "Proxima"
@@ -302,6 +354,27 @@ const SystemGenerator = (() => {
             
             // Path must exist and require at most 4 hops
             if (pathResult.pathExists && pathResult.hops > 0 && pathResult.hops <= 4) {
+                // Additionally check if there's a valid trade recommendation at Nexus
+                // Create a temporary minimal game state to test trade recommendations
+                const tempGameState = {
+                    systems: systems,
+                    currentSystemIndex: startSystemIndex,
+                    enabledCargoTypes: ALL_CARGO_TYPES.slice(0, 3), // Basic cargo types only
+                    ships: [{
+                        maxFuel: 20, // Starting ship fuel
+                        engine: AVERAGE_SHIP_ENGINE_LEVEL
+                    }],
+                    getCurrentSystem: function() { return this.systems[this.currentSystemIndex]; }
+                };
+                
+                // Check if there's a valid trade recommendation using TradeRecommendationsMenu logic
+                const hasValidTrade = checkForValidTradeAtNexus(tempGameState);
+                
+                if (!hasValidTrade) {
+                    console.log('[Galaxy Validation] Invalid: no profitable trade opportunities at Nexus');
+                    return false;
+                }
+                
                 return true;
             }
             

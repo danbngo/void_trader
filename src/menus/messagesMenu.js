@@ -69,19 +69,46 @@ const MessagesMenu = (() => {
         // Buttons - centered at bottom as a block
         const buttonY = grid.height - 3;
         
-        const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
-        UI.addCenteredButtons(buttonY, [
-            { key: 'T', label: toggleLabel, callback: () => {
-                showingUnread = !showingUnread;
-                render();
-            }, color: COLORS.BUTTON },
-            { key: '0', label: 'Back', callback: () => {
-                if (returnCallback) returnCallback();
-            }, color: COLORS.BUTTON }
-        ]);
+        // Check if there are any read messages
+        const hasReadMessages = currentGameState.messages.some(m => m.isRead);
         
-        // Set help text in output row
-        UI.setOutputRow('Toggle between unread and read messages', COLORS.TEXT_DIM);
+        const buttons = [];
+        
+        // Toggle button
+        const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
+        if (showingUnread && !hasReadMessages) {
+            // Disable "Show Read" button if no read messages
+            buttons.push({
+                key: 'T',
+                label: toggleLabel,
+                callback: () => {}, // No-op
+                color: COLORS.TEXT_DIM,
+                helpText: 'No read messages'
+            });
+        } else {
+            buttons.push({
+                key: 'T',
+                label: toggleLabel,
+                callback: () => {
+                    showingUnread = !showingUnread;
+                    render();
+                },
+                color: COLORS.BUTTON,
+                helpText: 'Toggle between unread and read messages'
+            });
+        }
+        
+        // Back button
+        buttons.push({
+            key: '0',
+            label: 'Back',
+            callback: () => {
+                if (returnCallback) returnCallback();
+            },
+            color: COLORS.BUTTON
+        });
+        
+        UI.addCenteredButtons(buttonY, buttons);
         
         UI.draw();
     }

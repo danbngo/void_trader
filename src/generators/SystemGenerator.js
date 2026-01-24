@@ -247,6 +247,21 @@ const SystemGenerator = (() => {
         // Set Nexus to have minimum fees
         startingSystem.fees = STAR_SYSTEM_MIN_FEES;
         
+        // Ensure Nexus has at least one below-average and one above-average cargo price
+        const cargoIds = Object.keys(startingSystem.cargoPriceModifier);
+        let hasBelowAverage = cargoIds.some(id => startingSystem.cargoPriceModifier[id] < 1.0);
+        let hasAboveAverage = cargoIds.some(id => startingSystem.cargoPriceModifier[id] > 1.0);
+        
+        // If no below-average prices, set first cargo type to below average
+        if (!hasBelowAverage && cargoIds.length > 0) {
+            startingSystem.cargoPriceModifier[cargoIds[0]] = 0.5 + Math.random() * 0.5; // 0.5 to 1.0
+        }
+        
+        // If no above-average prices, set second cargo type to above average
+        if (!hasAboveAverage && cargoIds.length > 1) {
+            startingSystem.cargoPriceModifier[cargoIds[1]] = 1.0 + Math.random() * 1.0; // 1.0 to 2.0
+        }
+        
         // Remove guild from Nexus if present
         if (startingSystem.buildings.includes('GUILD')) {
             startingSystem.buildings = startingSystem.buildings.filter(b => b !== 'GUILD');

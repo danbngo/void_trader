@@ -16,7 +16,12 @@ const QUESTS = {
             return totalSold >= 1000; //totalBought >= 1000 && 
         },
         'TRADING_BASICS_COMPLETE', // Message to add when complete
-        [] // No specific related systems
+        [], // No specific related systems
+        (gameState) => {
+            const totalSold = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0;
+            return Math.min(1.0, totalSold / 1000);
+        },
+        'Goods Sold: 1000 CR'
     ),
     
     REACH_GUILD: new Quest(
@@ -30,7 +35,9 @@ const QUESTS = {
             return currentSystem && currentSystem.buildings.includes('GUILD');
         },
         'GUILD_REACHED', // Message to add when complete
-        ['Proxima'] // Related systems
+        ['Proxima'], // Related systems
+        null, // No progress tracking
+        null
     ),
     
     ATTAIN_VISA: new Quest(
@@ -49,7 +56,12 @@ const QUESTS = {
             return false;
         },
         'VISA_ATTAINED', // Message to add when complete
-        ['Proxima'] // Related systems
+        ['Proxima'], // Related systems
+        (gameState) => {
+            const visaCost = RANKS.VISA.fee;
+            return Math.min(1.0, gameState.credits / visaCost);
+        },
+        'Credits vs Visa Cost'
     ),
     
     LEARN_CARGO_HANDLING: new Quest(
@@ -62,7 +74,12 @@ const QUESTS = {
             return gameState.perks.has('CARGO_FRAGILE');
         },
         'CARGO_HANDLING_ATTAINED', // Message to add when complete
-        ['Proxima'] // Related systems
+        ['Proxima'], // Related systems
+        (gameState) => {
+            const perk = PERKS.CARGO_FRAGILE;
+            return Math.min(1.0, gameState.credits / perk.cost);
+        },
+        'Credits vs Skill Cost'
     ),
     
     LEARN_SHIP_HANDLING: new Quest(
@@ -75,6 +92,11 @@ const QUESTS = {
             return gameState.perks.has('SHIP_MERCANTILE');
         },
         null, // No completion message yet
-        ['Proxima'] // Related systems
+        ['Proxima'], // Related systems
+        (gameState) => {
+            const perk = PERKS.SHIP_MERCANTILE;
+            return Math.min(1.0, gameState.credits / perk.cost);
+        },
+        'Credits vs Skill Cost'
     )
 };

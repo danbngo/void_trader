@@ -8,7 +8,8 @@ const QuestsMenu = (() => {
     let currentGameState = null;
     let showingActive = true; // true = active quests, false = completed quests
     let currentPage = 0;
-    const QUESTS_PER_PAGE = 10;
+    const ACTIVE_QUESTS_PER_PAGE = 3; // Fewer active quests per page due to progress bars
+    const COMPLETED_QUESTS_PER_PAGE = 10;
     
     /**
      * Show the quests menu
@@ -47,9 +48,10 @@ const QuestsMenu = (() => {
             UI.addTextCentered(y++, message, COLORS.TEXT_DIM);
         } else {
             // Calculate pagination
-            const totalPages = Math.ceil(questIds.length / QUESTS_PER_PAGE);
-            const startIndex = currentPage * QUESTS_PER_PAGE;
-            const endIndex = Math.min(startIndex + QUESTS_PER_PAGE, questIds.length);
+            const questsPerPage = showingActive ? ACTIVE_QUESTS_PER_PAGE : COMPLETED_QUESTS_PER_PAGE;
+            const totalPages = Math.ceil(questIds.length / questsPerPage);
+            const startIndex = currentPage * questsPerPage;
+            const endIndex = Math.min(startIndex + questsPerPage, questIds.length);
             const pageQuestIds = questIds.slice(startIndex, endIndex);
             
             // Table header
@@ -70,6 +72,18 @@ const QuestsMenu = (() => {
                     
                     // Show description below
                     UI.addText(leftX + 2, y++, quest.description, COLORS.TEXT_DIM);
+                    y++; // Empty row between description and progress bar
+                    
+                    // Show progress bar for active quests with tracking
+                    if (showingActive && quest.getQuestProgress) {
+                        const progress = quest.getQuestProgress(currentGameState);
+                        const progressBarWidth = 50;
+                        // ProgressBar.render expects x to be the CENTER of the bar
+                        const progressBarCenterX = leftX + 2 + Math.floor(progressBarWidth / 2);
+                        y = ProgressBar.render(progressBarCenterX, y, progress, progressBarWidth, quest.questProgressLabel);
+                        y++; // Extra spacing after progress bar
+                    }
+                    
                     if (showingActive && quest.creditReward > 0) {
                         UI.addText(leftX + 2, y, `Reward: ${quest.creditReward} CR`, COLORS.GREEN);
                     }
@@ -107,7 +121,8 @@ const QuestsMenu = (() => {
         }
         
         const pageQuestIds = showingActive ? currentGameState.activeQuests : currentGameState.completedQuests;
-        const totalPages = Math.ceil(pageQuestIds.length / QUESTS_PER_PAGE);
+        const questsPerPage = showingActive ? ACTIVE_QUESTS_PER_PAGE : COMPLETED_QUESTS_PER_PAGE;
+        const totalPages = Math.ceil(pageQuestIds.length / questsPerPage);
         if (currentPage < totalPages - 1) {
             buttons.push({ key: '9', label: 'Next Page', callback: () => {
                 currentPage++;

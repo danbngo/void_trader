@@ -76,7 +76,7 @@ const DockServicesMenu = (() => {
         const ship = gameState.ships[selectedShipIndex];
         const fuelNeeded = ship.maxFuel - ship.fuel;
         const fuelCost = fuelNeeded * FUEL_COST_PER_UNIT;
-        const canRefuel = fuelNeeded > 0 && gameState.credits >= fuelCost;
+        const canRefuel = fuelNeeded > 0; // Always allow refuel if fuel is needed (pity refuel if no credits)
         const refuelColor = canRefuel ? COLORS.GREEN : COLORS.TEXT_DIM;
         const refuelHelpText = fuelNeeded > 0 ? `Refuel to max capacity for ${fuelCost} CR` : 'Already at max fuel';
         UI.addButton(middleX, buttonY, '3', 'Refuel', () => refuel(onReturn), refuelColor, refuelHelpText);

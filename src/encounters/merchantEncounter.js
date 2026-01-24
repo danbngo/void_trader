@@ -95,8 +95,37 @@ const MerchantEncounter = {
             const cargoType = CARGO_TYPES[randomCargoId];
             const merchantAmount = gameState.encounterCargo[randomCargoId];
             const fleetCapacity = Ship.getFleetAvailableCargoSpace(gameState.ships);
-            const maxAmount = Math.min(merchantAmount, fleetCapacity);
             const pricePerUnit = cargoType.baseValue;
+            
+            // Calculate maximum amount player can buy based on space AND credits
+            const maxBySpace = Math.min(merchantAmount, fleetCapacity);
+            const maxByCredits = Math.floor(gameState.credits / pricePerUnit);
+            const maxAmount = Math.min(maxBySpace, maxByCredits);
+            
+            // Check if player can't buy any
+            if (maxAmount === 0) {
+                if (fleetCapacity === 0) {
+                    // No cargo space
+                    UI.addText(10, y++, `"I have cargo to sell, but you cannot hold any additional cargo."`, COLORS.YELLOW);
+                    UI.addText(10, y++, `"Come back when you have space!"`, COLORS.YELLOW);
+                } else {
+                    // No credits
+                    UI.addText(10, y++, `"I have cargo to sell, but you cannot afford this purchase."`, COLORS.YELLOW);
+                    UI.addText(10, y++, `"Come back when you have more credits!"`, COLORS.YELLOW);
+                }
+                
+                const grid = UI.getGridSize();
+                const buttonY = grid.height - 2;
+                UI.addCenteredButton(buttonY, '1', 'Continue Journey', () => {
+                    gameState.encounter = false;
+                    gameState.encounterShips = [];
+                    gameState.encounterCargo = {};
+                    TravelMenu.resume();
+                }, COLORS.GREEN, 'Resume your journey');
+                UI.draw();
+                return;
+            }
+            
             const totalCost = maxAmount * pricePerUnit;
             
             UI.addText(10, y, `"I have ${merchantAmount} units of `, COLORS.YELLOW);
@@ -115,37 +144,26 @@ const MerchantEncounter = {
             const grid = UI.getGridSize();
             const buttonY = grid.height - 3;
             
-            if (gameState.credits >= totalCost && maxAmount > 0) {
-                UI.addCenteredButtons(buttonY, [
-                    { key: '1', label: `Buy ${maxAmount} ${cargoType.name}`, callback: () => {
-                        // Execute trade
-                        gameState.credits -= totalCost;
-                        gameState.encounterCargo[randomCargoId] -= maxAmount;
-                        Ship.addCargoToFleet(gameState.ships, randomCargoId, maxAmount);
-                        
-                        // Track player records
-                        gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] || 0) + maxAmount;
-                        gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0) + totalCost;
-                        
-                        this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
-                    }, color: COLORS.GREEN },
-                    { key: '2', label: 'Decline', callback: () => {
-                        gameState.encounter = false;
-                        gameState.encounterShips = [];
-                        gameState.encounterCargo = {};
-                        TravelMenu.resume();
-                    }, color: COLORS.TEXT_DIM }
-                ]);
-            } else {
-                UI.addText(10, y++, `You cannot afford this purchase.`, COLORS.TEXT_ERROR);
-                
-                UI.addCenteredButton(buttonY, '1', 'Decline', () => {
+            UI.addCenteredButtons(buttonY, [
+                { key: '1', label: `Buy ${maxAmount} ${cargoType.name}`, callback: () => {
+                    // Execute trade
+                    gameState.credits -= totalCost;
+                    gameState.encounterCargo[randomCargoId] -= maxAmount;
+                    Ship.addCargoToFleet(gameState.ships, randomCargoId, maxAmount);
+                    
+                    // Track player records
+                    gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] || 0) + maxAmount;
+                    gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0) + totalCost;
+                    
+                    this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
+                }, color: COLORS.GREEN },
+                { key: '2', label: 'Decline', callback: () => {
                     gameState.encounter = false;
                     gameState.encounterShips = [];
                     gameState.encounterCargo = {};
                     TravelMenu.resume();
-                }, COLORS.TEXT_DIM);
-            }
+                }, color: COLORS.TEXT_DIM }
+            ]);
             
         } else {
             // Merchant wants to buy cargo from player

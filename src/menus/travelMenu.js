@@ -38,6 +38,11 @@ const TravelMenu = (() => {
         // Track where we departed from (for police surrender jail mechanic)
         gameState.previousSystemIndex = gameState.currentSystemIndex;
         
+        // Restore shields to max at the start of journey
+        gameState.ships.forEach(ship => {
+            ship.shields = ship.maxShields;
+        });
+        
         const currentSystem = gameState.getCurrentSystem();
         const distance = currentSystem.distanceTo(destination);
         
@@ -137,37 +142,13 @@ const TravelMenu = (() => {
         
         // Progress bar with dynamic color
         const barWidth = Math.floor(grid.width * 0.6);
-        const barX = Math.floor((grid.width - barWidth) / 2);
-        const filledWidth = Math.floor(barWidth * progress);
+        // ProgressBar.render expects the CENTER X position
+        const barCenterX = Math.floor(grid.width / 2);
         
-        // Determine bar color based on progress - gradual transition
-        let barColor;
-        if (progress >= 1.0) {
-            // Light cyan only at exactly 100%
-            barColor = COLORS.TEXT_HIGHLIGHT;
-        } else {
-            // Interpolate between dark cyan (#006666) and cyan (#00FFFF) based on progress
-            // Dark cyan at 0%, regular cyan approaching 100%
-            const darkCyan = 0x66;
-            const fullCyan = 0xFF;
-            const intensity = Math.floor(darkCyan + (fullCyan - darkCyan) * progress);
-            const hexIntensity = intensity.toString(16).padStart(2, '0');
-            barColor = `#00${hexIntensity}${hexIntensity}`;
-        }
-        
-        UI.addText(barX, y, '[', COLORS.TEXT_NORMAL);
-        UI.addText(barX + barWidth + 1, y, ']', COLORS.TEXT_NORMAL);
-        
-        // Use block characters for progress bar
-        for (let i = 0; i < filledWidth; i++) {
-            UI.addText(barX + 1 + i, y, '▓', barColor);
-        }
-        
+        // Use ProgressBar utility for rendering
+        const progressLabel = `${(progress * 100).toFixed(1)}% complete`;
+        y = ProgressBar.render(barCenterX, y, progress, barWidth, progressLabel);
         y += 2;
-        
-        // Progress percentage
-        UI.addTextCentered(y++, `${(progress * 100).toFixed(1)}% complete`, COLORS.TEXT_DIM);
-        y++;
         
         // Encounter output row - positioned near bottom
         const buttonY = grid.height - 3;
@@ -395,6 +376,11 @@ const TravelMenu = (() => {
         // Move to target system
         const targetIndex = currentGameState.systems.indexOf(targetSystem);
         currentGameState.setCurrentSystem(targetIndex);
+        
+        // Restore shields to max at the end of journey
+        currentGameState.ships.forEach(ship => {
+            ship.shields = ship.maxShields;
+        });
         
         // Go to dock menu at destination
         DockMenu.show(currentGameState);

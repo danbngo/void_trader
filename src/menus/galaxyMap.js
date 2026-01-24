@@ -316,6 +316,100 @@ const GalaxyMap = (() => {
     }
     
     /**
+     * Get travel recommendation for galaxy map
+     * Focuses on where to travel next based on trade opportunities
+     * @param {GameState} gameState - Current game state
+     * @returns {Object|null} Travel recommendation or null
+     */
+    function getTravelRecommendation(gameState) {
+        const currentSystem = gameState.getCurrentSystem();
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const enabledCargoIds = gameState.enabledCargoTypes.map(ct => ct.id);
+        
+        let bestSellProfit = -Infinity;
+        let bestSellRecommendation = null;
+        let bestBuyDiscount = 0;
+        let bestBuyRecommendation = null;
+        
+        // Check all reachable systems
+        for (let i = 0; i < gameState.systems.length; i++) {
+            if (i === gameState.currentSystemIndex) continue;
+            
+            const targetSystem = gameState.systems[i];
+            const distance = currentSystem.distanceTo(targetSystem);
+            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+            const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+            
+            // Only consider reachable systems
+            if (totalFuel < fuelCost) continue;
+            
+            // Priority 1: Check if player can sell cargo for profit (sell price > base value)
+            for (const cargoType of ALL_CARGO_TYPES) {
+                if (!enabledCargoIds.includes(cargoType.id)) continue;
+                
+                const playerQuantity = fleetCargo[cargoType.id] || 0;
+                if (playerQuantity <= 0) continue;
+                
+                // Calculate sell price at target system
+                const targetBasePrice = cargoType.baseValue * targetSystem.cargoPriceModifier[cargoType.id];
+                const targetSellPrice = Math.floor(targetBasePrice / (1 + targetSystem.fees));
+                
+                // Check if selling at target is profitable (above base value)
+                const profitPerUnit = targetSellPrice - cargoType.baseValue;
+                
+                if (profitPerUnit > bestSellProfit) {
+                    bestSellProfit = profitPerUnit;
+                    bestSellRecommendation = {
+                        type: 'sell',
+                        targetSystem: targetSystem,
+                        cargoType: cargoType,
+                        profitPerUnit: profitPerUnit,
+                        quantity: playerQuantity
+                    };
+                }
+            }
+            
+            // Priority 2: Check for good buy prices (cheaper than base value)
+            for (const cargoType of ALL_CARGO_TYPES) {
+                if (!enabledCargoIds.includes(cargoType.id)) continue;
+                
+                // Calculate buy price at target system
+                const targetBasePrice = cargoType.baseValue * targetSystem.cargoPriceModifier[cargoType.id];
+                const targetBuyPrice = Math.floor(targetBasePrice * (1 + targetSystem.fees));
+                
+                // Check if stock is available
+                const stock = targetSystem.cargoStock[cargoType.id];
+                if (stock <= 0) continue;
+                
+                // Calculate discount percentage compared to base value
+                const discountPercent = ((cargoType.baseValue - targetBuyPrice) / cargoType.baseValue) * 100;
+                
+                if (discountPercent > bestBuyDiscount) {
+                    bestBuyDiscount = discountPercent;
+                    bestBuyRecommendation = {
+                        type: 'buy',
+                        targetSystem: targetSystem,
+                        cargoType: cargoType,
+                        discountPercent: Math.floor(discountPercent)
+                    };
+                }
+            }
+        }
+        
+        // Return best sell recommendation first
+        if (bestSellRecommendation && bestSellProfit > 0) {
+            return bestSellRecommendation;
+        }
+        
+        // Return best buy recommendation if discount is positive
+        if (bestBuyRecommendation && bestBuyDiscount > 0) {
+            return bestBuyRecommendation;
+        }
+        
+        return null;
+    }
+    
+    /**
      * Draw navigation buttons
      */
     function drawButtons(gameState, startX, mapHeight) {
@@ -325,25 +419,36 @@ const GalaxyMap = (() => {
         // Legend positioned right after map border
         UI.addText(2, mapHeight, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
         
-        // Trade recommendation - positioned in the middle of empty space
+        // Travel recommendation - positioned in the middle of empty space
         const recommendationY = mapHeight + 2;
-        const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
+        const recommendation = getTravelRecommendation(gameState);
+        
         if (recommendation) {
-            UI.addText(5, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
-            const xOffset = 5 + 'Recommendation: '.length;
-            
             if (recommendation.type === 'sell') {
-                UI.addText(xOffset, recommendationY, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
-                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length, recommendationY, recommendation.cargoName, recommendation.cargoColor);
-                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length + recommendation.cargoName.length, recommendationY, ` here (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
-            } else {
-                UI.addText(xOffset, recommendationY, 'Buy ', COLORS.TEXT_NORMAL);
-                UI.addText(xOffset + 'Buy '.length, recommendationY, recommendation.cargoName, recommendation.cargoColor);
-                UI.addText(xOffset + 'Buy '.length + recommendation.cargoName.length, recommendationY, ` here and sell at ${recommendation.targetSystem.name} (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+                // "Travel to x to sell y (z profit/unit)"
+                UI.addText(5, recommendationY, 'Travel to ', COLORS.TEXT_DIM);
+                let xOffset = 5 + 'Travel to '.length;
+                UI.addText(xOffset, recommendationY, recommendation.targetSystem.name, COLORS.TEXT_NORMAL);
+                xOffset += recommendation.targetSystem.name.length;
+                UI.addText(xOffset, recommendationY, ' to sell ', COLORS.TEXT_DIM);
+                xOffset += ' to sell '.length;
+                UI.addText(xOffset, recommendationY, recommendation.cargoType.name, recommendation.cargoType.color);
+                xOffset += recommendation.cargoType.name.length;
+                UI.addText(xOffset, recommendationY, ` (+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
+            } else if (recommendation.type === 'buy') {
+                // "Travel to x to buy y (z% cheaper than average)"
+                UI.addText(5, recommendationY, 'Travel to ', COLORS.TEXT_DIM);
+                let xOffset = 5 + 'Travel to '.length;
+                UI.addText(xOffset, recommendationY, recommendation.targetSystem.name, COLORS.TEXT_NORMAL);
+                xOffset += recommendation.targetSystem.name.length;
+                UI.addText(xOffset, recommendationY, ' to buy ', COLORS.TEXT_DIM);
+                xOffset += ' to buy '.length;
+                UI.addText(xOffset, recommendationY, recommendation.cargoType.name, recommendation.cargoType.color);
+                xOffset += recommendation.cargoType.name.length;
+                UI.addText(xOffset, recommendationY, ` (${recommendation.discountPercent}% cheaper than average)`, COLORS.GREEN);
             }
         } else {
-            UI.addText(5, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
-            UI.addText(5 + 'Recommendation: '.length, recommendationY, 'No profitable trades available', COLORS.TEXT_DIM);
+            UI.addText(5, recommendationY, 'No recommendation available, try traveling to another system', COLORS.TEXT_DIM);
         }
         
         // 3-column layout

@@ -159,9 +159,10 @@ const TradeRecommendationsMenu = (() => {
                 // Calculate ETA (days)
                 const eta = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
                 
-                // Calculate prices
-                const buyPrice = Math.floor(selectedCargoType.baseValue * system.cargoPriceModifier[selectedCargoType.id]);
-                const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price (same as market)
+                // Calculate prices with fees
+                const basePrice = selectedCargoType.baseValue * system.cargoPriceModifier[selectedCargoType.id];
+                const buyPrice = Math.floor(basePrice * (1 + system.fees));
+                const sellPrice = Math.floor(basePrice / (1 + system.fees));
                 
                 reachableSystems.push({
                     system: system,

@@ -84,6 +84,9 @@ const SystemGenerator = (() => {
         
         const system = new StarSystem(name, x, y, population, economy);
         
+        // Generate fees (random value between min and max)
+        system.fees = STAR_SYSTEM_MIN_FEES + Math.random() * (STAR_SYSTEM_MAX_FEES - STAR_SYSTEM_MIN_FEES);
+        
         // Generate market data for each cargo type
         ALL_CARGO_TYPES.forEach(cargoType => {
             // Stock: random amount based on constants

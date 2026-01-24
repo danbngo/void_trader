@@ -53,8 +53,9 @@ const MarketMenu = (() => {
         const startY = 9;
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
-            const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
-            const sellPrice = Math.floor(buyPrice * 0.8); // Sell at 80% of buy price
+            const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+            const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
+            const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
             const playerQuantity = fleetCargo[cargoType.id] || 0;
             
             // Check if player has training for this cargo type
@@ -104,8 +105,9 @@ const MarketMenu = (() => {
         
         // Get cargo info for selected type (use allCargoTypes from above)
         const selectedCargoType = allCargoTypes[selectedCargoIndex];
-        const buyPrice = Math.floor(selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id]);
-        const sellPrice = Math.floor(buyPrice * 0.8);
+        const basePrice = selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id];
+        const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
+        const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
         const marketStock = currentSystem.cargoStock[selectedCargoType.id];
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         const playerStock = fleetCargo[selectedCargoType.id] || 0;
@@ -266,8 +268,8 @@ const MarketMenu = (() => {
         const cargoType = enabledCargoTypes[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
         
-        const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
-        const sellPrice = Math.floor(buyPrice * 0.8);
+        const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+        const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const playerQuantity = fleetCargo[cargoType.id] || 0;
         

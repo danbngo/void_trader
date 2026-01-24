@@ -7,7 +7,7 @@ const QUESTS = {
     LEARN_TO_TRADE: new Quest(
         'LEARN_TO_TRADE',
         'Learn to Trade',
-        'Sell at least 1000 credits worth of goods',
+        'Sell at least 1000 CR of goods',
         500,
         (gameState) => {
             // Check if player has bought AND sold at least 1000cr worth of goods
@@ -27,7 +27,7 @@ const QUESTS = {
     REACH_GUILD: new Quest(
         'REACH_GUILD',
         'Reach the Guild',
-        'Travel to Proxima, a star system with a Merchant\'s Guild',
+        'Travel to Proxima',
         1000,
         (gameState) => {
             // Check if current system has a guild
@@ -42,8 +42,8 @@ const QUESTS = {
     
     ATTAIN_VISA: new Quest(
         'ATTAIN_VISA',
-        'Attain Proxima Visa',
-        'Upgrade your citizenship to Visa status at Proxima',
+        'Gain Visa',
+        'Acquire Visa at Proxima to use Guild services',
         2000,
         (gameState) => {
             // Check if player has Visa or higher at Proxima
@@ -67,7 +67,7 @@ const QUESTS = {
     LEARN_CARGO_HANDLING: new Quest(
         'LEARN_CARGO_HANDLING',
         'Learn Cargo Handling',
-        'Visit the Guild and learn the Cargo Handling: Fragile skill',
+        'Buy Cargo Handling: Fragile at Guild',
         4000,
         (gameState) => {
             // Check if player has learned CARGO_FRAGILE perk
@@ -85,7 +85,7 @@ const QUESTS = {
     LEARN_SHIP_HANDLING: new Quest(
         'LEARN_SHIP_HANDLING',
         'Learn Ship Handling',
-        'Visit the Guild and learn the Ship License: Mercantile',
+        'Buy Ship License: Mercantile at Guild',
         8000,
         (gameState) => {
             // Check if player has learned SHIP_MERCANTILE perk

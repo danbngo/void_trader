@@ -49,16 +49,24 @@ const MarketMenu = (() => {
         const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
         if (recommendation) {
             UI.addText(5, 9, 'Recommendation: ', COLORS.TEXT_DIM);
-            const xOffset = 5 + 'Recommendation: '.length;
+            let xOffset = 5 + 'Recommendation: '.length;
             
             if (recommendation.type === 'sell') {
                 UI.addText(xOffset, 9, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
-                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length, 9, recommendation.cargoName, recommendation.cargoColor);
-                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length + recommendation.cargoName.length, 9, ` here (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+                xOffset += `Sell all ${recommendation.quantity} `.length;
+                UI.addText(xOffset, 9, recommendation.cargoName, recommendation.cargoColor);
+                xOffset += recommendation.cargoName.length;
+                UI.addText(xOffset, 9, ` here `, COLORS.TEXT_NORMAL);
+                xOffset += ' here '.length;
+                UI.addText(xOffset, 9, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
             } else {
                 UI.addText(xOffset, 9, 'Buy ', COLORS.TEXT_NORMAL);
-                UI.addText(xOffset + 'Buy '.length, 9, recommendation.cargoName, recommendation.cargoColor);
-                UI.addText(xOffset + 'Buy '.length + recommendation.cargoName.length, 9, ` here and sell at ${recommendation.targetSystem.name} (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+                xOffset += 'Buy '.length;
+                UI.addText(xOffset, 9, recommendation.cargoName, recommendation.cargoColor);
+                xOffset += recommendation.cargoName.length;
+                UI.addText(xOffset, 9, ` here and sell at ${recommendation.targetSystem.name} `, COLORS.TEXT_NORMAL);
+                xOffset += ` here and sell at ${recommendation.targetSystem.name} `.length;
+                UI.addText(xOffset, 9, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
             }
             startY = 11;
         } else {

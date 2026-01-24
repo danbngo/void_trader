@@ -424,28 +424,31 @@ const GalaxyMap = (() => {
         const recommendation = getTravelRecommendation(gameState);
         
         if (recommendation) {
+            UI.addText(5, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
+            let xOffset = 5 + 'Recommendation: '.length;
+            
             if (recommendation.type === 'sell') {
                 // "Travel to x to sell y (z profit/unit)"
-                UI.addText(5, recommendationY, 'Travel to ', COLORS.TEXT_DIM);
-                let xOffset = 5 + 'Travel to '.length;
+                UI.addText(xOffset, recommendationY, 'Travel to ', COLORS.TEXT_NORMAL);
+                xOffset += 'Travel to '.length;
                 UI.addText(xOffset, recommendationY, recommendation.targetSystem.name, COLORS.TEXT_NORMAL);
                 xOffset += recommendation.targetSystem.name.length;
-                UI.addText(xOffset, recommendationY, ' to sell ', COLORS.TEXT_DIM);
+                UI.addText(xOffset, recommendationY, ' to sell ', COLORS.TEXT_NORMAL);
                 xOffset += ' to sell '.length;
                 UI.addText(xOffset, recommendationY, recommendation.cargoType.name, recommendation.cargoType.color);
                 xOffset += recommendation.cargoType.name.length;
                 UI.addText(xOffset, recommendationY, ` (+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
             } else if (recommendation.type === 'buy') {
                 // "Travel to x to buy y (z% cheaper than average)"
-                UI.addText(5, recommendationY, 'Travel to ', COLORS.TEXT_DIM);
-                let xOffset = 5 + 'Travel to '.length;
+                UI.addText(xOffset, recommendationY, 'Travel to ', COLORS.TEXT_NORMAL);
+                xOffset += 'Travel to '.length;
                 UI.addText(xOffset, recommendationY, recommendation.targetSystem.name, COLORS.TEXT_NORMAL);
                 xOffset += recommendation.targetSystem.name.length;
-                UI.addText(xOffset, recommendationY, ' to buy ', COLORS.TEXT_DIM);
+                UI.addText(xOffset, recommendationY, ' to buy ', COLORS.TEXT_NORMAL);
                 xOffset += ' to buy '.length;
                 UI.addText(xOffset, recommendationY, recommendation.cargoType.name, recommendation.cargoType.color);
                 xOffset += recommendation.cargoType.name.length;
-                UI.addText(xOffset, recommendationY, ` (${recommendation.discountPercent}% cheaper than average)`, COLORS.GREEN);
+                UI.addText(xOffset, recommendationY, ` (${recommendation.discountPercent}% cheaper than avg)`, COLORS.GREEN);
             }
         } else {
             UI.addText(5, recommendationY, 'No recommendation available, try traveling to another system', COLORS.TEXT_DIM);

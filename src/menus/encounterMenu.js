@@ -1087,6 +1087,9 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addCenteredButton(y++, '1', 'Continue', () => {
+            // Consume fuel based on progress made before defeat
+            TravelMenu.handleTowedBack();
+            
             // Find weakest disabled ship (lowest maxHull)
             const disabledShips = currentGameState.ships.filter(s => s.disabled);
             if (disabledShips.length > 0) {
@@ -1151,6 +1154,9 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addCenteredButton(y++, '1', 'Continue', () => {
+            // Consume fuel based on progress made before defeat
+            TravelMenu.handleTowedBack();
+            
             // Find weakest disabled ship (lowest maxHull)
             const disabledShips = currentGameState.ships.filter(s => s.disabled);
             if (disabledShips.length > 0) {
@@ -1209,6 +1215,9 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addCenteredButton(y++, '1', 'Continue', () => {
+            // Consume fuel based on progress made before defeat
+            TravelMenu.handleTowedBack();
+            
             // Find weakest disabled ship (lowest maxHull)
             const disabledShips = currentGameState.ships.filter(s => s.disabled);
             if (disabledShips.length > 0) {

@@ -7,13 +7,13 @@ const QUESTS = {
     LEARN_TO_TRADE: new Quest(
         'LEARN_TO_TRADE',
         'Learn to Trade',
-        'Buy and sell 1000 credits worth of goods',
+        'Sell at least 1000 credits worth of goods',
         500,
         (gameState) => {
             // Check if player has bought AND sold at least 1000cr worth of goods
-            const totalBought = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0;
+            //const totalBought = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0;
             const totalSold = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0;
-            return totalBought >= 1000 && totalSold >= 1000;
+            return totalSold >= 1000; //totalBought >= 1000 && 
         },
         'TRADING_BASICS_COMPLETE', // Message to add when complete
         [] // No specific related systems

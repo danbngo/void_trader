@@ -1158,34 +1158,6 @@ const EncounterMenu = (() => {
         UI.draw();
     }
     
-            TowMenu.show(currentGameState);
-                
-                // Remove all cargo from this ship
-                if (weakestShip.cargo) {
-                    Object.keys(weakestShip.cargo).forEach(cargoId => {
-                        weakestShip.cargo[cargoId] = 0;
-                    });
-                }
-                
-                // Keep only this ship
-                currentGameState.ships = [weakestShip];
-            } else {
-                // Fallback: if no disabled ships, keep nothing
-                currentGameState.ships = [];
-            }
-            
-            // End encounter and return to previous system
-            currentGameState.encounter = false;
-            currentGameState.encounterShips = [];
-            currentGameState.encounterCargo = {};
-            currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
-            
-            DockMenu.show(currentGameState);
-        }, COLORS.GREEN);
-        
-        UI.draw();
-    }
-    
     /**
      * End combat temporarily
      */

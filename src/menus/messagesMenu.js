@@ -67,7 +67,7 @@ const MessagesMenu = (() => {
             
             TableRenderer.renderTable(5, y, ['Message'], rows, selectedIndex, 2, (rowIndex) => {
                 selectedIndex = rowIndex;
-                outputMessage = '';
+                outputMessage = ''; // Clear error when selecting
                 render();
             });
         }
@@ -90,7 +90,6 @@ const MessagesMenu = (() => {
             if (canRead && selectedIndex < filteredMessages.length) {
                 const message = filteredMessages[selectedIndex];
                 const originalIndex = currentGameState.messages.indexOf(message);
-                outputMessage = '';
                 readMessage(originalIndex);
             } else {
                 outputMessage = showingUnread ? 'No unread messages to read!' : 'No read messages available!';

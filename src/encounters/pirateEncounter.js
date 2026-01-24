@@ -75,9 +75,8 @@ const PirateEncounter = {
         UI.addText(10, y++, `Pirate vessels approach your ship!`, COLORS.TEXT_NORMAL);
         y++;
         UI.addText(10, y++, `The pirates scan your lone shuttle, then broadcast:`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `"A single shuttle? Not worth our time."`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `"Pfft, a single shuttle? Not worth our time."`, COLORS.TEXT_ERROR);
         y++;
-        UI.addText(10, y++, `The pirates seem uninterested in a lone shuttle.`, COLORS.TEXT_DIM);
         UI.addText(10, y++, `They veer off in search of richer prey.`, COLORS.TEXT_DIM);
         y += 2;
         

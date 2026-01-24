@@ -36,7 +36,7 @@ const EncounterUtils = (() => {
             messages.forEach(msg => {
                 UI.addText(10, y++, msg.text, msg.color);
             });
-            y++;
+            // Don't add extra blank line - let caller or next function handle spacing
         }
         return y;
     }

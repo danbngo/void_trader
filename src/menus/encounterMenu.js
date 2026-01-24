@@ -1105,52 +1105,30 @@ const EncounterMenu = (() => {
         }
         
         y++;
-        UI.addText(10, y++, `A tow ship recovers your disabled vessels and tows you back.`, COLORS.CYAN);
-        
-        const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
-        UI.addText(10, y++, `You are returned to ${previousSystem.name}.`, COLORS.CYAN);
         UI.addText(10, y++, `All ships and cargo have been impounded.`, COLORS.TEXT_ERROR);
-        y++;
-        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.CYAN);
-        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
         y += 2;
         
-        UI.addCenteredButton(y++, '1', 'Continue', () => {
-            // Consume fuel based on progress made before defeat
-            TravelMenu.handleTowedBack();
-            
-            // Find weakest disabled ship (lowest maxHull)
-            const disabledShips = currentGameState.ships.filter(s => s.disabled);
-            if (disabledShips.length > 0) {
-                disabledShips.sort((a, b) => a.maxHull - b.maxHull);
-                const weakestShip = disabledShips[0];
-                
-                // Resurrect with 1 hull
-                weakestShip.hull = 1;
-                weakestShip.disabled = false;
-                weakestShip.shields = 0;
-                
-                // Remove all cargo from this ship
-                if (weakestShip.cargo) {
-                    Object.keys(weakestShip.cargo).forEach(cargoId => {
-                        weakestShip.cargo[cargoId] = 0;
-                    });
-                }
-                
-                // Keep only this ship
-                currentGameState.ships = [weakestShip];
-            } else {
-                // Fallback: if no disabled ships, keep nothing
-                currentGameState.ships = [];
-            }
-            
-            // End encounter and return to previous system
-            currentGameState.encounter = false;
-            currentGameState.encounterShips = [];
-            currentGameState.encounterCargo = {};
-            currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
-            
-            DockMenu.show(currentGameState);
+        const buttonY = UI.getGridSize().height - 3;
+        UI.addCenteredButton(buttonY, '1', 'Continue', () => {
+            TowMenu.show(currentGameState);
+        }, COLORS.GREEN);
+        
+        UI.draw();
+    }
+    
+    /**
+     * Handle total defeat to merchants - they flee, tow back
+     */
+    function handleTotalDefeatMerchant(startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The merchants panic and flee the scene!`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `They leave you disabled in space.`, COLORS.TEXT_DIM);
+        y += 2;
+        
+        const buttonY = UI.getGridSize().height - 3;
+        UI.addCenteredButton(buttonY, '1', 'Continue', () => {
+            TowMenu.show(currentGameState);
         }, COLORS.GREEN);
         
         UI.draw();
@@ -1170,93 +1148,17 @@ const EncounterMenu = (() => {
         currentGameState.credits = 0;
         
         UI.addText(10, y++, `The pirates leave you stranded in space.`, COLORS.TEXT_DIM);
-        y++;
-        
-        UI.addText(10, y++, `You call for a tow ship...`, COLORS.CYAN);
-        const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
-        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.CYAN);
-        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.CYAN);
-        UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
-        y++;
-        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.CYAN);
-        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
         y += 2;
         
-        UI.addCenteredButton(y++, '1', 'Continue', () => {
-            // Consume fuel based on progress made before defeat
-            TravelMenu.handleTowedBack();
-            
-            // Find weakest disabled ship (lowest maxHull)
-            const disabledShips = currentGameState.ships.filter(s => s.disabled);
-            if (disabledShips.length > 0) {
-                disabledShips.sort((a, b) => a.maxHull - b.maxHull);
-                const weakestShip = disabledShips[0];
-                
-                // Resurrect with 1 hull
-                weakestShip.hull = 1;
-                weakestShip.disabled = false;
-                weakestShip.shields = 0;
-                
-                // Remove all cargo from this ship
-                if (weakestShip.cargo) {
-                    Object.keys(weakestShip.cargo).forEach(cargoId => {
-                        weakestShip.cargo[cargoId] = 0;
-                    });
-                }
-                
-                // Keep only this ship
-                currentGameState.ships = [weakestShip];
-            } else {
-                // Fallback: if no disabled ships, keep nothing
-                currentGameState.ships = [];
-            }
-            
-            // End encounter and return to previous system
-            currentGameState.encounter = false;
-            currentGameState.encounterShips = [];
-            currentGameState.encounterCargo = {};
-            currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
-            
-            DockMenu.show(currentGameState);
+        const buttonY = UI.getGridSize().height - 3;
+        UI.addCenteredButton(buttonY, '1', 'Continue', () => {
+            TowMenu.show(currentGameState);
         }, COLORS.GREEN);
         
         UI.draw();
     }
     
-    /**
-     * Handle total defeat to merchants - they flee, tow back
-     */
-    function handleTotalDefeatMerchant(startY) {
-        let y = startY;
-        
-        UI.addText(10, y++, `The merchants panic and flee the scene!`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `They leave you disabled in space.`, COLORS.TEXT_DIM);
-        y++;
-        
-        UI.addText(10, y++, `You call for a tow ship...`, COLORS.CYAN);
-        const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
-        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.CYAN);
-        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.CYAN);
-        UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
-        y++;
-        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.CYAN);
-        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
-        y += 2;
-        
-        UI.addCenteredButton(y++, '1', 'Continue', () => {
-            // Consume fuel based on progress made before defeat
-            TravelMenu.handleTowedBack();
-            
-            // Find weakest disabled ship (lowest maxHull)
-            const disabledShips = currentGameState.ships.filter(s => s.disabled);
-            if (disabledShips.length > 0) {
-                disabledShips.sort((a, b) => a.maxHull - b.maxHull);
-                const weakestShip = disabledShips[0];
-                
-                // Resurrect with 1 hull
-                weakestShip.hull = 1;
-                weakestShip.disabled = false;
-                weakestShip.shields = 0;
+            TowMenu.show(currentGameState);
                 
                 // Remove all cargo from this ship
                 if (weakestShip.cargo) {

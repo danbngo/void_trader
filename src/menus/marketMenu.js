@@ -82,10 +82,14 @@ const MarketMenu = (() => {
         });
         
         TableRenderer.renderTable(5, startY, ['Cargo', 'Market Stock', 'Base Value', 'Buy Price', 'Sell Price', 'Your Stock'], rows, selectedCargoIndex, 2, (rowIndex) => {
-            // When a row is clicked, select that cargo
-            selectedCargoIndex = rowIndex;
-            outputMessage = '';
-            render(onReturn);
+            // Only select cargo types the player has training for
+            const cargoType = allCargoTypes[rowIndex];
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            if (hasTraining) {
+                selectedCargoIndex = rowIndex;
+                outputMessage = '';
+                render(onReturn);
+            }
         });
         
         // Buttons - 3 column layout
@@ -172,19 +176,33 @@ const MarketMenu = (() => {
     }
     
     /**
-     * Select next cargo type (only enabled ones)
+     * Select next cargo type (skip untrained cargo types)
      */
     function nextCargo(onReturn) {
-        selectedCargoIndex = (selectedCargoIndex + 1) % ALL_CARGO_TYPES.length;
+        const startIndex = selectedCargoIndex;
+        do {
+            selectedCargoIndex = (selectedCargoIndex + 1) % ALL_CARGO_TYPES.length;
+            const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            if (hasTraining) break;
+        } while (selectedCargoIndex !== startIndex);
+        
         outputMessage = '';
         render(onReturn);
     }
     
     /**
-     * Select previous cargo type (all cargo types, not just enabled ones)
+     * Select previous cargo type (skip untrained cargo types)
      */
     function prevCargo(onReturn) {
-        selectedCargoIndex = (selectedCargoIndex - 1 + ALL_CARGO_TYPES.length) % ALL_CARGO_TYPES.length;
+        const startIndex = selectedCargoIndex;
+        do {
+            selectedCargoIndex = (selectedCargoIndex - 1 + ALL_CARGO_TYPES.length) % ALL_CARGO_TYPES.length;
+            const cargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            if (hasTraining) break;
+        } while (selectedCargoIndex !== startIndex);
+        
         outputMessage = '';
         render(onReturn);
     }

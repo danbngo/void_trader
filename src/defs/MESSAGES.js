@@ -20,7 +20,7 @@ const MESSAGES = {
             '',
             'Your first task is simple: learn the basics of trading.',
             'Buy AND sell at least 1000 credits worth of goods.',
-            'You start with only 1000 credits, so you must be shrewd.',
+            `You start with only ${STARTING_CREDITS} credits, so you must be shrewd.`,
             'Buy low, sell high. Study the market prices carefully.',
             '',
             'May the void be kind to you.',

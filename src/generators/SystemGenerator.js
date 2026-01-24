@@ -4,22 +4,29 @@
 
 const SystemGenerator = (() => {
     const prefixes = [
-        'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta',
+        'Alpha', 'Beta', 'Gamma', 'Delta', 'Zeta', 'Eta', 'Theta', 'Iota',
         'Nova', 'Void', 'Dark', 'Bright', 'Silent', 'Deep', 'Far', 'Near',
-        'New', 'Old', 'Prime', 'Omega', 'Stellar', 'Cosmic', 'Nebula', 'Star'
+        'New', 'Old', 'Prime', 'Omega', 'Stellar', 'Cosmic', 'Nebula', 'Star',
+        'Red', 'Blue', 'White', 'Gold', 'Silver', 'Iron', 'Black', 'Grey',
+        'Swift', 'Lost', 'Wild', 'Cold', 'Hot', 'Lone', 'Twin', 'High',
+        'Low', 'East', 'West', 'North', 'South', 'Core', 'Edge', 'Last'
     ];
     
     const roots = [
-        'Centauri', 'Draconis', 'Aquila', 'Lyra', 'Vega', 'Sirius', 'Rigel',
-        'Arcturus', 'Spica', 'Antares', 'Aldebaran', 'Pollux', 'Regulus',
-        'Castor', 'Procyon', 'Deneb', 'Altair', 'Betelgeuse', 'Capella',
-        'Haven', 'Point', 'Station', 'Outpost', 'Gate', 'Reach', 'Hope',
-        'Dawn', 'Dusk', 'Shadow', 'Light', 'Ember', 'Frost', 'Storm'
+        'Centuri', 'Draco', 'Aquila', 'Lyra', 'Vega', 'Sirius', 'Rigel',
+        'Artur', 'Spica', 'Antares', 'Aldebar', 'Pollux', 'Regulus',
+        'Castor', 'Procyon', 'Deneb', 'Altair', 'Capella', 'Mira',
+        'Haven', 'Point', 'Station', 'Post', 'Gate', 'Reach', 'Hope',
+        'Dawn', 'Dusk', 'Shadow', 'Light', 'Ember', 'Frost', 'Storm',
+        'Crest', 'Vale', 'Ridge', 'Forge', 'Port', 'Bay', 'Harbor',
+        'Cove', 'Cross', 'Run', 'Pass', 'Rest', 'Hold', 'Keep',
+        'Watch', 'Guard', 'Shield', 'Spire', 'Tower', 'Crown', 'Pike'
     ];
     
     const suffixes = [
-        'Prime', 'Secundus', 'Tertius', 'Major', 'Minor', 'Alpha', 'Beta',
-        'One', 'Two', 'Three', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'
+        'Prime', 'Major', 'Minor', 'Alpha', 'Beta', 'Gamma',
+        'One', 'Two', 'Three', 'Four', 'Five', 'Six',
+        'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'
     ];
     
     const economies = [
@@ -38,19 +45,16 @@ const SystemGenerator = (() => {
         let attempts = 0;
         
         do {
-            const usePrefix = Math.random() > 0.3;
+            const usePrefix = Math.random() > 0.4;
             const useSuffix = Math.random() > 0.5;
             
             const root = roots[Math.floor(Math.random() * roots.length)];
             
-            if (usePrefix && useSuffix) {
-                const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-                const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-                name = `${prefix} ${root} ${suffix}`;
-            } else if (usePrefix) {
+            // Only allow 2-part names max (prefix+root OR root+suffix OR just root)
+            if (usePrefix && !useSuffix) {
                 const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
                 name = `${prefix} ${root}`;
-            } else if (useSuffix) {
+            } else if (useSuffix && !usePrefix) {
                 const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
                 name = `${root} ${suffix}`;
             } else {
@@ -189,10 +193,10 @@ const SystemGenerator = (() => {
      * @returns {boolean} True if path exists
      */
     function hasPathBetweenSystems(systems, startIndex, targetIndex, maxJumpDistance) {
-        if (startIndex === targetIndex) return { pathExists: true, hops: 0 };
+        if (startIndex === targetIndex) return { pathExists: true, hops: 0, path: [startIndex] };
         
         const visited = new Set();
-        const queue = [{ index: startIndex, hops: 0 }];
+        const queue = [{ index: startIndex, hops: 0, path: [startIndex] }];
         visited.add(startIndex);
         
         while (queue.length > 0) {
@@ -207,16 +211,17 @@ const SystemGenerator = (() => {
                 const dist = distance(currentSystem.x, currentSystem.y, otherSystem.x, otherSystem.y);
                 
                 if (dist <= maxJumpDistance) {
+                    const newPath = [...current.path, i];
                     if (i === targetIndex) {
-                        return { pathExists: true, hops: current.hops + 1 }; // Found path to target
+                        return { pathExists: true, hops: current.hops + 1, path: newPath }; // Found path to target
                     }
                     visited.add(i);
-                    queue.push({ index: i, hops: current.hops + 1 });
+                    queue.push({ index: i, hops: current.hops + 1, path: newPath });
                 }
             }
         }
         
-        return { pathExists: false, hops: -1 }; // No path found
+        return { pathExists: false, hops: -1, path: [] }; // No path found
     }
     
     /**
@@ -263,7 +268,9 @@ const SystemGenerator = (() => {
             // This ensures it's reachable even though it's >10ly direct distance
             const pathResult = hasPathBetweenSystems(systems, startSystemIndex, nearestGuildIndex, 10);
             
-            console.log(`[Galaxy Validation] Proxima is ${pathResult.hops} hops from Nexus`);
+            // Build path string with system names
+            const pathNames = pathResult.path.map(idx => systems[idx].name || `System ${idx}`).join(' -> ');
+            console.log(`[Galaxy Validation] Path to Proxima: ${pathNames} (${pathResult.hops} hops)`);
             
             // Path must exist and require at most 4 hops
             if (pathResult.pathExists && pathResult.hops > 0 && pathResult.hops <= 4) {

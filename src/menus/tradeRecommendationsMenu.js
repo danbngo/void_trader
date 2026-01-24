@@ -138,17 +138,15 @@ const TradeRecommendationsMenu = (() => {
         const activeShip = currentGameState.ships[0];
         const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
         
-        // Check all systems except current one
+        // Check all systems
         for (let i = 0; i < currentGameState.systems.length; i++) {
-            if (i === currentGameState.currentSystemIndex) continue;
-            
             const system = currentGameState.systems[i];
             const distance = currentSystem.distanceTo(system);
             const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
             const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
             
-            // Only include if we can reach it
-            if (totalFuel >= fuelCost) {
+            // Include current system (distance 0) or reachable systems
+            if (i === currentGameState.currentSystemIndex || totalFuel >= fuelCost) {
                 // Calculate ETA (days)
                 const eta = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
                 
@@ -162,13 +160,18 @@ const TradeRecommendationsMenu = (() => {
                     fuelCost: fuelCost,
                     eta: eta,
                     buyPrice: buyPrice,
-                    sellPrice: sellPrice
+                    sellPrice: sellPrice,
+                    isCurrent: i === currentGameState.currentSystemIndex
                 });
             }
         }
         
-        // Sort by distance (closest first)
-        reachableSystems.sort((a, b) => a.distance - b.distance);
+        // Sort by distance (closest first), but ensure current system is always first
+        reachableSystems.sort((a, b) => {
+            if (a.isCurrent) return -1;
+            if (b.isCurrent) return 1;
+            return a.distance - b.distance;
+        });
         
         return reachableSystems;
     }

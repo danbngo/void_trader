@@ -66,20 +66,19 @@ const MessagesMenu = (() => {
             });
         }
         
-        // Buttons - centered at bottom
+        // Buttons - centered at bottom as a block
         const buttonY = grid.height - 3;
         
-        // Toggle between unread/read
         const toggleLabel = showingUnread ? 'Show Read' : 'Show Unread';
-        UI.addCenteredButton(buttonY, 'T', toggleLabel, () => {
-            showingUnread = !showingUnread;
-            render();
-        }, COLORS.BUTTON);
-        
-        // Back button
-        UI.addCenteredButton(buttonY + 1, '0', 'Back', () => {
-            if (returnCallback) returnCallback();
-        }, COLORS.BUTTON);
+        UI.addCenteredButtons(buttonY, [
+            { key: 'T', label: toggleLabel, callback: () => {
+                showingUnread = !showingUnread;
+                render();
+            }, color: COLORS.BUTTON },
+            { key: '0', label: 'Back', callback: () => {
+                if (returnCallback) returnCallback();
+            }, color: COLORS.BUTTON }
+        ]);
         
         // Set help text in output row
         UI.setOutputRow('Toggle between unread and read messages', COLORS.TEXT_DIM);

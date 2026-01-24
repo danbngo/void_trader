@@ -14,6 +14,7 @@ const TravelMenu = (() => {
     let elapsedDays = 0;
     let encounterType = null;
     let travelTickInterval = null;
+    let shipFuelCosts = []; // Pre-calculated fuel cost for each ship
     
     /**
      * Show the travel menu
@@ -39,6 +40,36 @@ const TravelMenu = (() => {
         
         const currentSystem = gameState.getCurrentSystem();
         const distance = currentSystem.distanceTo(destination);
+        
+        // Calculate fuel cost for the entire journey
+        const totalFuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+        const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+        
+        // Pre-calculate how much fuel each ship will contribute
+        // Each ship contributes proportionally based on its current fuel
+        shipFuelCosts = [];
+        if (totalFuel > 0) {
+            let remainingCost = totalFuelCost;
+            gameState.ships.forEach((ship, index) => {
+                const shipProportion = ship.fuel / totalFuel;
+                const shipCost = index === gameState.ships.length - 1 
+                    ? remainingCost // Last ship gets remaining to handle rounding
+                    : Math.min(ship.fuel, Math.ceil(totalFuelCost * shipProportion));
+                shipFuelCosts.push(shipCost);
+                remainingCost -= shipCost;
+            });
+        } else {
+            // No fuel available
+            gameState.ships.forEach(() => shipFuelCosts.push(0));
+        }
+        
+        console.log('[TravelMenu] Pre-calculated fuel costs:', {
+            totalFuelCost,
+            totalFuel,
+            shipFuelCosts,
+            ships: gameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
+        });
+        
         // Use first ship for engine calculation (fleet moves together)
         const activeShip = gameState.ships[0];
         
@@ -348,26 +379,15 @@ const TravelMenu = (() => {
      * Complete the journey
      */
     function completeJourney() {
-        const currentSystem = currentGameState.getCurrentSystem();
-        const distance = currentSystem.distanceTo(targetSystem);
-        const fleetFuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
-        
-        // Consume fuel proportionally from all ships based on their current fuel
-        const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
-        let remainingCost = fleetFuelCost;
-        
-        currentGameState.ships.forEach(ship => {
-            const shipFuelProportion = ship.fuel / totalFuel;
-            const shipFuelCost = Math.min(ship.fuel, Math.ceil(fleetFuelCost * shipFuelProportion));
-            ship.fuel -= shipFuelCost;
-            remainingCost -= shipFuelCost;
+        // Deduct the pre-calculated fuel costs from each ship
+        currentGameState.ships.forEach((ship, index) => {
+            ship.fuel = Math.max(0, ship.fuel - shipFuelCosts[index]);
         });
         
-        // Handle any remaining fuel cost due to rounding (subtract from ship with most fuel)
-        if (remainingCost > 0) {
-            const shipWithMostFuel = currentGameState.ships.reduce((max, ship) => ship.fuel > max.fuel ? ship : max);
-            shipWithMostFuel.fuel = Math.max(0, shipWithMostFuel.fuel - remainingCost);
-        }
+        console.log('[TravelMenu] Journey complete, fuel deducted:', {
+            shipFuelCosts,
+            shipsAfter: currentGameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
+        });
         
         // Advance date
         currentGameState.date.setDate(currentGameState.date.getDate() + Math.ceil(totalDuration));
@@ -384,34 +404,18 @@ const TravelMenu = (() => {
      * Consume fuel based on current progress (used for encounters/defeats)
      */
     function consumeFuelForProgress() {
-        const currentSystem = currentGameState.getCurrentSystem();
-        const distance = currentSystem.distanceTo(targetSystem);
-        const distanceTraveled = distance * progress;
-        const fleetFuelCost = Ship.calculateFleetFuelCost(distanceTraveled, currentGameState.ships.length);
+        // Deduct proportional fuel based on progress
+        currentGameState.ships.forEach((ship, index) => {
+            const fuelToConsume = shipFuelCosts[index] * progress;
+            ship.fuel = Math.max(0, ship.fuel - fuelToConsume);
+        });
         
         console.log('[TravelMenu] Consuming fuel for progress:', {
             progress,
-            distance,
-            distanceTraveled,
-            fleetFuelCost
+            shipFuelCosts,
+            fuelConsumed: shipFuelCosts.map((cost, i) => cost * progress),
+            shipsAfter: currentGameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
         });
-        
-        // Consume fuel proportionally from all ships based on their current fuel
-        const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
-        let remainingCost = fleetFuelCost;
-        
-        currentGameState.ships.forEach(ship => {
-            const shipFuelProportion = ship.fuel / totalFuel;
-            const shipFuelCost = Math.min(ship.fuel, Math.ceil(fleetFuelCost * shipFuelProportion));
-            ship.fuel -= shipFuelCost;
-            remainingCost -= shipFuelCost;
-        });
-        
-        // Handle any remaining fuel cost due to rounding (subtract from ship with most fuel)
-        if (remainingCost > 0) {
-            const shipWithMostFuel = currentGameState.ships.reduce((max, ship) => ship.fuel > max.fuel ? ship : max);
-            shipWithMostFuel.fuel = Math.max(0, shipWithMostFuel.fuel - remainingCost);
-        }
     }
     
     /**
@@ -450,9 +454,25 @@ const TravelMenu = (() => {
         render();
     }
     
+    /**
+     * Handle fuel consumption when towed back
+     * Player is towed back to origin, but fuel is consumed based on progress made
+     */
+    function handleTowedBack() {
+        // Consume fuel proportional to progress made before defeat
+        consumeFuelForProgress();
+        
+        console.log('[TravelMenu] Towed back - fuel consumed for progress:', {
+            progress,
+            shipFuelCosts,
+            fuelConsumed: shipFuelCosts.map((cost, i) => (cost * progress).toFixed(1))
+        });
+    }
+    
     return {
         show,
         resume,
-        consumeFuelForProgress
+        consumeFuelForProgress,
+        handleTowedBack
     };
 })();

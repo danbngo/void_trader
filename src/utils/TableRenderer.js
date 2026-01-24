@@ -74,10 +74,19 @@ const TableRenderer = (() => {
      * @returns {number} - Y position after the list
      */
     function renderKeyValueList(x, y, items) {
+        const grid = UI.getGridSize();
         let currentY = y;
         items.forEach(item => {
             UI.addText(x, currentY, item.label + ' ', COLORS.TEXT_DIM);
-            UI.addText(x + item.label.length + 1, currentY, item.value, item.valueColor || COLORS.TEXT_NORMAL);
+            const valueX = x + item.label.length + 1;
+            // Ensure value doesn't go out of bounds
+            if (valueX < grid.width) {
+                const maxValueLength = grid.width - valueX;
+                const truncatedValue = item.value.length > maxValueLength 
+                    ? item.value.substring(0, maxValueLength) 
+                    : item.value;
+                UI.addText(valueX, currentY, truncatedValue, item.valueColor || COLORS.TEXT_NORMAL);
+            }
             currentY++;
         });
         return currentY;

@@ -57,6 +57,11 @@ const EncounterMenu = (() => {
         const mapCenterX = 0;
         const mapCenterY = 0;
         
+        // Restore all player ships shields to max before combat
+        gameState.ships.forEach(ship => {
+            ship.shields = ship.maxShields;
+        });
+        
         // Assign random positions to player ships (negative X side, within circle)
         gameState.ships.forEach(ship => {
             // Player ships on left side of circle
@@ -884,6 +889,13 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
+            // Restore shields for all non-escaped ships
+            currentGameState.ships.forEach(ship => {
+                if (!ship.escaped) {
+                    ship.shields = ship.maxShields;
+                }
+            });
+            
             // Resume travel
             TravelMenu.resume();
         }, COLORS.GREEN);
@@ -905,6 +917,13 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
+            // Restore shields for all non-escaped ships
+            currentGameState.ships.forEach(ship => {
+                if (!ship.escaped) {
+                    ship.shields = ship.maxShields;
+                }
+            });
+            
             // Resume travel
             TravelMenu.resume();
         }, COLORS.GREEN);
@@ -928,6 +947,11 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
+            // Restore shields for all ships
+            currentGameState.ships.forEach(ship => {
+                ship.shields = ship.maxShields;
+            });
+            
             // Clean up combat properties
             currentGameState.ships.forEach(ship => {
                 delete ship.x;
@@ -990,6 +1014,11 @@ const EncounterMenu = (() => {
         UI.addCenteredButton(y++, '1', 'Continue Journey', () => {
             // Remove disabled ships from fleet
             currentGameState.ships = currentGameState.ships.filter(s => !s.disabled);
+            
+            // Restore shields for remaining ships
+            currentGameState.ships.forEach(ship => {
+                ship.shields = ship.maxShields;
+            });
             
             // Clean up combat properties
             currentGameState.ships.forEach(ship => {
@@ -1320,6 +1349,13 @@ const EncounterMenu = (() => {
         if (allEnemiesDefeated) {
             // Get disabled enemy ships for looting
             const defeatedShips = currentGameState.encounterShips.filter(ship => ship.disabled);
+            
+            // Restore shields for all non-disabled, non-escaped player ships
+            currentGameState.ships.forEach(ship => {
+                if (!ship.disabled && !ship.escaped) {
+                    ship.shields = ship.maxShields;
+                }
+            });
             
             // Clean up combat properties before showing loot
             currentGameState.ships.forEach(ship => {

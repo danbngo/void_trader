@@ -16,10 +16,19 @@ const COLORS = {
     MAGENTA: '#FF00FF',
     YELLOW: '#FFFF00',
     
+    // Extended colors
+    ORANGE: '#FFA500',
+    PURPLE: '#800080',
+    BROWN: '#8B4513',
+    LIGHT_BLUE: '#87CEEB',
+    LIGHT_CYAN: '#E0FFFF',
+    LIGHT_MAGENTA: '#FF69B4',
+    DARK_MAGENTA: '#8B008B',
+    
     // Grays
-    GRAY_DARK: '#444444',
+    DARK_GRAY: '#444444',
     GRAY: '#888888',
-    GRAY_LIGHT: '#CCCCCC',
+    LIGHT_GRAY: '#CCCCCC',
     
     // UI colors
     TITLE: '#00FF00',

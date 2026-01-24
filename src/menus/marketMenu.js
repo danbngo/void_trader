@@ -70,7 +70,7 @@ const MarketMenu = (() => {
             
             const buyColor = hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
             const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
-            const nameColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            const nameColor = hasTraining ? cargoType.color : COLORS.TEXT_DIM;
             const stockColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             const baseValueColor = hasTraining ? COLORS.TEXT_DIM : COLORS.TEXT_DIM;
             const playerQuantityColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
@@ -119,8 +119,8 @@ const MarketMenu = (() => {
         const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id);
         
         // Build help text for buy buttons
-        let buy1HelpText = 'Purchase 1 unit of selected cargo';
-        let buy10HelpText = 'Purchase 10 units of selected cargo';
+        let buy1HelpText = `Purchase 1 unit for ${buyPrice} CR`;
+        let buy10HelpText = `Purchase 10 units for ${buyPrice * 10} CR`;
         if (!hasTraining) {
             buy1HelpText = 'No training for this cargo type (visit Guild to learn)';
             buy10HelpText = 'No training for this cargo type (visit Guild to learn)';
@@ -136,8 +136,8 @@ const MarketMenu = (() => {
         }
         
         // Build help text for sell buttons
-        let sell1HelpText = 'Sell 1 unit of selected cargo';
-        let sell10HelpText = 'Sell 10 units of selected cargo';
+        let sell1HelpText = `Sell 1 unit for ${sellPrice} CR`;
+        let sell10HelpText = `Sell 10 units for ${sellPrice * 10} CR`;
         if (!hasTraining) {
             sell1HelpText = 'No training for this cargo type (visit Guild to learn)';
             sell10HelpText = 'No training for this cargo type (visit Guild to learn)';

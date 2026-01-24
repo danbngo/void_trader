@@ -78,7 +78,8 @@ const DockServicesMenu = (() => {
         const fuelCost = fuelNeeded * FUEL_COST_PER_UNIT;
         const canRefuel = fuelNeeded > 0 && gameState.credits >= fuelCost;
         const refuelColor = canRefuel ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(middleX, buttonY, '3', 'Refuel', () => refuel(onReturn), refuelColor, 'Refuel selected ship to maximum capacity');
+        const refuelHelpText = fuelNeeded > 0 ? `Refuel to max capacity for ${fuelCost} CR` : 'Already at max fuel';
+        UI.addButton(middleX, buttonY, '3', 'Refuel', () => refuel(onReturn), refuelColor, refuelHelpText);
         
         // Repair - gray out if already full or insufficient credits (includes shields)
         const hullNeeded = ship.maxHull - ship.hull;
@@ -86,7 +87,8 @@ const DockServicesMenu = (() => {
         const repairCost = (hullNeeded + shieldNeeded) * HULL_REPAIR_COST_PER_UNIT;
         const canRepair = (hullNeeded > 0 || shieldNeeded > 0) && gameState.credits >= repairCost;
         const repairColor = canRepair ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(middleX, buttonY + 1, '4', 'Repair', () => repair(onReturn), repairColor, 'Repair hull and shields to maximum');
+        const repairHelpText = (hullNeeded > 0 || shieldNeeded > 0) ? `Repair hull and shields for ${repairCost} CR` : 'Already at max hull and shields';
+        UI.addButton(middleX, buttonY + 1, '4', 'Repair', () => repair(onReturn), repairColor, repairHelpText);
         
         // Column 3: Back
         UI.addButton(rightX, buttonY, '0', 'Back', onReturn, COLORS.BUTTON);

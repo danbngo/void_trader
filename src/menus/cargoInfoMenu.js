@@ -34,7 +34,7 @@ const CargoInfoMenu = (() => {
             const quantity = fleetCargo[cargoType.id] || 0;
             const totalValue = quantity * cargoType.baseValue;
             return [
-                { text: cargoType.name, color: 'white' },
+                { text: cargoType.name, color: cargoType.color },
                 { text: String(quantity), color: 'white' },
                 { text: `${totalValue}`, color: 'white' }
             ];

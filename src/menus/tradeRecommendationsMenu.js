@@ -57,7 +57,7 @@ const TradeRecommendationsMenu = (() => {
         const stockColor = UI.calcStatColor(stockRatio);
         
         y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Cargo Type:', value: selectedCargoType.name, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Cargo Type:', value: selectedCargoType.name, valueColor: selectedCargoType.color },
             { label: 'Your Stock:', value: String(playerQuantity), valueColor: stockColor },
             { label: 'Base Value:', value: `${selectedCargoType.baseValue} CR`, valueColor: COLORS.TEXT_NORMAL }
         ]);
@@ -109,6 +109,22 @@ const TradeRecommendationsMenu = (() => {
             });
             
             TableRenderer.renderTable(5, y, headers, rows, -1, 1);
+            y += rows.length + 3; // Move past the table
+            
+            // Add trade recommendation
+            const recommendation = getBestTradeRecommendation();
+            if (recommendation) {
+                y = TableRenderer.renderKeyValueList(5, y, [
+                    { label: 'Recommendation:', value: `Buy ${recommendation.cargoType.name} here and sell at ${recommendation.targetSystem.name}`, valueColor: COLORS.TEXT_NORMAL },
+                    { label: 'Buy Price:', value: `${recommendation.buyPrice} CR`, valueColor: COLORS.TEXT_NORMAL },
+                    { label: 'Sell Price:', value: `${recommendation.sellPrice} CR`, valueColor: COLORS.TEXT_NORMAL },
+                    { label: 'Profit:', value: `${recommendation.profit} CR per unit`, valueColor: COLORS.TEXT_NORMAL }
+                ]);
+            } else {
+                y = TableRenderer.renderKeyValueList(5, y, [
+                    { label: 'Recommendation:', value: 'Not available, no viable prices at current location', valueColor: COLORS.TEXT_NORMAL }
+                ]);
+            }
         }
         
         // Buttons
@@ -152,10 +168,10 @@ const TradeRecommendationsMenu = (() => {
             const system = currentGameState.systems[i];
             const distance = currentSystem.distanceTo(system);
             const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
-            const totalFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+            const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
             
-            // Include current system (distance 0) or reachable systems
-            if (i === currentGameState.currentSystemIndex || totalFuel >= fuelCost) {
+            // Include current system (distance 0) or reachable systems (based on max fuel)
+            if (i === currentGameState.currentSystemIndex || maxFuel >= fuelCost) {
                 // Calculate ETA (days)
                 const eta = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
                 
@@ -184,6 +200,70 @@ const TradeRecommendationsMenu = (() => {
         });
         
         return reachableSystems;
+    }
+    
+    /**
+     * Get the best trade recommendation from current location
+     * @returns {Object|null} Best trade opportunity or null if none found
+     */
+    function getBestTradeRecommendation() {
+        const currentSystem = currentGameState.getCurrentSystem();
+        const enabledCargoIds = currentGameState.enabledCargoTypes.map(ct => ct.id);
+        
+        // Get first ship for engine calculation
+        const activeShip = currentGameState.ships[0];
+        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
+        
+        let bestTrade = null;
+        let bestProfit = -Infinity;
+        
+        // Check each enabled cargo type
+        for (const cargoType of ALL_CARGO_TYPES) {
+            if (!enabledCargoIds.includes(cargoType.id)) continue;
+            
+            // Calculate buy price at current system
+            const currentBasePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+            const currentBuyPrice = Math.floor(currentBasePrice * (1 + currentSystem.fees));
+            
+            // Check if there's stock available at current system
+            const currentStock = currentSystem.cargoStock[cargoType.id];
+            if (currentStock <= 0) continue;
+            
+            // Check all reachable systems for best sell price
+            for (let i = 0; i < currentGameState.systems.length; i++) {
+                if (i === currentGameState.currentSystemIndex) continue; // Skip current system
+                
+                const targetSystem = currentGameState.systems[i];
+                const distance = currentSystem.distanceTo(targetSystem);
+                const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
+                
+                // Only consider reachable systems
+                if (maxFuel < fuelCost) continue;
+                
+                // Calculate sell price at target system
+                const targetBasePrice = cargoType.baseValue * targetSystem.cargoPriceModifier[cargoType.id];
+                const targetSellPrice = Math.floor(targetBasePrice / (1 + targetSystem.fees));
+                
+                // Calculate profit
+                const profit = targetSellPrice - currentBuyPrice;
+                
+                // Update best trade if this is better
+                if (profit > bestProfit) {
+                    bestProfit = profit;
+                    bestTrade = {
+                        cargoType: cargoType,
+                        targetSystem: targetSystem,
+                        buyPrice: currentBuyPrice,
+                        sellPrice: targetSellPrice,
+                        profit: profit
+                    };
+                }
+            }
+        }
+        
+        // Only return if profit is non-negative
+        return (bestTrade && bestTrade.profit >= 0) ? bestTrade : null;
     }
     
     /**

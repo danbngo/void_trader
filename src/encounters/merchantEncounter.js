@@ -99,7 +99,10 @@ const MerchantEncounter = {
             const pricePerUnit = cargoType.baseValue;
             const totalCost = maxAmount * pricePerUnit;
             
-            UI.addText(10, y++, `"I have ${merchantAmount} units of ${cargoType.name} to sell."`, COLORS.YELLOW);
+            UI.addText(10, y, `"I have ${merchantAmount} units of `, COLORS.YELLOW);
+            UI.addText(10 + `"I have ${merchantAmount} units of `.length, y, cargoType.name, cargoType.color);
+            UI.addText(10 + `"I have ${merchantAmount} units of `.length + cargoType.name.length, y, ` to sell."`, COLORS.YELLOW);
+            y++;
             UI.addText(10, y++, `"I can offer you ${maxAmount} units at ${pricePerUnit} credits each."`, COLORS.YELLOW);
             y++;
             
@@ -175,7 +178,10 @@ const MerchantEncounter = {
             const pricePerUnit = cargoType.baseValue;
             const totalRevenue = playerAmount * pricePerUnit;
             
-            UI.addText(10, y++, `"I'm looking to buy ${cargoType.name}."`, COLORS.YELLOW);
+            UI.addText(10, y, `"I'm looking to buy `, COLORS.YELLOW);
+            UI.addText(10 + `"I'm looking to buy `.length, y, cargoType.name, cargoType.color);
+            UI.addText(10 + `"I'm looking to buy `.length + cargoType.name.length, y, `."`, COLORS.YELLOW);
+            y++;
             UI.addText(10, y++, `"I'll take all ${playerAmount} units at ${pricePerUnit} credits each."`, COLORS.YELLOW);
             y++;
             

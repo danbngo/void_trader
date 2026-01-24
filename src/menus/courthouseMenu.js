@@ -43,42 +43,40 @@ const CourthouseMenu = (() => {
         
         // Available ranks
         let y = 11;
-        UI.addText(5, y++, 'Available Citizenship Ranks:', COLORS.YELLOW);
+        UI.addText(5, y++, 'Citizenship Ranks:', COLORS.YELLOW);
         y++;
+        
+        // Build list of ranks to display (previous, current, and next)
+        const ranksToDisplay = [];
         
         ALL_RANKS.forEach(rank => {
             if (rank.level <= currentRank.level) {
-                // Already have this rank or lower
-                UI.addText(7, y++, `${rank.name} - Current or lower rank`, COLORS.TEXT_DIM);
+                // Current or previous rank - always show in white
+                ranksToDisplay.push({
+                    label: `${rank.name}:`,
+                    value: rank.level === currentRank.level ? 'Current Rank' : 'Previously Attained',
+                    valueColor: COLORS.TEXT_NORMAL
+                });
             } else if (rank.level === currentRank.level + 1) {
-                // Next rank available
+                // Next rank - show in green if affordable, gray if not
                 const canAfford = gameState.credits >= rank.fee;
                 const hasReputation = gameState.reputation >= rank.minReputation;
                 const hasBounty = gameState.bounty > 0;
                 
-                let status = `Fee: ${rank.fee} CR, Min Rep: ${rank.minReputation}`;
-                let color = COLORS.TEXT_NORMAL;
+                const canUpgrade = canAfford && hasReputation && !hasBounty;
+                const status = `Fee: ${rank.fee} CR, Rep: ${rank.minReputation}`;
+                const color = canUpgrade ? COLORS.GREEN : COLORS.GRAY;
                 
-                if (hasBounty) {
-                    status += ' (Pay bounty first)';
-                    color = COLORS.TEXT_ERROR;
-                } else if (!canAfford) {
-                    status += ' (Insufficient credits)';
-                    color = COLORS.TEXT_ERROR;
-                } else if (!hasReputation) {
-                    status += ' (Insufficient reputation)';
-                    color = COLORS.TEXT_ERROR;
-                } else {
-                    status += ' (Available)';
-                    color = COLORS.GREEN;
-                }
-                
-                UI.addText(7, y++, `${rank.name} - ${status}`, color);
-            } else {
-                // Future rank
-                UI.addText(7, y++, `${rank.name} - Locked`, COLORS.TEXT_DIM);
+                ranksToDisplay.push({
+                    label: `${rank.name}:`,
+                    value: status,
+                    valueColor: color
+                });
             }
         });
+        
+        y = TableRenderer.renderKeyValueList(7, y, ranksToDisplay);
+        y++;
         
         // Buttons
         const buttonY = grid.height - 5;

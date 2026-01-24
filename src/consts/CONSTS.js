@@ -80,3 +80,7 @@ const STAR_SYSTEM_MAX_FEES = 0.5
 const MIN_CARGO_AMOUNT_IN_MARKET = 0
 const MAX_CARGO_AMOUNT_IN_MARKET = 100
 const MAX_CARGO_PRICE_MODIFIER = 4.0 //which means min value is 1/4
+
+const SKILL_POINTS_PER_LEVEL = 5
+const EXP_POINTS_FOR_FIRST_LEVEL_UP = 100
+const EXP_POINTS_LEVEL_MULTIPLIER = 2.5 //each level is 2.5x more expensive than the previous

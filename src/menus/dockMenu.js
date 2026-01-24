@@ -53,7 +53,7 @@ const DockMenu = (() => {
         ]);
         
         // Right column title
-        UI.addText(rightColumnX, startY, 'Fleet Status', COLORS.CYAN);
+        UI.addText(rightColumnX, startY, 'Captain Status', COLORS.CYAN);
         
         // Right column: Player info
         const currentRank = gameState.getRankAtCurrentSystem();
@@ -67,9 +67,14 @@ const DockMenu = (() => {
         const dateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
         
         TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
-            { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color },
+            { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color }
+        ]);
+        
+        // Quest Status section
+        UI.addText(rightColumnX, startY + 3, 'Quest Status:', COLORS.CYAN);
+        TableRenderer.renderKeyValueList(rightColumnX, startY + 4, [
             { label: 'Date:', value: dateStr, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Days until Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Days to Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
         ]);
         
         // Menu buttons - 3 column layout at bottom

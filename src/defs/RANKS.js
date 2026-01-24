@@ -11,7 +11,7 @@ const RANKS = {
         level: 0,
         fee: 0,
         minReputation: 0,
-        color: COLORS.TEXT_DIM
+        color: COLORS.LIGHT_GRAY
     },
     VISA: {
         id: 'VISA',
@@ -20,7 +20,7 @@ const RANKS = {
         level: 1,
         fee: 2500,
         minReputation: 0,
-        color: COLORS.TEXT_NORMAL
+        color: COLORS.GREEN
     },
     CITIZEN: {
         id: 'CITIZEN',
@@ -29,7 +29,7 @@ const RANKS = {
         level: 2,
         fee: 7500,
         minReputation: 50,
-        color: COLORS.CYAN
+        color: COLORS.BLUE
     },
     ELITE: {
         id: 'ELITE',
@@ -38,7 +38,7 @@ const RANKS = {
         level: 3,
         fee: 20000,
         minReputation: 100,
-        color: COLORS.YELLOW
+        color: COLORS.PURPLE
     }
 };
 

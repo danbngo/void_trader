@@ -54,7 +54,7 @@ const UndetectedEncounter = {
         y += 2;
         
         // Show player ships
-        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
         y++;
         
         // Show detected encounter ships

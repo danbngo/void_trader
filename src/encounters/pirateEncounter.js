@@ -18,6 +18,7 @@ const PirateEncounter = {
         }
         
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -33,7 +34,7 @@ const PirateEncounter = {
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Pirates");
         
         // Show player ships
-        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
         y++;
         
         // Show pirate ships
@@ -58,6 +59,7 @@ const PirateEncounter = {
      */
     showNoCargoPirates: function(gameState) {
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -76,7 +78,7 @@ const PirateEncounter = {
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Pirates");
         
         // Show player ships
-        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
         y++;
         
         // Show pirate ships
@@ -101,6 +103,7 @@ const PirateEncounter = {
      */
     handleBoarding: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         let y = 5;
         UI.addTextCentered(y++, `=== Pirate Boarding ===`, COLORS.TEXT_ERROR);
@@ -180,6 +183,7 @@ const PirateEncounter = {
      */
     showAttackConsequences: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;

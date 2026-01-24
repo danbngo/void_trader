@@ -26,7 +26,7 @@ const ShipTableRenderer = (() => {
         }
         
         // Build table headers
-        const headers = ['Ship', 'Type', 'Hull', 'Shields', 'Lasers', 'Engine', 'Radar', 'Fuel'];
+        const headers = ['Ship', 'Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Fuel'];
         if (showCargo) {
             headers.push('Cargo');
         }
@@ -51,7 +51,7 @@ const ShipTableRenderer = (() => {
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
-                { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) }
+                { text: `${Math.floor(ship.fuel)}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) }
             ];
             
             if (showCargo) {
@@ -87,7 +87,7 @@ const ShipTableRenderer = (() => {
         }
         
         // Build table headers (no fuel or cargo for NPCs)
-        const headers = ['Type', 'Hull', 'Shields', 'Lasers', 'Engine', 'Radar'];
+        const headers = ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr'];
         
         // Build table rows
         const rows = ships.map((ship, index) => {

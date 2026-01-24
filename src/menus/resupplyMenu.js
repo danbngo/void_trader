@@ -32,7 +32,7 @@ const ResupplyMenu = (() => {
         UI.addTextCentered(5, 'Some ships need attention before departure', COLORS.YELLOW);
         
         // Use ship table utility (without cargo column)
-        const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, false);
+        const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, true);
         
         // Calculate total costs
         let totalRefuelCost = 0;

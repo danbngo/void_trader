@@ -238,8 +238,14 @@ const SystemGenerator = (() => {
     function validateGalaxy(systems, startSystemIndex) {
         const startingSystem = systems[startSystemIndex];
         
-        // Name starting system "Nexus"
+        // Name starting system "Nexus" (remove from usedNames set if it exists elsewhere)
+        const oldStartName = startingSystem.name;
         startingSystem.name = 'Nexus';
+        usedNames.delete(oldStartName);
+        usedNames.add('Nexus');
+        
+        // Set Nexus to have minimum fees
+        startingSystem.fees = STAR_SYSTEM_MIN_FEES;
         
         // Remove guild from Nexus if present
         if (startingSystem.buildings.includes('GUILD')) {
@@ -265,7 +271,11 @@ const SystemGenerator = (() => {
         });
         
         if (nearestGuildSystem) {
+            // Rename to "Proxima" (update usedNames set)
+            const oldProximaName = nearestGuildSystem.name;
             nearestGuildSystem.name = 'Proxima';
+            usedNames.delete(oldProximaName);
+            usedNames.add('Proxima');
             
             // Check if there's a valid path from Nexus to Proxima using 10ly jumps
             // This ensures it's reachable even though it's >10ly direct distance

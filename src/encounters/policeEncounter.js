@@ -29,6 +29,7 @@ const PoliceEncounter = {
         }
         
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -44,7 +45,7 @@ const PoliceEncounter = {
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Police");
         
         // Show player ships
-        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
         y++;
         
         // Show enemy ships
@@ -68,6 +69,7 @@ const PoliceEncounter = {
      */
     showNoIllegalPolice: function(gameState) {
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -85,7 +87,7 @@ const PoliceEncounter = {
         y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Police");
         
         // Show player ships
-        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, true);
+        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
         y++;
         
         // Show police ships
@@ -109,6 +111,7 @@ const PoliceEncounter = {
      */
     handleInspection: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         let y = 5;
         UI.addTextCentered(y++, `=== Police Inspection ===`, COLORS.CYAN);
@@ -186,6 +189,7 @@ const PoliceEncounter = {
      */
     showResistConsequences: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -219,6 +223,7 @@ const PoliceEncounter = {
      */
     showAttackConsequences: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;

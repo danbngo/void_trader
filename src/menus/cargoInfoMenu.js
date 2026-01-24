@@ -33,9 +33,16 @@ const CargoInfoMenu = (() => {
         const rows = ALL_CARGO_TYPES.map(cargoType => {
             const quantity = fleetCargo[cargoType.id] || 0;
             const totalValue = quantity * cargoType.baseValue;
+            
+            // Calculate stat color for quantity: 0 = 1.0, max capacity = 4.0
+            const quantityRatio = totalCapacity > 0 
+                ? 1.0 + (quantity / totalCapacity) * 3.0 
+                : 1.0;
+            const quantityColor = UI.calcStatColor(quantityRatio);
+            
             return [
                 { text: cargoType.name, color: cargoType.color },
-                { text: String(quantity), color: 'white' },
+                { text: String(quantity), color: quantityColor },
                 { text: `${totalValue}`, color: 'white' }
             ];
         });

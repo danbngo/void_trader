@@ -55,8 +55,15 @@ const ShipTableRenderer = (() => {
             ];
             
             if (showCargo) {
+                // Calculate cargo ratio: 0 cargo = 1.0, max capacity = 4.0
+                const totalCargoCapacity = ships.reduce((sum, s) => sum + s.cargoCapacity, 0);
+                const currentCargo = ship.getTotalCargo();
+                const cargoRatio = totalCargoCapacity > 0 
+                    ? 1.0 + (currentCargo / totalCargoCapacity) * 3.0 
+                    : 1.0;
+                
                 row.push({ text: `${Math.floor(ship.fuel)}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) });
-                row.push({ text: `${ship.getTotalCargo()}/${ship.cargoCapacity}`, color: COLORS.TEXT_NORMAL });
+                row.push({ text: `${currentCargo}/${ship.cargoCapacity}`, color: UI.calcStatColor(cargoRatio) });
             }
             
             return row;

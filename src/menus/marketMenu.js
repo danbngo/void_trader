@@ -38,8 +38,11 @@ const MarketMenu = (() => {
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const totalCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
-        UI.addText(5, 6, `Cargo: ${totalCargo} / ${totalCapacity}`, COLORS.TEXT_NORMAL);
+        TableRenderer.renderKeyValueList(5, 5, [
+            { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Cargo:', value: `${totalCargo} / ${totalCapacity}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
+        ]);
         
         // Use ALL cargo types (not just enabled ones)
         const allCargoTypes = ALL_CARGO_TYPES;
@@ -50,7 +53,7 @@ const MarketMenu = (() => {
         }
         
         // Market table
-        const startY = 9;
+        const startY = 10;
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
@@ -219,7 +222,8 @@ const MarketMenu = (() => {
         const cargoType = enabledCargoTypes[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
         
-        const buyPrice = Math.floor(cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id]);
+        const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+        const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
         const availableStock = currentSystem.cargoStock[cargoType.id];
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         

@@ -8,6 +8,7 @@ const MerchantEncounter = {
      */
     show: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -52,6 +53,7 @@ const MerchantEncounter = {
      */
     handleTrade: function(gameState, encType) {
         UI.clear();
+        UI.clearOutputRow();
         
         let y = 5;
         UI.addTextCentered(y++, `=== Merchant Trade ===`, COLORS.CYAN);

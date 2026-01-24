@@ -120,9 +120,19 @@ const TradeRecommendationsMenu = (() => {
             // Add trade recommendation
             const recommendation = getBestTradeRecommendation();
             if (recommendation) {
-                y = TableRenderer.renderKeyValueList(5, y, [
-                    { label: 'Recommendation:', value: recommendation.text, valueColor: COLORS.GREEN }
-                ]);
+                UI.addText(5, y, 'Recommendation: ', COLORS.TEXT_DIM);
+                const xOffset = 5 + 'Recommendation: '.length;
+                
+                if (recommendation.type === 'sell') {
+                    UI.addText(xOffset, y, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
+                    UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length, y, recommendation.cargoName, recommendation.cargoColor);
+                    UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length + recommendation.cargoName.length, y, ` here (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+                } else {
+                    UI.addText(xOffset, y, 'Buy ', COLORS.TEXT_NORMAL);
+                    UI.addText(xOffset + 'Buy '.length, y, recommendation.cargoName, recommendation.cargoColor);
+                    UI.addText(xOffset + 'Buy '.length + recommendation.cargoName.length, y, ` here and sell at ${recommendation.targetSystem.name} (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+                }
+                y++;
             } else {
                 y = TableRenderer.renderKeyValueList(5, y, [
                     { label: 'Recommendation:', value: 'No profitable trades available', valueColor: COLORS.TEXT_DIM }
@@ -247,6 +257,8 @@ const TradeRecommendationsMenu = (() => {
                     baseValue: cargoType.baseValue,
                     profitPerUnit: profitPerUnit,
                     totalProfit: totalProfit,
+                    cargoName: cargoType.name,
+                    cargoColor: cargoType.color,
                     text: `Sell all ${playerQuantity} ${cargoType.name} here (+${profitPerUnit} profit/unit)`
                 };
             }
@@ -302,6 +314,8 @@ const TradeRecommendationsMenu = (() => {
                         buyPrice: currentBuyPrice,
                         sellPrice: targetSellPrice,
                         profitPerUnit: profit,
+                        cargoName: cargoType.name,
+                        cargoColor: cargoType.color,
                         text: `Buy ${cargoType.name} here and sell at ${targetSystem.name} (+${profit} profit/unit)`
                     };
                 }

@@ -36,7 +36,7 @@ const MerchantEncounter = {
             { key: '1', label: 'Ignore', callback: () => {
                 // Return to travel menu
                 TravelMenu.resume();
-            }, color: COLORS.TEXT_DIM, helpText: 'Continue journey without trading' },
+            }, color: COLORS.BUTTON, helpText: 'Continue journey without trading' },
             { key: '2', label: 'Accept Trade Offer', callback: () => {
                 this.handleTrade(gameState, encType);
             }, color: COLORS.GREEN, helpText: 'Trade with merchants (buy or sell cargo at base price)' },
@@ -75,9 +75,23 @@ const MerchantEncounter = {
             });
             
             if (availableCargo.length === 0) {
-                // No cargo player can handle
-                UI.addText(10, y++, `"Sorry, you lack training to handle the type`, COLORS.YELLOW);
-                UI.addText(10, y++, `of goods we're carrying."`, COLORS.YELLOW);
+                // No cargo player can handle - find what cargo they have
+                const merchantCargoIds = Object.keys(gameState.encounterCargo).filter(cargoId => 
+                    gameState.encounterCargo[cargoId] > 0
+                );
+                
+                if (merchantCargoIds.length > 0) {
+                    const cargoId = merchantCargoIds[0];
+                    const cargoType = CARGO_TYPES[cargoId];
+                    
+                    UI.addText(10, y++, `"Sorry, we're carrying `, COLORS.YELLOW);
+                    UI.addText(10 + `"Sorry, we're carrying `.length, y - 1, cargoType.name, cargoType.color);
+                    UI.addText(10 + `"Sorry, we're carrying `.length + cargoType.name.length, y - 1, `, but you lack`, COLORS.YELLOW);
+                    UI.addText(10, y++, `training to handle this type of cargo."`, COLORS.YELLOW);
+                } else {
+                    UI.addText(10, y++, `"Sorry, you lack training to handle the type`, COLORS.YELLOW);
+                    UI.addText(10, y++, `of goods we're carrying."`, COLORS.YELLOW);
+                }
                 
                 const grid = UI.getGridSize();
                 const buttonY = grid.height - 2;

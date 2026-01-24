@@ -48,9 +48,18 @@ const MarketMenu = (() => {
         let startY = 10;
         const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
         if (recommendation) {
-            TableRenderer.renderKeyValueList(5, 9, [
-                { label: 'Recommendation:', value: recommendation.text, valueColor: COLORS.GREEN }
-            ]);
+            UI.addText(5, 9, 'Recommendation: ', COLORS.TEXT_DIM);
+            const xOffset = 5 + 'Recommendation: '.length;
+            
+            if (recommendation.type === 'sell') {
+                UI.addText(xOffset, 9, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
+                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length, 9, recommendation.cargoName, recommendation.cargoColor);
+                UI.addText(xOffset + `Sell all ${recommendation.quantity} `.length + recommendation.cargoName.length, 9, ` here (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+            } else {
+                UI.addText(xOffset, 9, 'Buy ', COLORS.TEXT_NORMAL);
+                UI.addText(xOffset + 'Buy '.length, 9, recommendation.cargoName, recommendation.cargoColor);
+                UI.addText(xOffset + 'Buy '.length + recommendation.cargoName.length, 9, ` here and sell at ${recommendation.targetSystem.name} (+${recommendation.profitPerUnit} profit/unit)`, COLORS.TEXT_NORMAL);
+            }
             startY = 11;
         }
         

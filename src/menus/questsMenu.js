@@ -41,7 +41,17 @@ const QuestsMenu = (() => {
         y += 2;
         
         // Get quest IDs to display
-        const questIds = showingActive ? currentGameState.activeQuests : currentGameState.completedQuests;
+        let questIds = showingActive ? currentGameState.activeQuests : currentGameState.completedQuests;
+        
+        // Sort active quests to show unread quests first
+        if (showingActive) {
+            questIds = [...questIds].sort((a, b) => {
+                const aRead = currentGameState.readQuests.includes(a);
+                const bRead = currentGameState.readQuests.includes(b);
+                if (aRead === bRead) return 0;
+                return aRead ? 1 : -1; // Unread (false) comes before read (true)
+            });
+        }
         
         if (questIds.length === 0) {
             const message = showingActive ? 'No active quests' : 'No completed quests';
@@ -64,6 +74,11 @@ const QuestsMenu = (() => {
             pageQuestIds.forEach(questId => {
                 const quest = Object.values(QUESTS).find(q => q.id === questId);
                 if (quest) {
+                    // Mark active quests as read when displayed
+                    if (showingActive && !currentGameState.readQuests.includes(questId)) {
+                        currentGameState.readQuests.push(questId);
+                    }
+                    
                     const status = showingActive ? 'Active' : 'Completed';
                     const statusColor = showingActive ? COLORS.YELLOW : COLORS.GREEN;
                     

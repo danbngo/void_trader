@@ -128,7 +128,8 @@ const MessagesMenu = (() => {
         let completedQuest = null;
         if (message.completesQuestId) {
             const questId = message.completesQuestId;
-            if (currentGameState.activeQuests.includes(questId)) {
+            // Complete the quest if it's active and not already completed
+            if (currentGameState.activeQuests.includes(questId) && !currentGameState.completedQuests.includes(questId)) {
                 completedQuest = Object.values(QUESTS).find(q => q.id === questId);
                 
                 // Move quest from active to completed

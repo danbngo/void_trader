@@ -84,9 +84,10 @@ const AssistantMenu = (() => {
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(middleX, buttonY + 1, '5', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
-        // Quests - gray out if no quests
-        const questsHelpText = hasQuests ? 'View active and completed quests' : 'No active or completed quests';
-        const questsColor = hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        // Quests - yellow if unread, gray out if no quests
+        const hasUnreadQuests = gameState.activeQuests && gameState.activeQuests.some(qid => !gameState.readQuests.includes(qid));
+        const questsHelpText = hasQuests ? (hasUnreadQuests ? 'View quests (new quests available)' : 'View active and completed quests') : 'No active or completed quests';
+        const questsColor = hasUnreadQuests ? COLORS.YELLOW : (hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM);
         UI.addButton(middleX, buttonY + 2, '6', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
         // Column 3: Trade Recs, Score, Back

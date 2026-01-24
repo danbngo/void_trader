@@ -28,6 +28,7 @@ class GameState {
         this.activeQuests = []; // Array of active quest IDs
         this.completedQuests = []; // Array of completed quest IDs
         this.readQuests = []; // Array of quest IDs that have been seen by player
+        this.questCompletedDates = {}; // Map of quest ID to Date when completed
         this.systemsWithQuests = []; // Array of system indices that have related quests
         
         // Perk system

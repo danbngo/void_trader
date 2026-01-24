@@ -155,6 +155,9 @@ const MessagesMenu = (() => {
                 currentGameState.activeQuests = currentGameState.activeQuests.filter(id => id !== questId);
                 currentGameState.completedQuests.push(questId);
                 
+                // Track completion date
+                currentGameState.questCompletedDates[questId] = new Date(currentGameState.date);
+                
                 // Award credits programmatically
                 if (completedQuest && completedQuest.creditReward > 0) {
                     currentGameState.credits += completedQuest.creditReward;

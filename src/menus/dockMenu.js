@@ -38,13 +38,28 @@ const DockMenu = (() => {
         // Title
         UI.addTextCentered(3, `${currentSystem.name}: Dock`, COLORS.TITLE);
         
+        // Game info - Date and Retirement countdown
+        const startDate = new Date(3000, 0, 1);
+        const currentDate = gameState.date;
+        const daysPassed = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+        const retirementDays = Math.floor(50 * 365.25);
+        const daysUntilRetirement = Math.max(0, retirementDays - daysPassed);
+        
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const dateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+        
+        const infoY = TableRenderer.renderKeyValueList(5, 5, [
+            { label: 'Date:', value: dateStr, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Days until Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
+        ]);
+        
         // System info
-        UI.addTextCentered(5, `Population: ${currentSystem.population}M`, COLORS.TEXT_DIM);
-        UI.addTextCentered(6, `Economy: ${currentSystem.economy}`, COLORS.TEXT_DIM);
+        UI.addTextCentered(infoY + 1, `Population: ${currentSystem.population}M`, COLORS.TEXT_DIM);
+        UI.addTextCentered(infoY + 2, `Economy: ${currentSystem.economy}`, COLORS.TEXT_DIM);
         
         // Get player's rank at this system
         const currentRank = gameState.getRankAtCurrentSystem();
-        UI.addTextCentered(7, `Citizenship: ${currentRank.name}`, COLORS.CYAN);
+        UI.addTextCentered(infoY + 3, `Citizenship: ${currentRank.name}`, COLORS.CYAN);
         
         // Menu buttons - 3 column layout at bottom
         const buttonY = grid.height - 5;

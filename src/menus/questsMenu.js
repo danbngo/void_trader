@@ -84,10 +84,21 @@ const QuestsMenu = (() => {
                     UI.addText(xOffset, y, `: ${quest.description}`, COLORS.TEXT_DIM);
                     y++;
                     
-                    // Reward - label in white, value in green
+                    // Reward - label in white, value in green for active, gray for completed
                     if (quest.creditReward > 0) {
+                        const rewardColor = showingActive ? COLORS.GREEN : COLORS.TEXT_DIM;
                         UI.addText(leftX + 4, y, `Reward: `, COLORS.TEXT_NORMAL);
-                        UI.addText(leftX + 4 + 'Reward: '.length, y, `${quest.creditReward} CR`, COLORS.GREEN);
+                        UI.addText(leftX + 4 + 'Reward: '.length, y, `${quest.creditReward} CR`, rewardColor);
+                        y++;
+                    }
+                    
+                    // Show completion date for completed quests
+                    if (!showingActive && currentGameState.questCompletedDates[questId]) {
+                        const completedDate = currentGameState.questCompletedDates[questId];
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        const dateStr = `${months[completedDate.getMonth()]} ${completedDate.getDate()}, ${completedDate.getFullYear()}`;
+                        UI.addText(leftX + 4, y, `Completed: `, COLORS.TEXT_NORMAL);
+                        UI.addText(leftX + 4 + 'Completed: '.length, y, dateStr, COLORS.TEXT_DIM);
                         y++;
                     }
                     

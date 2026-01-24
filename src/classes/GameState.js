@@ -69,6 +69,9 @@ class GameState {
             if (!this.visitedSystems.includes(systemIndex)) {
                 this.visitedSystems.push(systemIndex);
             }
+            
+            // Reset recommendation seen flag when arriving at new system
+            this.recommendationSeen = false;
         }
     }
     

@@ -90,7 +90,12 @@ const AssistantMenu = (() => {
         UI.addButton(middleX, buttonY + 2, '6', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
         // Column 3: Trade Recs, Score, Back
-        UI.addButton(rightX, buttonY, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View trade opportunities in nearby systems');
+        // Check if there's a trade recommendation available and player hasn't seen it yet
+        const hasRecommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState) !== null;
+        const shouldHighlight = hasRecommendation && !gameState.recommendationSeen;
+        const tradeRecsColor = shouldHighlight ? COLORS.YELLOW : COLORS.BUTTON;
+        const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
+        UI.addButton(rightX, buttonY, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
         UI.addButton(rightX, buttonY + 1, '8', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
         UI.addButton(rightX, buttonY + 2, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         

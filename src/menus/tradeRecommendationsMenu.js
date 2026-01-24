@@ -19,6 +19,9 @@ const TradeRecommendationsMenu = (() => {
         returnCallback = onReturn;
         currentGameState = gameState;
         
+        // Mark recommendation as seen when player visits this screen
+        gameState.recommendationSeen = true;
+        
         // Find first enabled cargo type
         const enabledCargoIds = gameState.enabledCargoTypes.map(ct => ct.id);
         selectedCargoIndex = ALL_CARGO_TYPES.findIndex(ct => enabledCargoIds.includes(ct.id));
@@ -118,14 +121,11 @@ const TradeRecommendationsMenu = (() => {
             const recommendation = getBestTradeRecommendation();
             if (recommendation) {
                 y = TableRenderer.renderKeyValueList(5, y, [
-                    { label: 'Recommendation:', value: `Buy ${recommendation.cargoType.name} here and sell at ${recommendation.targetSystem.name}`, valueColor: COLORS.TEXT_NORMAL },
-                    { label: 'Buy Price:', value: `${recommendation.buyPrice} CR`, valueColor: COLORS.TEXT_NORMAL },
-                    { label: 'Sell Price:', value: `${recommendation.sellPrice} CR`, valueColor: COLORS.TEXT_NORMAL },
-                    { label: 'Profit:', value: `${recommendation.profit} CR per unit`, valueColor: COLORS.TEXT_NORMAL }
+                    { label: 'Recommendation:', value: recommendation.text, valueColor: COLORS.GREEN }
                 ]);
             } else {
                 y = TableRenderer.renderKeyValueList(5, y, [
-                    { label: 'Recommendation:', value: 'Not available, no viable prices at current location', valueColor: COLORS.TEXT_NORMAL }
+                    { label: 'Recommendation:', value: 'No profitable trades available', valueColor: COLORS.TEXT_DIM }
                 ]);
             }
         }
@@ -209,19 +209,58 @@ const TradeRecommendationsMenu = (() => {
     
     /**
      * Get the best trade recommendation from current location
+     * Prioritizes selling cargo the player already has where sell price > base value
      * @returns {Object|null} Best trade opportunity or null if none found
      */
     function getBestTradeRecommendation() {
         const currentSystem = currentGameState.getCurrentSystem();
         const enabledCargoIds = currentGameState.enabledCargoTypes.map(ct => ct.id);
+        const fleetCargo = Ship.getFleetCargo(currentGameState.ships);
         
-        // Get first ship for engine calculation
+        let bestSaleProfit = -Infinity;
+        let bestSale = null;
+        let bestBuyProfit = -Infinity;
+        let bestBuy = null;
+        
+        // First priority: Check if player has any cargo to sell at current location above base value
+        for (const cargoType of ALL_CARGO_TYPES) {
+            if (!enabledCargoIds.includes(cargoType.id)) continue;
+            
+            const playerQuantity = fleetCargo[cargoType.id] || 0;
+            if (playerQuantity <= 0) continue; // Skip cargo player doesn't have
+            
+            // Calculate sell price at current system
+            const currentBasePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+            const currentSellPrice = Math.floor(currentBasePrice / (1 + currentSystem.fees));
+            
+            // Check if selling here is profitable (above base value)
+            const profitPerUnit = currentSellPrice - cargoType.baseValue;
+            
+            if (profitPerUnit > 0 && profitPerUnit > bestSaleProfit) {
+                bestSaleProfit = profitPerUnit;
+                const totalProfit = profitPerUnit * playerQuantity;
+                bestSale = {
+                    type: 'sell',
+                    cargoType: cargoType,
+                    quantity: playerQuantity,
+                    sellPrice: currentSellPrice,
+                    baseValue: cargoType.baseValue,
+                    profitPerUnit: profitPerUnit,
+                    totalProfit: totalProfit,
+                    text: `Sell all ${playerQuantity} ${cargoType.name} here (+${profitPerUnit} profit/unit)`
+                };
+            }
+        }
+        
+        // If we have a profitable sale, return that as priority
+        if (bestSale) {
+            return bestSale;
+        }
+        
+        // Second priority: Find best buy-and-sell opportunity
         const activeShip = currentGameState.ships[0];
         const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
         const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
-        
-        let bestTrade = null;
-        let bestProfit = -Infinity;
         
         // Check each enabled cargo type
         for (const cargoType of ALL_CARGO_TYPES) {
@@ -254,21 +293,23 @@ const TradeRecommendationsMenu = (() => {
                 const profit = targetSellPrice - currentBuyPrice;
                 
                 // Update best trade if this is better
-                if (profit > bestProfit) {
-                    bestProfit = profit;
-                    bestTrade = {
+                if (profit > bestBuyProfit) {
+                    bestBuyProfit = profit;
+                    bestBuy = {
+                        type: 'buy',
                         cargoType: cargoType,
                         targetSystem: targetSystem,
                         buyPrice: currentBuyPrice,
                         sellPrice: targetSellPrice,
-                        profit: profit
+                        profitPerUnit: profit,
+                        text: `Buy ${cargoType.name} here and sell at ${targetSystem.name} (+${profit} profit/unit)`
                     };
                 }
             }
         }
         
-        // Only return if profit is non-negative
-        return (bestTrade && bestTrade.profit >= 0) ? bestTrade : null;
+        // Only return if profit is positive
+        return (bestBuy && bestBuy.profitPerUnit > 0) ? bestBuy : null;
     }
     
     /**
@@ -328,6 +369,11 @@ const TradeRecommendationsMenu = (() => {
     }
     
     return {
-        show
+        show,
+        getBestTradeRecommendation: function(gameState) {
+            // Set the game state temporarily for the function to work
+            currentGameState = gameState;
+            return getBestTradeRecommendation();
+        }
     };
 })();

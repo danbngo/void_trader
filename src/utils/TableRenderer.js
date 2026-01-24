@@ -56,8 +56,8 @@ const TableRenderer = (() => {
             
             currentX = x;
             row.forEach((cell, colIndex) => {
-                const color = isSelected ? 'black' : cell.color;
-                UI.addText(currentX, currentY, cell.text, color);
+                // Keep original cell color even when selected
+                UI.addText(currentX, currentY, cell.text, cell.color);
                 currentX += columnWidths[colIndex] + spacing;
             });
             currentY++;

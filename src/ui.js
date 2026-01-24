@@ -361,16 +361,22 @@ const UI = (() => {
         
         // Draw selection highlights first (under text)
         registeredHighlights.forEach(item => {
-            canvasWrapper.drawRect(item.x, item.y, item.width, 1, '#333333');
+            canvasWrapper.drawRect(item.x, item.y, item.width, 1, COLORS.GRAY);
         });
         
         // Draw all registered texts
         registeredTexts.forEach(item => {
             const textWidth = item.text.length;
             
+            // Check if this text is on a highlighted row
+            const isOnHighlightedRow = registeredHighlights.some(highlight => 
+                highlight.y === item.y && item.x >= highlight.x && item.x < highlight.x + highlight.width
+            );
+            
             // Clear the area before drawing to prevent overlapping artifacts
             // BUT don't clear if text is black (selected text on white background)
-            if (item.color !== 'black') {
+            // OR if the text is on a highlighted row (preserve the highlight background)
+            if (item.color !== 'black' && !isOnHighlightedRow) {
                 canvasWrapper.drawRect(item.x, item.y, textWidth, 1, 'black');
             }
             

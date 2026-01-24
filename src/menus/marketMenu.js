@@ -44,6 +44,16 @@ const MarketMenu = (() => {
             { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         
+        // Show trade recommendation
+        let startY = 10;
+        const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
+        if (recommendation) {
+            TableRenderer.renderKeyValueList(5, 9, [
+                { label: 'Recommendation:', value: recommendation.text, valueColor: COLORS.GREEN }
+            ]);
+            startY = 11;
+        }
+        
         // Use ALL cargo types (not just enabled ones)
         const allCargoTypes = ALL_CARGO_TYPES;
         
@@ -53,7 +63,6 @@ const MarketMenu = (() => {
         }
         
         // Market table
-        const startY = 10;
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];

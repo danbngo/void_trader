@@ -243,9 +243,10 @@ const TravelMenu = (() => {
         const avgPirateWeight = (currentSystem.pirateWeight + targetSystem.pirateWeight) / 2;
         const avgPoliceWeight = (currentSystem.policeWeight + targetSystem.policeWeight) / 2;
         const avgMerchantWeight = (currentSystem.merchantWeight + targetSystem.merchantWeight) / 2;
+        const abandonedShipWeight = ABANDONED_SHIP_ENCOUNTER_WEIGHT;
         
         // Total weight
-        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight;
+        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight;
         
         // Random selection based on weights
         const roll = Math.random() * totalWeight;
@@ -254,8 +255,10 @@ const TravelMenu = (() => {
             encounterType = ENCOUNTER_TYPES.PIRATE;
         } else if (roll < avgPirateWeight + avgPoliceWeight) {
             encounterType = ENCOUNTER_TYPES.POLICE;
-        } else {
+        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight) {
             encounterType = ENCOUNTER_TYPES.MERCHANT;
+        } else {
+            encounterType = ENCOUNTER_TYPES.ABANDONED_SHIP;
         }
         
         // Generate encounter ships
@@ -292,8 +295,8 @@ const TravelMenu = (() => {
             return;
         }
         
-        // Generate 1-3 ships
-        const numShips = Math.floor(Math.random() * 3) + 1;
+        // For abandoned ships, generate exactly 1 ship. For others, 1-3 ships
+        const numShips = encounterType.id === 'ABANDONED_SHIP' ? 1 : Math.floor(Math.random() * 3) + 1;
         
         for (let i = 0; i < numShips; i++) {
             const randomShipType = encounterType.shipTypes[
@@ -317,8 +320,8 @@ const TravelMenu = (() => {
         const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
         const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
         
-        // Generate cargo (with retry logic for merchants)
-        const maxRetries = encounterType.id === 'MERCHANT' ? 100 : 1;
+        // Generate cargo (with retry logic for merchants and abandoned ships)
+        const maxRetries = (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') ? 100 : 1;
         let retryCount = 0;
         let cargoGenerated = false;
         
@@ -326,14 +329,14 @@ const TravelMenu = (() => {
             retryCount++;
             currentGameState.encounterCargo = {};
             
-            if (totalCargoAmount > 0) {
+            if (totalCargoAmount > 0 || encounterType.id === 'ABANDONED_SHIP') {
                 const cargoTypes = Object.keys(CARGO_TYPES);
                 
                 // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
                 cargoTypes.forEach(cargoTypeId => {
                     if (Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
-                        // This cargo type is included - give it a random amount
-                        const amount = Math.floor(Math.random() * totalCargoAmount) + 1;
+                        // This cargo type is included - give it a random amount (at least 1)
+                        const amount = Math.floor(Math.random() * Math.max(1, totalCargoAmount)) + 1;
                         currentGameState.encounterCargo[cargoTypeId] = amount;
                     }
                 });
@@ -342,8 +345,8 @@ const TravelMenu = (() => {
             // Check if we generated any cargo
             const hasAnyCargo = Object.values(currentGameState.encounterCargo).some(amount => amount > 0);
             
-            // For merchants, keep trying until we get cargo. For others, accept even zero cargo.
-            if (encounterType.id === 'MERCHANT') {
+            // For merchants and abandoned ships, keep trying until we get cargo. For others, accept even zero cargo.
+            if (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') {
                 cargoGenerated = hasAnyCargo;
             } else {
                 cargoGenerated = true; // Accept whatever we got

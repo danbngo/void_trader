@@ -142,7 +142,12 @@ const TavernMenu = (() => {
         // Back button
         UI.addButton(rightX, buttonY, '0', 'Back', onReturn, COLORS.BUTTON, 'Return to dock');
         
-        // Set output message
+        // Reset selection FIRST to prevent button help text
+        if (outputMessage) {
+            UI.resetSelection();
+        }
+        
+        // Set output message AFTER resetting selection
         if (outputMessage) {
             UI.setOutputRow(outputMessage, outputColor);
         }

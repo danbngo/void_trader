@@ -39,6 +39,18 @@ const ENCOUNTER_TYPES = {
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }
+    },
+    ABANDONED_SHIP: {
+        id: 'ABANDONED_SHIP',
+        name: 'Abandoned Ship',
+        color: COLORS.TEXT_DIM,
+        description: 'Derelict vessel floating in space with salvageable cargo',
+        shipTypes: ['SHUTTLE', 'SCOUT', 'FREIGHTER', 'HAULER', 'RAIDER', 'CORVETTE', 'DESTROYER'],
+        cargoTypes: [...ALL_CARGO_TYPES],
+        maxCredits: 0,
+        onGreet: function(gameState, encType) {
+            AbandonedShipEncounter.show(gameState, encType);
+        }
     }
 };
 

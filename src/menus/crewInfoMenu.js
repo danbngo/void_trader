@@ -29,7 +29,7 @@ const CrewInfoMenu = (() => {
         const gameState = window.gameState;
         
         // Title
-        UI.addTitleLineCentered(0, 'Crew & Officers');
+        UI.addTitleLineCentered(0, 'Crew');
         
         if (gameState.subordinates.length === 0) {
             UI.addTextCentered(2, 'No crew members', COLORS.TEXT_DIM);
@@ -44,23 +44,17 @@ const CrewInfoMenu = (() => {
             // Show total salary info
             let y = 2;
             y = TableRenderer.renderKeyValueList(5, y, [
-                { label: 'Total Salaries:', value: `${totalSalary} CR per landing`, valueColor: COLORS.YELLOW },
-                { label: 'Ships in Fleet:', value: String(gameState.ships.length), valueColor: COLORS.TEXT_NORMAL }
+                { label: 'Total Salaries:', value: `${totalSalary} CR per landing`, valueColor: COLORS.YELLOW }
             ]);
             y++;
             
-            // Officers header
-            y = UI.addHeaderLine(5, y, 'Officers');
-            y++;
-            
             // Build table for officers
-            const headers = ['', 'Name', 'Lvl', '🚀', '💰', '🎯', '🥷', '🔧', 'Salary'];
+            const headers = ['Name', 'Lvl', ...SKILLS_ALL.map(s=>s.shortName), 'Salary'];
             const rows = gameState.subordinates.map((officer, index) => {
                 const salary = officer.getSalary();
                 const isSelected = index === selectedOfficerIndex;
                 
                 return [
-                    { text: isSelected ? '>' : ' ', color: COLORS.CYAN },
                     { text: officer.name, color: COLORS.TEXT_NORMAL },
                     { text: String(officer.level), color: COLORS.YELLOW },
                     { text: String(officer.skills.piloting), color: UI.calcStatColor(1.0 + (officer.skills.piloting / 20) * 3.0) },
@@ -76,28 +70,37 @@ const CrewInfoMenu = (() => {
         }
         
         // Buttons
-        const buttonY = grid.height - 7;
+        const buttonY = grid.height - 4;
         const leftX = 5;
         const middleX = 28;
+        const rightX = 51;
         
         // Navigation and release buttons - only if there are officers
         if (gameState.subordinates.length > 0) {
-            UI.addButton(leftX, buttonY, '1', 'Next Officer', () => nextOfficer(onReturn), COLORS.BUTTON, 'Select next officer');
-            UI.addButton(leftX, buttonY + 1, '2', 'Prev Officer', () => prevOfficer(onReturn), COLORS.BUTTON, 'Select previous officer');
+            // Only show next/prev buttons if more than 1 officer
+            if (gameState.subordinates.length > 1) {
+                UI.addButton(leftX, buttonY, '1', 'Next Officer', () => nextOfficer(onReturn), COLORS.BUTTON, 'Select next officer');
+                UI.addButton(leftX, buttonY + 1, '2', 'Prev Officer', () => prevOfficer(onReturn), COLORS.BUTTON, 'Select previous officer');
+            }
             
-            // Release button - disabled if it would leave ships uncrewed
-            const wouldLeaveUncrewed = gameState.subordinates.length <= gameState.ships.length;
+            // Release button - disabled if it would leave ships uncrewed (captain crews 1 ship)
+            const wouldLeaveUncrewed = gameState.subordinates.length < gameState.ships.length;
             const releaseColor = wouldLeaveUncrewed ? COLORS.TEXT_DIM : COLORS.TEXT_ERROR;
             const releaseHelp = wouldLeaveUncrewed 
-                ? 'Cannot release - need 1 officer per ship' 
+                ? 'Cannot release - need 1 officer per ship (captain crews 1)' 
                 : 'Release selected officer from service';
             UI.addButton(middleX, buttonY, '3', 'Release Officer', () => releaseOfficer(onReturn), releaseColor, releaseHelp);
         }
         
         // Back button
-        UI.addButton(leftX, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addButton(rightX, buttonY, '0', 'Back', onReturn, COLORS.BUTTON);
         
-        // Set output message
+        // Reset selection FIRST to prevent button help text
+        if (outputMessage) {
+            UI.resetSelection();
+        }
+        
+        // Set output message AFTER resetting selection
         if (outputMessage) {
             UI.setOutputRow(outputMessage, outputColor);
         }
@@ -131,9 +134,9 @@ const CrewInfoMenu = (() => {
     function releaseOfficer(onReturn) {
         const gameState = window.gameState;
         
-        // Check if releasing would leave ships uncrewed
-        if (gameState.subordinates.length <= gameState.ships.length) {
-            outputMessage = 'Cannot release officer - you need at least one officer per ship!';
+        // Check if releasing would leave ships uncrewed (captain crews 1 ship)
+        if (gameState.subordinates.length < gameState.ships.length) {
+            outputMessage = 'Cannot release officer - need at least one officer per ship (captain crews 1)!';
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;
@@ -141,6 +144,10 @@ const CrewInfoMenu = (() => {
         
         const officer = gameState.subordinates[selectedOfficerIndex];
         gameState.subordinates.splice(selectedOfficerIndex, 1);
+        
+        // Add officer to current system's tavern
+        const currentSystem = gameState.getCurrentSystem();
+        currentSystem.officers.push(officer);
         
         // Adjust selection if needed
         if (selectedOfficerIndex >= gameState.subordinates.length && gameState.subordinates.length > 0) {

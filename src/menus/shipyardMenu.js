@@ -104,10 +104,10 @@ const ShipyardMenu = (() => {
             return [
                 //{ text: marker, color: COLORS.TEXT_NORMAL },
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
-                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
-                { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
+                { text: `${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
@@ -116,7 +116,7 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';
@@ -125,21 +125,24 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
         
         // Only show next/previous buttons if player has more than 1 ship
         if (gameState.ships.length > 1) {
-            UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
-            UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
+            UI.addButton(leftX, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
+            UI.addButton(leftX, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
         }
         
         // Sell Ship - gray out if it's the last ship
         const isLastShip = gameState.ships.length === 1;
         const sellColor = isLastShip ? COLORS.TEXT_DIM : COLORS.TEXT_ERROR;
         const sellHelpText = isLastShip ? 'Cannot sell your last ship' : 'Sell selected ship for credits';
-        UI.addButton(25, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), sellColor, sellHelpText);
+        UI.addButton(middleX, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), sellColor, sellHelpText);
         
-        UI.addButton(40, buttonY, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
-        UI.addButton(5, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addButton(middleX, buttonY + 1, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
+        UI.addButton(rightX, buttonY, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {
@@ -177,14 +180,9 @@ const ShipyardMenu = (() => {
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             
-            // Calculate trade-in value (first ship's value with fees)
-            const tradeInValue = gameState.ships.length > 0 ? Math.round(gameState.ships[0].getValue() / (1 + getEffectiveFees())) : 0;
-            const netCost = price - tradeInValue;
-            
             // If no license, make entire row grey
             const textColor = hasLicense ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             const statColor = (ratio) => hasLicense ? UI.calcStatColor(ratio) : COLORS.TEXT_DIM;
-            const priceColor = hasLicense ? (netCost > 0 ? COLORS.TEXT_ERROR : COLORS.GREEN) : COLORS.TEXT_DIM;
             
             return [
                 { text: shipType.name, color: textColor },
@@ -194,12 +192,11 @@ const ShipyardMenu = (() => {
                 { text: String(ship.engine), color: statColor(engineRatio) },
                 { text: String(ship.radar), color: statColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: textColor },
-                { text: `${price}`, color: textColor },
-                { text: `${netCost}`, color: priceColor }
+                { text: `${price}`, color: textColor }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price', 'Trade-In'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Price'], rows, selectedShipIndex, 2, (rowIndex) => {
             selectedShipIndex = rowIndex;
             outputMessage = '';
             render(onReturn);
@@ -207,8 +204,12 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 5;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
+        
+        UI.addButton(leftX, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
+        UI.addButton(leftX, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
         
         // Buy Ship - gray out if insufficient credits, no license, or insufficient officers
         const selectedShip = currentSystem.ships[selectedShipIndex];
@@ -228,7 +229,7 @@ const ShipyardMenu = (() => {
         }
         
         const buyColor = canBuy ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), buyColor, buyHelpText);
+        UI.addButton(middleX, buttonY, '3', 'Buy Ship', () => initiateBuy(onReturn), buyColor, buyHelpText);
         
         // Trade In - gray out if insufficient credits for net cost or no license
         const canTradeIn = gameState.ships.length > 0 && hasLicense;
@@ -240,9 +241,9 @@ const ShipyardMenu = (() => {
         }
         
         const tradeInColor = canTradeIn ? COLORS.BUTTON : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), tradeInColor, tradeInHelpText);
+        UI.addButton(middleX, buttonY + 1, '4', 'Trade In', () => initiateTradeIn(onReturn), tradeInColor, tradeInHelpText);
         
-        UI.addButton(5, buttonY + 2, '0', 'Back to Fleet', () => switchToManageMode(onReturn), COLORS.BUTTON);
+        UI.addButton(rightX, buttonY, '0', 'Back to Fleet', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {
@@ -340,11 +341,8 @@ const ShipyardMenu = (() => {
             ]);
             y++;
             y = TableRenderer.renderKeyValueList(5, y, [
-                { label: 'Net Cost:', value: `${pendingTransaction.netCost} CR`, valueColor: COLORS.TEXT_NORMAL }
-            ]);
-            y++;
-            y = TableRenderer.renderKeyValueList(5, y, [
                 { label: 'Your Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Net Cost:', value: `${pendingTransaction.netCost} CR`, valueColor: COLORS.TEXT_NORMAL },
                 { label: 'After Trade:', value: `${gameState.credits - pendingTransaction.netCost} CR`, valueColor: COLORS.TEXT_NORMAL }
             ]);
         }

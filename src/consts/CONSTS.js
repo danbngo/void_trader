@@ -102,3 +102,6 @@ const EXP_POINTS_FROM_COMBAT_VICTORY_AVG = 25 //per victory. modified by their t
 const EXP_POINTS_FROM_COMBAT_FLEE_AVG = 5 //per successful flee. modified by their total ship value / ours
 const EXP_POINTS_FROM_TRADING_1000CR = 5 //per 1000cr traded. apply this fractionally, ie, if player trades 100cr then he has a 50/50 chance of gaining 1 exp. if player trades 300 cr then he has 50% chance of gaining 1 exp and 50% chance of gaining 2.
 const EXP_POINTS_FROM_SMUGGLING = 5 //if player had illegal cargo and police overlook it, award this
+
+const ABANDONED_SHIP_AMBUSH_CHANCE = 0.25
+const ABANDONED_SHIP_ENCOUNTER_WEIGHT = 0.5

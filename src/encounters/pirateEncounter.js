@@ -5,10 +5,14 @@
 const PirateEncounter = {
     /**
      * Show pirate encounter - boarding threat
+     * @param {GameState} gameState - Current game state
+     * @param {Object} encType - Encounter type
+     * @param {boolean} neverIgnore - If true, pirates will never ignore the player (for ambushes)
      */
-    show: function(gameState, encType) {
+    show: function(gameState, encType, neverIgnore = false) {
         // Check if player only has a single shuttle (not worth pirating)
-        if (gameState.ships.length === 1 && gameState.ships[0].type === 'SHUTTLE') {
+        // Unless neverIgnore is true (e.g., ambush scenario)
+        if (!neverIgnore && gameState.ships.length === 1 && gameState.ships[0].type === 'SHUTTLE') {
             this.showIgnoredByPirates(gameState);
             return;
         }
@@ -17,8 +21,9 @@ const PirateEncounter = {
         const playerCargo = Ship.getFleetCargo(gameState.ships);
         const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
         
-        if (!hasAnyCargo) {
+        if (!neverIgnore && !hasAnyCargo) {
             // Pirates don't bother demanding cargo if there's none
+            // Unless neverIgnore is true (e.g., ambush scenario)
             this.showNoCargoPirates(gameState);
             return;
         }

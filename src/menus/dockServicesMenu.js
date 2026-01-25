@@ -42,8 +42,8 @@ const DockServicesMenu = (() => {
             const fuelRatio = ship.fuel / ship.maxFuel;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.shields / ship.maxShields;
-            const fuelCostForShip = (ship.maxFuel - ship.fuel) * FUEL_COST_PER_UNIT;
-            const repairCostForShip = (ship.maxHull - ship.hull + ship.maxShields - ship.shields) * HULL_REPAIR_COST_PER_UNIT;
+            const fuelCostForShip = Math.floor((ship.maxFuel - ship.fuel) * FUEL_COST_PER_UNIT);
+            const repairCostForShip = Math.floor((ship.maxHull - ship.hull + ship.maxShields - ship.shields) * HULL_REPAIR_COST_PER_UNIT);
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
@@ -77,7 +77,7 @@ const DockServicesMenu = (() => {
         // Column 2: Refuel, Repair
         const ship = gameState.ships[selectedShipIndex];
         const fuelNeeded = ship.maxFuel - ship.fuel;
-        const fuelCost = fuelNeeded * FUEL_COST_PER_UNIT;
+        const fuelCost = Math.floor(fuelNeeded * FUEL_COST_PER_UNIT);
         const canRefuel = fuelNeeded > 0; // Always allow refuel if fuel is needed (pity refuel if no credits)
         const refuelColor = canRefuel ? COLORS.GREEN : COLORS.TEXT_DIM;
         const refuelHelpText = fuelNeeded > 0 ? `Refuel to max capacity for ${fuelCost} CR` : 'Already at max fuel';
@@ -86,7 +86,7 @@ const DockServicesMenu = (() => {
         // Repair - gray out if already full or insufficient credits (includes shields)
         const hullNeeded = ship.maxHull - ship.hull;
         const shieldNeeded = ship.maxShields - ship.shields;
-        const repairCost = (hullNeeded + shieldNeeded) * HULL_REPAIR_COST_PER_UNIT;
+        const repairCost = Math.floor((hullNeeded + shieldNeeded) * HULL_REPAIR_COST_PER_UNIT);
         const canRepair = (hullNeeded > 0 || shieldNeeded > 0) && gameState.credits >= repairCost;
         const repairColor = canRepair ? COLORS.GREEN : COLORS.TEXT_DIM;
         const repairHelpText = (hullNeeded > 0 || shieldNeeded > 0) ? `Repair hull and shields for ${repairCost} CR` : 'Already at max hull and shields';
@@ -118,7 +118,7 @@ const DockServicesMenu = (() => {
     function refuel(onReturn) {
         const ship = gameState.ships[selectedShipIndex];
         const fuelNeeded = ship.maxFuel - ship.fuel;
-        const totalCost = fuelNeeded * FUEL_COST_PER_UNIT;
+        const totalCost = Math.floor(fuelNeeded * FUEL_COST_PER_UNIT);
         
         if (fuelNeeded === 0) {
             outputMessage = 'Ship is already fully fueled!';
@@ -143,7 +143,7 @@ const DockServicesMenu = (() => {
         const ship = gameState.ships[selectedShipIndex];
         const hullNeeded = ship.maxHull - ship.hull;
         const shieldNeeded = ship.maxShields - ship.shields;
-        const totalCost = (hullNeeded + shieldNeeded) * HULL_REPAIR_COST_PER_UNIT;
+        const totalCost = Math.floor((hullNeeded + shieldNeeded) * HULL_REPAIR_COST_PER_UNIT);
         
         if (hullNeeded === 0 && shieldNeeded === 0) {
             outputMessage = 'Ship is already fully repaired!';

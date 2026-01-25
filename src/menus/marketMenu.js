@@ -322,21 +322,14 @@ const MarketMenu = (() => {
             if (tradingExp > 0) {
                 const expComponents = ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading');
                 if (expComponents) {
-                    // Use color array for output row to show exp in yellow
-                    outputMessage = [
-                        { text: baseMessage + ' ', color: COLORS.TEXT_SUCCESS },
-                        { text: '(' + expComponents.baseMessage, color: COLORS.YELLOW },
-                        { text: expComponents.levelUpText + ')', color: expComponents.levelUpText ? COLORS.YELLOW : COLORS.YELLOW }
-                    ];
-                    outputColor = COLORS.TEXT_SUCCESS; // Not used when outputMessage is array
+                    outputMessage = baseMessage + ' (' + expComponents.baseMessage + expComponents.levelUpText + ')';
                 } else {
                     outputMessage = baseMessage;
-                    outputColor = COLORS.TEXT_SUCCESS;
                 }
             } else {
                 outputMessage = baseMessage;
-                outputColor = COLORS.TEXT_SUCCESS;
             }
+            outputColor = COLORS.TEXT_SUCCESS;
         }
         
         render(onReturn);
@@ -389,21 +382,14 @@ const MarketMenu = (() => {
             if (tradingExp > 0) {
                 const expComponents = ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading');
                 if (expComponents) {
-                    // Use color array for output row to show exp in yellow
-                    outputMessage = [
-                        { text: baseMessage + ' ', color: COLORS.TEXT_SUCCESS },
-                        { text: '(' + expComponents.baseMessage, color: COLORS.YELLOW },
-                        { text: expComponents.levelUpText + ')', color: expComponents.levelUpText ? COLORS.YELLOW : COLORS.YELLOW }
-                    ];
-                    outputColor = COLORS.TEXT_SUCCESS; // Not used when outputMessage is array
+                    outputMessage = baseMessage + ' (' + expComponents.baseMessage + expComponents.levelUpText + ')';
                 } else {
                     outputMessage = baseMessage;
-                    outputColor = COLORS.TEXT_SUCCESS;
                 }
             } else {
                 outputMessage = baseMessage;
-                outputColor = COLORS.TEXT_SUCCESS;
             }
+            outputColor = COLORS.TEXT_SUCCESS;
         }
         
         render(onReturn);

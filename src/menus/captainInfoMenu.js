@@ -205,17 +205,17 @@ const CaptainInfoMenu = (() => {
             const upgradeCost = playerOfficer.getSkillUpgradeCost(skill.id);
             const canUpgrade = playerOfficer.canUpgradeSkill(skill.id);
             
-            let costColor = COLORS.TEXT_DIM;
-            if (currentLevel < skill.maxLevel) {
-                costColor = canUpgrade ? COLORS.GREEN : COLORS.TEXT_ERROR;
-            }
+            // Calculate stat color for level (0 = ratio 1.0, maxLevel = ratio 4.0)
+            const levelRatio = 1.0 + (currentLevel / skill.maxLevel) * 3.0;
+            const levelColor = UI.calcStatColor(levelRatio);
             
+            // Cost column has no color (white)
             const costText = currentLevel < skill.maxLevel ? String(upgradeCost) : 'MAX';
             
             return [
                 { text: skill.name, color: skill.color },
-                { text: `${currentLevel}/${skill.maxLevel}`, color: COLORS.TEXT_NORMAL },
-                { text: costText, color: costColor },
+                { text: String(currentLevel), color: levelColor },
+                { text: costText, color: COLORS.TEXT_NORMAL },
                 { text: skill.description, color: COLORS.WHITE }
             ];
         });

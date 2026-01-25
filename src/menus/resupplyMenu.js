@@ -42,8 +42,8 @@ const ResupplyMenu = (() => {
             const fuelNeeded = ship.maxFuel - ship.fuel;
             const hullDamage = ship.maxHull - ship.hull;
             const shieldDamage = ship.maxShields - ship.shields;
-            totalRefuelCost += fuelNeeded * FUEL_COST_PER_UNIT;
-            totalRepairCost += (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
+            totalRefuelCost += Math.floor(fuelNeeded * FUEL_COST_PER_UNIT);
+            totalRepairCost += Math.floor((hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT);
         });
         
         // Display costs using renderKeyValueList
@@ -125,12 +125,12 @@ const ResupplyMenu = (() => {
             // Repair cost
             const hullDamage = ship.maxHull - ship.hull;
             const shieldDamage = ship.maxShields - ship.shields;
-            const repairCost = (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
+            const repairCost = Math.floor((hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT);
             if (repairCost > 0) anyRepaired = true;
             
             // Refuel cost
             const fuelNeeded = ship.maxFuel - ship.fuel;
-            const refuelCost = fuelNeeded * FUEL_COST_PER_UNIT;
+            const refuelCost = Math.floor(fuelNeeded * FUEL_COST_PER_UNIT);
             if (fuelNeeded > 0) anyRefueled = true;
             
             totalCost += repairCost + refuelCost;
@@ -186,7 +186,7 @@ const ResupplyMenu = (() => {
             const fuelNeeded = ship.maxFuel - ship.fuel;
             if (fuelNeeded > 0) {
                 anyRefueled = true;
-                totalCost += fuelNeeded * FUEL_COST_PER_UNIT;
+                totalCost += Math.floor(fuelNeeded * FUEL_COST_PER_UNIT);
             }
         });
         
@@ -237,7 +237,7 @@ const ResupplyMenu = (() => {
         gameState.ships.forEach(ship => {
             const hullDamage = ship.maxHull - ship.hull;
             const shieldDamage = ship.maxShields - ship.shields;
-            const repairCost = (hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT;
+            const repairCost = Math.floor((hullDamage + shieldDamage) * HULL_REPAIR_COST_PER_UNIT);
             if (repairCost > 0) {
                 anyRepaired = true;
                 totalCost += repairCost;

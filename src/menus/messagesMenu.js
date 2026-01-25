@@ -214,24 +214,29 @@ const MessagesMenu = (() => {
         
         y++;
         
-        // Show quest completion and reward
-        if (completedQuest) {
-            UI.addText(leftX, y++, `Quest completed: ${completedQuest.name}!`, COLORS.GREEN);
-            if (completedQuest.creditReward > 0) {
-                UI.addText(leftX, y++, `Credits awarded: ${completedQuest.creditReward} CR`, COLORS.YELLOW);
+        // Show quest completion and reward using renderKeyValueList
+        if (completedQuest || addedQuestId) {
+            const questItems = [];
+            
+            if (completedQuest) {
+                questItems.push({ label: 'Quest completed:', value: `${completedQuest.name}!`, valueColor: COLORS.GREEN });
+                if (completedQuest.creditReward > 0) {
+                    questItems.push({ label: 'Credits awarded:', value: `${completedQuest.creditReward} CR`, valueColor: COLORS.YELLOW });
+                }
+                if (completedQuest.expReward > 0) {
+                    questItems.push({ label: 'Experience awarded:', value: `${completedQuest.expReward} XP`, valueColor: COLORS.YELLOW });
+                }
             }
-            if (completedQuest.expReward > 0) {
-                UI.addText(leftX, y++, `Experience awarded: ${completedQuest.expReward} XP`, COLORS.GREEN);
+            
+            if (addedQuestId) {
+                const addedQuest = QUESTS[addedQuestId];
+                if (addedQuest) {
+                    questItems.push({ label: 'Quest added:', value: `${addedQuest.name}!`, valueColor: COLORS.GREEN });
+                }
             }
-        }
-        
-        // Show quest added notification with quest name
-        if (addedQuestId) {
-            const addedQuest = QUESTS[addedQuestId];
-            if (addedQuest) {
-                UI.addText(leftX, y++, `Quest added: ${addedQuest.name}!`, COLORS.GREEN);
-                y++;
-            }
+            
+            y = TableRenderer.renderKeyValueList(leftX, y, questItems);
+            y++;
         }
         
         // Continue button

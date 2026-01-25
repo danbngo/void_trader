@@ -369,7 +369,7 @@ const TravelMenu = (() => {
     function completeJourney() {
         // Deduct the pre-calculated fuel costs from each ship
         currentGameState.ships.forEach((ship, index) => {
-            ship.fuel = Math.max(0, ship.fuel - shipFuelCosts[index]);
+            ship.fuel = Math.floor(Math.max(0, ship.fuel - shipFuelCosts[index]));
         });
         
         console.log('[TravelMenu] Journey complete, fuel deducted:', {
@@ -417,7 +417,7 @@ const TravelMenu = (() => {
         // Deduct proportional fuel based on progress
         currentGameState.ships.forEach((ship, index) => {
             const fuelToConsume = shipFuelCosts[index] * progress;
-            ship.fuel = Math.max(0, ship.fuel - fuelToConsume);
+            ship.fuel = Math.floor(Math.max(0, ship.fuel - fuelToConsume));
         });
         
         console.log('[TravelMenu] Consuming fuel for progress:', {

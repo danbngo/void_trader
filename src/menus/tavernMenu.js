@@ -394,9 +394,7 @@ const TavernMenu = (() => {
         outputColor = COLORS.TEXT_SUCCESS;
         console.log('[TavernMenu] acceptJob - Setting output message:', outputMessage);
         console.log('[TavernMenu] acceptJob - Output color:', outputColor);
-        UI.resetSelection(); // Reset selection to prevent button help text from overwriting
-        UI.setOutputRow(outputMessage, outputColor);
-        console.log('[TavernMenu] acceptJob - Called UI.setOutputRow');
+        console.log('[TavernMenu] acceptJob - NOT calling UI.setOutputRow here, letting render handle it');
         
         render(onReturn);
     }

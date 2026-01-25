@@ -76,6 +76,14 @@ const CARGO_TYPES = {
         illegal: false,
         color: COLORS.GREEN
     },
+    RELICS: {
+        id: 'RELICS',
+        name: 'Relics',
+        description: 'Ancient alien artifacts of unknown origin',
+        baseValue: 2000,
+        illegal: false,
+        color: COLORS.CYAN
+    },
     WEAPONS: {
         id: 'WEAPONS',
         name: 'Weapons',
@@ -104,6 +112,9 @@ const CARGO_TYPES = {
 
 // Array of all cargo types for iteration
 const ALL_CARGO_TYPES = Object.values(CARGO_TYPES);
+
+// Array of cargo types that can be traded/found in markets and on ships (excludes RELICS)
+const CARGO_TYPES_TRADEABLE = ALL_CARGO_TYPES.filter(ct => ct.id !== 'RELICS');
 
 const CARGO_TYPES_SAFE = [CARGO_TYPES.AIR, CARGO_TYPES.WATER, CARGO_TYPES.FOOD];
 const CARGO_TYPES_FRAGILE = [CARGO_TYPES.HOLOCUBES, CARGO_TYPES.MEDICINE, CARGO_TYPES.NANITES];

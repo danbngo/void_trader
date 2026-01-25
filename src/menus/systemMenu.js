@@ -272,11 +272,23 @@ const DockMenu = (() => {
      * @param {GameState} gameState - Current game state
      */
     function checkJobs(gameState) {
+        console.log('[DockMenu] checkJobs called');
         // Check if player has an active job
-        if (!gameState.currentJob) return false;
+        if (!gameState.currentJob) {
+            console.log('[DockMenu] No active job');
+            return false;
+        }
         
         const job = gameState.currentJob;
         const currentDate = gameState.date.getTime();
+        console.log('[DockMenu] Checking job:', {
+            description: job.description,
+            targetSystem: job.targetSystem.name,
+            currentSystem: gameState.getCurrentSystem().name,
+            currentDate: new Date(currentDate),
+            deadlineDate: new Date(job.deadlineDate),
+            isExpired: job.isExpired(currentDate)
+        });
         
         // Check if job is expired
         if (job.isExpired(currentDate)) {
@@ -287,7 +299,15 @@ const DockMenu = (() => {
         }
         
         // Check if job is completed
-        if (job.jobType.checkCompleted(job, gameState)) {
+        const isCompleted = job.jobType.checkCompleted(job, gameState);
+        console.log('[DockMenu] Job completion check:', {
+            isCompleted,
+            currentSystemIndex: gameState.currentSystemIndex,
+            targetSystemIndex: gameState.systems.indexOf(job.targetSystem)
+        });
+        
+        if (isCompleted) {
+            console.log('[DockMenu] Job completed! Showing reward screen');
             // Mark job as completed and waiting for reward collection
             job.completed = true;
             gameState.completedJobReward = job;
@@ -298,6 +318,7 @@ const DockMenu = (() => {
             return true; // Indicate that we showed a screen
         }
         
+        console.log('[DockMenu] Job still in progress');
         return false;
     }
     

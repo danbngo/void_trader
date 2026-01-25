@@ -19,9 +19,10 @@ const AbandonedShipEncounter = {
         UI.addText(10, y++, `No life signs detected. The ship appears to be abandoned.`, COLORS.TEXT_DIM);
         y++;
         
-        // Show radar advantage messages
-        y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, "Derelict");
-        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Derelict");
+        // Silently set all player shields to 0 (not ready for potential ambush)
+        gameState.ships.forEach(ship => {
+            ship.shields = 0;
+        });
         
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);

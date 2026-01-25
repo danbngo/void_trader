@@ -87,8 +87,8 @@ const SystemGenerator = (() => {
         // Generate fees (random value between min and max)
         system.fees = STAR_SYSTEM_MIN_FEES + Math.random() * (STAR_SYSTEM_MAX_FEES - STAR_SYSTEM_MIN_FEES);
         
-        // Generate market data for each cargo type
-        ALL_CARGO_TYPES.forEach(cargoType => {
+        // Generate market data for each cargo type (excludes RELICS)
+        CARGO_TYPES_TRADEABLE.forEach(cargoType => {
             // Stock: random amount based on constants
             const stockRange = MAX_CARGO_AMOUNT_IN_MARKET - MIN_CARGO_AMOUNT_IN_MARKET + 1;
             system.cargoStock[cargoType.id] = Math.floor(Math.random() * stockRange) + MIN_CARGO_AMOUNT_IN_MARKET;

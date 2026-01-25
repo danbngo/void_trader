@@ -108,3 +108,13 @@ const EXP_POINTS_FROM_SMUGGLING = 5 //if player had illegal cargo and police ove
 
 const ABANDONED_SHIP_AMBUSH_CHANCE = 0.25
 const ABANDONED_SHIP_ENCOUNTER_WEIGHT = 0.5
+
+const NEWS_CHANCE_PER_SYSTEM_PER_YEAR = 0.05 //each year, each human-controlled system has this chance to generate news
+
+//simulation says aliens will take ~60-75 years to conquer everything, which is above the game time limit of 50y 
+const ALIENS_SPAWN_AFTER_X_YEARS = 0.001 //alien behavior will start after this many years
+const ALIENS_CONQUER_X_SYSTEMS_AT_START = 10
+const ALIENS_SPONTANEOUS_CONQUESTS_PER_YEAR = 0.5 //aliens will randomly conquer 1 system per year this likelihood
+const ALIENS_CONQUER_CHANCE_PER_YEAR = 0.15 //every alien-conquered system whose nearest neighbor is human has a chance to conquer them each year
+const ALIENS_LIBERATED_CHANCE_PER_YEARS = 0.1 //every alien-conquered system whose nearest neighbor is human has a chance to be liberated each year
+const ALIENS_ENCOUNTER_WEIGHT = 4.0 //when traveling to a conquered system, this is added to encounter weights

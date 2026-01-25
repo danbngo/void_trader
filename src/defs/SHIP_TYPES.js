@@ -99,6 +99,43 @@ const SHIP_TYPES = {
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 2,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 2,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 2
+    },
+    // Alien ship types (33% weaker than human ships)
+    ALIEN_FIGHTER: {
+        id: 'ALIEN_FIGHTER',
+        name: 'Fighter',
+        description: 'Small alien fighter craft',
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 0.67,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.67,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.67,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.67,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.67,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.34,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.67
+    },
+    ALIEN_BOMBER: {
+        id: 'ALIEN_BOMBER',
+        name: 'Bomber',
+        description: 'Heavily armed alien bomber',
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 0.67,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.67,
+        baseMaxHull: AVERAGE_SHIP_HULL * 1,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.67,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.34,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.67,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.67
+    },
+    ALIEN_MOTHERSHIP: {
+        id: 'ALIEN_MOTHERSHIP',
+        name: 'Mothership',
+        description: 'Large alien command vessel',
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 1,
+        baseMaxHull: AVERAGE_SHIP_HULL * 1.34,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.67,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1
     }
 };
 
@@ -109,3 +146,4 @@ const SHIP_TYPES_BASIC = [SHIP_TYPES.SHUTTLE, SHIP_TYPES.SCOUT]
 const SHIP_TYPES_MERCANTILE = [SHIP_TYPES.FREIGHTER, SHIP_TYPES.HAULER]
 const SHIP_TYPES_PARAMILITARY = [SHIP_TYPES.CORVETTE, SHIP_TYPES.RAIDER]
 const SHIP_TYPES_MILITARY = [SHIP_TYPES.DESTROYER, SHIP_TYPES.BATTLESHIP]
+const SHIP_TYPES_ALIEN = [SHIP_TYPES.ALIEN_FIGHTER, SHIP_TYPES.ALIEN_BOMBER, SHIP_TYPES.ALIEN_MOTHERSHIP]

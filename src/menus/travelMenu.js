@@ -330,7 +330,8 @@ const TravelMenu = (() => {
             currentGameState.encounterCargo = {};
             
             if (totalCargoAmount > 0 || encounterType.id === 'ABANDONED_SHIP') {
-                const cargoTypes = Object.keys(CARGO_TYPES);
+                // Use CARGO_TYPES_TRADEABLE to exclude RELICS from encounter cargo
+                const cargoTypes = CARGO_TYPES_TRADEABLE.map(ct => ct.id);
                 
                 // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
                 cargoTypes.forEach(cargoTypeId => {
@@ -363,6 +364,16 @@ const TravelMenu = (() => {
             encounterCargo: currentGameState.encounterCargo,
             hasAnyCargo: Object.values(currentGameState.encounterCargo).some(amount => amount > 0)
         });
+        
+        // Transfer encounterCargo to the first ship's cargo (for LootMenu compatibility)
+        if (currentGameState.encounterShips.length > 0) {
+            const firstShip = currentGameState.encounterShips[0];
+            for (const cargoId in currentGameState.encounterCargo) {
+                if (currentGameState.encounterCargo[cargoId] > 0) {
+                    firstShip.cargo[cargoId] = currentGameState.encounterCargo[cargoId];
+                }
+            }
+        }
     }
     
     /**

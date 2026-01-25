@@ -122,7 +122,7 @@ const AssistantMenu = (() => {
         const hasActiveJob = gameState.currentJob !== null;
         const jobsHelpText = hasActiveJob ? 'View active job details' : 'No active jobs';
         const jobsColor = hasActiveJob ? COLORS.BUTTON : COLORS.TEXT_DIM;
-        UI.addButton(middleX, buttonY + 2, '6', 'Jobs', () => JobsMenu.show(gameState, () => show(gameState, returnCallback)), jobsColor, jobsHelpText);
+        UI.addButton(middleX, buttonY + 2, '6', 'Jobs', () => tryOpenJobs(gameState, onReturn), jobsColor, jobsHelpText);
         
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(middleX, buttonY + 3, '7', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
@@ -208,6 +208,17 @@ const AssistantMenu = (() => {
         }
         
         QuestsMenu.show(gameState, () => show(gameState, returnCallback));
+    }
+    
+    /**
+     * Try to open jobs menu
+     */
+    function tryOpenJobs(gameState, onReturn) {
+        if (!gameState.currentJob) {
+            UI.setOutputRow('No active jobs! Visit a tavern to find work.', COLORS.TEXT_ERROR);
+            return;
+        }
+        JobsMenu.show(gameState, () => show(gameState, returnCallback));
     }
     
     /**

@@ -122,7 +122,8 @@ const AssistantMenu = (() => {
         UI.addButton(middleX, buttonY + 2, '6', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
         // Trade recs - never highlight (removed recommendation highlight behavior)
-        const hasRecommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState) !== null;
+        const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
+        const hasRecommendation = recommendation !== null && recommendation.type !== 'nodata';
         const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
         UI.addButton(middleX, buttonY + 3, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, tradeRecsHelp);
         

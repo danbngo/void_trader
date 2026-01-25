@@ -125,7 +125,9 @@ const MarketMenu = (() => {
             UI.addText(5, tableEndY + 1, 'Recommendation: ', COLORS.TEXT_DIM);
             let xOffset = 5 + 'Recommendation: '.length;
             
-            if (recommendation.type === 'sell') {
+            if (recommendation.type === 'nodata') {
+                UI.addText(xOffset, tableEndY + 1, recommendation.text, COLORS.TEXT_DIM);
+            } else if (recommendation.type === 'sell') {
                 UI.addText(xOffset, tableEndY + 1, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
                 xOffset += `Sell all ${recommendation.quantity} `.length;
                 UI.addText(xOffset, tableEndY + 1, recommendation.cargoName, recommendation.cargoColor);

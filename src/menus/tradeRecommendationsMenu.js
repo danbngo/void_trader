@@ -246,12 +246,22 @@ const TradeRecommendationsMenu = (() => {
     /**
      * Get the best trade recommendation from current location
      * Prioritizes selling cargo the player already has where sell price > base value
+     * Only considers visited systems for recommendations
      * @returns {Object|null} Best trade opportunity or null if none found
      */
     function getBestTradeRecommendation() {
         const currentSystem = currentGameState.getCurrentSystem();
+        const currentSystemIndex = currentGameState.currentSystemIndex;
         const enabledCargoIds = currentGameState.enabledCargoTypes.map(ct => ct.id);
         const fleetCargo = Ship.getFleetCargo(currentGameState.ships);
+        
+        // Check if player has visited at least 2 systems (need current + 1 other for trading)
+        if (currentGameState.visitedSystems.length < 2) {
+            return {
+                type: 'nodata',
+                text: 'Visit more systems to gather info and enable recommendations'
+            };
+        }
         
         let bestSaleProfit = -Infinity;
         let bestSale = null;
@@ -295,7 +305,7 @@ const TradeRecommendationsMenu = (() => {
             return bestSale;
         }
         
-        // Second priority: Find best buy-and-sell opportunity
+        // Second priority: Find best buy-and-sell opportunity (only among visited systems)
         const activeShip = currentGameState.ships[0];
         const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
         const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
@@ -312,9 +322,12 @@ const TradeRecommendationsMenu = (() => {
             const currentStock = currentSystem.cargoStock[cargoType.id];
             if (currentStock <= 0) continue;
             
-            // Check all reachable systems for best sell price
+            // Check all VISITED reachable systems for best sell price
             for (let i = 0; i < currentGameState.systems.length; i++) {
-                if (i === currentGameState.currentSystemIndex) continue; // Skip current system
+                if (i === currentSystemIndex) continue; // Skip current system
+                
+                // Only consider visited systems
+                if (!currentGameState.visitedSystems.includes(i)) continue;
                 
                 const targetSystem = currentGameState.systems[i];
                 const distance = currentSystem.distanceTo(targetSystem);

@@ -54,8 +54,8 @@ const CourthouseMenu = (() => {
                 // Current or previous rank - always show in white
                 ranksToDisplay.push({
                     label: `${rank.name}:`,
-                    value: rank.level === currentRank.level ? 'Current Rank' : 'Previously Attained',
-                    valueColor: COLORS.TEXT_NORMAL
+                    value: rank.level === currentRank.level ? 'Acquired' : 'Acquired',
+                    valueColor: rank.level === currentRank.level ? COLORS.GREEN : COLORS.TEXT_NORMAL,
                 });
             } else if (rank.level === currentRank.level + 1) {
                 // Next rank - show in green if affordable, gray if not

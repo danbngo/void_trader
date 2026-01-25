@@ -77,9 +77,16 @@ const QUESTS = {
         ['Proxima'], // Related systems
         (gameState) => {
             const perk = PERKS.CARGO_FRAGILE;
-            return Math.min(1.0, gameState.credits / perk.cost);
+            const currentSystem = gameState.getCurrentSystem();
+            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            return Math.min(1.0, gameState.credits / totalCost);
         },
-        'Credits vs Skill Cost'
+        (gameState) => {
+            const perk = PERKS.CARGO_FRAGILE;
+            const currentSystem = gameState.getCurrentSystem();
+            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            return `Credits: ${gameState.credits}/${totalCost}`;
+        }
     ),
     
     LEARN_SHIP_HANDLING: new Quest(
@@ -95,8 +102,15 @@ const QUESTS = {
         ['Proxima'], // Related systems
         (gameState) => {
             const perk = PERKS.SHIP_MERCANTILE;
-            return Math.min(1.0, gameState.credits / perk.cost);
+            const currentSystem = gameState.getCurrentSystem();
+            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            return Math.min(1.0, gameState.credits / totalCost);
         },
-        'Credits vs Skill Cost'
+        (gameState) => {
+            const perk = PERKS.SHIP_MERCANTILE;
+            const currentSystem = gameState.getCurrentSystem();
+            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            return `Credits: ${gameState.credits}/${totalCost}`;
+        }
     )
 };

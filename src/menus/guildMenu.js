@@ -41,7 +41,9 @@ const GuildMenu = (() => {
         
         const rows = ALL_PERKS.map(perk => {
             const alreadyLearned = gameState.perks.has(perk.id);
-            const canAfford = gameState.credits >= perk.baseCost;
+            // Calculate total cost with system fees
+            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            const canAfford = gameState.credits >= totalCost;
             
             // Check if player has all required perks
             const hasRequiredPerks = perk.requiredPerks.every(reqPerkId => gameState.perks.has(reqPerkId));
@@ -66,7 +68,7 @@ const GuildMenu = (() => {
             return [
                 { text: perk.name, color: alreadyLearned ? COLORS.TEXT_DIM : COLORS.TEXT_NORMAL },
                 { text: perk.description, color: COLORS.TEXT_DIM },
-                { text: `${perk.baseCost} CR`, color: alreadyLearned ? COLORS.TEXT_DIM : COLORS.TEXT_NORMAL },
+                { text: `${totalCost} CR`, color: alreadyLearned ? COLORS.TEXT_DIM : COLORS.TEXT_NORMAL },
                 { text: statusText, color: statusColor }
             ];
         });
@@ -85,7 +87,8 @@ const GuildMenu = (() => {
         // Learn button - gray out if already learned, locked, or can't afford
         const selectedPerk = ALL_PERKS[selectedPerkIndex];
         const alreadyLearned = gameState.perks.has(selectedPerk.id);
-        const canAfford = gameState.credits >= selectedPerk.baseCost;
+        const selectedPerkTotalCost = Math.floor(selectedPerk.baseCost * (1 + currentSystem.fees));
+        const canAfford = gameState.credits >= selectedPerkTotalCost;
         const hasRequiredPerks = selectedPerk.requiredPerks.every(reqPerkId => gameState.perks.has(reqPerkId));
         const canLearn = !alreadyLearned && canAfford && hasRequiredPerks;
         const learnColor = canLearn ? COLORS.GREEN : COLORS.TEXT_DIM;
@@ -96,7 +99,7 @@ const GuildMenu = (() => {
         } else if (!hasRequiredPerks) {
             learnHelpText = 'Must learn prerequisite perks first';
         } else if (!canAfford) {
-            learnHelpText = `Need ${selectedPerk.baseCost} CR`;
+            learnHelpText = `Need ${selectedPerkTotalCost} CR`;
         }
         
         UI.addButton(25, buttonY, '3', 'Learn Perk', () => learnPerk(onReturn), learnColor, learnHelpText);
@@ -124,6 +127,8 @@ const GuildMenu = (() => {
     
     function learnPerk(onReturn) {
         const perk = ALL_PERKS[selectedPerkIndex];
+        const currentSystem = gameState.getCurrentSystem();
+        const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
         
         if (gameState.perks.has(perk.id)) {
             outputMessage = 'You already know this perk!';
@@ -142,15 +147,15 @@ const GuildMenu = (() => {
             return;
         }
         
-        if (gameState.credits < perk.baseCost) {
-            outputMessage = `Not enough credits! Need ${perk.baseCost} CR, have ${gameState.credits} CR.`;
+        if (gameState.credits < totalCost) {
+            outputMessage = `Not enough credits! Need ${totalCost} CR, have ${gameState.credits} CR.`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;
         }
         
         // Learn the perk
-        gameState.credits -= perk.baseCost;
+        gameState.credits -= totalCost;
         gameState.perks.add(perk.id);
         
         // Unlock corresponding cargo types

@@ -13,11 +13,11 @@ const MerchantEncounter = {
         const grid = UI.getGridSize();
         let y = 5;
         UI.addTextCentered(y++, `=== Merchant Encounter ===`, COLORS.CYAN);
-        y += 2;
+        y++;
         
         UI.addText(10, y++, `A merchant vessel hails your fleet.`, COLORS.TEXT_NORMAL);
         UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
-        y += 2;
+        y++;
         
         // Show radar advantage messages
         y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, "Merchants");

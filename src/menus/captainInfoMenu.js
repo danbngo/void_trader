@@ -39,7 +39,7 @@ const CaptainInfoMenu = (() => {
         else if (currentMode === 'perks') title = 'Perks';
         UI.addTitleLineCentered(3, title);
         
-        let y = 6;
+        let y = 5;
         
         // Render based on mode
         if (currentMode === 'info') {
@@ -56,47 +56,53 @@ const CaptainInfoMenu = (() => {
         const middleX = 28;
         const rightX = 51;
         
-        // Mode switching buttons
-        const infoColor = currentMode === 'info' ? COLORS.CYAN : COLORS.BUTTON;
-        UI.addButton(leftX, buttonY, '1', 'Captain Info', () => switchMode('info', onReturn), infoColor, 'View captain information');
+        // Mode switching buttons - hide button for current mode
+        if (currentMode !== 'info') {
+            const infoColor = COLORS.BUTTON;
+            UI.addButton(leftX, buttonY, '1', 'Captain Info', () => switchMode('info', onReturn), infoColor, 'View captain information');
+        }
         
         // Skills button - check if player has any skills or points
-        const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
-        const hasAnySkills = playerOfficer && Object.values(playerOfficer.skills).some(level => level > 0);
-        const hasSkillsOrPoints = hasSkillPoints || hasAnySkills;
-        
-        let skillsColor = currentMode === 'skills' ? COLORS.CYAN : COLORS.BUTTON;
-        let skillsHelp = 'View and upgrade captain skills';
-        if (!hasSkillsOrPoints) {
-            skillsColor = COLORS.TEXT_DIM;
-            skillsHelp = 'No skills learned yet (gain experience to unlock)';
-        } else if (hasSkillPoints && currentMode !== 'skills') {
-            skillsColor = COLORS.YELLOW;
-            skillsHelp = 'Skill points available! View and upgrade skills';
+        if (currentMode !== 'skills') {
+            const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
+            const hasAnySkills = playerOfficer && Object.values(playerOfficer.skills).some(level => level > 0);
+            const hasSkillsOrPoints = hasSkillPoints || hasAnySkills;
+            
+            let skillsColor = COLORS.BUTTON;
+            let skillsHelp = 'View and upgrade captain skills';
+            if (!hasSkillsOrPoints) {
+                skillsColor = COLORS.TEXT_DIM;
+                skillsHelp = 'No skills learned yet (gain experience to unlock)';
+            } else if (hasSkillPoints) {
+                skillsColor = COLORS.YELLOW;
+                skillsHelp = 'Skill points available! View and upgrade skills';
+            }
+            UI.addButton(leftX, buttonY + 1, '2', 'Skills', 
+                hasSkillsOrPoints ? () => switchMode('skills', onReturn) : () => {
+                    outputMessage = 'No skills learned yet. Gain experience to unlock skills!';
+                    outputColor = COLORS.TEXT_ERROR;
+                    render(onReturn);
+                }, 
+                skillsColor, skillsHelp);
         }
-        UI.addButton(leftX, buttonY + 1, '2', 'Skills', 
-            hasSkillsOrPoints ? () => switchMode('skills', onReturn) : () => {
-                outputMessage = 'No skills learned yet. Gain experience to unlock skills!';
-                outputColor = COLORS.TEXT_ERROR;
-                render(onReturn);
-            }, 
-            skillsColor, skillsHelp);
         
         // Perks button
-        const hasPerks = gameState.perks && gameState.perks.size > 0;
-        let perksColor = currentMode === 'perks' ? COLORS.CYAN : COLORS.BUTTON;
-        let perksHelp = 'View learned perks';
-        if (!hasPerks) {
-            perksColor = COLORS.TEXT_DIM;
-            perksHelp = 'No perks learned yet';
+        if (currentMode !== 'perks') {
+            const hasPerks = gameState.perks && gameState.perks.size > 0;
+            let perksColor = COLORS.BUTTON;
+            let perksHelp = 'View learned perks';
+            if (!hasPerks) {
+                perksColor = COLORS.TEXT_DIM;
+                perksHelp = 'No perks learned yet';
+            }
+            UI.addButton(leftX, buttonY + 2, '3', 'Perks', 
+                hasPerks ? () => switchMode('perks', onReturn) : () => {
+                    outputMessage = 'No perks learned yet.';
+                    outputColor = COLORS.TEXT_ERROR;
+                    render(onReturn);
+                },
+                perksColor, perksHelp);
         }
-        UI.addButton(leftX, buttonY + 2, '3', 'Perks', 
-            hasPerks ? () => switchMode('perks', onReturn) : () => {
-                outputMessage = 'No perks learned yet.';
-                outputColor = COLORS.TEXT_ERROR;
-                render(onReturn);
-            },
-            perksColor, perksHelp);
         
         // Skills mode specific buttons
         if (currentMode === 'skills' && hasSkillsOrPoints) {

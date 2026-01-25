@@ -85,6 +85,7 @@ const AssistantMenu = (() => {
         const hasCrew = gameState.officers && gameState.officers.length > 0;
         const hasQuests = (gameState.activeQuests && gameState.activeQuests.length > 0) || 
                           (gameState.completedQuests && gameState.completedQuests.length > 0);
+        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
         
         // Menu buttons - 3 column layout at bottom
         const buttonY = grid.height - 5;
@@ -130,7 +131,6 @@ const AssistantMenu = (() => {
         const alertY = grid.height - 7; // 2 rows above buttonY
         
         // Check for unread messages or unviewed quests
-        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
         if (hasUnreadMessages) {
             // Flash between white and green, ending in white
             const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;

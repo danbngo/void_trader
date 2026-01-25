@@ -44,7 +44,7 @@ const DockMenu = (() => {
         // Two-column layout for info
         const leftColumnX = 5;
         const rightColumnX = 42;
-        const startY = 6;
+        const startY = 4;
         
         // Left column title
         UI.addHeaderLine(leftColumnX, startY, 'System Info');

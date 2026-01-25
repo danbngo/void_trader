@@ -198,8 +198,9 @@ const UI = (() => {
      * @param {string} text - Text to render
      * @param {string} color - CSS color string (default: white)
      * @param {number} fontSize - Optional font size multiplier (default: 1.0)
+     * @param {boolean} underline - Optional underline flag (default: false)
      */
-    function addText(x, y, text, color = 'white', fontSize = 1.0) {
+    function addText(x, y, text, color = 'white', fontSize = 1.0, underline = false) {
         // Bounds checking
         if (x < 0 || x >= GRID_WIDTH) {
             throw new Error(`addText: x position ${x} is out of bounds (0-${GRID_WIDTH-1})`);
@@ -219,7 +220,7 @@ const UI = (() => {
         }
         
         // Register the text
-        registeredTexts.push({ x, y, text, color, fontSize });
+        registeredTexts.push({ x, y, text, color, fontSize, underline });
     }
     
     /**
@@ -267,39 +268,41 @@ const UI = (() => {
     }
     
     /**
-     * Add a header line with === formatting (registration phase - doesn't render yet)
-     * Formats text as "=== Title ===" in cyan color
+     * Add a header line (registration phase - doesn't render yet)
+     * Formats text in cyan color with underline
      * @param {number} x - Grid X position
      * @param {number} y - Grid Y position
-     * @param {string} title - Header title text (without === markers)
+     * @param {string} title - Header title text
      * @returns {number} - Next Y position (y + 1)
      */
     function addHeaderLine(x, y, title) {
-        addText(x, y, `=== ${title} ===`, COLORS.CYAN);
+        addText(x, y, title, COLORS.CYAN, 1.0, true);
         return y + 1;
     }
     
     /**
-     * Add a centered header line with === formatting (registration phase - doesn't render yet)
-     * Formats text as "=== Title ===" in cyan color, centered horizontally
+     * Add a centered header line (registration phase - doesn't render yet)
+     * Formats text in cyan color with underline, centered horizontally
      * @param {number} y - Grid Y position
-     * @param {string} title - Header title text (without === markers)
+     * @param {string} title - Header title text
      * @returns {number} - Next Y position (y + 1)
      */
     function addHeaderLineCentered(y, title) {
-        addTextCentered(y, `=== ${title} ===`, COLORS.CYAN);
+        const x = Math.floor((GRID_WIDTH - title.length) / 2);
+        addText(x, y, title, COLORS.CYAN, 1.0, true);
         return y + 1;
     }
     
     /**
      * Add a centered title line for menu titles (registration phase - doesn't render yet)
-     * Formats text in green color without === markers, centered horizontally
+     * Formats text in green color with underline, centered horizontally
      * @param {number} y - Grid Y position
      * @param {string} title - Title text
      * @returns {number} - Next Y position (y + 1)
      */
     function addTitleLineCentered(y, title) {
-        addTextCentered(y, title, COLORS.TITLE);
+        const x = Math.floor((GRID_WIDTH - title.length) / 2);
+        addText(x, y, title, COLORS.TITLE, 1.0, true);
         return y + 1;
     }
     
@@ -418,7 +421,7 @@ const UI = (() => {
             }
             
             // Draw the text
-            canvasWrapper.drawText(item.x, item.y, item.text, item.color, item.fontSize);
+            canvasWrapper.drawText(item.x, item.y, item.text, item.color, item.fontSize, item.underline || false);
         });
         
         // Draw all registered buttons

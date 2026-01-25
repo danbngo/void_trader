@@ -32,7 +32,7 @@ const TavernMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
-        UI.addTitleLineCentered(3, `${currentSystem.name}: TAVERN`);
+        UI.addTitleLineCentered(3, `${currentSystem.name}: Tavern`);
         
         // Player info
         let y = 5;
@@ -81,12 +81,14 @@ const TavernMenu = (() => {
         const middleX = 28;
         const rightX = 51;
         
-        // Navigation buttons - only if there are officers
-        if (currentSystem.officers.length > 0) {
+        // Navigation buttons - only if there are 2 or more officers
+        if (currentSystem.officers.length > 1) {
             UI.addButton(leftX, buttonY, '1', 'Next Officer', () => nextOfficer(onReturn), COLORS.BUTTON, 'Select next officer');
             UI.addButton(leftX, buttonY + 1, '2', 'Prev Officer', () => prevOfficer(onReturn), COLORS.BUTTON, 'Select previous officer');
-            
-            // Hire button
+        }
+        
+        // Hire button - only if there are officers
+        if (currentSystem.officers.length > 0) {
             const selectedOfficer = currentSystem.officers[selectedOfficerIndex];
             const hireCost = Math.floor(selectedOfficer.getHireCost() * (1 + currentSystem.fees));
             const maxOfficers = getMaxOfficers();
@@ -185,13 +187,18 @@ const TavernMenu = (() => {
         gameState.subordinates.push(officer);
         currentSystem.officers.splice(selectedOfficerIndex, 1);
         
+        // Set success message before adjusting selection
+        outputMessage = `Hired ${officer.name} for ${hireCost} CR!`;
+        outputColor = COLORS.TEXT_SUCCESS;
+        
         // Adjust selection if needed
         if (selectedOfficerIndex >= currentSystem.officers.length && currentSystem.officers.length > 0) {
             selectedOfficerIndex = currentSystem.officers.length - 1;
+        } else if (currentSystem.officers.length === 0) {
+            // Reset to 0 when no officers left
+            selectedOfficerIndex = 0;
         }
         
-        outputMessage = `Hired ${officer.name} for ${hireCost} CR!`;
-        outputColor = COLORS.TEXT_SUCCESS;
         render(onReturn);
     }
     

@@ -70,8 +70,8 @@ const ShipyardMenu = (() => {
         }
         
         // Title
-        UI.addTitleLineCentered(3, `${currentSystem.name}: SHIPYARD`);
-        TableRenderer.renderKeyValueList(5, 5, [
+        UI.addTitleLineCentered(1, `${currentSystem.name}: Shipyard`);
+        TableRenderer.renderKeyValueList(5, 3, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
@@ -90,7 +90,7 @@ const ShipyardMenu = (() => {
      */
     function renderManageMode(onReturn, grid) {
         // Player ships table (* marks the active ship)
-        const startY = 8;
+        const startY = 6;
         const rows = gameState.ships.map((ship, index) => {
             //const isActive = (index === gameState.activeShipIndex);
             //const marker = isActive ? '*' : '';
@@ -159,7 +159,7 @@ const ShipyardMenu = (() => {
         }
         
         // Available ships table
-        const startY = 8;
+        const startY = 6;
         
         const rows = currentSystem.ships.map((ship, index) => {
             const basePrice = ship.getValue();
@@ -250,8 +250,8 @@ const ShipyardMenu = (() => {
      */
     function renderSellMode(onReturn, grid) {
         // Player ships table (for selling)
-        const startY = 8;
-        UI.addText(5, 7, 'Select a ship to sell:', COLORS.YELLOW);
+        const startY = 6;
+        UI.addText(5, 5, 'Select a ship to sell:', COLORS.YELLOW);
         
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };

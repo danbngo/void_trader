@@ -103,7 +103,7 @@ class CanvasWrapper {
     /**
      * Draw text at grid position
      */
-    drawText(x, y, text, color, fontSizeMultiplier = 1.0) {
+    drawText(x, y, text, color, fontSizeMultiplier = 1.0, underline = false) {
         const pixelX = x * this.charWidth;
         const pixelY = y * this.charHeight;
         
@@ -113,6 +113,18 @@ class CanvasWrapper {
         
         this.ctx.fillStyle = color;
         this.ctx.fillText(text, pixelX, pixelY + this.charHeight / 2);
+        
+        // Draw underline if requested
+        if (underline) {
+            const textWidth = this.ctx.measureText(text).width;
+            const underlineY = pixelY + this.charHeight - 2;
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = Math.max(1, actualFontSize / 16);
+            this.ctx.moveTo(pixelX, underlineY);
+            this.ctx.lineTo(pixelX + textWidth, underlineY);
+            this.ctx.stroke();
+        }
     }
     
     /**

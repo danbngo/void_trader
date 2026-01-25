@@ -23,47 +23,60 @@ const ScanSystemMenu = (() => {
         let y = 2;
         y = UI.addHeaderLine(5, y, 'Overview');
         const flavorText = getFlavorText(system);
+        const isVisited = gameState.visitedSystems.includes(gameState.systems.indexOf(system));
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'System Name:', value: system.name, valueColor: COLORS.CYAN },
             { label: 'Coordinates:', value: `(${system.x}, ${system.y})`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Population:', value: `${system.population} million`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Economy Type:', value: system.economy, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Trading Fees:', value: `${(system.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Visited:', value: isVisited ? 'Yes' : 'No', valueColor: isVisited ? COLORS.GREEN : COLORS.TEXT_DIM },
             { label: 'Description:', value: flavorText, valueColor: COLORS.TEXT_NORMAL }
         ]);
         y++;
         
         // Buildings
         y = UI.addHeaderLine(5, y, 'Facilities');
-        const buildingNames = system.buildings.map(buildingId => {
-            const building = BUILDING_TYPES[buildingId];
-            return building ? building.name : buildingId;
-        });
-        UI.addText(5, y++, buildingNames.join(', '), COLORS.TEXT_NORMAL);
-        
-        // Shipyard and Tavern info
-        const facilityInfo = [];
-        
-        if (system.buildings.includes('SHIPYARD')) {
-            const shipCount = system.ships ? system.ships.length : 0;
+        if (isVisited) {
+            const buildingNames = system.buildings.map(buildingId => {
+                const building = BUILDING_TYPES[buildingId];
+                return building ? building.name : buildingId;
+            });
+            UI.addText(5, y++, buildingNames.join(', '), COLORS.TEXT_NORMAL);
+            
+            // Shipyard and Tavern info
+            const facilityInfo = [];
+            
+            // Add Trading Fees to Facilities section
             facilityInfo.push({ 
-                label: 'Shipyard Inventory:', 
-                value: `${shipCount} ship${shipCount !== 1 ? 's' : ''} available`, 
+                label: 'Trading Fees:', 
+                value: `${(system.fees * 100).toFixed(1)}%`, 
                 valueColor: COLORS.TEXT_NORMAL 
             });
-        }
-        
-        if (system.buildings.includes('TAVERN')) {
-            const officerCount = system.officers ? system.officers.length : 0;
-            facilityInfo.push({ 
-                label: 'Tavern Officers:', 
-                value: `${officerCount} officer${officerCount !== 1 ? 's' : ''} available`, 
-                valueColor: COLORS.TEXT_NORMAL 
-            });
-        }
-        
-        if (facilityInfo.length > 0) {
-            y = TableRenderer.renderKeyValueList(5, y, facilityInfo);
+            
+            if (system.buildings.includes('SHIPYARD')) {
+                const shipCount = system.ships ? system.ships.length : 0;
+                facilityInfo.push({ 
+                    label: 'Shipyard Inventory:', 
+                    value: `${shipCount} ship${shipCount !== 1 ? 's' : ''} available`, 
+                    valueColor: COLORS.TEXT_NORMAL 
+                });
+            }
+            
+            if (system.buildings.includes('TAVERN')) {
+                const officerCount = system.officers ? system.officers.length : 0;
+                facilityInfo.push({ 
+                    label: 'Tavern Officers:', 
+                    value: `${officerCount} officer${officerCount !== 1 ? 's' : ''} available`, 
+                    valueColor: COLORS.TEXT_NORMAL 
+                });
+            }
+            
+            if (facilityInfo.length > 0) {
+                y = TableRenderer.renderKeyValueList(5, y, facilityInfo);
+                y++;
+            }
+        } else {
+            UI.addText(5, y++, '?', COLORS.TEXT_DIM);
             y++;
         }
         
@@ -71,8 +84,12 @@ const ScanSystemMenu = (() => {
         if (system.buildings.includes('MARKET')) {
             y = UI.addHeaderLine(5, y, 'Market Goods');
             
-            // Get all cargo types that have stock > 0
-            const availableGoods = Object.keys(system.cargoStock)
+            if (!isVisited) {
+                UI.addText(5, y++, 'Visit this system once to record market information', COLORS.TEXT_DIM);
+                y++;
+            } else {
+                // Get all cargo types that have stock > 0
+                const availableGoods = Object.keys(system.cargoStock)
                 .filter(cargoId => system.cargoStock[cargoId] > 0)
                 .map(cargoId => {
                     const cargoType = CARGO_TYPES[cargoId];
@@ -143,6 +160,7 @@ const ScanSystemMenu = (() => {
                 UI.addText(5, y++, 'No goods in stock', COLORS.TEXT_DIM);
             }
             y++;
+            }
         }
         
         // Back button

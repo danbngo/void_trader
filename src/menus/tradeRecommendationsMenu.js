@@ -86,11 +86,28 @@ const TradeRecommendationsMenu = (() => {
             }
             
             // Table header
-            const headers = ['System', 'Dist', 'ETA (days)', 'Fuel', 'Stock', 'Buy Price', 'Sell Price'];
+            const headers = ['System', 'Dist', 'ETA (days)', 'Fuel', 'Visited', 'Stock', 'Buy $', 'Sell $'];
             const rows = pageData.map(systemData => {
+                const systemIndex = currentGameState.systems.indexOf(systemData.system);
+                const isVisited = currentGameState.visitedSystems.includes(systemIndex);
+                
                 const buyPrice = systemData.buyPrice;
                 const sellPrice = systemData.sellPrice;
                 const stock = systemData.stock;
+                
+                // Show ? for unvisited systems
+                if (!isVisited) {
+                    return [
+                        { text: systemData.system.name, color: COLORS.TEXT_NORMAL },
+                        { text: systemData.distance.toFixed(1), color: COLORS.TEXT_DIM },
+                        { text: systemData.eta.toFixed(1), color: COLORS.TEXT_DIM },
+                        { text: String(systemData.fuelCost), color: COLORS.TEXT_DIM },
+                        { text: 'No', color: COLORS.TEXT_DIM },
+                        { text: '?', color: COLORS.TEXT_DIM },
+                        { text: '?', color: COLORS.TEXT_DIM },
+                        { text: '?', color: COLORS.TEXT_DIM }
+                    ];
+                }
                 
                 // Calculate ratios for color coding (same as market menu)
                 const buyRatio = selectedCargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
@@ -108,6 +125,7 @@ const TradeRecommendationsMenu = (() => {
                     { text: systemData.distance.toFixed(1), color: COLORS.TEXT_DIM },
                     { text: etaText, color: COLORS.TEXT_DIM },
                     { text: String(systemData.fuelCost), color: COLORS.TEXT_DIM },
+                    { text: 'Yes', color: COLORS.GREEN },
                     { text: String(stock), color: stockColor },
                     { text: String(buyPrice), color: buyColor },
                     { text: String(sellPrice), color: sellColor }

@@ -103,6 +103,16 @@ const QuestsMenu = (() => {
                         y++;
                     }
                     
+                    // Show added date for active quests
+                    if (showingActive && currentGameState.questAddedDates && currentGameState.questAddedDates[questId]) {
+                        const addedDate = currentGameState.questAddedDates[questId];
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        const dateStr = `${months[addedDate.getMonth()]} ${addedDate.getDate()}, ${addedDate.getFullYear()}`;
+                        UI.addText(leftX + 4, y, `Added: `, COLORS.TEXT_NORMAL);
+                        UI.addText(leftX + 4 + 'Added: '.length, y, dateStr, COLORS.TEXT_DIM);
+                        y++;
+                    }
+                    
                     // Show completion date for completed quests
                     if (!showingActive && currentGameState.questCompletedDates[questId]) {
                         const completedDate = currentGameState.questCompletedDates[questId];

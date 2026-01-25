@@ -185,6 +185,10 @@ const TitleMenu = (() => {
             gameState.ships.push(ShipGenerator.generateStartingShip());
             //gameState.ships.push(ShipGenerator.generateStartingShip());
             
+            // Record starting score for later comparison
+            const startingScoreData = ScoreMenu.calculateScore(gameState);
+            gameState.startingScore = startingScoreData.totalScore;
+            
             // Store game state globally for access
             window.gameState = gameState;
             

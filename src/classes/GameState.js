@@ -29,6 +29,7 @@ class GameState {
         this.completedQuests = []; // Array of completed quest IDs
         this.readQuests = []; // Array of quest IDs that have been seen by player
         this.questCompletedDates = {}; // Map of quest ID to Date when completed
+        this.questAddedDates = {}; // Map of quest ID to Date when added
         this.systemsWithQuests = []; // Array of system indices that have related quests
         
         // Perk system
@@ -38,6 +39,7 @@ class GameState {
         
         // Player statistics and records
         this.playerRecord = {}; // Object tracking player statistics (see PLAYER_RECORD_TYPES)
+        this.startingScore = 0; // Player's score at game start (recorded after initialization)
         
         // Rank system - maps system index to rank ID
         this.systemRanks = {}; // { systemIndex: 'RANK_ID' }

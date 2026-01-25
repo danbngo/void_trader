@@ -169,7 +169,12 @@ const MerchantEncounter = {
                     gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] || 0) + maxAmount;
                     gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0) + totalCost;
                     
-                    this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`);
+                    // Grant trading experience
+                    const tradingExpFraction = totalCost / 1000;
+                    const tradingExp = ExperienceUtils.calculateFractionalExp(EXP_POINTS_FROM_TRADING_1000CR, tradingExpFraction);
+                    const expComponents = tradingExp > 0 ? ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading') : null;
+                    
+                    this.showTradeComplete(gameState, `Purchased ${maxAmount} ${cargoType.name} for ${totalCost} credits.`, expComponents);
                 }, color: COLORS.GREEN },
                 { key: '2', label: 'Decline', callback: () => {
                     gameState.encounter = false;
@@ -235,7 +240,12 @@ const MerchantEncounter = {
                     gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] || 0) + playerAmount;
                     gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0) + totalRevenue;
                     
-                    this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`);
+                    // Grant trading experience
+                    const tradingExpFraction = totalRevenue / 1000;
+                    const tradingExp = ExperienceUtils.calculateFractionalExp(EXP_POINTS_FROM_TRADING_1000CR, tradingExpFraction);
+                    const expComponents = tradingExp > 0 ? ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading') : null;
+                    
+                    this.showTradeComplete(gameState, `Sold ${playerAmount} ${cargoType.name} for ${totalRevenue} credits.`, expComponents);
                 }, color: COLORS.GREEN },
                 { key: '2', label: 'Decline', callback: () => {
                     TravelMenu.resume();
@@ -249,7 +259,7 @@ const MerchantEncounter = {
     /**
      * Show merchant trade completion
      */
-    showTradeComplete: function(gameState, message) {
+    showTradeComplete: function(gameState, message, expComponents = null) {
         UI.clear();
         
         const grid = UI.getGridSize();
@@ -258,6 +268,16 @@ const MerchantEncounter = {
         y += 2;
         
         UI.addText(10, y++, message, COLORS.GREEN);
+        
+        // Show exp if any
+        if (expComponents) {
+            let expText = expComponents.baseMessage;
+            if (expComponents.levelUpText) {
+                expText += expComponents.levelUpText;
+            }
+            UI.addText(10, y++, expText, COLORS.YELLOW);
+        }
+        
         y++;
         UI.addText(10, y++, `"Pleasure doing business with you, captain."`, COLORS.YELLOW);
         

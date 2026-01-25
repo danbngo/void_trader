@@ -207,29 +207,16 @@ const AssistantMenu = (() => {
      * Try to open score menu
      */
     function tryOpenScore(gameState, onReturn) {
-        // Calculate starting score (500 credits + starting shuttle value)
-        // Starting shuttle has base stats: maxFuel=10, cargoCapacity=5, maxHull=10, maxShields=5, lasers=5
-        // getValue() = floor(pow((10*10 + 5*50 + 10*5 + 5*15 + 5*500) * 1.0, 1.5) / 10)
-        // = floor(pow(2775, 1.5) / 10) = floor(146222.9 / 10) = 14622
-        const startingShuttleValue = 14622;
-        const startingScore = STARTING_CREDITS + startingShuttleValue; // 500 + 14622 = 15122
+        // Calculate current score
+        const currentScoreData = ScoreMenu.calculateScore(gameState);
+        const currentScore = currentScoreData.totalScore;
         
-        // Calculate current score using same logic as ScoreMenu
-        const credits = gameState.credits;
-        const reputationScore = gameState.reputation * 10;
-        const bountyScore = -gameState.bounty;
-        const shipsValue = gameState.ships.reduce((sum, ship) => sum + ship.getValue(), 0);
-        const cargoValue = gameState.ships.reduce((sum, ship) => {
-            return sum + Object.keys(ship.cargo).reduce((cargoSum, cargoId) => {
-                const cargoType = CARGO_TYPES[cargoId];
-                const amount = ship.cargo[cargoId] || 0;
-                return cargoSum + (cargoType ? cargoType.baseValue * amount : 0);
-            }, 0);
-        }, 0);
-        const currentScore = credits + reputationScore + bountyScore + shipsValue + cargoValue;
+        // Compare against starting score (with 1000 CR threshold)
+        const startingScore = gameState.startingScore || 0;
+        const scoreDifference = currentScore - startingScore;
         
-        if (currentScore === startingScore) {
-            outputMessage = "You haven't accomplished anything yet.";
+        if (Math.abs(scoreDifference) <= 1000) {
+            outputMessage = "Accomplish more to see your score.";
             outputColor = COLORS.TEXT_ERROR;
             render(gameState, onReturn);
             return;

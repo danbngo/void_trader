@@ -317,17 +317,26 @@ const MarketMenu = (() => {
             const tradingExpFraction = totalCost / 1000;
             const tradingExp = ExperienceUtils.calculateFractionalExp(EXP_POINTS_FROM_TRADING_1000CR, tradingExpFraction);
             
-            let message = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
+            const baseMessage = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
             
             if (tradingExp > 0) {
                 const expComponents = ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading');
                 if (expComponents) {
-                    message += ' ' + expComponents.baseMessage + expComponents.levelUpText;
+                    // Use color array for output row to show exp in yellow
+                    outputMessage = [
+                        { text: baseMessage + ' ', color: COLORS.TEXT_SUCCESS },
+                        { text: '(' + expComponents.baseMessage, color: COLORS.YELLOW },
+                        { text: expComponents.levelUpText + ')', color: expComponents.levelUpText ? COLORS.YELLOW : COLORS.YELLOW }
+                    ];
+                    outputColor = COLORS.TEXT_SUCCESS; // Not used when outputMessage is array
+                } else {
+                    outputMessage = baseMessage;
+                    outputColor = COLORS.TEXT_SUCCESS;
                 }
+            } else {
+                outputMessage = baseMessage;
+                outputColor = COLORS.TEXT_SUCCESS;
             }
-            
-            outputMessage = message;
-            outputColor = COLORS.TEXT_SUCCESS;
         }
         
         render(onReturn);
@@ -375,17 +384,26 @@ const MarketMenu = (() => {
             const tradingExpFraction = totalValue / 1000;
             const tradingExp = ExperienceUtils.calculateFractionalExp(EXP_POINTS_FROM_TRADING_1000CR, tradingExpFraction);
             
-            let message = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;
+            const baseMessage = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;
             
             if (tradingExp > 0) {
                 const expComponents = ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading');
                 if (expComponents) {
-                    message += ' ' + expComponents.baseMessage + expComponents.levelUpText;
+                    // Use color array for output row to show exp in yellow
+                    outputMessage = [
+                        { text: baseMessage + ' ', color: COLORS.TEXT_SUCCESS },
+                        { text: '(' + expComponents.baseMessage, color: COLORS.YELLOW },
+                        { text: expComponents.levelUpText + ')', color: expComponents.levelUpText ? COLORS.YELLOW : COLORS.YELLOW }
+                    ];
+                    outputColor = COLORS.TEXT_SUCCESS; // Not used when outputMessage is array
+                } else {
+                    outputMessage = baseMessage;
+                    outputColor = COLORS.TEXT_SUCCESS;
                 }
+            } else {
+                outputMessage = baseMessage;
+                outputColor = COLORS.TEXT_SUCCESS;
             }
-            
-            outputMessage = message;
-            outputColor = COLORS.TEXT_SUCCESS;
         }
         
         render(onReturn);

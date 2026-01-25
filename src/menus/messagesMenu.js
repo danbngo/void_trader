@@ -184,6 +184,11 @@ const MessagesMenu = (() => {
             const newQuest = questsAfter.find(qid => !questsBefore.includes(qid));
             if (newQuest) {
                 addedQuestId = newQuest;
+                // Track quest added date
+                if (!currentGameState.questAddedDates) {
+                    currentGameState.questAddedDates = {};
+                }
+                currentGameState.questAddedDates[newQuest] = new Date(currentGameState.date);
             }
         }
         
@@ -207,7 +212,7 @@ const MessagesMenu = (() => {
             UI.addText(leftX, y++, message.content, COLORS.TEXT_NORMAL);
         }
         
-        y += 2;
+        y++;
         
         // Show quest completion and reward
         if (completedQuest) {
@@ -218,7 +223,6 @@ const MessagesMenu = (() => {
             if (completedQuest.expReward > 0) {
                 UI.addText(leftX, y++, `Experience awarded: ${completedQuest.expReward} XP`, COLORS.GREEN);
             }
-            y++;
         }
         
         // Show quest added notification with quest name

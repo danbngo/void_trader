@@ -271,7 +271,7 @@ const ShipyardMenu = (() => {
     function renderConfirmation(onReturn) {
         const grid = UI.getGridSize();
         
-        UI.addTextCentered(10, '=== Confirm Transaction ===', COLORS.YELLOW);
+        UI.addHeaderLineCentered(10, 'Confirm Transaction');
         
         let y = 13;
         

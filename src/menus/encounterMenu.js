@@ -438,7 +438,7 @@ const EncounterMenu = (() => {
             activeShip = gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped);
         }
         
-        UI.addText(startX, 0, '=== Your Ship ===', COLORS.GREEN);
+        UI.addHeaderLine(startX, 0, 'Your Ship');
         if (activeShip) {
             const shipType = SHIP_TYPES[activeShip.type] || { name: 'Unknown' };
             

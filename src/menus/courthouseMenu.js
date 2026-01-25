@@ -43,7 +43,7 @@ const CourthouseMenu = (() => {
         
         // Available ranks
         let y = 11;
-        UI.addText(5, y++, 'Citizenship Ranks:', COLORS.YELLOW);
+        y = UI.addHeaderLine(5, y, 'Citizenship Ranks');
         y++;
         
         // Build list of ranks to display (previous, current, and next)

@@ -63,7 +63,7 @@ const TravelConfirmMenu = (() => {
         let y = 6;
         
         // Journey details section
-        UI.addText(5, y++, '=== Journey Details ===', COLORS.TITLE);
+        y = UI.addHeaderLine(5, y, 'Journey Details');
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
@@ -77,7 +77,7 @@ const TravelConfirmMenu = (() => {
         y++;
         
         // Encounter weights section
-        UI.addText(5, y++, '=== Encounter Probability ===', COLORS.TITLE);
+        y = UI.addHeaderLine(5, y, 'Encounter Probability');
         
         // Calculate average weights for color coding
         const avgPirateWeight = (currentSystem.pirateWeight + (isVisited ? targetSystem.pirateWeight : currentSystem.pirateWeight)) / 2;

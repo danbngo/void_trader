@@ -36,8 +36,8 @@ const QuestsMenu = (() => {
         
         // Title
         let y = 2;
-        const title = showingActive ? '=== Active Quests ===' : '=== Completed Quests ===';
-        UI.addTextCentered(y++, title, COLORS.TITLE);
+        const title = showingActive ? 'Active Quests' : 'Completed Quests';
+        UI.addHeaderLineCentered(3, title);
         y += 2;
         
         // Get quest IDs to display

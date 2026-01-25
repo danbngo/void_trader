@@ -187,7 +187,7 @@ const GalaxyMap = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Merged Fleet Info section
-        UI.addText(startX, 0, '=== Fleet Info ===', COLORS.TITLE);
+        UI.addHeaderLine(startX, 0, 'Fleet Info');
         
         // Calculate fleet totals
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
@@ -220,7 +220,7 @@ const GalaxyMap = (() => {
             const fuelCost = Ship.calculateFleetFuelCost(selected.distance, gameState.ships.length);
             const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, selected.system.x, selected.system.y);
             
-            UI.addText(startX, y++, '=== Target System ===', COLORS.YELLOW);
+            y = UI.addHeaderLine(startX, y, 'Target System');
             y++; // Empty row
             UI.addText(startX, y++, 'Name:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, selected.system.name, COLORS.TEXT_NORMAL);

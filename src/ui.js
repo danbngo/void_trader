@@ -267,6 +267,31 @@ const UI = (() => {
     }
     
     /**
+     * Add a header line with === formatting (registration phase - doesn't render yet)
+     * Formats text as "=== Title ===" in cyan color
+     * @param {number} x - Grid X position
+     * @param {number} y - Grid Y position
+     * @param {string} title - Header title text (without === markers)
+     * @returns {number} - Next Y position (y + 1)
+     */
+    function addHeaderLine(x, y, title) {
+        addText(x, y, `=== ${title} ===`, COLORS.CYAN);
+        return y + 1;
+    }
+    
+    /**
+     * Add a centered header line with === formatting (registration phase - doesn't render yet)
+     * Formats text as "=== Title ===" in cyan color, centered horizontally
+     * @param {number} y - Grid Y position
+     * @param {string} title - Header title text (without === markers)
+     * @returns {number} - Next Y position (y + 1)
+     */
+    function addHeaderLineCentered(y, title) {
+        addTextCentered(y, `=== ${title} ===`, COLORS.CYAN);
+        return y + 1;
+    }
+    
+    /**
      * Register a centered button (registration phase - doesn't render yet)
      * Automatically calculates x position to center the button horizontally
      * @param {number} y - Grid Y position

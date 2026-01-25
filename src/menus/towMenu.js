@@ -25,7 +25,7 @@ const TowMenu = (() => {
         const grid = UI.getGridSize();
         
         let y = 5;
-        UI.addTextCentered(y++, '=== Calling for Assistance ===', COLORS.TITLE);
+        y = UI.addHeaderLineCentered(y, 'Calling for Assistance');
         y += 2;
         
         const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];

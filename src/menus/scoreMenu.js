@@ -64,7 +64,7 @@ const ScoreMenu = (() => {
         
         // Title
         let y = 5;
-        UI.addTextCentered(y++, '=== Your Score ===', COLORS.TITLE);
+        y = UI.addHeaderLineCentered(y, 'Your Score');
         y += 2;
         
         // Score breakdown
@@ -137,7 +137,7 @@ const ScoreMenu = (() => {
         const rank = getScoreRank(finalScore);
         
         let y = 5;
-        UI.addTextCentered(y++, '=== GAME OVER ===', COLORS.TITLE);
+        y = UI.addHeaderLineCentered(y, 'GAME OVER');
         y += 2;
         
         if (isEarlyRetirement) {

@@ -37,8 +37,8 @@ const MessagesMenu = (() => {
         
         // Title
         let y = 2;
-        const title = showingUnread ? '=== Unread Messages ===' : '=== Read Messages ===';
-        UI.addTextCentered(y++, title, COLORS.TITLE);
+        const title = showingUnread ? 'Unread Messages' : 'Read Messages';
+        UI.addHeaderLineCentered(3, title);
         y += 2;
         
         // Filter messages by read status

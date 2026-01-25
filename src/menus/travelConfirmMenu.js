@@ -60,11 +60,14 @@ const TravelConfirmMenu = (() => {
         // Draw title
         UI.addTitleLineCentered(0, 'Travel Confirmation');
         
-        let y = 2;
+        // Two-column layout
+        const leftColumnX = 5;
+        const rightColumnX = 42;
+        const startY = 2;
         
-        // Journey details section
-        y = UI.addHeaderLine(5, y, 'Journey Details');
-        y = TableRenderer.renderKeyValueList(5, y, [
+        // Left column: Journey details
+        let leftY = UI.addHeaderLine(leftColumnX, startY, 'Journey Details');
+        leftY = TableRenderer.renderKeyValueList(leftColumnX, leftY, [
             { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Distance:', value: `${distance.toFixed(1)} LY`, valueColor: COLORS.TEXT_NORMAL },
@@ -74,10 +77,9 @@ const TravelConfirmMenu = (() => {
             { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_NORMAL },
             { label: 'Arrival Date:', value: formatDate(dateAfter), valueColor: COLORS.TEXT_NORMAL }
         ]);
-        y++;
         
-        // Encounter weights section
-        y = UI.addHeaderLine(5, y, 'Encounter Probability');
+        // Right column: Encounter probability
+        let rightY = UI.addHeaderLine(rightColumnX, startY, 'Encounter Probability');
         
         // Calculate average weights for color coding
         const avgPirateWeight = (currentSystem.pirateWeight + (isVisited ? targetSystem.pirateWeight : currentSystem.pirateWeight)) / 2;
@@ -89,23 +91,23 @@ const TravelConfirmMenu = (() => {
         const policeColor = COLORS.WHITE // UI.calcStatColor(avgPoliceWeight); //police dont actually do anything good for the player per-se
         const merchantColor = UI.calcStatColor(avgMerchantWeight);
         
-        y = TableRenderer.renderKeyValueList(5, y, [
+        rightY = TableRenderer.renderKeyValueList(rightColumnX, rightY, [
             { label: 'Pirates:', value: pirateWeightRange, valueColor: pirateColor },
             { label: 'Police:', value: policeWeightRange, valueColor: policeColor },
             { label: 'Merchants:', value: merchantWeightRange, valueColor: merchantColor }
         ]);
-        y++;
+        rightY++;
         
         if (!isVisited) {
-            UI.addText(5, y++, 'Target system unvisited - exact encounter', COLORS.YELLOW);
-            UI.addText(5, y++, 'rates unknown until arrival.', COLORS.YELLOW);
-            y++;
+            UI.addText(rightColumnX, rightY++, 'Unvisited system -', COLORS.YELLOW);
+            UI.addText(rightColumnX, rightY++, 'exact rates unknown', COLORS.YELLOW);
+            rightY++;
         }
         
-        // Warnings
+        // Warnings (under left column)
         if (fuelAfter < 0) {
-            UI.addText(5, y++, 'WARNING: Insufficient fuel for journey!', COLORS.TEXT_ERROR);
-            y++;
+            UI.addText(leftColumnX, leftY++, 'WARNING: Insufficient fuel for journey!', COLORS.TEXT_ERROR);
+            leftY++;
         }
         
         // Buttons - centered at bottom

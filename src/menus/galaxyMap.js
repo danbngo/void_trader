@@ -419,13 +419,13 @@ const GalaxyMap = (() => {
         // Legend positioned right after map border
         UI.addText(2, mapHeight, '@ = You  ★ = Visited  ☆ = Unvisited', COLORS.GRAY);
         
-        // Travel recommendation - positioned in the middle of empty space
+        // Travel recommendation - positioned at left edge
         const recommendationY = mapHeight + 2;
         const recommendation = getTravelRecommendation(gameState);
         
         if (recommendation) {
-            UI.addText(5, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
-            let xOffset = 5 + 'Recommendation: '.length;
+            UI.addText(1, recommendationY, 'Recommendation: ', COLORS.TEXT_DIM);
+            let xOffset = 1 + 'Recommendation: '.length;
             
             if (recommendation.type === 'sell') {
                 // "Go to x to sell y (z profit/unit)"
@@ -451,7 +451,7 @@ const GalaxyMap = (() => {
                 UI.addText(xOffset, recommendationY, ` (${recommendation.discountPercent}% cheaper than avg)`, COLORS.GREEN);
             }
         } else {
-            UI.addText(5, recommendationY, 'No recommendation available, try traveling to another system', COLORS.TEXT_DIM);
+            UI.addText(1, recommendationY, 'No recommendation available, try traveling to another system', COLORS.TEXT_DIM);
         }
         
         // 3-column layout

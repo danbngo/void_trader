@@ -345,6 +345,7 @@ const TavernMenu = (() => {
         if (gameState.currentJob !== null) {
             outputMessage = 'You already have an active job!';
             outputColor = COLORS.TEXT_ERROR;
+            UI.setOutputRow(outputMessage, outputColor);
             render(onReturn);
             return;
         }
@@ -384,8 +385,11 @@ const TavernMenu = (() => {
             selectedJobIndex = 0;
         }
         
+        // Set success message AFTER adjusting selection
         outputMessage = `Accepted job: ${job.description}`;
         outputColor = COLORS.TEXT_SUCCESS;
+        UI.resetSelection(); // Reset selection to prevent button help text from overwriting
+        UI.setOutputRow(outputMessage, outputColor);
         
         render(onReturn);
     }

@@ -13,7 +13,11 @@ const DockMenu = (() => {
      */
     function show(gameState) {
         // Check for expired/completed jobs when docking
-        checkJobs(gameState);
+        const showedJobReward = checkJobs(gameState);
+        if (showedJobReward) {
+            // Job reward screen is being shown, don't render dock menu
+            return;
+        }
         
         // Check for completed quests when docking
         checkQuestCompletion(gameState);
@@ -269,7 +273,7 @@ const DockMenu = (() => {
      */
     function checkJobs(gameState) {
         // Check if player has an active job
-        if (!gameState.currentJob) return;
+        if (!gameState.currentJob) return false;
         
         const job = gameState.currentJob;
         const currentDate = gameState.date.getTime();
@@ -279,7 +283,7 @@ const DockMenu = (() => {
             // Job failed - remove it
             gameState.currentJob = null;
             console.log('[DockMenu] Job expired and removed');
-            return;
+            return false;
         }
         
         // Check if job is completed
@@ -291,7 +295,10 @@ const DockMenu = (() => {
             
             // Show reward collection screen
             showJobRewardCollection(gameState);
+            return true; // Indicate that we showed a screen
         }
+        
+        return false;
     }
     
     /**

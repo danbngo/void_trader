@@ -42,7 +42,8 @@ class Job {
      * @returns {number} Days remaining (can be negative if expired)
      */
     getDaysRemaining(currentDate) {
-        return Math.floor(this.deadlineDate - currentDate);
+        const msPerDay = 1000 * 60 * 60 * 24;
+        return Math.floor((this.deadlineDate - currentDate) / msPerDay);
     }
     
     /**

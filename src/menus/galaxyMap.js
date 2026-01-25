@@ -121,6 +121,8 @@ const GalaxyMap = (() => {
                 const isVisited = gameState.visitedSystems.includes(systemIndex);
                 const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y);
                 const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
+                const isJobTarget = gameState.currentJob && gameState.currentJob.targetSystem === item.system;
+                const hasQuestOrJob = hasQuest || isJobTarget;
                 
                 // Determine symbol and color
                 let symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
@@ -130,8 +132,8 @@ const GalaxyMap = (() => {
                 if (isSelected) {
                     // Selected: yellow if reachable, red if not
                     color = canReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
-                } else if (hasQuest) {
-                    // Systems with quests are cyan (whether reachable or not)
+                } else if (hasQuestOrJob) {
+                    // Systems with quests or jobs are cyan (whether reachable or not)
                     color = COLORS.CYAN;
                 } else if (canReach) {
                     // Reachable systems are white
@@ -237,11 +239,13 @@ const GalaxyMap = (() => {
             UI.addText(startX, y++, 'Reachable:', COLORS.TEXT_DIM);
             UI.addText(startX + 11, y - 1, canReach ? 'Yes' : 'No', canReach ? COLORS.GREEN : COLORS.TEXT_ERROR);
             
-            // Has Quest
+            // Has Quest or Job
             const systemIndex = gameState.systems.indexOf(selected.system);
             const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
+            const isJobTarget = gameState.currentJob && gameState.currentJob.targetSystem === selected.system;
+            const hasQuestOrJob = hasQuest || isJobTarget;
             UI.addText(startX, y++, 'Has Quest:', COLORS.TEXT_DIM);
-            UI.addText(startX + 11, y - 1, hasQuest ? 'Yes' : 'No', hasQuest ? COLORS.CYAN : COLORS.GRAY);
+            UI.addText(startX + 11, y - 1, hasQuestOrJob ? 'Yes' : 'No', hasQuestOrJob ? COLORS.CYAN : COLORS.GRAY);
             
             // Visited
             const isVisited = gameState.visitedSystems.includes(systemIndex);

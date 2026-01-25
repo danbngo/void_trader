@@ -26,13 +26,13 @@ const JobsMenu = (() => {
         
         const grid = UI.getGridSize();
         
-        UI.addTitleLineCentered(0, 'Active Jobs');
+        UI.addTitleLineCentered(0, 'Current Job');
         
         let y = 2;
         
         // Check if player has an active job
         if (!gameState.currentJob) {
-            UI.addTextCentered(y + 2, 'No active jobs', COLORS.TEXT_DIM);
+            UI.addTextCentered(y + 2, 'No current job', COLORS.TEXT_DIM);
             UI.addTextCentered(y + 3, 'Visit a tavern to find work', COLORS.TEXT_DIM);
         } else {
             const job = gameState.currentJob;
@@ -46,7 +46,7 @@ const JobsMenu = (() => {
             
             // Job description
             UI.addText(5, y++, job.description, job.jobType.color);
-            y += 2;
+            y++;
             
             // Job details
             const details = [
@@ -60,7 +60,7 @@ const JobsMenu = (() => {
             details.push({ label: 'Time Remaining:', value: daysText, valueColor: daysColor });
             
             y = TableRenderer.renderKeyValueList(5, y, details);
-            y += 2;
+            y++;
             
             // Rewards section
             UI.addHeaderLine(5, y++, 'Rewards');

@@ -1564,7 +1564,7 @@ const EncounterMenu = (() => {
     function executeActionWithTicks(action, onComplete) {
         // Combine all ships for obstruction checking
         const allShips = [...currentGameState.ships, ...currentGameState.encounterShips];
-        const handler = new CombatActionHandler(action, currentGameState.asteroids, allShips);
+        const handler = new CombatActionHandler(action, currentGameState.asteroids, allShips, currentGameState);
         
         // Store in gameState to track action in progress
         currentGameState.combatAction = action;

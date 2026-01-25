@@ -9,11 +9,13 @@ class CombatActionHandler {
      * @param {CombatAction} action - The action to execute
      * @param {Array<Asteroid>} asteroids - Asteroids in the encounter
      * @param {Array<Ship>} allShips - All ships in the encounter (for obstruction checking)
+     * @param {GameState} gameState - Game state for skill calculations
      */
-    constructor(action, asteroids = [], allShips = []) {
+    constructor(action, asteroids = [], allShips = [], gameState = null) {
         this.action = action;
         this.asteroids = asteroids;
         this.allShips = allShips;
+        this.gameState = gameState;
         this.ship = action.ship;
         this.targetAngle = null;
         this.remainingDistance = 0;
@@ -141,7 +143,15 @@ class CombatActionHandler {
                 if (this.action.targetShip) {
                     const dx = this.action.targetShip.x - this.ship.x;
                     const dy = this.action.targetShip.y - this.ship.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Apply piloting skill for dodge if target is player ship
+                    if (this.gameState && this.action.targetShip && this.action.targetShip.isPlayer) {
+                        const playerOfficer = this.gameState.officers[0];
+                        const pilotingLevel = playerOfficer ? (playerOfficer.skills.piloting || 0) : 0;
+                        distance = SkillEffects.getDodgeDistance(distance, pilotingLevel);
+                    }
+                    
                     const targetAngle = Math.atan2(dy, dx);
                     
                     // Check if target is in firing arc
@@ -162,7 +172,15 @@ class CombatActionHandler {
                     
                     // Target is in arc (or we just turned to align), fire laser
                     // Calculate hit chance: radar / distance
-                    const hitChance = Math.min(1, this.ship.radar / distance);
+                    // Apply gunnery skill for attacker accuracy (player ships only)
+                    let effectiveDistance = distance;
+                    if (this.gameState && this.ship.isPlayer) {
+                        const playerOfficer = this.gameState.officers[0];
+                        const gunneryLevel = playerOfficer ? (playerOfficer.skills.gunnery || 0) : 0;
+                        effectiveDistance = SkillEffects.getAccuracyDistance(distance, gunneryLevel);
+                    }
+                    
+                    const hitChance = Math.min(1, this.ship.radar / effectiveDistance);
                     const hit = Math.random() < hitChance;
                     
                     // Store hit result in action
@@ -171,7 +189,15 @@ class CombatActionHandler {
                     
                     // Pre-calculate damage for hit
                     if (hit) {
-                        const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                        let damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                        
+                        // Apply gunnery skill for damage boost (player ships only)
+                        if (this.gameState && this.ship.isPlayer) {
+                            const playerOfficer = this.gameState.officers[0];
+                            const gunneryLevel = playerOfficer ? (playerOfficer.skills.gunnery || 0) : 0;
+                            damage = SkillEffects.getLaserDamage(damage, gunneryLevel);
+                        }
+                        
                         this.action.damage = damage;
                     }
                     

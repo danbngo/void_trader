@@ -12,6 +12,16 @@ const ShipyardMenu = (() => {
     let pendingTransaction = null;
     
     /**
+     * Get effective fees after barter skill
+     */
+    function getEffectiveFees() {
+        const currentSystem = gameState.getCurrentSystem();
+        const playerOfficer = gameState.officers[0];
+        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
+        return SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
+    }
+    
+    /**
      * Show the shipyard menu
      * @param {GameState} state - Current game state
      * @param {Function} onReturn - Callback to return to previous screen
@@ -133,7 +143,7 @@ const ShipyardMenu = (() => {
         
         const rows = currentSystem.ships.map((ship, index) => {
             const basePrice = ship.getValue();
-            const price = Math.round(basePrice * (1 + currentSystem.fees));
+            const price = Math.round(basePrice * (1 + getEffectiveFees()));
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             
             // Check if player has license for this ship type
@@ -144,7 +154,7 @@ const ShipyardMenu = (() => {
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             
             // Calculate trade-in value (first ship's value with fees)
-            const tradeInValue = gameState.ships.length > 0 ? Math.round(gameState.ships[0].getValue() / (1 + currentSystem.fees)) : 0;
+            const tradeInValue = gameState.ships.length > 0 ? Math.round(gameState.ships[0].getValue() / (1 + getEffectiveFees())) : 0;
             const netCost = price - tradeInValue;
             
             // If no license, make entire row grey
@@ -178,7 +188,7 @@ const ShipyardMenu = (() => {
         
         // Buy Ship - gray out if insufficient credits or no license
         const selectedShip = currentSystem.ships[selectedShipIndex];
-        const shipPrice = Math.round(selectedShip.getValue() * (1 + currentSystem.fees));
+        const shipPrice = Math.round(selectedShip.getValue() * (1 + getEffectiveFees()));
         const hasLicense = gameState.enabledShipTypes.some(st => st.id === selectedShip.type);
         const canAfford = gameState.credits >= shipPrice;
         const canBuy = hasLicense && canAfford;
@@ -225,7 +235,7 @@ const ShipyardMenu = (() => {
         
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-            const sellValue = Math.round(ship.getValue() / (1 + currentSystem.fees));
+            const sellValue = Math.round(ship.getValue() / (1 + getEffectiveFees()));
             return [
                 { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_DIM },
@@ -359,7 +369,7 @@ const ShipyardMenu = (() => {
             return;
         }
         
-        const cost = Math.round(ship.getValue() * (1 + currentSystem.fees));
+        const cost = Math.round(ship.getValue() * (1 + getEffectiveFees()));
         
         if (cost > gameState.credits) {
             outputMessage = `Not enough credits! Need ${cost} CR, have ${gameState.credits} CR.`;
@@ -394,7 +404,7 @@ const ShipyardMenu = (() => {
     function confirmSellFromSellMode(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
         const ship = gameState.ships[selectedShipIndex];
-        const value = Math.round(ship.getValue() / (1 + currentSystem.fees));
+        const value = Math.round(ship.getValue() / (1 + getEffectiveFees()));
         
         pendingTransaction = { ship, value, shipIndex: selectedShipIndex };
         mode = 'confirm-sell';
@@ -426,8 +436,8 @@ const ShipyardMenu = (() => {
         // Trade in the first ship (could be enhanced to let player choose)
         const oldShip = gameState.ships[0];
         
-        const tradeInValue = Math.round(oldShip.getValue() / (1 + currentSystem.fees));
-        const cost = Math.round(newShip.getValue() * (1 + currentSystem.fees));
+        const tradeInValue = Math.round(oldShip.getValue() / (1 + getEffectiveFees()));
+        const cost = Math.round(newShip.getValue() * (1 + getEffectiveFees()));
         const netCost = cost - tradeInValue;
         
         if (netCost > gameState.credits) {

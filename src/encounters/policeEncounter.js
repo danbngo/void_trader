@@ -136,7 +136,10 @@ const PoliceEncounter = {
             });
         });
         
-        const foundIllegal = Math.random() < 0.5;
+        // Check if police find illegal cargo (with smuggling skill modifier)
+        const playerOfficer = gameState.officers[0];
+        const smugglingLevel = playerOfficer ? (playerOfficer.skills.smuggling || 0) : 0;
+        const foundIllegal = hasIllegalCargo && SkillEffects.policeFoundIllegalCargo(smugglingLevel);
         
         if (hasIllegalCargo && foundIllegal) {
             // Police find illegal cargo

@@ -133,9 +133,21 @@ const SaveLoadManager = (() => {
         });
         
         // Reconstruct officers
-        gameState.officers = data.officers.map(o => 
-            new Officer(o.name, o.role, o.skill)
-        );
+        gameState.officers = data.officers.map(o => {
+            const officer = new Officer(o.name, o.role, o.skill);
+            // Restore experience system properties
+            officer.level = o.level || 1;
+            officer.experience = o.experience || 0;
+            officer.skillPoints = o.skillPoints || 0;
+            officer.skills = o.skills || {
+                piloting: 0,
+                barter: 0,
+                gunnery: 0,
+                smuggling: 0,
+                engineering: 0
+            };
+            return officer;
+        });
         
         // Reconstruct systems
         gameState.systems = data.systems.map(s => {

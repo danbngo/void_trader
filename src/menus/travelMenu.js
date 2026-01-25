@@ -78,11 +78,18 @@ const TravelMenu = (() => {
         // Use first ship for engine calculation (fleet moves together)
         const activeShip = gameState.ships[0];
         
+        // Get player officer for skill calculations
+        const playerOfficer = gameState.officers[0]; // Assuming player is first officer
+        const pilotingLevel = playerOfficer ? (playerOfficer.skills.piloting || 0) : 0;
+        
         // Calculate duration based on engine level
         // Engine level of AVERAGE_SHIP_ENGINE_LEVEL means normal speed
         // Higher engine = faster travel
         const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
-        totalDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
+        const baseDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
+        
+        // Apply piloting skill to reduce travel time
+        totalDuration = SkillEffects.getTravelDuration(baseDuration, pilotingLevel);
         elapsedDays = 0;
         
         // Start travel loop
@@ -369,6 +376,23 @@ const TravelMenu = (() => {
             shipFuelCosts,
             shipsAfter: currentGameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
         });
+        
+        // Apply engineering skill repairs during travel
+        const playerOfficer = currentGameState.officers[0];
+        const engineeringLevel = playerOfficer ? (playerOfficer.skills.engineering || 0) : 0;
+        
+        if (engineeringLevel > 0) {
+            const repairResults = SkillEffects.applyEngineeringRepairs(
+                currentGameState.ships, 
+                engineeringLevel, 
+                totalDuration
+            );
+            
+            if (repairResults.repairsApplied > 0) {
+                console.log('[TravelMenu] Engineering repairs applied:', repairResults);
+                // Could add a message about repairs if desired
+            }
+        }
         
         // Advance date
         currentGameState.date.setDate(currentGameState.date.getDate() + Math.ceil(totalDuration));

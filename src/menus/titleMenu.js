@@ -173,6 +173,14 @@ const TitleMenu = (() => {
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);
             
+            // Create player as first officer (captain) with starting stats
+            const playerOfficer = new Officer('Captain', 'Commander', 10);
+            // Player starts at level 1 with 0 experience and 5 skill points
+            playerOfficer.level = 1;
+            playerOfficer.experience = 0;
+            playerOfficer.skillPoints = 5;
+            gameState.officers.push(playerOfficer);
+            
             // Generate player ships (no initial crew - will be hired at tavern)
             gameState.ships.push(ShipGenerator.generateStartingShip());
             //gameState.ships.push(ShipGenerator.generateStartingShip());

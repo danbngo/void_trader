@@ -11,8 +11,15 @@ const UndetectedEncounter = {
      */
     check: function(gameState, encType) {
         // Calculate total radar strength for each side with random factor
-        const playerRadarTotal = gameState.ships.reduce((sum, ship) => sum + ship.radar, 0);
+        let playerRadarTotal = gameState.ships.reduce((sum, ship) => sum + ship.radar, 0);
         const enemyRadarTotal = gameState.encounterShips.reduce((sum, ship) => sum + ship.radar, 0);
+        
+        // Apply smuggling skill to improve stealth (makes player "radar" higher for comparison)
+        const playerOfficer = gameState.officers[0];
+        const smugglingLevel = playerOfficer ? (playerOfficer.skills.smuggling || 0) : 0;
+        if (smugglingLevel > 0) {
+            playerRadarTotal = SkillEffects.getStealthRadar(playerRadarTotal, smugglingLevel);
+        }
         
         // Roll for detection (random factor makes radar investment valuable)
         const playerRadarRoll = playerRadarTotal * Math.random();

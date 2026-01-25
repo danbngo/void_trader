@@ -75,7 +75,7 @@ const AssistantMenu = (() => {
         
         UI.addButton(leftX, buttonY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View captain and perk details');
         
-        // Column 2: Crew, Messages, Quests
+        // Column 2: Crew, Messages, Quests, Skills
         // Crew - gray out if no crew
         const crewHelpText = hasCrew ? 'View crew and officer details' : 'No crew members (hire at Tavern)';
         const crewColor = hasCrew ? COLORS.BUTTON : COLORS.TEXT_DIM;
@@ -90,15 +90,25 @@ const AssistantMenu = (() => {
         const questsColor = hasUnreadQuests ? COLORS.YELLOW : (hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM);
         UI.addButton(middleX, buttonY + 2, '6', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
-        // Column 3: Trade Recs, Score, Back
+        // Skills - yellow if player has unspent skill points
+        const playerOfficer = gameState.officers[0];
+        const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
+        const skillsColor = hasSkillPoints ? COLORS.YELLOW : COLORS.BUTTON;
+        const skillsHelp = hasSkillPoints ? 'Skill points available! Upgrade your skills' : 'View and upgrade captain skills';
+        UI.addButton(middleX, buttonY + 3, '7', 'Skills', () => SkillsMenu.show(gameState, () => show(gameState, returnCallback)), skillsColor, skillsHelp);
+        
+        // Column 3: Trade Recs, Score
         // Check if there's a trade recommendation available and player hasn't seen it yet
         const hasRecommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState) !== null;
         const shouldHighlight = hasRecommendation && !gameState.recommendationSeen;
         const tradeRecsColor = shouldHighlight ? COLORS.YELLOW : COLORS.BUTTON;
         const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
-        UI.addButton(rightX, buttonY, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
-        UI.addButton(rightX, buttonY + 1, '8', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
-        UI.addButton(rightX, buttonY + 2, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        UI.addButton(rightX, buttonY, '8', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
+        UI.addButton(rightX, buttonY + 1, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
+        
+        // Back button
+        const backY = grid.height - 2;
+        UI.addButton(rightX, backY, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

@@ -87,12 +87,17 @@ const MarketMenu = (() => {
         // Get total fleet cargo capacity for stock ratio calculation
         const totalCargoCapacity = Ship.getFleetCargoCapacity(gameState.ships);
         
+        // Apply barter skill to fees
+        const playerOfficer = gameState.officers[0];
+        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
+        
         // Market table
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
-            const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
-            const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
+            const buyPrice = Math.floor(basePrice * (1 + effectiveFees));
+            const sellPrice = Math.floor(basePrice / (1 + effectiveFees));
             const playerQuantity = fleetCargo[cargoType.id] || 0;
             
             // Check if player has training for this cargo type
@@ -147,9 +152,11 @@ const MarketMenu = (() => {
         
         // Get cargo info for selected type (use allCargoTypes from above)
         const selectedCargoType = allCargoTypes[selectedCargoIndex];
-        const basePrice = selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id];
-        const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
-        const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
+        const selectedBasePrice = selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id];
+        
+        // Reuse already calculated effectiveFees from above
+        const selectedBuyPrice = Math.floor(selectedBasePrice * (1 + effectiveFees));
+        const selectedSellPrice = Math.floor(selectedBasePrice / (1 + effectiveFees));
         const marketStock = currentSystem.cargoStock[selectedCargoType.id];
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         const playerStock = fleetCargo[selectedCargoType.id] || 0;
@@ -158,8 +165,8 @@ const MarketMenu = (() => {
         const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id);
         
         // Build help text for buy buttons
-        let buy1HelpText = `Purchase 1 unit for ${buyPrice} CR`;
-        let buy10HelpText = `Purchase 10 units for ${buyPrice * 10} CR`;
+        let buy1HelpText = `Purchase 1 unit for ${selectedBuyPrice} CR`;
+        let buy10HelpText = `Purchase 10 units for ${selectedBuyPrice * 10} CR`;
         if (!hasTraining) {
             buy1HelpText = 'No training for this cargo type (visit Guild to learn)';
             buy10HelpText = 'No training for this cargo type (visit Guild to learn)';
@@ -169,14 +176,14 @@ const MarketMenu = (() => {
         } else if (availableSpace === 0) {
             buy1HelpText = 'No cargo space available';
             buy10HelpText = 'No cargo space available';
-        } else if (gameState.credits < buyPrice) {
-            buy1HelpText = `Not enough credits (need ${buyPrice} CR)`;
-            buy10HelpText = `Not enough credits (need ${buyPrice * 10} CR)`;
+        } else if (gameState.credits < selectedBuyPrice) {
+            buy1HelpText = `Not enough credits (need ${selectedBuyPrice} CR)`;
+            buy10HelpText = `Not enough credits (need ${selectedBuyPrice * 10} CR)`;
         }
         
         // Build help text for sell buttons
-        let sell1HelpText = `Sell 1 unit for ${sellPrice} CR`;
-        let sell10HelpText = `Sell 10 units for ${sellPrice * 10} CR`;
+        let sell1HelpText = `Sell 1 unit for ${selectedSellPrice} CR`;
+        let sell10HelpText = `Sell 10 units for ${selectedSellPrice * 10} CR`;
         if (!hasTraining) {
             sell1HelpText = 'No training for this cargo type (visit Guild to learn)';
             sell10HelpText = 'No training for this cargo type (visit Guild to learn)';
@@ -189,12 +196,12 @@ const MarketMenu = (() => {
         
         // Column 2: Buy 1, Buy 10, Sell 1, Sell 10
         // Buy 1 - gray out if no training, no stock, no space, or insufficient credits
-        const canBuy1 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
+        const canBuy1 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= selectedBuyPrice;
         const buy1Color = canBuy1 ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(middleX, buttonY, '3', 'Buy 1', () => buyCargo(1, onReturn), buy1Color, buy1HelpText);
         
         // Buy 10 - gray out if no training, no stock, no space, or insufficient credits
-        const canBuy10 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= buyPrice;
+        const canBuy10 = hasTraining && marketStock >= 1 && availableSpace >= 1 && gameState.credits >= selectedBuyPrice;
         const buy10Color = canBuy10 ? COLORS.GREEN : COLORS.TEXT_DIM;
         UI.addButton(middleX, buttonY + 1, '4', 'Buy 10', () => buyCargo(10, onReturn), buy10Color, buy10HelpText);
         
@@ -261,8 +268,13 @@ const MarketMenu = (() => {
         const cargoType = enabledCargoTypes[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
         
+        // Apply barter skill to fees
+        const playerOfficer = gameState.officers[0];
+        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
+        
         const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
-        const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
+        const buyPrice = Math.floor(basePrice * (1 + effectiveFees));
         const availableStock = currentSystem.cargoStock[cargoType.id];
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         
@@ -311,8 +323,13 @@ const MarketMenu = (() => {
         const cargoType = enabledCargoTypes[selectedCargoIndex];
         const currentSystem = gameState.getCurrentSystem();
         
+        // Apply barter skill to fees
+        const playerOfficer = gameState.officers[0];
+        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
+        
         const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
-        const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
+        const sellPrice = Math.floor(basePrice / (1 + effectiveFees));
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const playerQuantity = fleetCargo[cargoType.id] || 0;
         

@@ -73,9 +73,9 @@ const PirateEncounter = {
         UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Pirate Encounter ===`, COLORS.TEXT_ERROR);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Pirate Encounter');
+        let y = 2;
         
         UI.addText(10, y++, `Pirate vessels approach your ship!`, COLORS.TEXT_NORMAL);
         y++;
@@ -118,9 +118,9 @@ const PirateEncounter = {
         UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Pirate Encounter ===`, COLORS.TEXT_ERROR);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Pirate Encounter');
+        let y = 2;
         
         UI.addText(10, y++, `Pirate vessels close in on your fleet!`, COLORS.TEXT_NORMAL);
         y++;
@@ -161,9 +161,8 @@ const PirateEncounter = {
         UI.clear();
         UI.clearOutputRow();
         
-        let y = 5;
-        UI.addTextCentered(y++, `=== Pirate Boarding ===`, COLORS.TEXT_ERROR);
-        y += 2;
+        UI.addTitleLineCentered(0, 'Pirate Boarding');
+        let y = 2;
         
         const playerCargo = Ship.getFleetCargo(gameState.ships);
         const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
@@ -242,9 +241,9 @@ const PirateEncounter = {
         UI.clearOutputRow();
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Attacking Criminals ===`, COLORS.GREEN);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Attacking Criminals');
+        let y = 2;
         
         // Apply reputation gain (attacking criminals is good)
         gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_CRIMINALS;

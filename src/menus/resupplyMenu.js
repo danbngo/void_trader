@@ -32,7 +32,7 @@ const ResupplyMenu = (() => {
         UI.addTextCentered(2, 'Some ships need attention before departure', COLORS.YELLOW);
         
         // Use ship table utility (without cargo column)
-        const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, true);
+        const endY = ShipTableRenderer.addPlayerFleet(5, 4, null, gameState.ships, true);
         
         // Calculate total costs
         let totalRefuelCost = 0;
@@ -59,7 +59,7 @@ const ResupplyMenu = (() => {
         const allReady = allRepaired && allRefueled;
         
         // Buttons in 3 columns
-        const buttonY = grid.height - 7;
+        const buttonY = grid.height - 4;
         const leftX = 5;
         const middleX = 28;
         const rightX = 51;

@@ -36,9 +36,9 @@ const EncounterDecisionMenu = {
         UI.clear();
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== ${encType.name} Encounter ===`, COLORS.CYAN);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, `${encType.name} Encounter`);
+        let y = 2;
         
         // Different messages based on encounter type
         switch(encType.id) {
@@ -110,9 +110,9 @@ const EncounterDecisionMenu = {
                 
                 // Show attack consequence screen
                 UI.clear();
-                let y = 5;
-                UI.addTextCentered(y++, `=== Surprise Attack ===`, COLORS.CYAN);
-                y += 2;
+                
+                UI.addTitleLineCentered(0, 'Surprise Attack');
+                let y = 2;
                 UI.addText(10, y++, `You launch an unprovoked attack!`, COLORS.TEXT_NORMAL);
                 y++;
                 

@@ -40,14 +40,30 @@ const ScanSystemMenu = (() => {
             return building ? building.name : buildingId;
         });
         UI.addText(5, y++, buildingNames.join(', '), COLORS.TEXT_NORMAL);
-        y++;
         
-        // Shipyard info
+        // Shipyard and Tavern info
+        const facilityInfo = [];
+        
         if (system.buildings.includes('SHIPYARD')) {
             const shipCount = system.ships ? system.ships.length : 0;
-            y = TableRenderer.renderKeyValueList(5, y, [
-                { label: 'Shipyard Inventory:', value: `${shipCount} ship${shipCount !== 1 ? 's' : ''} available`, valueColor: COLORS.TEXT_NORMAL }
-            ]);
+            facilityInfo.push({ 
+                label: 'Shipyard Inventory:', 
+                value: `${shipCount} ship${shipCount !== 1 ? 's' : ''} available`, 
+                valueColor: COLORS.TEXT_NORMAL 
+            });
+        }
+        
+        if (system.buildings.includes('TAVERN')) {
+            const officerCount = system.officers ? system.officers.length : 0;
+            facilityInfo.push({ 
+                label: 'Tavern Officers:', 
+                value: `${officerCount} officer${officerCount !== 1 ? 's' : ''} available`, 
+                valueColor: COLORS.TEXT_NORMAL 
+            });
+        }
+        
+        if (facilityInfo.length > 0) {
+            y = TableRenderer.renderKeyValueList(5, y, facilityInfo);
             y++;
         }
         

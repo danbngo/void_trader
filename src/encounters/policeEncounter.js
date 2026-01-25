@@ -75,9 +75,9 @@ const PoliceEncounter = {
         UI.resetSelection();
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Police Encounter ===`, COLORS.CYAN);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Police Encounter');
+        let y = 2;
         
         UI.addText(10, y++, `Police cruisers approach and scan your fleet.`, COLORS.TEXT_NORMAL);
         y++;
@@ -117,9 +117,8 @@ const PoliceEncounter = {
         UI.clear();
         UI.clearOutputRow();
         
-        let y = 5;
-        UI.addTextCentered(y++, `=== Police Inspection ===`, COLORS.CYAN);
-        y += 2;
+        UI.addTitleLineCentered(0, 'Police Inspection');
+        let y = 2;
         
         // Check if player has illegal cargo
         const illegalCargo = {};
@@ -195,9 +194,9 @@ const PoliceEncounter = {
         UI.clearOutputRow();
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Resisting Arrest ===`, COLORS.TEXT_ERROR);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Resisting Arrest');
+        let y = 2;
         
         // Apply reputation and bounty penalties
         gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES;
@@ -229,9 +228,9 @@ const PoliceEncounter = {
         UI.clearOutputRow();
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Attacking Authorities ===`, COLORS.TEXT_ERROR);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Attacking Authorities');
+        let y = 2;
         
         // Apply reputation and bounty penalties
         gameState.reputation += REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES;

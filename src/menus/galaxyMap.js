@@ -428,9 +428,9 @@ const GalaxyMap = (() => {
             let xOffset = 5 + 'Recommendation: '.length;
             
             if (recommendation.type === 'sell') {
-                // "Travel to x to sell y (z profit/unit)"
-                UI.addText(xOffset, recommendationY, 'Travel to ', COLORS.TEXT_NORMAL);
-                xOffset += 'Travel to '.length;
+                // "Go to x to sell y (z profit/unit)"
+                UI.addText(xOffset, recommendationY, 'Go to ', COLORS.TEXT_NORMAL);
+                xOffset += 'Go to '.length;
                 UI.addText(xOffset, recommendationY, recommendation.targetSystem.name, COLORS.TEXT_NORMAL);
                 xOffset += recommendation.targetSystem.name.length;
                 UI.addText(xOffset, recommendationY, ' to sell ', COLORS.TEXT_NORMAL);
@@ -440,8 +440,8 @@ const GalaxyMap = (() => {
                 UI.addText(xOffset, recommendationY, ` (+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
             } else if (recommendation.type === 'buy') {
                 // "Travel to x to buy y (z% cheaper than average)"
-                UI.addText(xOffset, recommendationY, 'Travel to ', COLORS.TEXT_NORMAL);
-                xOffset += 'Travel to '.length;
+                UI.addText(xOffset, recommendationY, 'Go to ', COLORS.TEXT_NORMAL);
+                xOffset += 'Go to '.length;
                 UI.addText(xOffset, recommendationY, recommendation.targetSystem.name, COLORS.TEXT_NORMAL);
                 xOffset += recommendation.targetSystem.name.length;
                 UI.addText(xOffset, recommendationY, ' to buy ', COLORS.TEXT_NORMAL);

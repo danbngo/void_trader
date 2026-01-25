@@ -5,11 +5,11 @@
 const JOB_TYPES = {
     MESSAGE_DELIVERY: {
         id: 'MESSAGE_DELIVERY',
-        name: 'Message Delivery',
+        name: 'Delivery',
         color: COLORS.CYAN,
         baseCredits: 500,
-        baseExp: 50,
-        baseReputation: 2,
+        baseExp: 25,
+        baseReputation: 5,
         minDeadline: 10, // Minimum days to complete
         maxDeadline: 30, // Maximum days to complete
         minJumps: 1, // Minimum jumps away (1 jump = up to 10 LY)

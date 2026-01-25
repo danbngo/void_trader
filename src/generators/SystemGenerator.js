@@ -430,18 +430,27 @@ const SystemGenerator = (() => {
                 // Pick random target
                 const targetSystem = validTargets[Math.floor(Math.random() * validTargets.length)];
                 
-                // Calculate difficulty multiplier based on distance
+                // Random deadline within range
+                const deadline = Math.floor(Math.random() * (jobType.maxDeadline - jobType.minDeadline + 1)) + jobType.minDeadline;
+                
+                // Calculate difficulty multiplier based on jumps/deadline ratio
                 const distance = system.distanceTo(targetSystem);
                 const jumps = Math.ceil(distance / 10);
-                const difficultyMult = 0.5 + (jumps - jobType.minJumps) / (jobType.maxJumps - jobType.minJumps) * 0.5;
+                
+                // Calculate average jumps and deadline for this job type
+                const avgJumps = (jobType.minJumps + jobType.maxJumps) / 2;
+                const avgDeadline = (jobType.minDeadline + jobType.maxDeadline) / 2;
+                
+                // Difficulty = (actualJumps/actualDeadline) / (avgJumps/avgDeadline)
+                // This rewards jobs that require more jumps per day
+                const actualRatio = jumps / deadline;
+                const avgRatio = avgJumps / avgDeadline;
+                const difficultyMult = actualRatio / avgRatio;
                 
                 // Calculate rewards
                 const awardCredits = Math.floor(jobType.baseCredits * difficultyMult);
                 const awardExp = Math.floor(jobType.baseExp * difficultyMult);
                 const awardReputation = Math.floor(jobType.baseReputation * difficultyMult);
-                
-                // Random deadline within range
-                const deadline = Math.floor(Math.random() * (jobType.maxDeadline - jobType.minDeadline + 1)) + jobType.minDeadline;
                 
                 // Create job (without start date since it's not accepted yet)
                 const job = new Job(

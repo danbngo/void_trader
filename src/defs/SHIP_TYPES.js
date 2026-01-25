@@ -92,7 +92,7 @@ const SHIP_TYPES = {
         id: 'BATTLESHIP',
         name: 'Battleship',
         description: 'Massive capital ship with devastating firepower',
-        baseMaxFuel: AVERAGE_SHIP_FUEL * 3,
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 2,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 1.5,
         baseMaxHull: AVERAGE_SHIP_HULL * 4,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 3,

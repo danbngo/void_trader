@@ -2,6 +2,9 @@ const MIN_NUM_SHIPS_IN_SHIPYARD = 0
 const MAX_NUM_SHIPS_IN_SHIPYARD = 3
 const TAVERN_MIN_NUM_OFFICERS = 1
 const TAVERN_MAX_NUM_OFFICERS = 3
+const TAVERN_MIN_NUM_JOBS = 1
+const TAVERN_MAX_NUM_JOBS = 3
+
 const OFFICER_SALARY_PER_LEVEL = 1 //5 credits per officer level every time you land at a dock
 const OFFICER_HIRE_COST_PER_LEVEL = 100 //100 credits per officer level to hire
 const MIN_OFFICER_LEVEL = 5

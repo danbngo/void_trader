@@ -4,13 +4,26 @@
  */
 
 const CrewInfoMenu = (() => {
+    let selectedOfficerIndex = 0;
+    let outputMessage = '';
+    let outputColor = COLORS.TEXT_NORMAL;
+    
     /**
      * Show crew information
      * @param {Function} onReturn - Callback to return to previous screen
      */
     function show(onReturn) {
-        UI.clear();
+        selectedOfficerIndex = 0;
+        outputMessage = '';
         UI.resetSelection();
+        render(onReturn);
+    }
+    
+    /**
+     * Render the crew menu
+     */
+    function render(onReturn) {
+        UI.clear();
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
@@ -31,7 +44,8 @@ const CrewInfoMenu = (() => {
             // Show total salary info
             let y = 5;
             y = TableRenderer.renderKeyValueList(5, y, [
-                { label: 'Total Salaries:', value: `${totalSalary} CR per landing`, valueColor: COLORS.YELLOW }
+                { label: 'Total Salaries:', value: `${totalSalary} CR per landing`, valueColor: COLORS.YELLOW },
+                { label: 'Ships in Fleet:', value: String(gameState.ships.length), valueColor: COLORS.TEXT_NORMAL }
             ]);
             y++;
             
@@ -40,11 +54,13 @@ const CrewInfoMenu = (() => {
             y++;
             
             // Build table for officers
-            const headers = ['Name', 'Role', 'Lvl', 'Piloting', 'Barter', 'Gunnery', 'Smuggling', 'Engineering', 'Salary'];
-            const rows = gameState.subordinates.map(officer => {
+            const headers = ['', 'Name', 'Role', 'Lvl', 'Piloting', 'Barter', 'Gunnery', 'Smuggling', 'Engineering', 'Salary'];
+            const rows = gameState.subordinates.map((officer, index) => {
                 const salary = officer.getSalary();
+                const isSelected = index === selectedOfficerIndex;
                 
                 return [
+                    { text: isSelected ? '>' : ' ', color: COLORS.CYAN },
                     { text: officer.name, color: COLORS.TEXT_NORMAL },
                     { text: officer.role, color: COLORS.TEXT_DIM },
                     { text: String(officer.level), color: COLORS.YELLOW },
@@ -57,13 +73,84 @@ const CrewInfoMenu = (() => {
                 ];
             });
             
-            TableRenderer.renderTable(5, y, headers, rows, -1, 1);
+            y = TableRenderer.renderTable(5, y, headers, rows, selectedOfficerIndex, 1);
+        }
+        
+        // Buttons
+        const buttonY = grid.height - 7;
+        const leftX = 5;
+        const middleX = 28;
+        
+        // Navigation and release buttons - only if there are officers
+        if (gameState.subordinates.length > 0) {
+            UI.addButton(leftX, buttonY, '1', 'Next Officer', () => nextOfficer(onReturn), COLORS.BUTTON, 'Select next officer');
+            UI.addButton(leftX, buttonY + 1, '2', 'Prev Officer', () => prevOfficer(onReturn), COLORS.BUTTON, 'Select previous officer');
+            
+            // Release button - disabled if it would leave ships uncrewed
+            const wouldLeaveUncrewed = gameState.subordinates.length <= gameState.ships.length;
+            const releaseColor = wouldLeaveUncrewed ? COLORS.TEXT_DIM : COLORS.TEXT_ERROR;
+            const releaseHelp = wouldLeaveUncrewed 
+                ? 'Cannot release - need 1 officer per ship' 
+                : 'Release selected officer from service';
+            UI.addButton(middleX, buttonY, '3', 'Release Officer', () => releaseOfficer(onReturn), releaseColor, releaseHelp);
         }
         
         // Back button
-        UI.addCenteredButton(grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addButton(leftX, buttonY + 2, '0', 'Back', onReturn, COLORS.BUTTON);
+        
+        // Set output message
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
         
         UI.draw();
+    }
+    
+    /**
+     * Select next officer
+     */
+    function nextOfficer(onReturn) {
+        const gameState = window.gameState;
+        selectedOfficerIndex = (selectedOfficerIndex + 1) % gameState.subordinates.length;
+        outputMessage = '';
+        render(onReturn);
+    }
+    
+    /**
+     * Select previous officer
+     */
+    function prevOfficer(onReturn) {
+        const gameState = window.gameState;
+        selectedOfficerIndex = (selectedOfficerIndex - 1 + gameState.subordinates.length) % gameState.subordinates.length;
+        outputMessage = '';
+        render(onReturn);
+    }
+    
+    /**
+     * Release the selected officer
+     */
+    function releaseOfficer(onReturn) {
+        const gameState = window.gameState;
+        
+        // Check if releasing would leave ships uncrewed
+        if (gameState.subordinates.length <= gameState.ships.length) {
+            outputMessage = 'Cannot release officer - you need at least one officer per ship!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        const officer = gameState.subordinates[selectedOfficerIndex];
+        gameState.subordinates.splice(selectedOfficerIndex, 1);
+        
+        // Adjust selection if needed
+        if (selectedOfficerIndex >= gameState.subordinates.length && gameState.subordinates.length > 0) {
+            selectedOfficerIndex = gameState.subordinates.length - 1;
+        }
+        
+        outputMessage = `Released ${officer.name} from service`;
+        outputColor = COLORS.YELLOW;
+        render(onReturn);
     }
     
     return {

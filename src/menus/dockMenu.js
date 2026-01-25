@@ -240,7 +240,6 @@ const DockMenu = (() => {
         }
         
         let totalSalary = 0;
-        const officersAbandoned = [];
         
         // Calculate total salary
         gameState.subordinates.forEach(officer => {
@@ -253,12 +252,8 @@ const DockMenu = (() => {
             outputMessage = `Paid ${totalSalary} CR in officer salaries`;
             outputColor = COLORS.YELLOW;
         } else {
-            // Can't afford salaries - officers abandon ship
-            gameState.subordinates.forEach(officer => {
-                officersAbandoned.push(officer.name);
-            });
-            gameState.subordinates = [];
-            outputMessage = `Cannot afford salaries! All officers have abandoned you.`;
+            // Can't afford full salaries - show warning
+            outputMessage = `Warning: Cannot afford officer salaries (${totalSalary} CR)! Release officers or earn credits.`;
             outputColor = COLORS.TEXT_ERROR;
         }
         

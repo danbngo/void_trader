@@ -36,8 +36,10 @@ const TavernMenu = (() => {
         
         // Player info
         let y = 5;
+        const maxOfficers = getMaxOfficers();
         y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Officers:', value: `${gameState.subordinates.length}/${maxOfficers}`, valueColor: COLORS.TEXT_NORMAL }
         ]);
         y++;
         
@@ -53,7 +55,7 @@ const TavernMenu = (() => {
             const headers = ['', 'Name', 'Role', 'Lvl', 'Piloting', 'Barter', 'Gunnery', 'Smuggling', 'Engineering', 'Hire Cost', 'Salary'];
             const rows = currentSystem.officers.map((officer, index) => {
                 const isSelected = index === selectedOfficerIndex;
-                const hireCost = officer.getHireCost();
+                const hireCost = Math.floor(officer.getHireCost() * (1 + currentSystem.fees));
                 const salary = officer.getSalary();
                 
                 return [
@@ -88,10 +90,24 @@ const TavernMenu = (() => {
             
             // Hire button
             const selectedOfficer = currentSystem.officers[selectedOfficerIndex];
-            const hireCost = selectedOfficer.getHireCost();
+            const hireCost = Math.floor(selectedOfficer.getHireCost() * (1 + currentSystem.fees));
+            const maxOfficers = getMaxOfficers();
+            const atMaxCapacity = gameState.subordinates.length >= maxOfficers;
             const canAfford = gameState.credits >= hireCost;
-            const hireColor = canAfford ? COLORS.GREEN : COLORS.TEXT_DIM;
-            const hireHelp = canAfford ? `Hire ${selectedOfficer.name} for ${hireCost} CR` : `Need ${hireCost} CR to hire`;
+            const canHire = !atMaxCapacity && canAfford;
+            
+            let hireColor = COLORS.TEXT_DIM;
+            let hireHelp = '';
+            
+            if (atMaxCapacity) {
+                hireHelp = `Max officers: ${maxOfficers}. Learn Leadership perks to increase.`;
+            } else if (!canAfford) {
+                hireHelp = `Need ${hireCost} CR to hire`;
+            } else {
+                hireColor = COLORS.GREEN;
+                hireHelp = `Hire ${selectedOfficer.name} for ${hireCost} CR`;
+            }
+            
             UI.addButton(middleX, buttonY, '3', 'Hire Officer', () => hireOfficer(onReturn), hireColor, hireHelp);
         }
         
@@ -104,6 +120,22 @@ const TavernMenu = (() => {
         }
         
         UI.draw();
+    }
+    
+    /**
+     * Get maximum number of officers player can hire based on perks
+     * @returns {number} Maximum officers allowed
+     */
+    function getMaxOfficers() {
+        // Base: 1 officer
+        let maxOfficers = 1;
+        
+        // Add +1 for each leadership perk
+        if (gameState.perks.has('LEADERSHIP_I')) maxOfficers++;
+        if (gameState.perks.has('LEADERSHIP_II')) maxOfficers++;
+        if (gameState.perks.has('LEADERSHIP_III')) maxOfficers++;
+        
+        return maxOfficers;
     }
     
     /**
@@ -132,7 +164,16 @@ const TavernMenu = (() => {
     function hireOfficer(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
         const officer = currentSystem.officers[selectedOfficerIndex];
-        const hireCost = officer.getHireCost();
+        const hireCost = Math.floor(officer.getHireCost() * (1 + currentSystem.fees));
+        
+        // Check if at max officer capacity
+        const maxOfficers = getMaxOfficers();
+        if (gameState.subordinates.length >= maxOfficers) {
+            outputMessage = `Cannot hire more officers! Max: ${maxOfficers}. Learn Leadership perks at Guild to increase.`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
         
         if (gameState.credits < hireCost) {
             outputMessage = `Not enough credits! Need ${hireCost} CR, have ${gameState.credits} CR.`;

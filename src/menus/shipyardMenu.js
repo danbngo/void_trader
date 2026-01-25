@@ -358,6 +358,16 @@ const ShipyardMenu = (() => {
             return;
         }
         
+        // Check if player has enough officers to crew another ship
+        const officerCount = gameState.subordinates.length;
+        const currentShipCount = gameState.ships.length;
+        if (officerCount < currentShipCount) {
+            outputMessage = 'Need at least 1 officer per ship! Hire more officers at the Tavern.';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
         const ship = currentSystem.ships[selectedShipIndex];
         
         // Check if player has license for this ship type

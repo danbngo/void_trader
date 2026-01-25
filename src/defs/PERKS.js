@@ -45,7 +45,27 @@ const PERKS = {
         description: 'License to pilot military capital ships (Destroyer, Battleship)',
         baseCost: 40000,
         requiredPerks: ['SHIP_PARAMILITARY'] // Requires paramilitary license first
-    }
+    },
+    LEADERSHIP_I: {
+        id: 'LEADERSHIP_I',
+        name: 'Leadership I',
+        description: 'Increase maximum number of officers you can hire to 2',
+        baseCost: 15000,
+    },
+    LEADERSHIP_II: {
+        id: 'LEADERSHIP_II',
+        name: 'Leadership II',
+        description: 'Increase maximum number of officers you can hire to 3',
+        baseCost: 30000,
+        requiredPerks: ['LEADERSHIP_I']
+    },
+    LEADERSHIP_III: {
+        id: 'LEADERSHIP_III',
+        name: 'Leadership III',
+        description: 'Increase maximum number of officers you can hire to 4',
+        baseCost: 60000,
+        requiredPerks: ['LEADERSHIP_II']
+    },
 };
 
 // Array of all perks for iteration

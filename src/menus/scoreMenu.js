@@ -62,7 +62,7 @@ const ScoreMenu = (() => {
         const score = calculateScore(gameState);
         
         // Title
-        let y = 5;
+        let y = 2;
         y = UI.addHeaderLineCentered(y, 'Your Score');
         y += 2;
         

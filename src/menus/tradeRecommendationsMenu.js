@@ -48,7 +48,7 @@ const TradeRecommendationsMenu = (() => {
         UI.addTitleLineCentered(0, 'Trade Recommendations');
         
         // Cargo type info
-        let y = 5;
+        let y = 2;
         const fleetCargo = Ship.getFleetCargo(currentGameState.ships);
         const playerQuantity = fleetCargo[selectedCargoType.id] || 0;
         const totalCargoCapacity = Ship.getFleetCargoCapacity(currentGameState.ships);

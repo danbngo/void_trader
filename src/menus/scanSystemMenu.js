@@ -17,10 +17,10 @@ const ScanSystemMenu = (() => {
         const gameState = window.gameState;
         
         // Title
-        UI.addTitleLineCentered(2, 'System Scan');
+        UI.addTitleLineCentered(0, 'System Scan');
         
         // System details
-        let y = 4;
+        let y = 2;
         y = UI.addHeaderLine(5, y, 'Overview');
         const flavorText = getFlavorText(system);
         y = TableRenderer.renderKeyValueList(5, y, [

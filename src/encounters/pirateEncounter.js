@@ -28,9 +28,9 @@ const PirateEncounter = {
         UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Pirate Threat ===`, COLORS.TEXT_ERROR);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Pirate Threat');
+        let y = 2;
         
         UI.addText(10, y++, `Pirate vessels close in on your fleet!`, COLORS.TEXT_NORMAL);
         UI.addText(10, y++, `"Hand over your cargo or we'll take it by force!"`, COLORS.TEXT_ERROR);

@@ -33,9 +33,9 @@ const PoliceEncounter = {
         UI.resetSelection();
         
         const grid = UI.getGridSize();
-        let y = 5;
-        UI.addTextCentered(y++, `=== Police Inspection ===`, COLORS.CYAN);
-        y += 2;
+        
+        UI.addTitleLineCentered(0, 'Police Inspection');
+        let y = 2;
         
         UI.addText(10, y++, `Police cruisers approach and hail your fleet.`, COLORS.TEXT_NORMAL);
         UI.addText(10, y++, `"This is System Authority. Prepare for routine inspection."`, COLORS.YELLOW);

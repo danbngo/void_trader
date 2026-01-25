@@ -46,7 +46,7 @@ const SkillsMenu = (() => {
         UI.addTitleLineCentered(0, 'Skills');
         
         // Skills table
-        let y = 6;
+        let y = 2;
         UI.addText(5, y++, 'Available Skills:', COLORS.YELLOW);
         y++;
         

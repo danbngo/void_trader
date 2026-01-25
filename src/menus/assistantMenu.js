@@ -42,7 +42,7 @@ const AssistantMenu = (() => {
         // Title
         UI.addTitleLineCentered(0, 'Assistant');
         
-        let y = 5;
+        let y = 2;
         
         // Quest Status section
         y = UI.addHeaderLine(5, y, 'Quest Status');

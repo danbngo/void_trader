@@ -19,7 +19,7 @@ const PerksMenu = (() => {
         UI.addTitleLineCentered(0, 'Perks');
         
         // Perks section
-        UI.addHeaderLine(5, 6, 'Learned Perks');
+        UI.addHeaderLine(5, 2, 'Learned Perks');
         
         if (gameState.perks.size === 0) {
             UI.addText(5, 8, 'No perks learned yet', COLORS.TEXT_DIM);

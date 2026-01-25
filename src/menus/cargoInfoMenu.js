@@ -23,7 +23,7 @@ const CargoInfoMenu = (() => {
         const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const totalCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
-        const summaryY = TableRenderer.renderKeyValueList(5, 6, [
+        const summaryY = TableRenderer.renderKeyValueList(5, 2, [
             { label: 'Total Cargo:', value: `${totalCargo} / ${totalCapacity}`, valueColor: 'white' },
             { label: 'Available Space:', value: `${availableSpace} units`, valueColor: 'white' }
         ]);

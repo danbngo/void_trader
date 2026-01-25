@@ -33,11 +33,11 @@ const GuildMenu = (() => {
         
         // Title
         UI.addTitleLineCentered(0, `${currentSystem.name}: MERCHANT'S GUILD`);
-        UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
+        UI.addText(5, 2, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
         
         // Available perks table
-        const startY = 8;
-        UI.addText(5, 7, 'Available Training:', COLORS.YELLOW);
+        const startY = 5;
+        UI.addText(5, 4, 'Available Training:', COLORS.YELLOW);
         
         const rows = ALL_PERKS.map(perk => {
             const alreadyLearned = gameState.perks.has(perk.id);

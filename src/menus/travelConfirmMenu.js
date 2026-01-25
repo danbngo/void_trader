@@ -58,9 +58,9 @@ const TravelConfirmMenu = (() => {
         }
         
         // Draw title
-        UI.addTitleLineCentered(2, 'Travel Confirmation');
+        UI.addTitleLineCentered(0, 'Travel Confirmation');
         
-        let y = 6;
+        let y = 2;
         
         // Journey details section
         y = UI.addHeaderLine(5, y, 'Journey Details');

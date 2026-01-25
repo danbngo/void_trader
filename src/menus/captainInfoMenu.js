@@ -44,7 +44,7 @@ const CaptainInfoMenu = (() => {
         else if (currentMode === 'perks') title = 'Perks';
         UI.addTitleLineCentered(0, title);
         
-        let y = 5;
+        let y = 2;
         
         // Render based on mode
         if (currentMode === 'info') {

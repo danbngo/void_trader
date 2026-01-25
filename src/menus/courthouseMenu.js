@@ -34,7 +34,7 @@ const CourthouseMenu = (() => {
         UI.addTitleLineCentered(0, `${currentSystem.name}: Courthouse`);
         
         // Player info using renderKeyValueList
-        TableRenderer.renderKeyValueList(5, 5, [
+        TableRenderer.renderKeyValueList(5, 2, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Reputation:', value: `${gameState.reputation}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL },

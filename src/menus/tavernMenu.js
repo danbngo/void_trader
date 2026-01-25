@@ -35,7 +35,7 @@ const TavernMenu = (() => {
         UI.addTitleLineCentered(0, `${currentSystem.name}: Tavern`);
         
         // Player info
-        let y = 5;
+        let y = 2;
         const maxOfficers = getMaxOfficers();
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },

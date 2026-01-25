@@ -29,7 +29,7 @@ const ResupplyMenu = (() => {
         
         // Title
         UI.addTitleLineCentered(0, 'Ship Status');
-        UI.addTextCentered(5, 'Some ships need attention before departure', COLORS.YELLOW);
+        UI.addTextCentered(2, 'Some ships need attention before departure', COLORS.YELLOW);
         
         // Use ship table utility (without cargo column)
         const endY = ShipTableRenderer.addPlayerFleet(5, 8, null, gameState.ships, true);

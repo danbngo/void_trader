@@ -198,9 +198,8 @@ const MessagesMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        let y = 5;
-        UI.addTextCentered(y++, `=== ${message.title} ===`, COLORS.CYAN);
-        y++;
+        UI.addTitleLineCentered(0, message.title);
+        let y = 2;
         
         // Content
         const leftX = 10;

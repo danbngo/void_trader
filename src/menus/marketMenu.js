@@ -38,7 +38,7 @@ const MarketMenu = (() => {
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const totalCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        TableRenderer.renderKeyValueList(5, 5, [
+        TableRenderer.renderKeyValueList(5, 2, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Cargo:', value: `${totalCargo} / ${totalCapacity}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
@@ -61,7 +61,7 @@ const MarketMenu = (() => {
         const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
         
         // Market table
-        let startY = 10;
+        let startY = 6;
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];

@@ -32,8 +32,8 @@ const CrewInfoMenu = (() => {
         UI.addTitleLineCentered(0, 'Crew & Officers');
         
         if (gameState.subordinates.length === 0) {
-            UI.addTextCentered(10, 'No crew members', COLORS.TEXT_DIM);
-            UI.addTextCentered(12, 'Visit the Tavern to hire officers', COLORS.TEXT_DIM);
+            UI.addTextCentered(2, 'No crew members', COLORS.TEXT_DIM);
+            UI.addTextCentered(4, 'Visit the Tavern to hire officers', COLORS.TEXT_DIM);
         } else {
             // Calculate total salary
             let totalSalary = 0;
@@ -42,7 +42,7 @@ const CrewInfoMenu = (() => {
             });
             
             // Show total salary info
-            let y = 5;
+            let y = 2;
             y = TableRenderer.renderKeyValueList(5, y, [
                 { label: 'Total Salaries:', value: `${totalSalary} CR per landing`, valueColor: COLORS.YELLOW },
                 { label: 'Ships in Fleet:', value: String(gameState.ships.length), valueColor: COLORS.TEXT_NORMAL }

@@ -18,7 +18,7 @@ const IntroScreen = (() => {
         UI.addTitleLineCentered(0, 'The Void Beckons');
         
         // Story text
-        UI.addTextCentered(6, 'You are a novice trader, fresh from the', COLORS.TEXT_NORMAL);
+        UI.addTextCentered(2, 'You are a novice trader, fresh from the', COLORS.TEXT_NORMAL);
         UI.addTextCentered(7, 'academy, with dreams of fortune and glory.', COLORS.TEXT_NORMAL);
         
         UI.addTextCentered(9, 'Your uncle, a legendary void trader, has', COLORS.TEXT_NORMAL);

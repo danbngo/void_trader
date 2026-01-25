@@ -36,9 +36,8 @@ const UnreadMessagesMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title at top
-        let y = 3;
-        UI.addTextCentered(y++, '=== Unread Message ===', COLORS.YELLOW);
-        y += 2;
+        UI.addTitleLineCentered(0, 'Unread Message');
+        let y = 2;
         
         const unreadTextY = y++;
         const messageTitleY = y++;
@@ -49,7 +48,7 @@ const UnreadMessagesMenu = (() => {
         // Flash "You have an unread message:" text
         UI.startFlashing(() => {
             UI.clear();
-            UI.addTextCentered(3, '=== Unread Message ===', COLORS.YELLOW);
+            UI.addTitleLineCentered(0, 'Unread Message');
             UI.addTextCentered(unreadTextY, 'You have an unread message:', UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE);
             UI.addTextCentered(messageTitleY, message.title, COLORS.CYAN);
             

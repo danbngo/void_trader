@@ -177,6 +177,9 @@ const TitleMenu = (() => {
             
             console.log(`Galaxy generated successfully after ${attempts} attempt(s)`);
             
+            // Generate jobs for all systems after galaxy is finalized
+            SystemGenerator.generateJobsForAllSystems(gameState.systems);
+            
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);
             
@@ -270,6 +273,9 @@ const TitleMenu = (() => {
             }
             
             console.log(`Galaxy generated successfully after ${attempts} attempt(s)`);
+            
+            // Generate jobs for all systems after galaxy is finalized
+            SystemGenerator.generateJobsForAllSystems(gameState.systems);
             
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);

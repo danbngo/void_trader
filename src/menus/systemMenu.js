@@ -12,6 +12,9 @@ const DockMenu = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
+        // Check for expired/completed jobs when docking
+        checkJobs(gameState);
+        
         // Check for completed quests when docking
         checkQuestCompletion(gameState);
         
@@ -258,6 +261,96 @@ const DockMenu = (() => {
         }
         
         gameState.lastSalaryPaymentSystemIndex = gameState.currentSystemIndex;
+    }
+    
+    /**
+     * Check for expired or completed jobs when docking
+     * @param {GameState} gameState - Current game state
+     */
+    function checkJobs(gameState) {
+        // Check if player has an active job
+        if (!gameState.currentJob) return;
+        
+        const job = gameState.currentJob;
+        const currentDate = gameState.date.getTime();
+        
+        // Check if job is expired
+        if (job.isExpired(currentDate)) {
+            // Job failed - remove it
+            gameState.currentJob = null;
+            console.log('[DockMenu] Job expired and removed');
+            return;
+        }
+        
+        // Check if job is completed
+        if (job.jobType.checkCompleted(job, gameState)) {
+            // Mark job as completed and waiting for reward collection
+            job.completed = true;
+            gameState.completedJobReward = job;
+            gameState.currentJob = null; // Remove from active job
+            
+            // Show reward collection screen
+            showJobRewardCollection(gameState);
+        }
+    }
+    
+    /**
+     * Show job reward collection screen (similar to quest completion)
+     * @param {GameState} gameState - Current game state
+     */
+    function showJobRewardCollection(gameState) {
+        const job = gameState.completedJobReward;
+        
+        UI.clear();
+        UI.clearOutputRow();
+        UI.resetSelection();
+        
+        const grid = UI.getGridSize();
+        
+        UI.addTitleLineCentered(0, 'Job Completed!');
+        
+        let y = 2;
+        UI.addText(10, y++, job.description, job.jobType.color);
+        y++;
+        UI.addText(10, y++, 'You have successfully completed the job!', COLORS.TEXT_GREEN);
+        y += 2;
+        
+        // Show rewards
+        UI.addHeaderLine(10, y++, 'Rewards');
+        y++;
+        
+        const rewards = [];
+        if (job.awardCredits > 0) {
+            rewards.push({ label: 'Credits:', value: `+${job.awardCredits} CR`, valueColor: COLORS.GREEN });
+        }
+        if (job.awardExp > 0) {
+            rewards.push({ label: 'Experience:', value: `+${job.awardExp} XP`, valueColor: COLORS.GREEN });
+        }
+        if (job.awardReputation > 0) {
+            rewards.push({ label: 'Reputation:', value: `+${job.awardReputation}`, valueColor: COLORS.GREEN });
+        }
+        
+        y = TableRenderer.renderKeyValueList(10, y, rewards);
+        y += 2;
+        
+        // Button to collect rewards
+        const buttonY = grid.height - 3;
+        UI.addCenteredButtons(buttonY, [
+            { key: '1', label: 'Collect Rewards', callback: () => {
+                // Award the rewards
+                gameState.credits += job.awardCredits;
+                gameState.captain.addExperience(job.awardExp);
+                gameState.reputation += job.awardReputation;
+                
+                // Clear the completed job reward
+                gameState.completedJobReward = null;
+                
+                // Return to dock menu
+                show(gameState);
+            }, color: COLORS.GREEN, helpText: 'Collect your rewards and continue' }
+        ]);
+        
+        UI.draw();
     }
     
     /**

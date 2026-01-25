@@ -32,6 +32,10 @@ class GameState {
         this.questAddedDates = {}; // Map of quest ID to Date when added
         this.systemsWithQuests = []; // Array of system indices that have related quests
         
+        // Job system
+        this.currentJob = null; // Currently active job (player can only have one at a time)
+        this.completedJobReward = null; // Completed job waiting for reward collection
+        
         // Perk system
         this.perks = new Set(); // Set of perk IDs the player has learned
         this.enabledCargoTypes = [...CARGO_TYPES_SAFE]; // Array of cargo types player can buy/loot

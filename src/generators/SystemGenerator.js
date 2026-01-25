@@ -114,6 +114,9 @@ const SystemGenerator = (() => {
             system.officers.push(OfficerGenerator.generate(officerLevel));
         }
         
+        // Jobs will be generated later during postGenerateJobs after all systems are created
+        system.jobs = [];
+        
         // Generate encounter weights using logarithmic distribution
         // Range is [0.25, 4.0] with average 1.0, symmetric around 1.0 in log space
         system.pirateWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
@@ -398,9 +401,69 @@ const SystemGenerator = (() => {
         return false;
     }
     
+    /**
+     * Generate jobs for all systems after galaxy generation
+     * Must be called after all systems are created
+     * @param {Array<StarSystem>} systems - All systems in the galaxy
+     */
+    function generateJobsForAllSystems(systems) {
+        systems.forEach((system, systemIndex) => {
+            const jobCount = Math.floor(Math.random() * (TAVERN_MAX_NUM_JOBS - TAVERN_MIN_NUM_JOBS + 1)) + TAVERN_MIN_NUM_JOBS;
+            
+            for (let i = 0; i < jobCount; i++) {
+                // Pick a random job type
+                const jobType = ALL_JOB_TYPES[Math.floor(Math.random() * ALL_JOB_TYPES.length)];
+                
+                // Find systems within jump range (1 jump = up to 10 LY)
+                const minDistance = jobType.minJumps * 10;
+                const maxDistance = jobType.maxJumps * 10;
+                
+                const validTargets = systems.filter((target, targetIndex) => {
+                    if (targetIndex === systemIndex) return false; // Don't target self
+                    const dist = system.distanceTo(target);
+                    return dist >= minDistance && dist <= maxDistance;
+                });
+                
+                // If no valid targets, skip this job
+                if (validTargets.length === 0) continue;
+                
+                // Pick random target
+                const targetSystem = validTargets[Math.floor(Math.random() * validTargets.length)];
+                
+                // Calculate difficulty multiplier based on distance
+                const distance = system.distanceTo(targetSystem);
+                const jumps = Math.ceil(distance / 10);
+                const difficultyMult = 0.5 + (jumps - jobType.minJumps) / (jobType.maxJumps - jobType.minJumps) * 0.5;
+                
+                // Calculate rewards
+                const awardCredits = Math.floor(jobType.baseCredits * difficultyMult);
+                const awardExp = Math.floor(jobType.baseExp * difficultyMult);
+                const awardReputation = Math.floor(jobType.baseReputation * difficultyMult);
+                
+                // Random deadline within range
+                const deadline = Math.floor(Math.random() * (jobType.maxDeadline - jobType.minDeadline + 1)) + jobType.minDeadline;
+                
+                // Create job (without start date since it's not accepted yet)
+                const job = new Job(
+                    jobType,
+                    targetSystem,
+                    system,
+                    null, // startDate - set when accepted
+                    deadline, // This is stored as duration for now, converted to absolute date when accepted
+                    awardCredits,
+                    awardExp,
+                    awardReputation
+                );
+                
+                system.jobs.push(job);
+            }
+        });
+    }
+    
     return {
         generate,
         generateMany,
-        validateGalaxy
+        validateGalaxy,
+        generateJobsForAllSystems
     };
 })();

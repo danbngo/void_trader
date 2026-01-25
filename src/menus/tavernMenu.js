@@ -6,6 +6,8 @@
 const TavernMenu = (() => {
     let gameState = null;
     let selectedOfficerIndex = 0;
+    let selectedJobIndex = 0;
+    let mode = 'officers'; // 'officers' or 'jobs'
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
     
@@ -47,6 +49,8 @@ const TavernMenu = (() => {
     function show(state, onReturn) {
         gameState = state;
         selectedOfficerIndex = 0;
+        selectedJobIndex = 0;
+        mode = 'officers';
         outputMessage = '';
         UI.resetSelection();
         render(onReturn);

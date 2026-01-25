@@ -44,38 +44,6 @@ const MarketMenu = (() => {
             { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         
-        // Show trade recommendation
-        let startY = 10;
-        const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
-        if (recommendation) {
-            UI.addText(5, 9, 'Recommendation: ', COLORS.TEXT_DIM);
-            let xOffset = 5 + 'Recommendation: '.length;
-            
-            if (recommendation.type === 'sell') {
-                UI.addText(xOffset, 9, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
-                xOffset += `Sell all ${recommendation.quantity} `.length;
-                UI.addText(xOffset, 9, recommendation.cargoName, recommendation.cargoColor);
-                xOffset += recommendation.cargoName.length;
-                UI.addText(xOffset, 9, ` here `, COLORS.TEXT_NORMAL);
-                xOffset += ' here '.length;
-                UI.addText(xOffset, 9, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
-            } else {
-                UI.addText(xOffset, 9, 'Buy ', COLORS.TEXT_NORMAL);
-                xOffset += 'Buy '.length;
-                UI.addText(xOffset, 9, recommendation.cargoName, recommendation.cargoColor);
-                xOffset += recommendation.cargoName.length;
-                UI.addText(xOffset, 9, ` here and sell at ${recommendation.targetSystem.name} `, COLORS.TEXT_NORMAL);
-                xOffset += ` here and sell at ${recommendation.targetSystem.name} `.length;
-                UI.addText(xOffset, 9, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
-            }
-            startY = 11;
-        } else {
-            TableRenderer.renderKeyValueList(5, 9, [
-                { label: 'Recommendation:', value: 'No profitable trades available', valueColor: COLORS.TEXT_DIM }
-            ]);
-            startY = 11;
-        }
-        
         // Use ALL cargo types (not just enabled ones)
         const allCargoTypes = ALL_CARGO_TYPES;
         
@@ -93,6 +61,7 @@ const MarketMenu = (() => {
         const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
         
         // Market table
+        let startY = 10;
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id];
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
@@ -129,7 +98,7 @@ const MarketMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Cargo', 'Market Stock', 'Base Value', 'Buy Price', 'Sell Price', 'Your Stock'], rows, selectedCargoIndex, 2, (rowIndex) => {
+        const tableEndY = TableRenderer.renderTable(5, startY, ['Cargo', 'Market Stock', 'Base Value', 'Buy Price', 'Sell Price', 'Your Stock'], rows, selectedCargoIndex, 2, (rowIndex) => {
             // Only select cargo types the player has training for
             const cargoType = allCargoTypes[rowIndex];
             const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
@@ -139,6 +108,35 @@ const MarketMenu = (() => {
                 render(onReturn);
             }
         });
+        
+        // Show trade recommendation below the table
+        const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
+        if (recommendation) {
+            UI.addText(5, tableEndY + 1, 'Recommendation: ', COLORS.TEXT_DIM);
+            let xOffset = 5 + 'Recommendation: '.length;
+            
+            if (recommendation.type === 'sell') {
+                UI.addText(xOffset, tableEndY + 1, `Sell all ${recommendation.quantity} `, COLORS.TEXT_NORMAL);
+                xOffset += `Sell all ${recommendation.quantity} `.length;
+                UI.addText(xOffset, tableEndY + 1, recommendation.cargoName, recommendation.cargoColor);
+                xOffset += recommendation.cargoName.length;
+                UI.addText(xOffset, tableEndY + 1, ` here `, COLORS.TEXT_NORMAL);
+                xOffset += ' here '.length;
+                UI.addText(xOffset, tableEndY + 1, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
+            } else {
+                UI.addText(xOffset, tableEndY + 1, 'Buy ', COLORS.TEXT_NORMAL);
+                xOffset += 'Buy '.length;
+                UI.addText(xOffset, tableEndY + 1, recommendation.cargoName, recommendation.cargoColor);
+                xOffset += recommendation.cargoName.length;
+                UI.addText(xOffset, tableEndY + 1, ` here and sell at ${recommendation.targetSystem.name} `, COLORS.TEXT_NORMAL);
+                xOffset += ` here and sell at ${recommendation.targetSystem.name} `.length;
+                UI.addText(xOffset, tableEndY + 1, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
+            }
+        } else {
+            TableRenderer.renderKeyValueList(5, tableEndY + 1, [
+                { label: 'Recommendation:', value: 'No profitable trades available', valueColor: COLORS.TEXT_DIM }
+            ]);
+        }
         
         // Buttons - 3 column layout
         const buttonY = grid.height - 4;

@@ -35,8 +35,8 @@ const DockMenu = (() => {
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
-        // Title
-        UI.addTextCentered(3, `${currentSystem.name}: Dock`, COLORS.TITLE);
+        // Title at top edge
+        UI.addTextCentered(2, `${currentSystem.name}: Dock`, COLORS.TITLE);
         
         // Two-column layout for info
         const leftColumnX = 5;
@@ -62,43 +62,7 @@ const DockMenu = (() => {
             { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color }
         ]);
         
-        // Quest Status section (below two-column layout)
-        const questStatusY = startY + 5;
-        
-        UI.addText(leftColumnX, questStatusY, 'Quest Status:', COLORS.CYAN);
-        
-        // Calculate retirement info
-        const startDate = new Date(3000, 0, 1);
-        const currentDate = gameState.date;
-        const daysPassed = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-        const retirementDays = Math.floor(50 * 365.25);
-        const daysUntilRetirement = Math.max(0, retirementDays - daysPassed);
-        
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const currentDateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
-        
-        // Calculate retirement date
-        const retirementDate = new Date(startDate);
-        retirementDate.setDate(retirementDate.getDate() + retirementDays);
-        const retirementDateStr = `${months[retirementDate.getMonth()]} ${retirementDate.getDate()}, ${retirementDate.getFullYear()}`;
-        
-        let y = TableRenderer.renderKeyValueList(leftColumnX, questStatusY + 1, [
-            { label: 'Date:', value: currentDateStr, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Retirement Date:', value: retirementDateStr, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Days to Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
-        ]);
-        
-        y++; // Empty row
-        
-        // Retirement progress bar
-        const retirementProgress = daysPassed / retirementDays;
-        const barWidth = Math.floor(grid.width * 0.6);
-        const barCenterX = Math.floor(grid.width / 2);
-        const progressLabel = `${(retirementProgress * 100).toFixed(1)}% of career completed`;
-        y = ProgressBar.render(barCenterX, y, retirementProgress, barWidth, progressLabel);
-        y += 2;
-        
-        // Menu buttons - 3 column layout at bottom
+        // Menu buttons - 3 column layout at bottom edge
         const buttonY = grid.height - 5;
         const leftX = 5;
         const middleX = 28;

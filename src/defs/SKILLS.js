@@ -28,13 +28,13 @@ const SKILLS = {
     SMUGGLING: {
         id: 'smuggling',
         name: 'Smuggling',
-        description: 'Increases chance to be undetected by other fleets, and to hide illegal cargo.',
+        description: 'Increases chance to be undetected by other fleets.',
         color: COLORS.DARK_GRAY,
         maxLevel: 20
     },
     ENGINEERING: {
         id: 'engineering',
-        name: 'Engineering',
+        name: 'Repair',
         description: 'Repairs some hull during travel.',
         color: COLORS.YELLOW,
         maxLevel: 20

@@ -178,7 +178,7 @@ const TitleMenu = (() => {
             // Player starts at level 1 with 0 experience and 5 skill points
             playerOfficer.level = 1;
             playerOfficer.experience = 0;
-            playerOfficer.skillPoints = 5;
+            playerOfficer.skillPoints = 0;
             gameState.officers.push(playerOfficer);
             
             // Generate player ships (no initial crew - will be hired at tavern)

@@ -30,6 +30,7 @@ const PoliceEncounter = {
         
         UI.clear();
         UI.clearOutputRow();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -71,6 +72,7 @@ const PoliceEncounter = {
     showNoIllegalPolice: function(gameState) {
         UI.clear();
         UI.clearOutputRow();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -136,12 +138,8 @@ const PoliceEncounter = {
             });
         });
         
-        // Check if police find illegal cargo (with smuggling skill modifier)
-        const playerOfficer = gameState.officers[0];
-        const smugglingLevel = playerOfficer ? (playerOfficer.skills.smuggling || 0) : 0;
-        const foundIllegal = hasIllegalCargo && SkillEffects.policeFoundIllegalCargo(smugglingLevel);
-        
-        if (hasIllegalCargo && foundIllegal) {
+        // Check if police find illegal cargo
+        if (hasIllegalCargo) {
             // Police find illegal cargo
             UI.addText(10, y++, `The police scan your cargo holds...`, COLORS.TEXT_NORMAL);
             y++;

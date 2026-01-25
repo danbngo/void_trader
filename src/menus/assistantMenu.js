@@ -40,16 +40,51 @@ const AssistantMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(5, 'Assistant', COLORS.TITLE);
-        UI.addTextCentered(7, 'What would you like to review?', COLORS.TEXT_NORMAL);
+        UI.addTextCentered(3, 'Assistant', COLORS.TITLE);
         
         // Check for unread messages
         const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
         if (hasUnreadMessages) {
             // Flash between white and green, ending in white
             const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
-            UI.addTextCentered(8, 'You have unread messages!', flashColor);
+            UI.addTextCentered(5, 'You have unread messages!', flashColor);
         }
+        
+        let y = 5;
+        
+        // Quest Status section
+        y = UI.addHeaderLine(5, y, 'Quest Status');
+        
+        // Calculate retirement info
+        const startDate = new Date(3000, 0, 1);
+        const currentDate = gameState.date;
+        const daysPassed = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+        const retirementDays = Math.floor(50 * 365.25);
+        const daysUntilRetirement = Math.max(0, retirementDays - daysPassed);
+        
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentDateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+        
+        // Calculate retirement date
+        const retirementDate = new Date(startDate);
+        retirementDate.setDate(retirementDate.getDate() + retirementDays);
+        const retirementDateStr = `${months[retirementDate.getMonth()]} ${retirementDate.getDate()}, ${retirementDate.getFullYear()}`;
+        
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Date:', value: currentDateStr, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Retirement Date:', value: retirementDateStr, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Days to Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
+        ]);
+        
+        y++; // Empty row
+        
+        // Retirement progress bar
+        const retirementProgress = daysPassed / retirementDays;
+        const barWidth = Math.floor(grid.width * 0.6);
+        const barCenterX = Math.floor(grid.width / 2);
+        const progressLabel = `${(retirementProgress * 100).toFixed(1)}% of career completed`;
+        y = ProgressBar.render(barCenterX, y, retirementProgress, barWidth, progressLabel);
+        y += 2;
         
         // Check criteria for buttons
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
@@ -65,7 +100,7 @@ const AssistantMenu = (() => {
         const middleX = 28;
         const rightX = 51;
         
-        // Column 1: Ship Status, Cargo Manifest, Captain Info
+        // Column 1: Ship Status, Cargo Manifest, Crew
         UI.addButton(leftX, buttonY, '1', 'Ship Status', () => ShipInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View detailed ship specifications');
         
         // Cargo Manifest - gray out if no cargo
@@ -73,39 +108,33 @@ const AssistantMenu = (() => {
         const cargoColor = hasCargo ? COLORS.BUTTON : COLORS.TEXT_DIM;
         UI.addButton(leftX, buttonY + 1, '2', 'Cargo Manifest', () => tryOpenCargo(gameState, onReturn), cargoColor, cargoHelpText);
         
-        UI.addButton(leftX, buttonY + 2, '3', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View captain and perk details');
-        
-        // Column 2: Crew, Messages, Quests, Skills
         // Crew - gray out if no crew
         const crewHelpText = hasCrew ? 'View crew and officer details' : 'No crew members (hire at Tavern)';
         const crewColor = hasCrew ? COLORS.BUTTON : COLORS.TEXT_DIM;
-        UI.addButton(middleX, buttonY, '4', 'Crew', () => tryOpenCrew(gameState, onReturn), crewColor, crewHelpText);
+        UI.addButton(leftX, buttonY + 2, '3', 'Crew', () => tryOpenCrew(gameState, onReturn), crewColor, crewHelpText);
         
-        const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(middleX, buttonY + 1, '5', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
+        // Column 2: Captain Info, Quests, Messages, Trade Recs
+        UI.addButton(middleX, buttonY, '4', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), COLORS.BUTTON, 'View captain info, skills, and perks');
         
         // Quests - yellow if unread, gray out if no quests
         const hasUnreadQuests = gameState.activeQuests && gameState.activeQuests.some(qid => !gameState.readQuests.includes(qid));
         const questsHelpText = hasQuests ? (hasUnreadQuests ? 'View quests (new quests available)' : 'View active and completed quests') : 'No active or completed quests';
         const questsColor = hasUnreadQuests ? COLORS.YELLOW : (hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM);
-        UI.addButton(middleX, buttonY + 2, '6', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
+        UI.addButton(middleX, buttonY + 1, '5', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
-        // Skills - yellow if player has unspent skill points
-        const playerOfficer = gameState.officers[0];
-        const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
-        const skillsColor = hasSkillPoints ? COLORS.YELLOW : COLORS.BUTTON;
-        const skillsHelp = hasSkillPoints ? 'Skill points available! Upgrade your skills' : 'View and upgrade captain skills';
-        UI.addButton(middleX, buttonY + 3, '7', 'Skills', () => SkillsMenu.show(gameState, () => show(gameState, returnCallback)), skillsColor, skillsHelp);
+        const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
+        UI.addButton(middleX, buttonY + 2, '6', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
-        // Column 3: Trade Recs, Score
         // Check if there's a trade recommendation available and player hasn't seen it yet
         const hasRecommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState) !== null;
         const shouldHighlight = hasRecommendation && !gameState.recommendationSeen;
         const tradeRecsColor = shouldHighlight ? COLORS.YELLOW : COLORS.BUTTON;
         const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
-        UI.addButton(rightX, buttonY, '8', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
-        UI.addButton(rightX, buttonY + 1, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
-        UI.addButton(rightX, buttonY + 2, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        UI.addButton(middleX, buttonY + 3, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
+        
+        // Column 3: Score, Back
+        UI.addButton(rightX, buttonY, '8', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
+        UI.addButton(rightX, buttonY + 1, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

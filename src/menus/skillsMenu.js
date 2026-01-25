@@ -45,25 +45,8 @@ const SkillsMenu = (() => {
         // Title
         UI.addTextCentered(3, 'Skills', COLORS.TITLE);
         
-        // Player experience info
-        let y = 6;
-        const expNeeded = playerOfficer.calcExpToNextLevel();
-        const expProgress = playerOfficer.experience / expNeeded;
-        
-        y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Level:', value: String(playerOfficer.level), valueColor: COLORS.CYAN },
-            { label: 'Experience:', value: `${playerOfficer.experience}/${expNeeded}`, valueColor: COLORS.TEXT_NORMAL }
-        ]);
-        y++;
-        
-        // Experience progress bar
-        const barWidth = Math.floor(grid.width * 0.6);
-        const barCenterX = Math.floor(grid.width / 2);
-        const progressLabel = `${(expProgress * 100).toFixed(1)}% to level ${playerOfficer.level + 1}`;
-        y = ProgressBar.render(barCenterX, y, expProgress, barWidth, progressLabel);
-        y += 2;
-        
         // Skills table
+        let y = 6;
         UI.addText(5, y++, 'Available Skills:', COLORS.YELLOW);
         y++;
         
@@ -125,14 +108,16 @@ const SkillsMenu = (() => {
         
         let upgradeHelpText = 'Upgrade selected skill';
         let upgradeColor = COLORS.BUTTON;
+        const upgradeCost = playerOfficer.getSkillUpgradeCost(selectedSkillData.id);
         
         if (isMaxLevel) {
             upgradeHelpText = 'Skill is already at maximum level';
             upgradeColor = COLORS.TEXT_DIM;
         } else if (!canUpgrade) {
-            const upgradeCost = playerOfficer.getSkillUpgradeCost(selectedSkillData.id);
             upgradeHelpText = `Need ${upgradeCost} skill points (have ${playerOfficer.skillPoints})`;
             upgradeColor = COLORS.TEXT_DIM;
+        } else {
+            upgradeHelpText = `Upgrade selected skill (Cost: ${upgradeCost} skill points)`;
         }
         
         UI.addButton(middleX, buttonY, '3', 'Upgrade Skill', () => upgradeSkill(gameState, onReturn), upgradeColor, upgradeHelpText);

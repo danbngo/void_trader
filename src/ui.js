@@ -734,6 +734,8 @@ const UI = (() => {
         clear,
         addText,
         addTextCentered,
+        addHeaderLine,
+        addHeaderLineCentered,
         addButton,
         addCenteredButton,
         addSelectionHighlight,

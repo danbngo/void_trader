@@ -10,13 +10,6 @@ const PirateEncounter = {
      * @param {boolean} neverIgnore - If true, pirates will never ignore the player (for ambushes)
      */
     show: function(gameState, encType, neverIgnore = false) {
-        // Check if player only has a single shuttle (not worth pirating)
-        // Unless neverIgnore is true (e.g., ambush scenario)
-        if (!neverIgnore && gameState.ships.length === 1 && gameState.ships[0].type === 'SHUTTLE') {
-            this.showIgnoredByPirates(gameState);
-            return;
-        }
-        
         // Check if player has any cargo
         const playerCargo = Ship.getFleetCargo(gameState.ships);
         const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
@@ -65,51 +58,6 @@ const PirateEncounter = {
         
         // Clear any lingering output row messages
         UI.setOutputRow('', COLORS.TEXT_DIM);
-        
-        UI.draw();
-    },
-    
-    /**
-     * Show pirates ignoring a lone shuttle
-     */
-    showIgnoredByPirates: function(gameState) {
-        UI.clear();
-        UI.clearOutputRow();
-        UI.resetSelection(); // Clear alert from in-transit screen
-        
-        const grid = UI.getGridSize();
-        
-        UI.addTitleLineCentered(0, 'Pirate Encounter');
-        let y = 2;
-        
-        UI.addText(10, y++, `Pirate vessels approach your ship!`, COLORS.TEXT_NORMAL);
-        y++;
-        UI.addText(10, y++, `The pirates scan your lone shuttle, then broadcast:`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `"Pfft, a single shuttle? Not worth our time."`, COLORS.TEXT_ERROR);
-        y++;
-        UI.addText(10, y++, `They veer off in search of richer prey.`, COLORS.TEXT_DIM);
-        y += 2;
-        
-        // Show warning if enemy gained radar advantage
-        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Pirates");
-        
-        // Show player ships
-        y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
-        y++;
-        
-        // Show pirate ships
-        y = ShipTableRenderer.addNPCFleet(10, y, 'Pirate Forces:', gameState.encounterShips);
-        
-        // Buttons centered at bottom
-        const buttonY = grid.height - 3;
-        UI.addCenteredButtons(buttonY, [
-            { key: '1', label: 'Continue Journey', callback: () => {
-                TravelMenu.resume();
-            }, color: COLORS.GREEN, helpText: 'Resume your journey' },
-            { key: '2', label: 'Attack', callback: () => {
-                this.showAttackConsequences(gameState, ENCOUNTER_TYPES.PIRATE);
-            }, color: COLORS.TEXT_ERROR, helpText: 'Attack criminals (+5 reputation, no bounty)' }
-        ]);
         
         UI.draw();
     },

@@ -106,9 +106,9 @@ const TravelMenu = (() => {
         const currentSystem = currentGameState.getCurrentSystem();
         
         // Title
-        UI.addTitleLineCentered(2, 'In Transit');
+        UI.addTitleLineCentered(0, 'In Transit');
         
-        let y = 5;
+        let y = 2;
         
         // Calculate journey details
         const distance = currentSystem.distanceTo(targetSystem);

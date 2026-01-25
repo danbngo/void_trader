@@ -36,10 +36,9 @@ const MessagesMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        let y = 2;
         const title = showingUnread ? 'Unread Messages' : 'Read Messages';
-        UI.addHeaderLineCentered(3, title);
-        y += 2;
+        UI.addHeaderLineCentered(0, title);
+        let y = 2;
         
         // Filter messages by read status
         const filteredMessages = currentGameState.messages.filter(m => 

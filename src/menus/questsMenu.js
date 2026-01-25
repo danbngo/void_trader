@@ -35,9 +35,9 @@ const QuestsMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        let y = 2;
         const title = showingActive ? 'Active Quests' : 'Completed Quests';
-        UI.addHeaderLineCentered(3, title);
+        UI.addHeaderLineCentered(0, title);
+        let y = 2;
         y += 3; // Add empty row after title
         
         // Get quest IDs to display

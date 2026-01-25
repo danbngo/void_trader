@@ -16,7 +16,7 @@ const ScanSystemMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(3, 'System Scan', COLORS.TITLE);
+        UI.addTitleLineCentered(3, 'System Scan');
         
         // System details
         const startY = 6;

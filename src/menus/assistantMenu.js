@@ -40,7 +40,7 @@ const AssistantMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(3, 'Assistant', COLORS.TITLE);
+        UI.addTitleLineCentered(3, 'Assistant');
         
         let y = 5;
         
@@ -77,15 +77,6 @@ const AssistantMenu = (() => {
         const progressLabel = `${(retirementProgress * 100).toFixed(1)}% of career completed`;
         y = ProgressBar.render(barCenterX, y, retirementProgress, barWidth, progressLabel);
         y += 2;
-        
-        // Check for unread messages (display below quest status)
-        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
-        if (hasUnreadMessages) {
-            // Flash between white and green, ending in white
-            const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
-            UI.addTextCentered(y++, 'You have unread messages!', flashColor);
-            y++;
-        }
         
         // Check criteria for buttons
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
@@ -126,16 +117,32 @@ const AssistantMenu = (() => {
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(middleX, buttonY + 2, '6', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
-        // Check if there's a trade recommendation available and player hasn't seen it yet
+        // Trade recs - never highlight (removed recommendation highlight behavior)
         const hasRecommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState) !== null;
-        const shouldHighlight = hasRecommendation && !gameState.recommendationSeen;
-        const tradeRecsColor = shouldHighlight ? COLORS.YELLOW : COLORS.BUTTON;
         const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
-        UI.addButton(middleX, buttonY + 3, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
+        UI.addButton(middleX, buttonY + 3, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, tradeRecsHelp);
         
         // Column 3: Score, Back
         UI.addButton(rightX, buttonY, '8', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
         UI.addButton(rightX, buttonY + 1, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        
+        // Alert messages 2 rows above output row
+        const alertY = grid.height - 7; // 2 rows above buttonY
+        
+        // Check for unread messages or unviewed quests
+        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
+        if (hasUnreadMessages) {
+            // Flash between white and green, ending in white
+            const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
+            UI.addTextCentered(alertY, 'You have unread messages!', flashColor);
+        } else {
+            // Check for unviewed quests if no unread messages
+            const hasUnviewedQuests = gameState.activeQuests && gameState.activeQuests.some(qid => !gameState.readQuests.includes(qid));
+            if (hasUnviewedQuests) {
+                const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
+                UI.addTextCentered(alertY, 'You have unviewed quests!', flashColor);
+            }
+        }
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

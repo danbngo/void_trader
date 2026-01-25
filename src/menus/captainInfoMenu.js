@@ -37,7 +37,7 @@ const CaptainInfoMenu = (() => {
         let title = 'Captain Info';
         if (currentMode === 'skills') title = 'Skills';
         else if (currentMode === 'perks') title = 'Perks';
-        UI.addTextCentered(3, title, COLORS.TITLE);
+        UI.addTitleLineCentered(3, title);
         
         let y = 6;
         

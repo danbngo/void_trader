@@ -79,7 +79,7 @@ const GalaxyMap = (() => {
         UI.addText(0, mapHeight - 1, '╚' + '═'.repeat(mapWidth - 2) + '╝', COLORS.GRAY);
         
         // Title with date and zoom level
-        UI.addText(2, 0, 'GALAXY MAP', COLORS.TITLE);
+        UI.addTitleLineCentered(0, 'GALAXY MAP');
         
         // Format and display current date in center
         const dateStr = formatDate(gameState.date);

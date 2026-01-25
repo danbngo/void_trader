@@ -292,6 +292,18 @@ const UI = (() => {
     }
     
     /**
+     * Add a centered title line for menu titles (registration phase - doesn't render yet)
+     * Formats text in green color without === markers, centered horizontally
+     * @param {number} y - Grid Y position
+     * @param {string} title - Title text
+     * @returns {number} - Next Y position (y + 1)
+     */
+    function addTitleLineCentered(y, title) {
+        addTextCentered(y, title, COLORS.TITLE);
+        return y + 1;
+    }
+    
+    /**
      * Register a centered button (registration phase - doesn't render yet)
      * Automatically calculates x position to center the button horizontally
      * @param {number} y - Grid Y position
@@ -736,6 +748,7 @@ const UI = (() => {
         addTextCentered,
         addHeaderLine,
         addHeaderLineCentered,
+        addTitleLineCentered,
         addButton,
         addCenteredButton,
         addSelectionHighlight,

@@ -79,7 +79,7 @@ const TitleMenu = (() => {
         const centerX = Math.floor(grid.width / 2);
         
         // Title
-        UI.addTextCentered(5, 'V O I D   T R A D E R', COLORS.TITLE);
+        UI.addTitleLineCentered(5, 'V O I D   T R A D E R');
         UI.addTextCentered(7, 'A Text-Based Space Trading Game', COLORS.TEXT_DIM);
         
         // Menu buttons positioned at bottom
@@ -219,7 +219,7 @@ const TitleMenu = (() => {
         
         const grid = UI.getGridSize();
         
-        UI.addTextCentered(8, 'V O I D   T R A D E R', COLORS.TITLE);
+        UI.addTitleLineCentered(8, 'V O I D   T R A D E R');
         UI.addTextCentered(11, 'A text-based space trading adventure', COLORS.TEXT_NORMAL);
         UI.addTextCentered(13, 'Navigate the cosmos, trade goods, and', COLORS.TEXT_NORMAL);
         UI.addTextCentered(14, 'build your interstellar trading empire.', COLORS.TEXT_NORMAL);

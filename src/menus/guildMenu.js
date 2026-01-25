@@ -32,7 +32,7 @@ const GuildMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
-        UI.addTextCentered(3, `${currentSystem.name}: MERCHANT'S GUILD`, COLORS.TITLE);
+        UI.addTitleLineCentered(3, `${currentSystem.name}: MERCHANT'S GUILD`);
         UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
         
         // Available perks table

@@ -53,7 +53,7 @@ const LootMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTextCentered(3, 'Victory: Salvage Operations', COLORS.TITLE);
+        UI.addTitleLineCentered(3, 'Victory: Salvage Operations');
         
         // Credits awarded
         UI.addText(5, 5, `Credits found: +${creditReward} CR`, COLORS.GREEN);

@@ -58,7 +58,7 @@ const TravelConfirmMenu = (() => {
         }
         
         // Draw title
-        UI.addTextCentered(2, 'Travel Confirmation', COLORS.TITLE);
+        UI.addTitleLineCentered(2, 'Travel Confirmation');
         
         let y = 6;
         

@@ -43,7 +43,7 @@ const SkillsMenu = (() => {
         }
         
         // Title
-        UI.addTextCentered(3, 'Skills', COLORS.TITLE);
+        UI.addTitleLineCentered(3, 'Skills');
         
         // Skills table
         let y = 6;

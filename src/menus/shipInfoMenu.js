@@ -16,7 +16,7 @@ const ShipInfoMenu = (() => {
         const gameState = window.gameState;
         
         // Title
-        UI.addTextCentered(3, 'Fleet Status', COLORS.TITLE);
+        UI.addTitleLineCentered(3, 'Fleet Status');
         
         // Use ship table utility (no active ship highlighting)
         const endY = ShipTableRenderer.addPlayerFleet(5, 6, null, gameState.ships, true, -1);

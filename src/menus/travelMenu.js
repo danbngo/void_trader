@@ -107,7 +107,7 @@ const TravelMenu = (() => {
         const currentSystem = currentGameState.getCurrentSystem();
         
         // Title
-        UI.addTextCentered(2, 'In Transit', COLORS.TITLE);
+        UI.addTitleLineCentered(2, 'In Transit');
         
         let y = 5;
         

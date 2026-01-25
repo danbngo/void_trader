@@ -50,7 +50,7 @@ const ShipyardMenu = (() => {
         }
         
         // Title
-        UI.addTextCentered(3, `${currentSystem.name}: SHIPYARD`, COLORS.TITLE);
+        UI.addTitleLineCentered(3, `${currentSystem.name}: SHIPYARD`);
         TableRenderer.renderKeyValueList(5, 5, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }

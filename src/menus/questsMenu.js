@@ -38,7 +38,7 @@ const QuestsMenu = (() => {
         let y = 2;
         const title = showingActive ? 'Active Quests' : 'Completed Quests';
         UI.addHeaderLineCentered(3, title);
-        y += 2;
+        y += 3; // Add empty row after title
         
         // Get quest IDs to display
         let questIds = showingActive ? currentGameState.activeQuests : currentGameState.completedQuests;

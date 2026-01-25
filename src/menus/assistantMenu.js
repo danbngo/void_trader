@@ -42,14 +42,6 @@ const AssistantMenu = (() => {
         // Title
         UI.addTextCentered(3, 'Assistant', COLORS.TITLE);
         
-        // Check for unread messages
-        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
-        if (hasUnreadMessages) {
-            // Flash between white and green, ending in white
-            const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
-            UI.addTextCentered(5, 'You have unread messages!', flashColor);
-        }
-        
         let y = 5;
         
         // Quest Status section
@@ -85,6 +77,15 @@ const AssistantMenu = (() => {
         const progressLabel = `${(retirementProgress * 100).toFixed(1)}% of career completed`;
         y = ProgressBar.render(barCenterX, y, retirementProgress, barWidth, progressLabel);
         y += 2;
+        
+        // Check for unread messages (display below quest status)
+        const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
+        if (hasUnreadMessages) {
+            // Flash between white and green, ending in white
+            const flashColor = UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE;
+            UI.addTextCentered(y++, 'You have unread messages!', flashColor);
+            y++;
+        }
         
         // Check criteria for buttons
         const fleetCargo = Ship.getFleetCargo(gameState.ships);

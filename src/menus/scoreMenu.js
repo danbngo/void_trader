@@ -69,33 +69,26 @@ const ScoreMenu = (() => {
         
         // Score breakdown
         const leftX = 15;
-        UI.addText(leftX, y++, 'Score Breakdown:', COLORS.CYAN);
-        y++;
+        y = UI.addHeaderLine(leftX, y, 'Score Breakdown');
         
-        UI.addText(leftX, y, 'Credits:', COLORS.TEXT_NORMAL);
-        UI.addText(leftX + 25, y++, `${score.credits.toLocaleString()} CR`, COLORS.GREEN);
-        
-        UI.addText(leftX, y, 'Reputation (×10):', COLORS.TEXT_NORMAL);
         const repColor = score.reputationScore >= 0 ? COLORS.GREEN : COLORS.TEXT_ERROR;
-        UI.addText(leftX + 25, y++, `${score.reputationScore.toLocaleString()}`, repColor);
-        
-        UI.addText(leftX, y, 'Bounty:', COLORS.TEXT_NORMAL);
         const bountyColor = score.bountyScore === 0 ? COLORS.TEXT_DIM : COLORS.TEXT_ERROR;
-        UI.addText(leftX + 25, y++, `${score.bountyScore.toLocaleString()}`, bountyColor);
-        
-        UI.addText(leftX, y, 'Ship Value:', COLORS.TEXT_NORMAL);
-        UI.addText(leftX + 25, y++, `${score.shipsValue.toLocaleString()} CR`, COLORS.CYAN);
-        
-        UI.addText(leftX, y, 'Cargo Value:', COLORS.TEXT_NORMAL);
-        UI.addText(leftX + 25, y++, `${score.cargoValue.toLocaleString()} CR`, COLORS.CYAN);
-        
-        y++;
-        UI.addText(leftX, y, '─'.repeat(35), COLORS.TEXT_DIM);
-        y++;
-        
-        UI.addText(leftX, y, 'Total Score:', COLORS.YELLOW);
         const totalColor = score.totalScore >= 0 ? COLORS.YELLOW : COLORS.TEXT_ERROR;
-        UI.addText(leftX + 25, y++, `${score.totalScore.toLocaleString()}`, totalColor);
+        
+        y = TableRenderer.renderKeyValueList(leftX, y, [
+            { label: 'Credits:', value: `${score.credits.toLocaleString()} CR`, valueColor: COLORS.GREEN },
+            { label: 'Reputation (×10):', value: `${score.reputationScore.toLocaleString()}`, valueColor: repColor },
+            { label: 'Bounty:', value: `${score.bountyScore.toLocaleString()}`, valueColor: bountyColor },
+            { label: 'Ship Value:', value: `${score.shipsValue.toLocaleString()} CR`, valueColor: COLORS.CYAN },
+            { label: 'Cargo Value:', value: `${score.cargoValue.toLocaleString()} CR`, valueColor: COLORS.CYAN }
+        ]);
+        
+        y++;
+        UI.addText(leftX, y++, '─'.repeat(35), COLORS.TEXT_DIM);
+        
+        y = TableRenderer.renderKeyValueList(leftX, y, [
+            { label: 'Total Score:', value: `${score.totalScore.toLocaleString()}`, valueColor: totalColor }
+        ]);
         
         y += 2;
         

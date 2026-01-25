@@ -76,7 +76,18 @@ const MarketMenu = (() => {
             const buyRatio = cargoType.baseValue / buyPrice; // Lower buy price = higher ratio = better
             const sellRatio = sellPrice / cargoType.baseValue; // Higher sell price = higher ratio = better
             
-            // Calculate stock ratio: 0 stock = 1.0, max capacity = 4.0
+            // Calculate market stock ratio: stock * 4 / MAX_CARGO_AMOUNT_IN_MARKET
+            let marketStockColor;
+            if (stock === 0) {
+                marketStockColor = COLORS.GRAY;
+            } else if (hasTraining) {
+                const marketStockRatio = (stock * 4) / MAX_CARGO_AMOUNT_IN_MARKET;
+                marketStockColor = UI.calcStatColor(marketStockRatio);
+            } else {
+                marketStockColor = COLORS.TEXT_DIM;
+            }
+            
+            // Calculate player stock ratio: 0 stock = 1.0, max capacity = 4.0
             const stockRatio = totalCargoCapacity > 0 
                 ? 1.0 + (playerQuantity / totalCargoCapacity) * 3.0 
                 : 1.0;
@@ -84,13 +95,12 @@ const MarketMenu = (() => {
             const buyColor = hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
             const sellColor = hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
             const nameColor = hasTraining ? cargoType.color : COLORS.TEXT_DIM;
-            const stockColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             const baseValueColor = hasTraining ? COLORS.WHITE : COLORS.TEXT_DIM;
             const playerQuantityColor = hasTraining ? UI.calcStatColor(stockRatio) : COLORS.TEXT_DIM;
             
             return [
                 { text: cargoType.name, color: nameColor },
-                { text: String(stock), color: stockColor },
+                { text: String(stock), color: marketStockColor },
                 { text: String(cargoType.baseValue), color: baseValueColor },
                 { text: `${buyPrice}`, color: buyColor },
                 { text: `${sellPrice}`, color: sellColor },
@@ -98,7 +108,7 @@ const MarketMenu = (() => {
             ];
         });
         
-        const tableEndY = TableRenderer.renderTable(5, startY, ['Cargo', 'Market Stock', 'Base Value', 'Buy Price', 'Sell Price', 'Your Stock'], rows, selectedCargoIndex, 2, (rowIndex) => {
+        const tableEndY = TableRenderer.renderTable(5, startY, ['Cargo', 'Stock', 'Base Value', 'Buy Price', 'Sell Price', 'Your Stock'], rows, selectedCargoIndex, 2, (rowIndex) => {
             // Only select cargo types the player has training for
             const cargoType = allCargoTypes[rowIndex];
             const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);

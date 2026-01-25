@@ -44,7 +44,7 @@ const DockMenu = (() => {
         const startY = 6;
         
         // Left column title
-        UI.addText(leftColumnX, startY, 'System Info', COLORS.CYAN);
+        UI.addHeaderLine(leftColumnX, startY, 'System Info');
         
         // Left column: System info
         TableRenderer.renderKeyValueList(leftColumnX, startY + 1, [
@@ -53,7 +53,7 @@ const DockMenu = (() => {
         ]);
         
         // Right column title
-        UI.addText(rightColumnX, startY, 'Captain Status', COLORS.CYAN);
+        UI.addHeaderLine(rightColumnX, startY, 'Captain Status');
         
         // Right column: Player info
         const currentRank = gameState.getRankAtCurrentSystem();

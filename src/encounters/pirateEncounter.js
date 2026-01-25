@@ -25,6 +25,7 @@ const PirateEncounter = {
         
         UI.clear();
         UI.clearOutputRow();
+        UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -69,6 +70,7 @@ const PirateEncounter = {
     showIgnoredByPirates: function(gameState) {
         UI.clear();
         UI.clearOutputRow();
+        UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
         let y = 5;
@@ -113,6 +115,7 @@ const PirateEncounter = {
     showNoCargoPirates: function(gameState) {
         UI.clear();
         UI.clearOutputRow();
+        UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
         let y = 5;

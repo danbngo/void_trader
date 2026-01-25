@@ -124,7 +124,7 @@ const AssistantMenu = (() => {
         UI.addButton(middleX, buttonY + 3, '7', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, tradeRecsHelp);
         
         // Column 3: Score, Back
-        UI.addButton(rightX, buttonY, '8', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
+        UI.addButton(rightX, buttonY, '8', 'Score', () => tryOpenScore(gameState, returnCallback), COLORS.BUTTON, 'View your current score and rank');
         UI.addButton(rightX, buttonY + 1, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         // Alert messages 2 rows above output row
@@ -198,6 +198,41 @@ const AssistantMenu = (() => {
         }
         
         QuestsMenu.show(gameState, () => show(gameState, returnCallback));
+    }
+    
+    /**
+     * Try to open score menu
+     */
+    function tryOpenScore(gameState, onReturn) {
+        // Calculate starting score (500 credits + starting shuttle value)
+        // Starting shuttle has base stats: maxFuel=10, cargoCapacity=5, maxHull=10, maxShields=5, lasers=5
+        // getValue() = floor(pow((10*10 + 5*50 + 10*5 + 5*15 + 5*500) * 1.0, 1.5) / 10)
+        // = floor(pow(2775, 1.5) / 10) = floor(146222.9 / 10) = 14622
+        const startingShuttleValue = 14622;
+        const startingScore = STARTING_CREDITS + startingShuttleValue; // 500 + 14622 = 15122
+        
+        // Calculate current score using same logic as ScoreMenu
+        const credits = gameState.credits;
+        const reputationScore = gameState.reputation * 10;
+        const bountyScore = -gameState.bounty;
+        const shipsValue = gameState.ships.reduce((sum, ship) => sum + ship.getValue(), 0);
+        const cargoValue = gameState.ships.reduce((sum, ship) => {
+            return sum + Object.keys(ship.cargo).reduce((cargoSum, cargoId) => {
+                const cargoType = CARGO_TYPES[cargoId];
+                const amount = ship.cargo[cargoId] || 0;
+                return cargoSum + (cargoType ? cargoType.baseValue * amount : 0);
+            }, 0);
+        }, 0);
+        const currentScore = credits + reputationScore + bountyScore + shipsValue + cargoValue;
+        
+        if (currentScore === startingScore) {
+            outputMessage = "You haven't accomplished anything yet.";
+            outputColor = COLORS.TEXT_ERROR;
+            render(gameState, onReturn);
+            return;
+        }
+        
+        ScoreMenu.show(gameState, () => show(gameState, returnCallback));
     }
     
     return {

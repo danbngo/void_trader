@@ -9,6 +9,7 @@ const QUESTS = {
         'Learn to Trade',
         'Sell at least 1000 CR of goods',
         500,
+        100,
         (gameState) => {
             // Check if player has bought AND sold at least 1000cr worth of goods
             //const totalBought = gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0;
@@ -29,6 +30,7 @@ const QUESTS = {
         'Reach the Guild',
         'Travel to Proxima',
         1000,
+        200,
         (gameState) => {
             // Check if current system has a guild
             const currentSystem = gameState.getCurrentSystem();
@@ -45,6 +47,7 @@ const QUESTS = {
         'Gain Visa',
         'Acquire Visa at Proxima to use Guild services',
         2000,
+        400,
         (gameState) => {
             // Check if player has Visa or higher at Proxima
             const proximaIndex = gameState.systems.findIndex(s => s.name === 'Proxima');
@@ -69,6 +72,7 @@ const QUESTS = {
         'Learn Cargo Handling',
         'Buy Cargo Handling: Fragile at Guild',
         4000,
+        800,
         (gameState) => {
             // Check if player has learned CARGO_FRAGILE perk
             return gameState.perks.has('CARGO_FRAGILE');
@@ -94,6 +98,7 @@ const QUESTS = {
         'Learn Ship Handling',
         'Buy Ship License: Mercantile at Guild',
         8000,
+        1600,
         (gameState) => {
             // Check if player has learned SHIP_MERCANTILE perk
             return gameState.perks.has('SHIP_MERCANTILE');

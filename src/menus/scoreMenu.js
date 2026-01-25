@@ -23,8 +23,7 @@ const ScoreMenu = (() => {
         
         // Base value of all ships
         const shipsValue = gameState.ships.reduce((sum, ship) => {
-            const shipType = SHIP_TYPES[ship.typeId];
-            return sum + (shipType ? shipType.basePrice : 0);
+            return sum + ship.getValue();
         }, 0);
         
         // Base value of all cargo

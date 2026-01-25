@@ -313,7 +313,19 @@ const MarketMenu = (() => {
             gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT] || 0) + actualAmount;
             gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT] || 0) + totalCost;
             
-            const message = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
+            // Grant trading experience
+            const tradingExpFraction = totalCost / 1000;
+            const tradingExp = ExperienceUtils.calculateFractionalExp(EXP_POINTS_FROM_TRADING_1000CR, tradingExpFraction);
+            
+            let message = actualAmount < amount ? `Bought all ${actualAmount}x ${cargoType.name} for ${totalCost} CR!` : `Bought ${actualAmount}x ${cargoType.name} for ${totalCost} CR!`;
+            
+            if (tradingExp > 0) {
+                const expComponents = ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading');
+                if (expComponents) {
+                    message += ' ' + expComponents.baseMessage + expComponents.levelUpText;
+                }
+            }
+            
             outputMessage = message;
             outputColor = COLORS.TEXT_SUCCESS;
         }
@@ -359,7 +371,19 @@ const MarketMenu = (() => {
             gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] || 0) + actualAmount;
             gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0) + totalValue;
             
-            const message = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;
+            // Grant trading experience
+            const tradingExpFraction = totalValue / 1000;
+            const tradingExp = ExperienceUtils.calculateFractionalExp(EXP_POINTS_FROM_TRADING_1000CR, tradingExpFraction);
+            
+            let message = actualAmount < amount ? `Sold all ${actualAmount}x ${cargoType.name} for ${totalValue} CR!` : `Sold ${actualAmount}x ${cargoType.name} for ${totalValue} CR!`;
+            
+            if (tradingExp > 0) {
+                const expComponents = ExperienceUtils.getExperienceMessageComponents(gameState, tradingExp, 'Trading');
+                if (expComponents) {
+                    message += ' ' + expComponents.baseMessage + expComponents.levelUpText;
+                }
+            }
+            
             outputMessage = message;
             outputColor = COLORS.TEXT_SUCCESS;
         }

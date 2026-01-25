@@ -9,7 +9,7 @@ const SHIP_TYPES = {
         name: 'Shuttle',
         description: 'Basic starter ship with minimal capabilities',
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
-        baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.5,
+        baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.25,
         baseMaxHull: AVERAGE_SHIP_HULL * 0.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,

@@ -85,10 +85,21 @@ const QuestsMenu = (() => {
                     y++;
                     
                     // Reward - label in white, value in green for active, gray for completed
-                    if (quest.creditReward > 0) {
+                    if (quest.creditReward > 0 || quest.expReward > 0) {
                         const rewardColor = showingActive ? COLORS.GREEN : COLORS.TEXT_DIM;
                         UI.addText(leftX + 4, y, `Reward: `, COLORS.TEXT_NORMAL);
-                        UI.addText(leftX + 4 + 'Reward: '.length, y, `${quest.creditReward} CR`, rewardColor);
+                        let xPos = leftX + 4 + 'Reward: '.length;
+                        if (quest.creditReward > 0) {
+                            UI.addText(xPos, y, `${quest.creditReward} CR`, rewardColor);
+                            xPos += `${quest.creditReward} CR`.length;
+                        }
+                        if (quest.expReward > 0) {
+                            if (quest.creditReward > 0) {
+                                UI.addText(xPos, y, `, `, COLORS.TEXT_NORMAL);
+                                xPos += 2;
+                            }
+                            UI.addText(xPos, y, `${quest.expReward} XP`, rewardColor);
+                        }
                         y++;
                     }
                     
@@ -107,8 +118,8 @@ const QuestsMenu = (() => {
                         y++; // Empty row before progress bar
                         const progress = quest.getQuestProgress(currentGameState);
                         const progressBarWidth = 50;
-                        // ProgressBar.render expects x to be the CENTER of the bar
-                        const progressBarCenterX = leftX + 4 + Math.floor(progressBarWidth / 2);
+                        // Center the progress bar on the screen (grid width = 80, so center = 40)
+                        const progressBarCenterX = Math.floor(grid.width / 2);
                         
                         // Render progress bar without label
                         y = ProgressBar.render(progressBarCenterX, y, progress, progressBarWidth, null);

@@ -162,6 +162,11 @@ const MessagesMenu = (() => {
                 if (completedQuest && completedQuest.creditReward > 0) {
                     currentGameState.credits += completedQuest.creditReward;
                 }
+                
+                // Award experience programmatically
+                if (completedQuest && completedQuest.expReward > 0 && currentGameState.officers.length > 0) {
+                    currentGameState.officers[0].grantExperience(completedQuest.expReward);
+                }
             }
         }
         
@@ -206,6 +211,9 @@ const MessagesMenu = (() => {
             UI.addText(leftX, y++, `Quest completed: ${completedQuest.name}!`, COLORS.GREEN);
             if (completedQuest.creditReward > 0) {
                 UI.addText(leftX, y++, `Credits awarded: ${completedQuest.creditReward}`, COLORS.YELLOW);
+            }
+            if (completedQuest.expReward > 0) {
+                UI.addText(leftX, y++, `Experience awarded: ${completedQuest.expReward}`, COLORS.GREEN);
             }
             y++;
         }

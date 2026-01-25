@@ -373,7 +373,31 @@ const EncounterMenu = (() => {
                              gameState.combatAction.actionType === COMBAT_ACTIONS.FIRE_LASER && 
                              gameState.combatAction.projectile;
         
-        if (activeShipScreenX !== null && targetShipScreenX !== null && !isLaserActive) {
+        // Draw line to target ship or to obstruction hit point
+        let shouldDrawLine = false;
+        let lineEndX = null;
+        let lineEndY = null;
+        
+        if (activeShipScreenX !== null && !isLaserActive) {
+            if (targetShipScreenX !== null) {
+                // Draw to target ship
+                shouldDrawLine = true;
+                lineEndX = targetShipScreenX;
+                lineEndY = targetShipScreenY;
+            } else if (gameState.combatAction && 
+                       gameState.combatAction.actionType === COMBAT_ACTIONS.FIRE_LASER && 
+                       gameState.combatAction.hitObstruction && 
+                       gameState.combatAction.hitObstruction.x !== undefined) {
+                // Draw to obstruction hit point
+                shouldDrawLine = true;
+                const obstX = gameState.combatAction.hitObstruction.x;
+                const obstY = gameState.combatAction.hitObstruction.y;
+                lineEndX = Math.floor(mapCenterX + (obstX - cameraOffsetX) * scale);
+                lineEndY = Math.floor(mapCenterY - (obstY - cameraOffsetY) * scale);
+            }
+        }
+        
+        if (shouldDrawLine && lineEndX !== null && lineEndY !== null) {
             // Collect all ship positions to avoid drawing over them
             const shipPositions = new Set();
             
@@ -397,7 +421,7 @@ const EncounterMenu = (() => {
             
             const linePoints = LineDrawer.drawLine(
                 activeShipScreenX, activeShipScreenY,
-                targetShipScreenX, targetShipScreenY,
+                lineEndX, lineEndY,
                 false,
                 COLORS.CYAN
             );
@@ -943,6 +967,27 @@ const EncounterMenu = (() => {
         y += 2;
         
         UI.addText(10, y++, `All your ships escaped!`, COLORS.GREEN);
+        
+        // Grant flee experience
+        const playerFleetValue = currentGameState.ships.reduce((sum, s) => {
+            const shipType = SHIP_TYPES[s.type];
+            return sum + (shipType ? shipType.value : 0);
+        }, 0);
+        const enemyFleetValue = currentGameState.encounterShips.reduce((sum, s) => {
+            const shipType = SHIP_TYPES[s.type];
+            return sum + (shipType ? shipType.value : 0);
+        }, 0);
+        const valueRatio = playerFleetValue > 0 ? enemyFleetValue / playerFleetValue : 1;
+        const fleeExp = Math.floor(EXP_POINTS_FROM_COMBAT_FLEE_AVG * valueRatio);
+        const expComponents = ExperienceUtils.getExperienceMessageComponents(currentGameState, fleeExp, 'Successful Flee');
+        
+        if (expComponents) {
+            UI.addText(10, y++, expComponents.baseMessage, expComponents.baseMsgColor);
+            if (expComponents.levelUpText) {
+                UI.addText(10 + expComponents.baseMessage.length + 1, y - 1, expComponents.levelUpText, expComponents.levelUpColor);
+            }
+        }
+        
         UI.addText(10, y++, `You continue your journey.`, COLORS.TEXT_NORMAL);
         y += 2;
         
@@ -1254,6 +1299,19 @@ const EncounterMenu = (() => {
             
             currentGameState.encounter = false;
             currentGameState.encounterShips = [];
+            
+            // Grant combat victory experience
+            const playerFleetValue = currentGameState.ships.reduce((sum, s) => {
+                const shipType = SHIP_TYPES[s.type];
+                return sum + (shipType ? shipType.value : 0);
+            }, 0);
+            const enemyFleetValue = defeatedShips.reduce((sum, s) => {
+                const shipType = SHIP_TYPES[s.type];
+                return sum + (shipType ? shipType.value : 0);
+            }, 0);
+            const valueRatio = playerFleetValue > 0 ? enemyFleetValue / playerFleetValue : 1;
+            const victoryExp = Math.floor(EXP_POINTS_FROM_COMBAT_VICTORY_AVG * valueRatio);
+            ExperienceUtils.getExperienceMessageComponents(currentGameState, victoryExp, 'Combat Victory');
             
             // Show loot menu
             LootMenu.show(currentGameState, defeatedShips, encounterType, () => {

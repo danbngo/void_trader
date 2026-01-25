@@ -274,10 +274,14 @@ class CombatActionHandler {
         // Check for obstruction collisions (asteroids and ships)
         const hitObstruction = this.checkObstructionCollision(oldX, oldY, this.action.projectile.x, this.action.projectile.y);
         if (hitObstruction) {
+            // Store the hit position for visual rendering
+            const hitX = this.action.projectile.x;
+            const hitY = this.action.projectile.y;
+            
             // Hit an obstruction
             if (hitObstruction.type === 'asteroid') {
                 hitObstruction.object.disabled = true;
-                this.action.hitObstruction = { type: 'asteroid', name: 'asteroid' };
+                this.action.hitObstruction = { type: 'asteroid', name: 'asteroid', x: hitX, y: hitY };
             } else if (hitObstruction.type === 'ship') {
                 // Apply damage to the obstructing ship
                 const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
@@ -304,7 +308,9 @@ class CombatActionHandler {
                 this.action.hitObstruction = { 
                     type: 'ship', 
                     ship: hitShip,
-                    damage: damage
+                    damage: damage,
+                    x: hitX,
+                    y: hitY
                 };
             }
             

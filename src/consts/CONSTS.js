@@ -84,3 +84,8 @@ const MAX_CARGO_PRICE_MODIFIER = 4.0 //which means min value is 1/4
 const SKILL_POINTS_PER_LEVEL = 5
 const EXP_POINTS_FOR_FIRST_LEVEL_UP = 100
 const EXP_POINTS_LEVEL_MULTIPLIER = 2.5 //each level is 2.5x more expensive than the previous
+
+const EXP_POINTS_FROM_COMBAT_VICTORY_AVG = 25 //per victory. modified by their total ship value / ours
+const EXP_POINTS_FROM_COMBAT_FLEE_AVG = 5 //per successful flee. modified by their total ship value / ours
+const EXP_POINTS_FROM_TRADING_1000CR = 5 //per 1000cr traded. apply this fractionally, ie, if player trades 100cr then he has a 50/50 chance of gaining 1 exp. if player trades 300 cr then he has 50% chance of gaining 1 exp and 50% chance of gaining 2.
+const EXP_POINTS_FROM_SMUGGLING = 5 //if player had illegal cargo and police overlook it, award this

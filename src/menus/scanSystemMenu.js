@@ -14,28 +14,120 @@ const ScanSystemMenu = (() => {
         UI.resetSelection();
         
         const grid = UI.getGridSize();
+        const gameState = window.gameState;
         
         // Title
-        UI.addTitleLineCentered(3, 'System Scan');
+        UI.addTitleLineCentered(2, 'System Scan');
         
         // System details
-        const startY = 6;
-        UI.addText(5, startY, 'System Name:', COLORS.TEXT_DIM);
-        UI.addText(20, startY, system.name, COLORS.CYAN);
-        
-        UI.addText(5, startY + 2, 'Coordinates:', COLORS.TEXT_DIM);
-        UI.addText(20, startY + 2, `(${system.x}, ${system.y})`, COLORS.TEXT_NORMAL);
-        
-        UI.addText(5, startY + 4, 'Population:', COLORS.TEXT_DIM);
-        UI.addText(20, startY + 4, `${system.population} million`, COLORS.TEXT_NORMAL);
-        
-        UI.addText(5, startY + 6, 'Economy Type:', COLORS.TEXT_DIM);
-        UI.addText(20, startY + 6, system.economy, COLORS.TEXT_NORMAL);
-        
-        // Additional flavor text based on economy
+        let y = 4;
+        y = UI.addHeaderLine(5, y, 'Overview');
         const flavorText = getFlavorText(system);
-        UI.addText(5, startY + 9, 'Description:', COLORS.TEXT_DIM);
-        UI.addText(5, startY + 10, flavorText, COLORS.TEXT_NORMAL);
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'System Name:', value: system.name, valueColor: COLORS.CYAN },
+            { label: 'Coordinates:', value: `(${system.x}, ${system.y})`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Population:', value: `${system.population} million`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Economy Type:', value: system.economy, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Trading Fees:', value: `${(system.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Description:', value: flavorText, valueColor: COLORS.TEXT_NORMAL }
+        ]);
+        y++;
+        
+        // Buildings
+        y = UI.addHeaderLine(5, y, 'Facilities');
+        const buildingNames = system.buildings.map(buildingId => {
+            const building = BUILDING_TYPES[buildingId];
+            return building ? building.name : buildingId;
+        });
+        UI.addText(5, y++, buildingNames.join(', '), COLORS.TEXT_NORMAL);
+        y++;
+        
+        // Shipyard info
+        if (system.buildings.includes('SHIPYARD')) {
+            const shipCount = system.ships ? system.ships.length : 0;
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Shipyard Inventory:', value: `${shipCount} ship${shipCount !== 1 ? 's' : ''} available`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
+            y++;
+        }
+        
+        // Market goods table
+        if (system.buildings.includes('MARKET')) {
+            y = UI.addHeaderLine(5, y, 'Market Goods');
+            
+            // Get all cargo types that have stock > 0
+            const availableGoods = Object.keys(system.cargoStock)
+                .filter(cargoId => system.cargoStock[cargoId] > 0)
+                .map(cargoId => {
+                    const cargoType = CARGO_TYPES[cargoId];
+                    if (!cargoType) return null;
+                    
+                    const stock = system.cargoStock[cargoId];
+                    const basePrice = cargoType.baseValue * system.cargoPriceModifier[cargoId];
+                    
+                    // Calculate prices with fees (assuming no barter skill for scanning)
+                    const buyPrice = Math.floor(basePrice * (1 + system.fees));
+                    const sellPrice = Math.floor(basePrice / (1 + system.fees));
+                    
+                    // Check if player has training for this cargo type
+                    const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+                    
+                    return {
+                        name: cargoType.name,
+                        stock: stock,
+                        baseValue: cargoType.baseValue,
+                        buyPrice: buyPrice,
+                        sellPrice: sellPrice,
+                        hasTraining: hasTraining
+                    };
+                })
+                .filter(item => item !== null);
+            
+            if (availableGoods.length > 0) {
+                // Render goods table
+                const headers = ['Good', 'Stock', 'Base', 'Buy', 'Sell'];
+                const rows = availableGoods.map(good => {
+                    // Calculate color ratios for buy/sell prices
+                    const buyRatio = good.baseValue / good.buyPrice; // Lower buy price = higher ratio = better
+                    const sellRatio = good.sellPrice / good.baseValue; // Higher sell price = higher ratio = better
+                    
+                    // Calculate market stock ratio: stock * 4 / MAX_CARGO_AMOUNT_IN_MARKET
+                    let stockColor;
+                    if (good.stock === 0) {
+                        stockColor = COLORS.GRAY;
+                    } else if (good.hasTraining) {
+                        const stockRatio = (good.stock * 4) / MAX_CARGO_AMOUNT_IN_MARKET;
+                        stockColor = UI.calcStatColor(stockRatio);
+                    } else {
+                        stockColor = COLORS.TEXT_DIM;
+                    }
+                    
+                    // Grey out if player lacks training
+                    const buyColor = good.hasTraining ? UI.calcStatColor(buyRatio) : COLORS.TEXT_DIM;
+                    const sellColor = good.hasTraining ? UI.calcStatColor(sellRatio) : COLORS.TEXT_DIM;
+                    
+                    // Get cargo type for color
+                    const cargoType = CARGO_TYPES[Object.keys(system.cargoStock).find(id => 
+                        CARGO_TYPES[id] && CARGO_TYPES[id].name === good.name
+                    )];
+                    const nameColor = good.hasTraining ? (cargoType ? cargoType.color : COLORS.TEXT_NORMAL) : COLORS.TEXT_DIM;
+                    const baseColor = good.hasTraining ? COLORS.WHITE : COLORS.TEXT_DIM;
+                    
+                    return [
+                        { text: good.name, color: nameColor },
+                        { text: String(good.stock), color: stockColor },
+                        { text: String(good.baseValue), color: baseColor },
+                        { text: String(good.buyPrice), color: buyColor },
+                        { text: String(good.sellPrice), color: sellColor }
+                    ];
+                });
+                
+                y = TableRenderer.renderTable(5, y, headers, rows, -1, 2);
+            } else {
+                UI.addText(5, y++, 'No goods in stock', COLORS.TEXT_DIM);
+            }
+            y++;
+        }
         
         // Back button
         UI.addCenteredButton(grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
@@ -48,18 +140,18 @@ const ScanSystemMenu = (() => {
      */
     function getFlavorText(system) {
         const texts = {
-            'Agricultural': 'Rich farmlands provide food for the sector.',
-            'Industrial': 'Manufacturing hubs produce goods and materials.',
-            'High-Tech': 'Advanced research facilities drive innovation.',
-            'Mining': 'Mineral extraction operations dominate the system.',
-            'Trading': 'A bustling commercial hub with active markets.',
-            'Military': 'Heavy military presence maintains order.',
-            'Research': 'Scientific outposts study the unknown.',
-            'Colonial': 'A frontier world still being settled.',
-            'Tourism': 'Visitors flock to see natural wonders.',
-            'Frontier': 'A remote outpost at the edge of civilization.'
+            'Agricultural': 'Farmlands provide food for the sector',
+            'Industrial': 'Manufacturing hubs produce goods',
+            'High-Tech': 'Advanced research drives innovation',
+            'Mining': 'Mineral extraction operations',
+            'Trading': 'Bustling commercial hub',
+            'Military': 'Heavy military presence',
+            'Research': 'Scientific outposts',
+            'Colonial': 'Frontier world being settled',
+            'Tourism': 'Natural wonders attract visitors',
+            'Frontier': 'Remote outpost at civilization\'s edge'
         };
-        return texts[system.economy] || 'A typical star system.';
+        return texts[system.economy] || 'A typical star system';
     }
     
     return {

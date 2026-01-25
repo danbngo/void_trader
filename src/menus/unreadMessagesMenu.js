@@ -85,9 +85,57 @@ const UnreadMessagesMenu = (() => {
      * @param {Function} onProceed - Callback to proceed with departure
      */
     function readMessageDirect(gameState, message, onReturn, onProceed) {
+        // Track active quests before reading to detect new quest
+        const questsBefore = [...gameState.activeQuests];
+        
+        // Check if this message completes a quest
+        let completedQuest = null;
+        if (message.completesQuestId) {
+            const questId = message.completesQuestId;
+            // Complete the quest if it's active and not already completed
+            if (gameState.activeQuests.includes(questId) && !gameState.completedQuests.includes(questId)) {
+                completedQuest = Object.values(QUESTS).find(q => q.id === questId);
+                
+                // Move quest from active to completed
+                gameState.activeQuests = gameState.activeQuests.filter(id => id !== questId);
+                gameState.completedQuests.push(questId);
+                
+                // Track completion date
+                gameState.questCompletedDates[questId] = new Date(gameState.date);
+                
+                // Award credits programmatically
+                if (completedQuest && completedQuest.creditReward > 0) {
+                    gameState.credits += completedQuest.creditReward;
+                }
+                
+                // Award experience programmatically
+                if (completedQuest && completedQuest.expReward > 0) {
+                    gameState.captain.grantExperience(completedQuest.expReward);
+                }
+            } else {
+                // Quest already completed - still show the quest info for display purposes
+                completedQuest = Object.values(QUESTS).find(q => q.id === questId);
+            }
+        }
+        
         // Mark as read and trigger onRead
         const wasUnread = !message.isRead;
         message.read(gameState);
+        
+        // Check if new quest was added
+        let addedQuestId = null;
+        if (wasUnread && message.onRead) {
+            const questsAfter = gameState.activeQuests;
+            const newQuest = questsAfter.find(qid => !questsBefore.includes(qid));
+            if (newQuest) {
+                addedQuestId = newQuest;
+                // Track quest added date
+                if (!gameState.questAddedDates) {
+                    gameState.questAddedDates = {};
+                }
+                gameState.questAddedDates[newQuest] = new Date(gameState.date);
+            }
+        }
         
         UI.clear();
         UI.resetSelection();
@@ -95,9 +143,8 @@ const UnreadMessagesMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        let y = 5;
-        UI.addTextCentered(y++, `=== ${message.title} ===`, COLORS.CYAN);
-        y += 2;
+        UI.addTitleLineCentered(0, message.title);
+        let y = 2;
         
         // Content
         const leftX = 10;
@@ -109,11 +156,30 @@ const UnreadMessagesMenu = (() => {
             UI.addText(leftX, y++, message.content, COLORS.TEXT_NORMAL);
         }
         
-        y += 2;
+        y++;
         
-        // Show quest added notification if message was unread
-        if (wasUnread && message.onRead) {
-            UI.addText(leftX, y++, 'Quest added!', COLORS.GREEN);
+        // Show quest completion and reward using renderKeyValueList
+        if (completedQuest || addedQuestId) {
+            const questItems = [];
+            
+            if (completedQuest) {
+                questItems.push({ label: 'Quest completed:', value: `${completedQuest.name}!`, valueColor: COLORS.GREEN });
+                if (completedQuest.creditReward > 0) {
+                    questItems.push({ label: 'Credits awarded:', value: `${completedQuest.creditReward} CR`, valueColor: COLORS.YELLOW });
+                }
+                if (completedQuest.expReward > 0) {
+                    questItems.push({ label: 'Experience awarded:', value: `${completedQuest.expReward} XP`, valueColor: COLORS.YELLOW });
+                }
+            }
+            
+            if (addedQuestId) {
+                const addedQuest = QUESTS[addedQuestId];
+                if (addedQuest) {
+                    questItems.push({ label: 'Quest added:', value: `${addedQuest.name}!`, valueColor: COLORS.GREEN });
+                }
+            }
+            
+            y = TableRenderer.renderKeyValueList(leftX, y, questItems);
             y++;
         }
         

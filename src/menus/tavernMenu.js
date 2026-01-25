@@ -10,6 +10,36 @@ const TavernMenu = (() => {
     let outputColor = COLORS.TEXT_NORMAL;
     
     /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     */
+    function getMaxCrewSkill(skillName) {
+        let maxSkill = 0;
+        
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        
+        return maxSkill;
+    }
+    
+    /**
+     * Get effective fees after barter skill (uses max from all crew)
+     */
+    function getEffectiveFees() {
+        const currentSystem = gameState.getCurrentSystem();
+        const barterLevel = getMaxCrewSkill('barter');
+        return SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
+    }
+    
+    /**
      * Show the tavern menu
      * @param {GameState} state - Current game state
      * @param {Function} onReturn - Callback to return to previous screen
@@ -37,25 +67,23 @@ const TavernMenu = (() => {
         // Player info
         let y = 2;
         const maxOfficers = getMaxOfficers();
+        const effectiveFees = getEffectiveFees();
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Officers:', value: `${gameState.subordinates.length}/${maxOfficers}`, valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Officers:', value: `${gameState.subordinates.length}/${maxOfficers}`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         y++;
         
-        // Available officers
-        y = UI.addHeaderLine(5, y, 'Available Officers');
-        y++;
-        
         if (currentSystem.officers.length === 0) {
-            UI.addText(7, y, 'No officers available for hire', COLORS.TEXT_DIM);
+            UI.addText(5, y, 'No officers available for hire', COLORS.TEXT_DIM);
             y += 2;
         } else {
             // Build table rows for officers
             const headers = ['Name', 'Lvl', ...SKILLS_ALL.map(s=>s.shortName), 'Hire Cost', 'Salary'];
             const rows = currentSystem.officers.map((officer, index) => {
                 const isSelected = index === selectedOfficerIndex;
-                const hireCost = Math.floor(officer.getHireCost() * (1 + currentSystem.fees));
+                const hireCost = Math.floor(officer.getHireCost() * (1 + effectiveFees));
                 const salary = officer.getSalary();
                 
                 return [
@@ -90,7 +118,7 @@ const TavernMenu = (() => {
         // Hire button - only if there are officers
         if (currentSystem.officers.length > 0) {
             const selectedOfficer = currentSystem.officers[selectedOfficerIndex];
-            const hireCost = Math.floor(selectedOfficer.getHireCost() * (1 + currentSystem.fees));
+            const hireCost = Math.floor(selectedOfficer.getHireCost() * (1 + effectiveFees));
             const maxOfficers = getMaxOfficers();
             const atMaxCapacity = gameState.subordinates.length >= maxOfficers;
             const canAfford = gameState.credits >= hireCost;
@@ -164,7 +192,8 @@ const TavernMenu = (() => {
     function hireOfficer(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
         const officer = currentSystem.officers[selectedOfficerIndex];
-        const hireCost = Math.floor(officer.getHireCost() * (1 + currentSystem.fees));
+        const effectiveFees = getEffectiveFees();
+        const hireCost = Math.floor(officer.getHireCost() * (1 + effectiveFees));
         
         // Check if at max officer capacity
         const maxOfficers = getMaxOfficers();
@@ -182,14 +211,13 @@ const TavernMenu = (() => {
             return;
         }
         
+        // Store officer name before removing
+        const officerName = officer.name;
+        
         // Hire the officer
         gameState.credits -= hireCost;
         gameState.subordinates.push(officer);
         currentSystem.officers.splice(selectedOfficerIndex, 1);
-        
-        // Set success message before adjusting selection
-        outputMessage = `Hired ${officer.name} for ${hireCost} CR!`;
-        outputColor = COLORS.TEXT_SUCCESS;
         
         // Adjust selection if needed
         if (selectedOfficerIndex >= currentSystem.officers.length && currentSystem.officers.length > 0) {
@@ -198,6 +226,10 @@ const TavernMenu = (() => {
             // Reset to 0 when no officers left
             selectedOfficerIndex = 0;
         }
+        
+        // Set success message AFTER adjusting selection
+        outputMessage = `Hired ${officerName} for ${hireCost} CR!`;
+        outputColor = COLORS.TEXT_SUCCESS;
         
         render(onReturn);
     }

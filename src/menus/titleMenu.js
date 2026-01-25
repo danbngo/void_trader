@@ -124,6 +124,9 @@ const TitleMenu = (() => {
         
         // Initialize game state
         setTimeout(() => {
+            // Clear used ship names for new game
+            ShipGenerator.clearUsedNames();
+            
             // Create game state
             const gameState = new GameState();
             
@@ -215,6 +218,9 @@ const TitleMenu = (() => {
         
         // Initialize game state
         setTimeout(() => {
+            // Clear used ship names for new game
+            ShipGenerator.clearUsedNames();
+            
             // Create game state
             const gameState = new GameState();
             

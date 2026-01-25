@@ -125,8 +125,12 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
+        
+        // Only show next/previous buttons if player has more than 1 ship
+        if (gameState.ships.length > 1) {
+            UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
+            UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
+        }
         
         // Sell Ship - gray out if it's the last ship
         const isLastShip = gameState.ships.length === 1;
@@ -206,15 +210,18 @@ const ShipyardMenu = (() => {
         UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Browse next available ship');
         UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Browse previous available ship');
         
-        // Buy Ship - gray out if insufficient credits or no license
+        // Buy Ship - gray out if insufficient credits, no license, or insufficient officers
         const selectedShip = currentSystem.ships[selectedShipIndex];
         const shipPrice = Math.round(selectedShip.getValue() * (1 + getEffectiveFees()));
         const hasLicense = gameState.enabledShipTypes.some(st => st.id === selectedShip.type);
         const canAfford = gameState.credits >= shipPrice;
-        const canBuy = hasLicense && canAfford;
+        const hasEnoughOfficers = gameState.subordinates.length >= gameState.ships.length;
+        const canBuy = hasLicense && canAfford && hasEnoughOfficers;
         
         let buyHelpText = 'Purchase selected ship';
-        if (!hasLicense) {
+        if (!hasEnoughOfficers) {
+            buyHelpText = 'Need 1 officer per ship - Hire more at Tavern';
+        } else if (!hasLicense) {
             buyHelpText = 'Requires ship license - Visit the Guild';
         } else if (!canAfford) {
             buyHelpText = `Not enough credits (need ${shipPrice} CR)`;
@@ -290,39 +297,61 @@ const ShipyardMenu = (() => {
      */
     function renderConfirmation(onReturn) {
         const grid = UI.getGridSize();
+        const currentSystem = gameState.getCurrentSystem();
         
-        UI.addHeaderLineCentered(10, 'Confirm Transaction');
+        // Title
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Shipyard - Confirm Transaction`);
         
-        let y = 13;
+        let y = 2;
         
         if (mode === 'confirm-buy') {
-            UI.addText(10, y++, `Ship: ${pendingTransaction.ship.name}`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `Cost: ${pendingTransaction.cost} CR`, COLORS.TEXT_ERROR);
+            const shipType = SHIP_TYPES[pendingTransaction.ship.type] || { name: 'Unknown' };
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Ship:', value: shipType.name, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Cost:', value: `${pendingTransaction.cost} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
             y++;
-            UI.addText(10, y++, `Your Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `After Purchase: ${gameState.credits - pendingTransaction.cost} CR`, COLORS.GREEN);
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Your Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'After Purchase:', value: `${gameState.credits - pendingTransaction.cost} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
         } else if (mode === 'confirm-sell') {
-            UI.addText(10, y++, `Selling: ${pendingTransaction.ship.name}`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `Sell Value: ${pendingTransaction.value} CR`, COLORS.GREEN);
+            const shipType = SHIP_TYPES[pendingTransaction.ship.type] || { name: 'Unknown' };
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Selling:', value: shipType.name, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Sell Value:', value: `${pendingTransaction.value} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
             y++;
-            UI.addText(10, y++, `Your Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `After Sale: ${gameState.credits + pendingTransaction.value} CR`, COLORS.GREEN);
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Your Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'After Sale:', value: `${gameState.credits + pendingTransaction.value} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
         } else if (mode === 'confirm-tradein') {
-            UI.addText(10, y++, `Trading In: ${pendingTransaction.oldShip.name}`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `Trade-In Value: ${pendingTransaction.tradeInValue} CR`, COLORS.GREEN);
+            const oldShipType = SHIP_TYPES[pendingTransaction.oldShip.type] || { name: 'Unknown' };
+            const newShipType = SHIP_TYPES[pendingTransaction.newShip.type] || { name: 'Unknown' };
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Trading In:', value: oldShipType.name, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Trade-In Value:', value: `${pendingTransaction.tradeInValue} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
             y++;
-            UI.addText(10, y++, `New Ship: ${pendingTransaction.newShip.name}`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `Cost: ${pendingTransaction.cost} CR`, COLORS.TEXT_ERROR);
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'New Ship:', value: newShipType.name, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Cost:', value: `${pendingTransaction.cost} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
             y++;
-            UI.addText(10, y++, `Net Cost: ${pendingTransaction.netCost} CR`, pendingTransaction.netCost > 0 ? COLORS.TEXT_ERROR : COLORS.GREEN);
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Net Cost:', value: `${pendingTransaction.netCost} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
             y++;
-            UI.addText(10, y++, `Your Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
-            UI.addText(10, y++, `After Trade: ${gameState.credits - pendingTransaction.netCost} CR`, COLORS.GREEN);
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Your Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'After Trade:', value: `${gameState.credits - pendingTransaction.netCost} CR`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
         }
         
         const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Confirm', () => executeTransaction(onReturn), COLORS.GREEN);
-        UI.addButton(10, buttonY + 1, '0', 'Cancel', () => cancelTransaction(onReturn), COLORS.BUTTON);
+        UI.addButton(5, buttonY, '1', 'Confirm', () => executeTransaction(onReturn), COLORS.GREEN);
+        UI.addButton(5, buttonY + 1, '0', 'Cancel', () => cancelTransaction(onReturn), COLORS.BUTTON);
         
         UI.draw();
     }

@@ -190,7 +190,11 @@ const TavernMenu = (() => {
      * Hire the selected officer
      */
     function hireOfficer(onReturn) {
+        console.log('=== HIRING OFFICER ===');
         const currentSystem = gameState.getCurrentSystem();
+        console.log('Officers available before hire:', currentSystem.officers.length);
+        console.log('Selected index before hire:', selectedOfficerIndex);
+        
         const officer = currentSystem.officers[selectedOfficerIndex];
         const effectiveFees = getEffectiveFees();
         const hireCost = Math.floor(officer.getHireCost() * (1 + effectiveFees));
@@ -198,6 +202,7 @@ const TavernMenu = (() => {
         // Check if at max officer capacity
         const maxOfficers = getMaxOfficers();
         if (gameState.subordinates.length >= maxOfficers) {
+            console.log('BLOCKED: At max officers');
             outputMessage = `Cannot hire more officers! Max: ${maxOfficers}. Learn Leadership perks at Guild to increase.`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
@@ -205,6 +210,7 @@ const TavernMenu = (() => {
         }
         
         if (gameState.credits < hireCost) {
+            console.log('BLOCKED: Not enough credits');
             outputMessage = `Not enough credits! Need ${hireCost} CR, have ${gameState.credits} CR.`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
@@ -213,23 +219,31 @@ const TavernMenu = (() => {
         
         // Store officer name before removing
         const officerName = officer.name;
+        console.log('Hiring officer:', officerName);
         
         // Hire the officer
         gameState.credits -= hireCost;
         gameState.subordinates.push(officer);
         currentSystem.officers.splice(selectedOfficerIndex, 1);
+        console.log('Officers available after removal:', currentSystem.officers.length);
         
         // Adjust selection if needed
         if (selectedOfficerIndex >= currentSystem.officers.length && currentSystem.officers.length > 0) {
             selectedOfficerIndex = currentSystem.officers.length - 1;
+            console.log('Adjusted selection to:', selectedOfficerIndex, '(was beyond array)');
         } else if (currentSystem.officers.length === 0) {
             // Reset to 0 when no officers left
             selectedOfficerIndex = 0;
+            console.log('Reset selection to 0 (no officers left)');
+        } else {
+            console.log('Selection unchanged at:', selectedOfficerIndex);
         }
         
         // Set success message AFTER adjusting selection
         outputMessage = `Hired ${officerName} for ${hireCost} CR!`;
         outputColor = COLORS.TEXT_SUCCESS;
+        console.log('Output message set to:', outputMessage);
+        console.log('=== END HIRING ===');
         
         render(onReturn);
     }

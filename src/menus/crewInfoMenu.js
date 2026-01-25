@@ -29,7 +29,7 @@ const CrewInfoMenu = (() => {
         const gameState = window.gameState;
         
         // Title
-        UI.addTitleLineCentered(3, 'Crew & Officers');
+        UI.addTitleLineCentered(0, 'Crew & Officers');
         
         if (gameState.subordinates.length === 0) {
             UI.addTextCentered(10, 'No crew members', COLORS.TEXT_DIM);

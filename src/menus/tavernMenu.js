@@ -32,7 +32,7 @@ const TavernMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
-        UI.addTitleLineCentered(3, `${currentSystem.name}: Tavern`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Tavern`);
         
         // Player info
         let y = 5;

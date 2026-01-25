@@ -16,7 +16,7 @@ const CargoInfoMenu = (() => {
         const gameState = window.gameState;
         
         // Title
-        UI.addTitleLineCentered(3, 'Cargo Manifest');
+        UI.addTitleLineCentered(0, 'Cargo Manifest');
         
         // Cargo summary using TableRenderer
         const fleetCargo = Ship.getFleetCargo(gameState.ships);

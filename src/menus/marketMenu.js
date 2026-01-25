@@ -32,7 +32,7 @@ const MarketMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
-        UI.addTitleLineCentered(3, `${currentSystem.name}: Market`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Market`);
         
         // Player info
         const fleetCargo = Ship.getFleetCargo(gameState.ships);

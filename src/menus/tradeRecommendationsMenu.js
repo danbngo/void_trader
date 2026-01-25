@@ -45,7 +45,7 @@ const TradeRecommendationsMenu = (() => {
         const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         
         // Title
-        UI.addTitleLineCentered(3, 'Trade Recommendations');
+        UI.addTitleLineCentered(0, 'Trade Recommendations');
         
         // Cargo type info
         let y = 5;

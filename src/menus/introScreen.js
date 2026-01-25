@@ -15,7 +15,7 @@ const IntroScreen = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTitleLineCentered(3, 'The Void Beckons');
+        UI.addTitleLineCentered(0, 'The Void Beckons');
         
         // Story text
         UI.addTextCentered(6, 'You are a novice trader, fresh from the', COLORS.TEXT_NORMAL);

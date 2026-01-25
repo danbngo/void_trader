@@ -40,7 +40,7 @@ const AssistantMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTitleLineCentered(3, 'Assistant');
+        UI.addTitleLineCentered(0, 'Assistant');
         
         let y = 5;
         

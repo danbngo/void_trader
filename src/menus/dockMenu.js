@@ -39,7 +39,7 @@ const DockMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title at top edge
-        UI.addTitleLineCentered(2, `${currentSystem.name}: Dock`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Dock`);
         
         // Two-column layout for info
         const leftColumnX = 5;

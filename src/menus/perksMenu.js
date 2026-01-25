@@ -16,7 +16,7 @@ const PerksMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTitleLineCentered(3, 'Perks');
+        UI.addTitleLineCentered(0, 'Perks');
         
         // Perks section
         UI.addHeaderLine(5, 6, 'Learned Perks');

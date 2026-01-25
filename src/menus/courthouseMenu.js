@@ -31,7 +31,7 @@ const CourthouseMenu = (() => {
         const currentRank = gameState.getRankAtCurrentSystem();
         
         // Title
-        UI.addTitleLineCentered(3, `${currentSystem.name}: Courthouse`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Courthouse`);
         
         // Player info using renderKeyValueList
         TableRenderer.renderKeyValueList(5, 5, [

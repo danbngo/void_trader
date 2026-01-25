@@ -32,7 +32,7 @@ const DockServicesMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
-        UI.addTitleLineCentered(3, `${currentSystem.name}: Dock Services`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Dock Services`);
         UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
         
         // Player ships table

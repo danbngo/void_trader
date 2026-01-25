@@ -19,7 +19,7 @@ const SaveMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title
-        UI.addTitleLineCentered(3, 'Save Game');
+        UI.addTitleLineCentered(0, 'Save Game');
         
         // Get save list
         const saves = SaveLoadManager.getSaveList();

@@ -42,7 +42,7 @@ const CaptainInfoMenu = (() => {
         let title = 'Captain Info';
         if (currentMode === 'skills') title = 'Skills';
         else if (currentMode === 'perks') title = 'Perks';
-        UI.addTitleLineCentered(3, title);
+        UI.addTitleLineCentered(0, title);
         
         let y = 5;
         

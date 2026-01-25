@@ -19,7 +19,7 @@ const OptionsMenu = (() => {
         const grid = UI.getGridSize();
         
         // Title at top
-        UI.addTitleLineCentered(5, 'Options');
+        UI.addTitleLineCentered(0, 'Options');
         
         // Menu buttons at bottom, centered
         const buttonY = grid.height - 6;

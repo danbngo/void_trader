@@ -156,9 +156,10 @@ const DockMenu = (() => {
         // Always available buttons in third column
         UI.addButton(rightX, buttonY + 0, '7', 'Depart', () => checkAndDepart(gameState), COLORS.GREEN, 'Leave station and travel to another system');
         
-        // Highlight assistant button if there are unread messages
+        // Highlight assistant button if there are unread messages or skill points
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
-        const assistantColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
+        const hasSkillPoints = gameState.officers && gameState.officers.length > 0 && gameState.officers[0].skillPoints > 0;
+        const assistantColor = (hasUnreadMessages || hasSkillPoints) ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(rightX, buttonY + 1, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
         UI.addButton(rightX, buttonY + 2, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');

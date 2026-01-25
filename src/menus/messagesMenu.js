@@ -167,6 +167,9 @@ const MessagesMenu = (() => {
                 if (completedQuest && completedQuest.expReward > 0 && currentGameState.officers.length > 0) {
                     currentGameState.officers[0].grantExperience(completedQuest.expReward);
                 }
+            } else {
+                // Quest already completed - still show the quest info for display purposes
+                completedQuest = Object.values(QUESTS).find(q => q.id === questId);
             }
         }
         
@@ -192,7 +195,7 @@ const MessagesMenu = (() => {
         // Title
         let y = 5;
         UI.addTextCentered(y++, `=== ${message.title} ===`, COLORS.CYAN);
-        y += 2;
+        y++;
         
         // Content
         const leftX = 10;
@@ -210,10 +213,10 @@ const MessagesMenu = (() => {
         if (completedQuest) {
             UI.addText(leftX, y++, `Quest completed: ${completedQuest.name}!`, COLORS.GREEN);
             if (completedQuest.creditReward > 0) {
-                UI.addText(leftX, y++, `Credits awarded: ${completedQuest.creditReward}`, COLORS.YELLOW);
+                UI.addText(leftX, y++, `Credits awarded: ${completedQuest.creditReward} CR`, COLORS.YELLOW);
             }
             if (completedQuest.expReward > 0) {
-                UI.addText(leftX, y++, `Experience awarded: ${completedQuest.expReward}`, COLORS.GREEN);
+                UI.addText(leftX, y++, `Experience awarded: ${completedQuest.expReward} XP`, COLORS.GREEN);
             }
             y++;
         }

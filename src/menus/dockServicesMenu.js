@@ -68,9 +68,11 @@ const DockServicesMenu = (() => {
         const middleX = 28;
         const rightX = 51;
         
-        // Column 1: Next Ship, Previous Ship
-        UI.addButton(leftX, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
-        UI.addButton(leftX, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
+        // Column 1: Next Ship, Previous Ship (only show if player has multiple ships)
+        if (gameState.ships.length > 1) {
+            UI.addButton(leftX, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship in your fleet');
+            UI.addButton(leftX, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship in your fleet');
+        }
         
         // Column 2: Refuel, Repair
         const ship = gameState.ships[selectedShipIndex];

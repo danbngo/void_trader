@@ -33,6 +33,11 @@ const CaptainInfoMenu = (() => {
         const gameState = window.gameState;
         const playerOfficer = gameState.officers[0];
         
+        // Check if player has skills or skill points (used in multiple places)
+        const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
+        const hasAnySkills = playerOfficer && Object.values(playerOfficer.skills).some(level => level > 0);
+        const hasSkillsOrPoints = hasSkillPoints || hasAnySkills;
+        
         // Title
         let title = 'Captain Info';
         if (currentMode === 'skills') title = 'Skills';
@@ -64,10 +69,6 @@ const CaptainInfoMenu = (() => {
         
         // Skills button - check if player has any skills or points
         if (currentMode !== 'skills') {
-            const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
-            const hasAnySkills = playerOfficer && Object.values(playerOfficer.skills).some(level => level > 0);
-            const hasSkillsOrPoints = hasSkillPoints || hasAnySkills;
-            
             let skillsColor = COLORS.BUTTON;
             let skillsHelp = 'View and upgrade captain skills';
             if (!hasSkillsOrPoints) {

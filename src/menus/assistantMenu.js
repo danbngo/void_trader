@@ -105,10 +105,7 @@ const AssistantMenu = (() => {
         const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
         UI.addButton(rightX, buttonY, '8', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), tradeRecsColor, tradeRecsHelp);
         UI.addButton(rightX, buttonY + 1, '9', 'Score', () => ScoreMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, 'View your current score and rank');
-        
-        // Back button
-        const backY = grid.height - 2;
-        UI.addButton(rightX, backY, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        UI.addButton(rightX, buttonY + 2, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

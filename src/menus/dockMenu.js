@@ -57,6 +57,17 @@ const DockMenu = (() => {
         
         // Right column: Player info
         const currentRank = gameState.getRankAtCurrentSystem();
+        
+        TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
+            { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color }
+        ]);
+        
+        // Quest Status section (below two-column layout)
+        const questStatusY = startY + 5;
+        
+        UI.addText(leftColumnX, questStatusY, 'Quest Status:', COLORS.CYAN);
+        
+        // Calculate retirement info
         const startDate = new Date(3000, 0, 1);
         const currentDate = gameState.date;
         const daysPassed = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
@@ -64,18 +75,28 @@ const DockMenu = (() => {
         const daysUntilRetirement = Math.max(0, retirementDays - daysPassed);
         
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const dateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+        const currentDateStr = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
         
-        TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
-            { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color }
-        ]);
+        // Calculate retirement date
+        const retirementDate = new Date(startDate);
+        retirementDate.setDate(retirementDate.getDate() + retirementDays);
+        const retirementDateStr = `${months[retirementDate.getMonth()]} ${retirementDate.getDate()}, ${retirementDate.getFullYear()}`;
         
-        // Quest Status section
-        UI.addText(rightColumnX, startY + 3, 'Quest Status:', COLORS.CYAN);
-        TableRenderer.renderKeyValueList(rightColumnX, startY + 4, [
-            { label: 'Date:', value: dateStr, valueColor: COLORS.TEXT_NORMAL },
+        let y = TableRenderer.renderKeyValueList(leftColumnX, questStatusY + 1, [
+            { label: 'Date:', value: currentDateStr, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Retirement Date:', value: retirementDateStr, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Days to Retirement:', value: String(daysUntilRetirement), valueColor: COLORS.TEXT_NORMAL }
         ]);
+        
+        y++; // Empty row
+        
+        // Retirement progress bar
+        const retirementProgress = daysPassed / retirementDays;
+        const barWidth = Math.floor(grid.width * 0.6);
+        const barCenterX = Math.floor(grid.width / 2);
+        const progressLabel = `${(retirementProgress * 100).toFixed(1)}% of career completed`;
+        y = ProgressBar.render(barCenterX, y, retirementProgress, barWidth, progressLabel);
+        y += 2;
         
         // Menu buttons - 3 column layout at bottom
         const buttonY = grid.height - 5;
@@ -201,142 +222,12 @@ const DockMenu = (() => {
             return;
         }
         
-        // Check for unread messages that haven't been suppressed
-        const unreadMessages = gameState.messages.filter(m => !m.isRead && !m.suppressWarning);
-        if (unreadMessages.length > 0) {
-            showUnreadMessageWarning(gameState, unreadMessages[0]);
-            return;
-        }
-        
-        // Check if any ships need repair or refuel
-        const needsRepair = gameState.ships.some(ship => 
-            ship.hull < ship.maxHull || ship.shields < ship.maxShields
+        // Check for unread messages and handle departure flow
+        UnreadMessagesMenu.show(
+            gameState,
+            show, // onReturn to dock
+            proceedToGalaxyMap // onProceed with departure
         );
-        const needsRefuel = gameState.ships.some(ship => 
-            ship.fuel < ship.maxFuel
-        );
-        
-        if (needsRepair || needsRefuel) {
-            // Show resupply menu
-            ResupplyMenu.show(
-                gameState,
-                () => show(gameState), // onReturn
-                () => GalaxyMap.show(gameState) // onDepart
-            );
-        } else {
-            // All good, go straight to galaxy map
-            GalaxyMap.show(gameState);
-        }
-    }
-    
-    /**
-     * Show warning about unread messages
-     * @param {GameState} gameState - Current game state
-     * @param {Message} message - The unread message
-     */
-    function showUnreadMessageWarning(gameState, message) {
-        UI.clear();
-        UI.resetSelection();
-        
-        const grid = UI.getGridSize();
-        
-        // Title at top
-        let y = 3;
-        UI.addTextCentered(y++, '=== Unread Message ===', COLORS.YELLOW);
-        y += 2;
-        
-        const unreadTextY = y++;
-        const messageTitleY = y++;
-        
-        // Add message title (static)
-        UI.addTextCentered(messageTitleY, message.title, COLORS.CYAN);
-        
-        // Flash "You have an unread message:" text
-        UI.startFlashing(() => {
-            UI.clear();
-            UI.addTextCentered(3, '=== Unread Message ===', COLORS.YELLOW);
-            UI.addTextCentered(unreadTextY, 'You have an unread message:', UI.getFlashState() ? COLORS.GREEN : COLORS.WHITE);
-            UI.addTextCentered(messageTitleY, message.title, COLORS.CYAN);
-            
-            // Re-add buttons
-            const buttonY = grid.height - 6;
-            const menuX = Math.floor(grid.width / 2) - 15;
-            
-            UI.addButton(menuX, buttonY, '1', 'Read Message', () => {
-                readMessageDirect(gameState, message);
-            }, COLORS.YELLOW, 'Read the message now');
-            
-            UI.addButton(menuX, buttonY + 1, '2', 'Ignore Message', () => {
-                proceedToGalaxyMap(gameState);
-            }, COLORS.BUTTON, 'Continue to galaxy map');
-            
-            UI.addButton(menuX, buttonY + 2, '9', 'Don\'t Show This Warning Again', () => {
-                message.suppressWarning = true;
-                proceedToGalaxyMap(gameState);
-            }, COLORS.TEXT_DIM, 'Suppress this warning for this message');
-            
-            UI.addButton(menuX, buttonY + 3, '0', 'Back', () => {
-                show(gameState);
-            }, COLORS.BUTTON, 'Return to dock');
-            
-            UI.draw();
-        }, 200, 2000, true);
-    }
-    
-    /**
-     * Read a message directly and return to dock
-     * @param {GameState} gameState - Current game state
-     * @param {Message} message - The message to read
-     */
-    function readMessageDirect(gameState, message) {
-        // Mark as read and trigger onRead
-        const wasUnread = !message.isRead;
-        message.read(gameState);
-        
-        UI.clear();
-        UI.resetSelection();
-        
-        const grid = UI.getGridSize();
-        
-        // Title
-        let y = 5;
-        UI.addTextCentered(y++, `=== ${message.title} ===`, COLORS.CYAN);
-        y += 2;
-        
-        // Content
-        const leftX = 10;
-        if (Array.isArray(message.content)) {
-            message.content.forEach(line => {
-                UI.addText(leftX, y++, line, COLORS.TEXT_NORMAL);
-            });
-        } else {
-            UI.addText(leftX, y++, message.content, COLORS.TEXT_NORMAL);
-        }
-        
-        y += 2;
-        
-        // Show quest added notification if message was unread
-        if (wasUnread && message.onRead) {
-            UI.addText(leftX, y++, 'Quest added!', COLORS.GREEN);
-            y++;
-        }
-        
-        // Continue button
-        const buttonY = grid.height - 4;
-        UI.addButton(10, buttonY, '1', 'Continue', () => {
-            // Check if there are more unread messages
-            const nextUnreadMessage = gameState.messages.find(m => !m.isRead && !m.suppressWarning);
-            
-            if (nextUnreadMessage) {
-                // Show next unread message warning
-                showUnreadMessageWarning(gameState, nextUnreadMessage);
-            } else {
-                // No more unread messages, proceed to galaxy map
-                proceedToGalaxyMap(gameState);
-            }
-        }, COLORS.GREEN);
-        
-        UI.draw();
     }
     
     /**

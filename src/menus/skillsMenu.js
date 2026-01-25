@@ -52,8 +52,7 @@ const SkillsMenu = (() => {
         
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'Level:', value: String(playerOfficer.level), valueColor: COLORS.CYAN },
-            { label: 'Experience:', value: `${playerOfficer.experience}/${expNeeded}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Skill Points:', value: String(playerOfficer.skillPoints), valueColor: playerOfficer.skillPoints > 0 ? COLORS.GREEN : COLORS.TEXT_NORMAL }
+            { label: 'Experience:', value: `${playerOfficer.experience}/${expNeeded}`, valueColor: COLORS.TEXT_NORMAL }
         ]);
         y++;
         
@@ -69,6 +68,8 @@ const SkillsMenu = (() => {
         y++;
         
         const skillsList = Object.values(SKILLS);
+        const headers = ['Skill', 'Lvl', 'Cost', 'Description'];
+        
         const rows = skillsList.map((skill, index) => {
             const currentLevel = playerOfficer.skills[skill.id] || 0;
             const upgradeCost = playerOfficer.getSkillUpgradeCost(skill.id);
@@ -80,26 +81,26 @@ const SkillsMenu = (() => {
                 costColor = canUpgrade ? COLORS.GREEN : COLORS.TEXT_ERROR;
             }
             
+            const costText = currentLevel < skill.maxLevel ? String(upgradeCost) : 'MAX';
+            
             return [
                 { text: skill.name, color: skill.color },
                 { text: `${currentLevel}/${skill.maxLevel}`, color: COLORS.TEXT_NORMAL },
-                { text: currentLevel < skill.maxLevel ? `Cost: ${upgradeCost}` : 'MAX', color: costColor }
+                { text: costText, color: costColor },
+                { text: skill.description, color: COLORS.WHITE }
             ];
         });
         
-        const headers = [
-            { text: 'Skill', color: COLORS.YELLOW },
-            { text: 'Level', color: COLORS.YELLOW },
-            { text: 'Upgrade', color: COLORS.YELLOW }
-        ];
-        
-        y = TableRenderer.renderTable(5, y, headers, rows, selectedSkillIndex);
+        y = TableRenderer.renderTable(5, y, headers, rows, selectedSkillIndex, 2, (rowIndex) => {
+            selectedSkillIndex = rowIndex;
+            outputMessage = '';
+            render(gameState, onReturn);
+        });
         y += 2;
         
-        // Show selected skill description
-        const selectedSkill = skillsList[selectedSkillIndex];
-        UI.addText(5, y++, 'Description:', COLORS.CYAN);
-        UI.addText(5, y++, selectedSkill.description, COLORS.TEXT_DIM);
+        // Skill Points below table
+        const skillPointsColor = playerOfficer.skillPoints > 0 ? COLORS.GREEN : COLORS.WHITE;
+        UI.addText(5, y++, `Skill Points: ${playerOfficer.skillPoints}`, skillPointsColor);
         y += 2;
         
         // Set output message if present

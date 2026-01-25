@@ -7,35 +7,35 @@ const SKILLS = {
     PILOTING: {
         id: 'piloting',
         name: 'Piloting',
-        description: 'Reduces travel time by 2.5% per level. Makes your ships 2.5% harder to hit in combat.',
-        color: COLORS.CYAN,
+        description: 'Reduces travel time, makes your ships harder to hit.',
+        color: COLORS.BLUE,
         maxLevel: 20
     },
     BARTER: {
         id: 'barter',
         name: 'Barter',
-        description: 'Reduces fees when buying/selling cargo and ships by 5% per level.',
+        description: 'Reduces fees when trading goods and ships.',
         color: COLORS.GREEN,
         maxLevel: 20
     },
     GUNNERY: {
         id: 'gunnery',
         name: 'Gunnery',
-        description: 'Increases laser damage by 5% per level. Improves accuracy by 5% per level.',
-        color: COLORS.TEXT_ERROR,
+        description: 'Increases laser damage and accuracy.',
+        color: COLORS.RED,
         maxLevel: 20
     },
     SMUGGLING: {
         id: 'smuggling',
         name: 'Smuggling',
-        description: 'Increases stealth by 5% per level. Reduces chance police find illegal cargo by 5% per level.',
-        color: COLORS.PURPLE,
+        description: 'Increases chance to be undetected by other fleets, and to hide illegal cargo.',
+        color: COLORS.DARK_GRAY,
         maxLevel: 20
     },
     ENGINEERING: {
         id: 'engineering',
         name: 'Engineering',
-        description: 'Grants 5% chance per level to restore 1 hull to each ship per day of travel.',
+        description: 'Repairs some hull during travel.',
         color: COLORS.YELLOW,
         maxLevel: 20
     }

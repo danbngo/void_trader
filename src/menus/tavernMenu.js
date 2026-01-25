@@ -52,24 +52,22 @@ const TavernMenu = (() => {
             y += 2;
         } else {
             // Build table rows for officers
-            const headers = ['', 'Name', 'Role', 'Lvl', 'Piloting', 'Barter', 'Gunnery', 'Smuggling', 'Engineering', 'Hire Cost', 'Salary'];
+            const headers = ['Name', 'Lvl', ...SKILLS_ALL.map(s=>s.shortName), 'Hire Cost', 'Salary'];
             const rows = currentSystem.officers.map((officer, index) => {
                 const isSelected = index === selectedOfficerIndex;
                 const hireCost = Math.floor(officer.getHireCost() * (1 + currentSystem.fees));
                 const salary = officer.getSalary();
                 
                 return [
-                    { text: isSelected ? '>' : ' ', color: COLORS.CYAN },
                     { text: officer.name, color: COLORS.TEXT_NORMAL },
-                    { text: officer.role, color: COLORS.TEXT_DIM },
                     { text: String(officer.level), color: COLORS.YELLOW },
                     { text: String(officer.skills.piloting), color: UI.calcStatColor(1.0 + (officer.skills.piloting / 20) * 3.0) },
                     { text: String(officer.skills.barter), color: UI.calcStatColor(1.0 + (officer.skills.barter / 20) * 3.0) },
                     { text: String(officer.skills.gunnery), color: UI.calcStatColor(1.0 + (officer.skills.gunnery / 20) * 3.0) },
                     { text: String(officer.skills.smuggling), color: UI.calcStatColor(1.0 + (officer.skills.smuggling / 20) * 3.0) },
                     { text: String(officer.skills.engineering), color: UI.calcStatColor(1.0 + (officer.skills.engineering / 20) * 3.0) },
-                    { text: `${hireCost} CR`, color: COLORS.TEXT_NORMAL },
-                    { text: `${salary} CR`, color: COLORS.TEXT_DIM }
+                    { text: String(hireCost), color: COLORS.TEXT_NORMAL },
+                    { text: String(salary), color: COLORS.TEXT_NORMAL }
                 ];
             });
             

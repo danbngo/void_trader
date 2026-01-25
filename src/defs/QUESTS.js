@@ -105,7 +105,7 @@ const QUESTS = {
             // Check if player has learned SHIP_MERCANTILE perk
             return gameState.perks.has('SHIP_MERCANTILE');
         },
-        null, // No completion message yet
+        'SHIP_HANDLING_ATTAINED', // Message to add when complete
         ['Proxima'], // Related systems
         (gameState) => {
             const perk = PERKS.SHIP_MERCANTILE;
@@ -121,5 +121,41 @@ const QUESTS = {
             const totalCost = Math.floor(perk.baseCost * (1 + fees));
             return `Credits: ${gameState.credits}/${totalCost}`;
         }
+    ),
+    
+    HIRE_FIRST_OFFICER: new Quest(
+        'HIRE_FIRST_OFFICER',
+        'Build Your Crew',
+        'Hire your first officer at a Tavern',
+        10000,
+        2000,
+        (gameState) => {
+            // Check if player has at least one officer
+            return gameState.subordinates.length >= 1;
+        },
+        'FIRST_OFFICER_HIRED', // Message to add when complete
+        [], // No specific related systems
+        (gameState) => {
+            return gameState.subordinates.length >= 1 ? 1.0 : 0.0;
+        },
+        'Officers Hired'
+    ),
+    
+    BUY_SECOND_SHIP: new Quest(
+        'BUY_SECOND_SHIP',
+        'Expand Your Fleet',
+        'Purchase a second ship at a Shipyard',
+        15000,
+        3000,
+        (gameState) => {
+            // Check if player has at least two ships
+            return gameState.ships.length >= 2;
+        },
+        'SECOND_SHIP_ACQUIRED', // Message to add when complete
+        [], // No specific related systems
+        (gameState) => {
+            return gameState.ships.length >= 2 ? 1.0 : Math.min(0.8, gameState.ships.length / 2);
+        },
+        'Ships Owned'
     )
 };

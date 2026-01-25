@@ -97,7 +97,11 @@ const TitleMenu = (() => {
             { key: '3', label: 'About', callback: () => {
                 stopAnimation();
                 showAbout();
-            }, color: COLORS.BUTTON, helpText: 'Learn about the game' }
+            }, color: COLORS.BUTTON, helpText: 'Learn about the game' },
+            { key: '4', label: 'Debug Mode', callback: () => {
+                stopAnimation();
+                newGameDebug();
+            }, color: COLORS.YELLOW, helpText: 'Start a new game with debug cheats (1M CR, all perks, elite status)' }
         ]);
         
         UI.addTextCentered(grid.height - 1, '(Use mouse, arrow keys or numbers to select)', COLORS.TEXT_DIM);
@@ -184,6 +188,132 @@ const TitleMenu = (() => {
             // Generate player ships (no initial crew - will be hired at tavern)
             gameState.ships.push(ShipGenerator.generateStartingShip());
             //gameState.ships.push(ShipGenerator.generateStartingShip());
+            
+            // Record starting score for later comparison
+            const startingScoreData = ScoreMenu.calculateScore(gameState);
+            gameState.startingScore = startingScoreData.totalScore;
+            
+            // Store game state globally for access
+            window.gameState = gameState;
+            
+            // Show introduction screen
+            IntroScreen.show(gameState);
+        }, 500);
+    }
+    
+    /**
+     * Start a new game with debug mode enabled
+     */
+    function newGameDebug() {
+        UI.clear();
+        const grid = UI.getGridSize();
+        const centerY = Math.floor(grid.height / 2);
+        
+        UI.addTextCentered(centerY, 'Initializing debug game...', COLORS.YELLOW);
+        UI.draw();
+        UI.draw();
+        
+        // Initialize game state
+        setTimeout(() => {
+            // Create game state
+            const gameState = new GameState();
+            
+            // Generate galaxy with valid path from Nexus to Proxima
+            let galaxyValid = false;
+            let attempts = 0;
+            
+            while (!galaxyValid) {
+                attempts++;
+                
+                // Generate systems
+                const numSystems = Math.floor(Math.random() * (MAX_NUM_SYSTEMS - MIN_NUM_SYSTEMS + 1)) + MIN_NUM_SYSTEMS;
+                gameState.systems = SystemGenerator.generateMany(numSystems);
+                
+                // Place player at system with most neighbors within 10ly
+                let bestSystemIndex = 0;
+                let maxNeighbors = 0;
+                
+                gameState.systems.forEach((system, index) => {
+                    // Count neighbors within 10ly
+                    let neighborCount = 0;
+                    gameState.systems.forEach((otherSystem, otherIndex) => {
+                        if (index !== otherIndex) {
+                            const distance = system.distanceTo(otherSystem);
+                            if (distance <= 10) {
+                                neighborCount++;
+                            }
+                        }
+                    });
+                    
+                    // Update best system if this one has more neighbors
+                    if (neighborCount > maxNeighbors) {
+                        maxNeighbors = neighborCount;
+                        bestSystemIndex = index;
+                    }
+                });
+                
+                gameState.setCurrentSystem(bestSystemIndex);
+                
+                // Validate galaxy: name starting system, remove its guild, name nearest guild system
+                // Returns true if there's a valid path from Nexus to Proxima
+                galaxyValid = SystemGenerator.validateGalaxy(gameState.systems, bestSystemIndex);
+                
+                if (!galaxyValid) {
+                    console.log(`Galaxy generation attempt ${attempts} failed - no valid path from Nexus to Proxima. Retrying...`);
+                }
+            }
+            
+            console.log(`Galaxy generated successfully after ${attempts} attempt(s)`);
+            
+            // Add initial welcome message from uncle
+            gameState.messages.push(MESSAGES.UNCLE_WELCOME);
+            
+            // Create player as first officer (captain) with starting stats
+            const playerOfficer = new Officer('Captain', 'Commander', 10);
+            // Player starts at level 1 with 0 experience and 5 skill points
+            playerOfficer.level = 1;
+            playerOfficer.experience = 0;
+            playerOfficer.skillPoints = 0;
+            gameState.captain = playerOfficer
+            
+            // Generate player ships
+            gameState.ships.push(ShipGenerator.generateStartingShip());
+            
+            // === DEBUG MODE CHEATS ===
+            // Give 1 million credits
+            gameState.credits = 1000000;
+            
+            // Give all perks
+            ALL_PERKS.forEach(perk => {
+                gameState.perks.add(perk.id);
+            });
+            
+            // Update enabled cargo types based on perks
+            if (gameState.perks.has('CARGO_FRAGILE')) {
+                gameState.enabledCargoTypes = [...gameState.enabledCargoTypes, ...CARGO_TYPES_FRAGILE];
+            }
+            if (gameState.perks.has('CARGO_DANGEROUS')) {
+                gameState.enabledCargoTypes = [...gameState.enabledCargoTypes, ...CARGO_TYPES_DANGEROUS];
+            }
+            if (gameState.perks.has('CARGO_ILLEGAL')) {
+                gameState.enabledCargoTypes = [...gameState.enabledCargoTypes, ...CARGO_TYPES_ILLEGAL];
+            }
+            
+            // Update enabled ship types based on perks
+            if (gameState.perks.has('SHIP_MERCANTILE')) {
+                gameState.enabledShipTypes = [...gameState.enabledShipTypes, ...SHIP_TYPES_MERCANTILE];
+            }
+            if (gameState.perks.has('SHIP_PARAMILITARY')) {
+                gameState.enabledShipTypes = [...gameState.enabledShipTypes, ...SHIP_TYPES_PARAMILITARY];
+            }
+            if (gameState.perks.has('SHIP_MILITARY')) {
+                gameState.enabledShipTypes = [...gameState.enabledShipTypes, ...SHIP_TYPES_MILITARY];
+            }
+            
+            // Give elite status at every system
+            gameState.systems.forEach((system, index) => {
+                gameState.systemRanks[index] = 'ELITE';
+            });
             
             // Record starting score for later comparison
             const startingScoreData = ScoreMenu.calculateScore(gameState);

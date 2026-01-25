@@ -167,5 +167,98 @@ const MESSAGES = {
             }
         },
         'LEARN_CARGO_HANDLING' // This message completes the LEARN_CARGO_HANDLING quest
+    ),
+    
+    SHIP_HANDLING_ATTAINED: new Message(
+        'SHIP_HANDLING_ATTAINED',
+        'Fleet Commander',
+        [
+            'Excellent work, nephew!',
+            '',
+            'You have acquired the Ship License: Mercantile. Now the doors',
+            'of shipyards across the void are open to you, offering vessels',
+            'with cargo capacity that dwarfs your current ships.',
+            '',
+            'But to command a fleet, you need more than just ships - you need',
+            'capable officers to command them. Each ship requires an officer',
+            'at the helm.',
+            '',
+            'Your next task: hire your first officer. Find a star system with',
+            'a Tavern - you may need to purchase a Visa there to access it.',
+            'Officers cost credits to hire and require ongoing salaries, but',
+            'they are essential for expanding your fleet.',
+            '',
+            'Choose wisely, and may you find a skilled crew.',
+            '',
+            '- Uncle'
+        ],
+        (gameState) => {
+            // Add next quest
+            const quest = QUESTS.HIRE_FIRST_OFFICER;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
+        'LEARN_SHIP_HANDLING' // This message completes the LEARN_SHIP_HANDLING quest
+    ),
+    
+    FIRST_OFFICER_HIRED: new Message(
+        'FIRST_OFFICER_HIRED',
+        'A Crew Takes Shape',
+        [
+            'Well chosen, nephew!',
+            '',
+            'You have hired your first officer. With capable crew at your side,',
+            'you can now command multiple vessels - a crucial step toward',
+            'building a true trading empire.',
+            '',
+            'Your next challenge: acquire a second ship. Find a star system',
+            'with a Shipyard - as with Taverns, you may need Visa status to',
+            'access their services.',
+            '',
+            'Remember: each ship requires an officer to command it. Plan your',
+            'purchases carefully, and ensure you have credits to pay officer',
+            'salaries when you dock at stations.',
+            '',
+            'A two-ship operation will double your cargo capacity and open',
+            'new trading strategies.',
+            '',
+            '- Uncle'
+        ],
+        (gameState) => {
+            // Add next quest
+            const quest = QUESTS.BUY_SECOND_SHIP;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
+        'HIRE_FIRST_OFFICER' // This message completes the HIRE_FIRST_OFFICER quest
+    ),
+    
+    SECOND_SHIP_ACQUIRED: new Message(
+        'SECOND_SHIP_ACQUIRED',
+        'Master of the Void',
+        [
+            'Magnificent, nephew!',
+            '',
+            'You now command a fleet of two ships. Your cargo capacity has',
+            'doubled, your trading opportunities have expanded, and you stand',
+            'on the threshold of true wealth.',
+            '',
+            'You have mastered the fundamentals: trading, navigation, perks,',
+            'officers, and fleet management. The path ahead is yours to forge.',
+            '',
+            'Continue to expand your fleet, hire skilled officers, and seek',
+            'out profitable trade routes. The void is vast and full of',
+            'opportunity for those bold enough to seize it.',
+            '',
+            'You have made me proud. May your legacy echo through the stars.',
+            '',
+            '- Uncle'
+        ],
+        null, // No next quest - end of chain
+        'BUY_SECOND_SHIP' // This message completes the BUY_SECOND_SHIP quest
     )
 };

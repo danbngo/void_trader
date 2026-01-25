@@ -4,21 +4,12 @@
  */
 
 class Officer {
-    // Experience system constants
-    static SKILL_POINTS_PER_LEVEL = 5;
-    static EXP_POINTS_FOR_FIRST_LEVEL_UP = 100;
-    static EXP_POINTS_LEVEL_MULTIPLIER = 2.5;
-    static MAX_SKILL_LEVEL = 20;
-    static SKILL_COST_INCREASE_FACTOR = 1;
-    
     /**
      * @param {string} name - Name of the officer
-     * @param {string} role - Role (Pilot, Engineer, Navigator, etc.)
      * @param {number} skill - Skill level (1-10)
      */
-    constructor(name, role, skill) {
+    constructor(name, skill) {
         this.name = name;
-        this.role = role;
         this.skill = skill;
         
         // Experience system
@@ -45,7 +36,7 @@ class Officer {
         // Level 2->3 = 250
         // Level 3->4 = 625
         // etc.
-        return Math.floor(Officer.EXP_POINTS_FOR_FIRST_LEVEL_UP * Math.pow(Officer.EXP_POINTS_LEVEL_MULTIPLIER, this.level - 1));
+        return Math.floor(OFFICER_EXP_POINTS_FOR_FIRST_LEVEL_UP * Math.pow(this.level, OFFICER_EXP_POINTS_LEVEL_EXPONENT));
     }
     
     /**
@@ -80,7 +71,7 @@ class Officer {
         const expNeeded = this.calcExpToNextLevel();
         this.experience -= expNeeded;
         this.level++;
-        this.skillPoints += Officer.SKILL_POINTS_PER_LEVEL;
+        this.skillPoints += OFFICER_SKILL_POINTS_PER_LEVEL;
     }
     
     /**
@@ -90,7 +81,7 @@ class Officer {
      */
     getSkillUpgradeCost(skillName) {
         const currentLevel = this.skills[skillName] || 0;
-        return 1 + (currentLevel * Officer.SKILL_COST_INCREASE_FACTOR);
+        return 1 + (currentLevel * SKILL_COST_INCREASE_FACTOR);
     }
     
     /**
@@ -100,7 +91,7 @@ class Officer {
      */
     canUpgradeSkill(skillName) {
         const currentLevel = this.skills[skillName] || 0;
-        if (currentLevel >= Officer.MAX_SKILL_LEVEL) return false;
+        if (currentLevel >= OFFICER_MAX_SKILL_LEVEL) return false;
         
         const cost = this.getSkillUpgradeCost(skillName);
         return this.skillPoints >= cost;

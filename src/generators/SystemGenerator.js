@@ -107,8 +107,10 @@ const SystemGenerator = (() => {
         // Generate officers for tavern
         const officerCount = Math.floor(Math.random() * (TAVERN_MAX_NUM_OFFICERS - TAVERN_MIN_NUM_OFFICERS + 1)) + TAVERN_MIN_NUM_OFFICERS;
         for (let i = 0; i < officerCount; i++) {
-            // Generate officers with random levels between 1 and 5
-            const officerLevel = Math.floor(Math.random() * 5) + 1;
+            // Generate officers with random levels - use minimum of two rolls to favor lower levels
+            const roll1 = Math.floor(Math.random() * (MAX_OFFICER_LEVEL - MIN_OFFICER_LEVEL + 1)) + MIN_OFFICER_LEVEL;
+            const roll2 = Math.floor(Math.random() * (MAX_OFFICER_LEVEL - MIN_OFFICER_LEVEL + 1)) + MIN_OFFICER_LEVEL;
+            const officerLevel = Math.min(roll1, roll2);
             system.officers.push(OfficerGenerator.generate(officerLevel));
         }
         
@@ -307,6 +309,12 @@ const SystemGenerator = (() => {
         // Set Nexus to have minimum fees
         startingSystem.fees = STAR_SYSTEM_MIN_FEES;
         
+        // Ensure Nexus has ALL buildings except Guild
+        const allBuildingsExceptGuild = Object.values(BUILDING_TYPES)
+            .filter(building => building.id !== 'GUILD')
+            .map(building => building.id);
+        startingSystem.buildings = allBuildingsExceptGuild;
+        
         // Ensure Nexus has at least one below-average and one above-average cargo price
         const cargoIds = Object.keys(startingSystem.cargoPriceModifier);
         let hasBelowAverage = cargoIds.some(id => startingSystem.cargoPriceModifier[id] < 1.0);
@@ -320,11 +328,6 @@ const SystemGenerator = (() => {
         // If no above-average prices, set second cargo type to above average
         if (!hasAboveAverage && cargoIds.length > 1) {
             startingSystem.cargoPriceModifier[cargoIds[1]] = 1.0 + Math.random() * 1.0; // 1.0 to 2.0
-        }
-        
-        // Remove guild from Nexus if present
-        if (startingSystem.buildings.includes('GUILD')) {
-            startingSystem.buildings = startingSystem.buildings.filter(b => b !== 'GUILD');
         }
         
         // Find nearest system with a guild that is >10ly away (requiring at least 2 jumps)

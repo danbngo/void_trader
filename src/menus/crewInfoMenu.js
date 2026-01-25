@@ -54,7 +54,7 @@ const CrewInfoMenu = (() => {
             y++;
             
             // Build table for officers
-            const headers = ['', 'Name', 'Role', 'Lvl', 'Piloting', 'Barter', 'Gunnery', 'Smuggling', 'Engineering', 'Salary'];
+            const headers = ['', 'Name', 'Lvl', '🚀', '💰', '🎯', '🥷', '🔧', 'Salary'];
             const rows = gameState.subordinates.map((officer, index) => {
                 const salary = officer.getSalary();
                 const isSelected = index === selectedOfficerIndex;
@@ -62,14 +62,13 @@ const CrewInfoMenu = (() => {
                 return [
                     { text: isSelected ? '>' : ' ', color: COLORS.CYAN },
                     { text: officer.name, color: COLORS.TEXT_NORMAL },
-                    { text: officer.role, color: COLORS.TEXT_DIM },
                     { text: String(officer.level), color: COLORS.YELLOW },
                     { text: String(officer.skills.piloting), color: UI.calcStatColor(1.0 + (officer.skills.piloting / 20) * 3.0) },
                     { text: String(officer.skills.barter), color: UI.calcStatColor(1.0 + (officer.skills.barter / 20) * 3.0) },
                     { text: String(officer.skills.gunnery), color: UI.calcStatColor(1.0 + (officer.skills.gunnery / 20) * 3.0) },
                     { text: String(officer.skills.smuggling), color: UI.calcStatColor(1.0 + (officer.skills.smuggling / 20) * 3.0) },
                     { text: String(officer.skills.engineering), color: UI.calcStatColor(1.0 + (officer.skills.engineering / 20) * 3.0) },
-                    { text: `${salary} CR`, color: COLORS.TEXT_DIM }
+                    { text: `${salary} CR`, color: COLORS.TEXT_NORMAL }
                 ];
             });
             

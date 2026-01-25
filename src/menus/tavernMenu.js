@@ -179,6 +179,7 @@ const TavernMenu = (() => {
      * Render jobs mode
      */
     function renderJobsMode(startY, effectiveFees, onReturn) {
+        console.log('[TavernMenu] renderJobsMode - Start, outputMessage:', outputMessage);
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
         
@@ -293,14 +294,17 @@ const TavernMenu = (() => {
         
         // Reset selection FIRST to prevent button help text
         if (outputMessage) {
+            console.log('[TavernMenu] renderJobsMode - Has output message:', outputMessage);
             UI.resetSelection();
         }
         
         // Set output message AFTER resetting selection
         if (outputMessage) {
+            console.log('[TavernMenu] renderJobsMode - Setting output row:', outputMessage, outputColor);
             UI.setOutputRow(outputMessage, outputColor);
         }
         
+        console.log('[TavernMenu] renderJobsMode - About to draw');
         UI.draw();
     }
     
@@ -388,8 +392,11 @@ const TavernMenu = (() => {
         // Set success message AFTER adjusting selection
         outputMessage = `Accepted job: ${job.description}`;
         outputColor = COLORS.TEXT_SUCCESS;
+        console.log('[TavernMenu] acceptJob - Setting output message:', outputMessage);
+        console.log('[TavernMenu] acceptJob - Output color:', outputColor);
         UI.resetSelection(); // Reset selection to prevent button help text from overwriting
         UI.setOutputRow(outputMessage, outputColor);
+        console.log('[TavernMenu] acceptJob - Called UI.setOutputRow');
         
         render(onReturn);
     }

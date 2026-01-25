@@ -132,72 +132,14 @@ const AbandonedShipEncounter = {
      * Handle looting the abandoned ship
      */
     handleLoot: function(gameState, encType) {
-        UI.clear();
-        UI.clearOutputRow();
-        
-        const grid = UI.getGridSize();
-        
-        UI.addTitleLineCentered(0, 'Salvage Operation');
-        let y = 2;
-        
-        // Calculate available cargo space
-        const totalPlayerCargo = gameState.ships.reduce((sum, ship) => sum + ship.cargo.reduce((s, c) => s + c.amount, 0), 0);
-        const totalPlayerCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        const availableSpace = totalPlayerCapacity - totalPlayerCargo;
-        
-        // Show what's in the derelict
-        const encounterCargoEntries = Object.entries(gameState.encounterCargo).filter(([id, amt]) => amt > 0);
-        
-        if (encounterCargoEntries.length === 0) {
-            UI.addText(10, y++, `The derelict is empty. No cargo to salvage.`, COLORS.TEXT_DIM);
-        } else {
-            UI.addText(10, y++, `You board the derelict and find salvageable cargo:`, COLORS.TEXT_NORMAL);
-            y++;
-            
-            encounterCargoEntries.forEach(([cargoId, amount]) => {
-                const cargoType = CARGO_TYPES[cargoId];
-                if (cargoType) {
-                    UI.addText(12, y++, `${cargoType.name}: ${amount} units`, COLORS.GREEN);
-                }
-            });
-            y++;
-            
-            // Transfer cargo to player
-            let looted = 0;
-            encounterCargoEntries.forEach(([cargoId, amount]) => {
-                const amountToTake = Math.min(amount, availableSpace - looted);
-                if (amountToTake > 0) {
-                    // Add to player's first ship (or distribute across ships)
-                    const existingCargo = gameState.ships[0].cargo.find(c => c.id === cargoId);
-                    if (existingCargo) {
-                        existingCargo.amount += amountToTake;
-                    } else {
-                        gameState.ships[0].cargo.push({ id: cargoId, amount: amountToTake });
-                    }
-                    looted += amountToTake;
-                }
-            });
-            
-            if (looted > 0) {
-                UI.addText(10, y++, `Transferred ${looted} units to your cargo hold.`, COLORS.GREEN);
-            }
-            
-            if (looted < encounterCargoEntries.reduce((sum, [id, amt]) => sum + amt, 0)) {
-                UI.addText(10, y++, `Not enough cargo space for everything.`, COLORS.YELLOW);
-            }
-        }
-        
-        const buttonY = grid.height - 4;
-        UI.addCenteredButtons(buttonY, [
-            { key: '1', label: 'Continue', callback: () => {
-                // Clear encounter and return to travel
-                gameState.encounter = false;
-                gameState.encounterShips = [];
-                gameState.encounterCargo = {};
-                TravelMenu.resume();
-            }, color: COLORS.BUTTON, helpText: 'Continue your journey' }
-        ]);
-        
-        UI.draw();
+        // Use the standard loot menu with the abandoned ship's cargo
+        // The encounterShips array should already contain the abandoned ship with cargo
+        LootMenu.show(gameState, gameState.encounterShips, encType, () => {
+            // Clear encounter and return to travel after looting
+            gameState.encounter = false;
+            gameState.encounterShips = [];
+            gameState.encounterCargo = {};
+            TravelMenu.resume();
+        });
     }
 };

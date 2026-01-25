@@ -84,16 +84,16 @@ const ShipGenerator = (() => {
         const name = generateUniqueName();
         const shipType = SHIP_TYPES.SHUTTLE;
         
-        const maxFuel = shipType.baseMaxFuel;
+        const maxFuel = Math.floor(shipType.baseMaxFuel);
         const fuel = maxFuel;
-        const cargoCapacity = shipType.baseCargoCapacity;
-        const maxHull = shipType.baseMaxHull;
+        const cargoCapacity = Math.floor(shipType.baseCargoCapacity);
+        const maxHull = Math.floor(shipType.baseMaxHull);
         const hull = maxHull;
-        const maxShields = shipType.baseMaxShields;
+        const maxShields = Math.floor(shipType.baseMaxShields);
         const shields = maxShields;
-        const lasers = shipType.baseLasers;
-        const engine = shipType.baseEngine;
-        const radar = shipType.baseRadar;
+        const lasers = Math.floor(shipType.baseLasers);
+        const engine = Math.floor(shipType.baseEngine);
+        const radar = Math.floor(shipType.baseRadar);
         
         return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }

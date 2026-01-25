@@ -179,7 +179,7 @@ const TitleMenu = (() => {
             playerOfficer.level = 1;
             playerOfficer.experience = 0;
             playerOfficer.skillPoints = 0;
-            gameState.officers.push(playerOfficer);
+            gameState.captain = playerOfficer
             
             // Generate player ships (no initial crew - will be hired at tavern)
             gameState.ships.push(ShipGenerator.generateStartingShip());

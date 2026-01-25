@@ -29,6 +29,9 @@ class StarSystem {
         // Shipyard data
         this.ships = []; // Ships available for purchase
         
+        // Tavern data
+        this.officers = []; // Officers available for hire
+        
         // Encounter weights
         this.pirateWeight = 0;
         this.policeWeight = 0;

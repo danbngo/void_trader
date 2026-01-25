@@ -16,7 +16,7 @@ const ShipyardMenu = (() => {
      */
     function getEffectiveFees() {
         const currentSystem = gameState.getCurrentSystem();
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
         return SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
     }

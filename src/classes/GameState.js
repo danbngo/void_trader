@@ -7,7 +7,7 @@ class GameState {
     constructor() {
         this.ships = []; // Player's ships
         this.activeShipIndex = 0; // Index of currently active ship
-        this.officers = [];
+        this.subordinates = [];
         this.systems = [];
         this.currentSystemIndex = 0;
         this.previousSystemIndex = 0; // Track system player departed from (for jail mechanic)
@@ -40,6 +40,9 @@ class GameState {
         // Player statistics and records
         this.playerRecord = {}; // Object tracking player statistics (see PLAYER_RECORD_TYPES)
         this.startingScore = 0; // Player's score at game start (recorded after initialization)
+        
+        // Officer salary tracking
+        this.lastSalaryPaymentSystemIndex = -1; // Track which system we last paid salaries at
         
         // Rank system - maps system index to rank ID
         this.systemRanks = {}; // { systemIndex: 'RANK_ID' }

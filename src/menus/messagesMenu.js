@@ -164,8 +164,8 @@ const MessagesMenu = (() => {
                 }
                 
                 // Award experience programmatically
-                if (completedQuest && completedQuest.expReward > 0 && currentGameState.officers.length > 0) {
-                    currentGameState.officers[0].grantExperience(completedQuest.expReward);
+                if (completedQuest && completedQuest.expReward > 0) {
+                    currentGameState.captain.grantExperience(completedQuest.expReward);
                 }
             } else {
                 // Quest already completed - still show the quest info for display purposes

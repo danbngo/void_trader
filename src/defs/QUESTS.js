@@ -81,14 +81,16 @@ const QUESTS = {
         ['Proxima'], // Related systems
         (gameState) => {
             const perk = PERKS.CARGO_FRAGILE;
-            const currentSystem = gameState.getCurrentSystem();
-            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            const proximaSystem = gameState.systems.find(s => s.name === 'Proxima');
+            const fees = proximaSystem ? proximaSystem.fees : 0;
+            const totalCost = Math.floor(perk.baseCost * (1 + fees));
             return Math.min(1.0, gameState.credits / totalCost);
         },
         (gameState) => {
             const perk = PERKS.CARGO_FRAGILE;
-            const currentSystem = gameState.getCurrentSystem();
-            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            const proximaSystem = gameState.systems.find(s => s.name === 'Proxima');
+            const fees = proximaSystem ? proximaSystem.fees : 0;
+            const totalCost = Math.floor(perk.baseCost * (1 + fees));
             return `Credits: ${gameState.credits}/${totalCost}`;
         }
     ),
@@ -107,14 +109,16 @@ const QUESTS = {
         ['Proxima'], // Related systems
         (gameState) => {
             const perk = PERKS.SHIP_MERCANTILE;
-            const currentSystem = gameState.getCurrentSystem();
-            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            const proximaSystem = gameState.systems.find(s => s.name === 'Proxima');
+            const fees = proximaSystem ? proximaSystem.fees : 0;
+            const totalCost = Math.floor(perk.baseCost * (1 + fees));
             return Math.min(1.0, gameState.credits / totalCost);
         },
         (gameState) => {
             const perk = PERKS.SHIP_MERCANTILE;
-            const currentSystem = gameState.getCurrentSystem();
-            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            const proximaSystem = gameState.systems.find(s => s.name === 'Proxima');
+            const fees = proximaSystem ? proximaSystem.fees : 0;
+            const totalCost = Math.floor(perk.baseCost * (1 + fees));
             return `Credits: ${gameState.credits}/${totalCost}`;
         }
     )

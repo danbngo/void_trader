@@ -56,7 +56,7 @@ const MarketMenu = (() => {
         const totalCargoCapacity = Ship.getFleetCargoCapacity(gameState.ships);
         
         // Apply barter skill to fees
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
         const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
         
@@ -277,7 +277,7 @@ const MarketMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Apply barter skill to fees
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
         const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
         
@@ -346,7 +346,7 @@ const MarketMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Apply barter skill to fees
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
         const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
         

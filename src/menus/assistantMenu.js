@@ -82,7 +82,7 @@ const AssistantMenu = (() => {
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const hasCargo = totalCargo > 0;
-        const hasCrew = gameState.officers && gameState.officers.length > 0;
+        const hasCrew = gameState.subordinates && gameState.subordinates.length > 0;
         const hasQuests = (gameState.activeQuests && gameState.activeQuests.length > 0) || 
                           (gameState.completedQuests && gameState.completedQuests.length > 0);
         const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
@@ -107,7 +107,7 @@ const AssistantMenu = (() => {
         UI.addButton(leftX, buttonY + 2, '3', 'Crew', () => tryOpenCrew(gameState, onReturn), crewColor, crewHelpText);
         
         // Column 2: Captain Info, Quests, Messages, Trade Recs
-        const hasSkillPoints = gameState.officers && gameState.officers.length > 0 && gameState.officers[0].skillPoints > 0;
+        const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
         const captainInfoColor = hasSkillPoints ? COLORS.YELLOW : COLORS.BUTTON;
         const captainInfoHelp = hasSkillPoints ? 'Skill points available! View captain info and skills' : 'View captain info, skills, and perks';
         UI.addButton(middleX, buttonY, '4', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), captainInfoColor, captainInfoHelp);
@@ -176,7 +176,7 @@ const AssistantMenu = (() => {
      * Try to open crew info
      */
     function tryOpenCrew(gameState, onReturn) {
-        if (!gameState.officers || gameState.officers.length === 0) {
+        if (!gameState.subordinates || gameState.subordinates.length === 0) {
             outputMessage = 'No crew members. Visit the Tavern to hire crew!';
             outputColor = COLORS.TEXT_ERROR;
             render(gameState, onReturn);

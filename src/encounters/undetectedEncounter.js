@@ -15,7 +15,7 @@ const UndetectedEncounter = {
         const enemyRadarTotal = gameState.encounterShips.reduce((sum, ship) => sum + ship.radar, 0);
         
         // Apply smuggling skill to improve stealth (makes player "radar" higher for comparison)
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         const smugglingLevel = playerOfficer ? (playerOfficer.skills.smuggling || 0) : 0;
         if (smugglingLevel > 0) {
             playerRadarTotal = SkillEffects.getStealthRadar(playerRadarTotal, smugglingLevel);

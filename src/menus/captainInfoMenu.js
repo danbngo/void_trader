@@ -31,7 +31,7 @@ const CaptainInfoMenu = (() => {
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         
         // Check if player has skills or skill points (used in multiple places)
         const hasSkillPoints = playerOfficer && playerOfficer.skillPoints > 0;
@@ -291,7 +291,7 @@ const CaptainInfoMenu = (() => {
      */
     function upgradeSkill(onReturn) {
         const gameState = window.gameState;
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         const skillsList = Object.values(SKILLS);
         const selectedSkill = skillsList[selectedSkillIndex];
         

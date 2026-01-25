@@ -15,35 +15,69 @@ const OfficerGenerator = (() => {
     
     const roles = ['Pilot', 'Engineer', 'Navigator', 'Gunner', 'Medic', 'Trader'];
     
+    const skillNames = ['piloting', 'barter', 'gunnery', 'smuggling', 'engineering'];
+    
     /**
      * Generate a random officer
+     * @param {number} level - Officer level (default 1)
      * @returns {Officer}
      */
-    function generate() {
+    function generate(level = 1) {
         const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
         const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         const name = `${firstName} ${lastName}`;
         const role = roles[Math.floor(Math.random() * roles.length)];
         const skill = Math.floor(Math.random() * 7) + 3; // 3-10
         
-        return new Officer(name, role, skill);
+        const officer = new Officer(name, role, skill);
+        
+        // Set level and calculate skill points for that level
+        if (level > 1) {
+            officer.level = level;
+            officer.experience = 0;
+            // Calculate total skill points earned from leveling
+            const totalSkillPoints = 5 + ((level - 1) * SKILL_POINTS_PER_LEVEL);
+            
+            // Distribute skill points randomly among skills
+            let remainingPoints = totalSkillPoints;
+            while (remainingPoints > 0) {
+                const randomSkill = skillNames[Math.floor(Math.random() * skillNames.length)];
+                const currentLevel = officer.skills[randomSkill];
+                
+                // Don't exceed max skill level
+                if (currentLevel >= Officer.MAX_SKILL_LEVEL) continue;
+                
+                const cost = officer.getSkillUpgradeCost(randomSkill);
+                
+                // Can we afford this upgrade?
+                if (remainingPoints >= cost) {
+                    officer.skills[randomSkill]++;
+                    remainingPoints -= cost;
+                } else {
+                    // If we can't afford any upgrade, stop
+                    let canAffordAny = false;
+                    for (const skillName of skillNames) {
+                        if (officer.skills[skillName] < Officer.MAX_SKILL_LEVEL) {
+                            const testCost = officer.getSkillUpgradeCost(skillName);
+                            if (remainingPoints >= testCost) {
+                                canAffordAny = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!canAffordAny) break;
+                }
+            }
+            
+            // Store any leftover points
+            officer.skillPoints = remainingPoints;
+        }
+        
+        return officer;
     }
     
-    /**
-     * Generate starting crew
-     * @param {number} count - Number of officers to generate
-     * @returns {Array<Officer>}
-     */
-    function generateCrew(count = 2) {
-        const officers = [];
-        for (let i = 0; i < count; i++) {
-            officers.push(generate());
-        }
-        return officers;
-    }
     
     return {
         generate,
-        generateCrew
     };
 })();

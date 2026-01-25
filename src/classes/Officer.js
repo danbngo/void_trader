@@ -107,6 +107,22 @@ class Officer {
     }
     
     /**
+     * Check if officer has skill points that can be spent on any skill
+     * @returns {boolean} True if any skill can be upgraded with current points
+     */
+    hasSpendableSkillPoints() {
+        if (this.skillPoints === 0) return false;
+        
+        // Check if any skill can be upgraded with current points
+        for (const skillName in this.skills) {
+            if (this.canUpgradeSkill(skillName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
      * Upgrade a skill
      * @param {string} skillName - Name of the skill
      * @returns {boolean} True if successful
@@ -118,5 +134,21 @@ class Officer {
         this.skillPoints -= cost;
         this.skills[skillName]++;
         return true;
+    }
+    
+    /**
+     * Get the hiring cost for this officer
+     * @returns {number} Credits required to hire
+     */
+    getHireCost() {
+        return this.level * OFFICER_HIRE_COST_PER_LEVEL;
+    }
+    
+    /**
+     * Get the salary for this officer (paid per landing)
+     * @returns {number} Credits paid per landing
+     */
+    getSalary() {
+        return this.level * OFFICER_SALARY_PER_LEVEL;
     }
 }

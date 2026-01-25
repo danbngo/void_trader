@@ -15,6 +15,9 @@ const DockMenu = (() => {
         // Check for completed quests when docking
         checkQuestCompletion(gameState);
         
+        // Pay officer salaries if this is first landing at this system
+        paySalaries(gameState);
+        
         outputMessage = '';
         outputColor = COLORS.TEXT_NORMAL;
         
@@ -100,7 +103,7 @@ const DockMenu = (() => {
                 id: 'TAVERN',
                 name: 'Tavern',
                 buildingType: BUILDING_TYPES.TAVERN,
-                openMenu: () => UI.setOutputRow('Tavern not yet implemented', COLORS.TEXT_DIM)
+                openMenu: () => TavernMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'GUILD',
@@ -158,7 +161,7 @@ const DockMenu = (() => {
         
         // Highlight assistant button if there are unread messages or skill points
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
-        const hasSkillPoints = gameState.officers && gameState.officers.length > 0 && gameState.officers[0].skillPoints > 0;
+        const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
         const assistantColor = (hasUnreadMessages || hasSkillPoints) ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(rightX, buttonY + 1, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
@@ -219,6 +222,47 @@ const DockMenu = (() => {
             // All good, go straight to galaxy map
             GalaxyMap.show(gameState);
         }
+    }
+    
+    /**
+     * Pay salaries to officers if this is first landing at current system
+     * @param {GameState} gameState - Current game state
+     */
+    function paySalaries(gameState) {
+        // Only pay if we're at a different system than last payment
+        if (gameState.lastSalaryPaymentSystemIndex === gameState.currentSystemIndex) {
+            return;
+        }
+        
+        if (gameState.subordinates.length === 0) {
+            gameState.lastSalaryPaymentSystemIndex = gameState.currentSystemIndex;
+            return;
+        }
+        
+        let totalSalary = 0;
+        const officersAbandoned = [];
+        
+        // Calculate total salary
+        gameState.subordinates.forEach(officer => {
+            totalSalary += officer.getSalary();
+        });
+        
+        // Check if player can afford salaries
+        if (gameState.credits >= totalSalary) {
+            gameState.credits -= totalSalary;
+            outputMessage = `Paid ${totalSalary} CR in officer salaries`;
+            outputColor = COLORS.YELLOW;
+        } else {
+            // Can't afford salaries - officers abandon ship
+            gameState.subordinates.forEach(officer => {
+                officersAbandoned.push(officer.name);
+            });
+            gameState.subordinates = [];
+            outputMessage = `Cannot afford salaries! All officers have abandoned you.`;
+            outputColor = COLORS.TEXT_ERROR;
+        }
+        
+        gameState.lastSalaryPaymentSystemIndex = gameState.currentSystemIndex;
     }
     
     /**

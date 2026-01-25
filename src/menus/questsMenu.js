@@ -150,12 +150,16 @@ const QuestsMenu = (() => {
                         } else if (quest.id === 'LEARN_CARGO_HANDLING') {
                             descriptor = 'Credits';
                             currentValue = currentGameState.credits;
-                            maxValue = PERKS.CARGO_FRAGILE.cost;
+                            const proximaSystem = currentGameState.systems.find(s => s.name === 'Proxima');
+                            const fees = proximaSystem ? proximaSystem.fees : 0;
+                            maxValue = Math.floor(PERKS.CARGO_FRAGILE.baseCost * (1 + fees));
                             unit = '';
                         } else if (quest.id === 'LEARN_SHIP_HANDLING') {
                             descriptor = 'Credits';
                             currentValue = currentGameState.credits;
-                            maxValue = PERKS.SHIP_LICENSE_FRIGATE.cost;
+                            const proximaSystem = currentGameState.systems.find(s => s.name === 'Proxima');
+                            const fees = proximaSystem ? proximaSystem.fees : 0;
+                            maxValue = Math.floor(PERKS.SHIP_MERCANTILE.baseCost * (1 + fees));
                             unit = '';
                         }
                         

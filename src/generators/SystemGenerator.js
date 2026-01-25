@@ -104,6 +104,14 @@ const SystemGenerator = (() => {
             system.ships.push(ShipGenerator.generateRandomShip());
         }
         
+        // Generate officers for tavern
+        const officerCount = Math.floor(Math.random() * (TAVERN_MAX_NUM_OFFICERS - TAVERN_MIN_NUM_OFFICERS + 1)) + TAVERN_MIN_NUM_OFFICERS;
+        for (let i = 0; i < officerCount; i++) {
+            // Generate officers with random levels between 1 and 5
+            const officerLevel = Math.floor(Math.random() * 5) + 1;
+            system.officers.push(OfficerGenerator.generate(officerLevel));
+        }
+        
         // Generate encounter weights using logarithmic distribution
         // Range is [0.25, 4.0] with average 1.0, symmetric around 1.0 in log space
         system.pirateWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);

@@ -54,17 +54,18 @@ const CourthouseMenu = (() => {
                 // Current or previous rank - always show in white
                 ranksToDisplay.push({
                     label: `${rank.name}:`,
-                    value: rank.level === currentRank.level ? 'Acquired' : 'Acquired',
+                    value: rank.level === currentRank.level ? 'Current' : 'Acquired',
                     valueColor: rank.level === currentRank.level ? COLORS.GREEN : COLORS.TEXT_NORMAL,
                 });
             } else if (rank.level === currentRank.level + 1) {
                 // Next rank - show in green if affordable, gray if not
-                const canAfford = gameState.credits >= rank.fee;
+                const actualFee = Math.floor(rank.fee * currentSystem.fees);
+                const canAfford = gameState.credits >= actualFee;
                 const hasReputation = gameState.reputation >= rank.minReputation;
                 const hasBounty = gameState.bounty > 0;
                 
                 const canUpgrade = canAfford && hasReputation && !hasBounty;
-                const status = `Fee: ${rank.fee} CR, Rep: ${rank.minReputation}`;
+                const status = `Fee: ${actualFee} CR, Rep: ${rank.minReputation}`;
                 const color = canUpgrade ? COLORS.GREEN : COLORS.GRAY;
                 
                 ranksToDisplay.push({
@@ -97,8 +98,8 @@ const CourthouseMenu = (() => {
             upgradeHelpText = 'Already at highest rank';
         } else if (gameState.bounty > 0) {
             upgradeHelpText = 'Pay bounty first';
-        } else if (gameState.credits < nextRank.fee) {
-            upgradeHelpText = `Need ${nextRank.fee} CR to upgrade`;
+        } else if (gameState.credits < Math.floor(nextRank.fee * currentSystem.fees)) {
+            upgradeHelpText = `Need ${Math.floor(nextRank.fee * currentSystem.fees)} CR to upgrade`;
         } else if (gameState.reputation < nextRank.minReputation) {
             upgradeHelpText = `Need ${nextRank.minReputation} reputation`;
         } else {
@@ -165,8 +166,11 @@ const CourthouseMenu = (() => {
         }
         
         // Check requirements
-        if (gameState.credits < nextRank.fee) {
-            outputMessage = `Not enough credits! Need ${nextRank.fee} CR, have ${gameState.credits} CR.`;
+        const currentSystem = gameState.getCurrentSystem();
+        const actualFee = Math.floor(nextRank.fee * currentSystem.fees);
+        
+        if (gameState.credits < actualFee) {
+            outputMessage = `Not enough credits! Need ${actualFee} CR, have ${gameState.credits} CR.`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;
@@ -180,7 +184,7 @@ const CourthouseMenu = (() => {
         }
         
         // Upgrade rank
-        gameState.credits -= nextRank.fee;
+        gameState.credits -= actualFee;
         gameState.setRankAtCurrentSystem(nextRank.id);
         outputMessage = `Upgraded to ${nextRank.name} rank!`;
         outputColor = COLORS.TEXT_SUCCESS;

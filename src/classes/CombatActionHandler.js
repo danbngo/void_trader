@@ -147,7 +147,7 @@ class CombatActionHandler {
                     
                     // Apply piloting skill for dodge if target is player ship
                     if (this.gameState && this.action.targetShip && this.action.targetShip.isPlayer) {
-                        const playerOfficer = this.gameState.officers[0];
+                        const playerOfficer = this.gameState.captain;
                         const pilotingLevel = playerOfficer ? (playerOfficer.skills.piloting || 0) : 0;
                         distance = SkillEffects.getDodgeDistance(distance, pilotingLevel);
                     }
@@ -175,7 +175,7 @@ class CombatActionHandler {
                     // Apply gunnery skill for attacker accuracy (player ships only)
                     let effectiveDistance = distance;
                     if (this.gameState && this.ship.isPlayer) {
-                        const playerOfficer = this.gameState.officers[0];
+                        const playerOfficer = this.gameState.captain;
                         const gunneryLevel = playerOfficer ? (playerOfficer.skills.gunnery || 0) : 0;
                         effectiveDistance = SkillEffects.getAccuracyDistance(distance, gunneryLevel);
                     }
@@ -193,7 +193,7 @@ class CombatActionHandler {
                         
                         // Apply gunnery skill for damage boost (player ships only)
                         if (this.gameState && this.ship.isPlayer) {
-                            const playerOfficer = this.gameState.officers[0];
+                            const playerOfficer = this.gameState.captain;
                             const gunneryLevel = playerOfficer ? (playerOfficer.skills.gunnery || 0) : 0;
                             damage = SkillEffects.getLaserDamage(damage, gunneryLevel);
                         }

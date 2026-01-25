@@ -40,7 +40,7 @@ const SaveLoadManager = (() => {
                 x: gameState.x,
                 y: gameState.y,
                 ships: gameState.ships,
-                officers: gameState.officers,
+                subordinates: gameState.subordinates,
                 systems: gameState.systems,
                 visitedSystems: gameState.visitedSystems,
                 date: gameState.date.toISOString(),
@@ -132,8 +132,8 @@ const SaveLoadManager = (() => {
             return ship;
         });
         
-        // Reconstruct officers
-        gameState.officers = data.officers.map(o => {
+        // Reconstruct subordinates
+        gameState.subordinates = data.subordinates.map(o => {
             const officer = new Officer(o.name, o.role, o.skill);
             // Restore experience system properties
             officer.level = o.level || 1;

@@ -79,7 +79,7 @@ const TravelMenu = (() => {
         const activeShip = gameState.ships[0];
         
         // Get player officer for skill calculations
-        const playerOfficer = gameState.officers[0]; // Assuming player is first officer
+        const playerOfficer = gameState.captain; // Assuming player is first officer
         const pilotingLevel = playerOfficer ? (playerOfficer.skills.piloting || 0) : 0;
         
         // Calculate duration based on engine level
@@ -378,7 +378,7 @@ const TravelMenu = (() => {
         });
         
         // Apply engineering skill repairs during travel
-        const playerOfficer = currentGameState.officers[0];
+        const playerOfficer = currentGameState.captain;
         const engineeringLevel = playerOfficer ? (playerOfficer.skills.engineering || 0) : 0;
         
         if (engineeringLevel > 0) {

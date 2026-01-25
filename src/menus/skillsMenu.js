@@ -33,7 +33,7 @@ const SkillsMenu = (() => {
         UI.clear();
         
         const grid = UI.getGridSize();
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         
         if (!playerOfficer) {
             UI.addTextCentered(10, 'No officer data available', COLORS.TEXT_ERROR);
@@ -151,7 +151,7 @@ const SkillsMenu = (() => {
      * Upgrade selected skill
      */
     function upgradeSkill(gameState, onReturn) {
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         if (!playerOfficer) return;
         
         const skillsList = Object.values(SKILLS);

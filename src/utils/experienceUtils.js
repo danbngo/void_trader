@@ -12,7 +12,7 @@ const ExperienceUtils = (() => {
      * @returns {string} Formatted message for display (with color codes)
      */
     function grantExperience(gameState, expAmount, reason) {
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         if (!playerOfficer) return '';
         
         const roundedExp = Math.floor(expAmount);
@@ -36,7 +36,7 @@ const ExperienceUtils = (() => {
      * @returns {Object|null} Object with { baseMessage, baseMsgColor, levelUpText, levelUpColor } or null if no exp granted
      */
     function getExperienceMessageComponents(gameState, expAmount, reason) {
-        const playerOfficer = gameState.officers[0];
+        const playerOfficer = gameState.captain;
         if (!playerOfficer) return null;
         
         const roundedExp = Math.floor(expAmount);

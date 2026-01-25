@@ -12,12 +12,32 @@ const ShipyardMenu = (() => {
     let pendingTransaction = null;
     
     /**
-     * Get effective fees after barter skill
+     * Get maximum skill level from all crew members (captain + subordinates)
+     */
+    function getMaxCrewSkill(skillName) {
+        let maxSkill = 0;
+        
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        
+        return maxSkill;
+    }
+    
+    /**
+     * Get effective fees after barter skill (uses max from all crew)
      */
     function getEffectiveFees() {
         const currentSystem = gameState.getCurrentSystem();
-        const playerOfficer = gameState.captain;
-        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
+        const barterLevel = getMaxCrewSkill('barter');
         return SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
     }
     

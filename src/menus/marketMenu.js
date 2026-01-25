@@ -395,6 +395,32 @@ const MarketMenu = (() => {
         render(onReturn);
     }
     
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {GameState} gameState 
+     * @param {string} skillName 
+     * @returns {number}
+     */
+    function getMaxCrewSkill(gameState, skillName) {
+        let maxSkill = 0;
+        
+        // Check captain
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        
+        // Check all subordinates
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        
+        return maxSkill;
+    }
+    
     return {
         show
     };

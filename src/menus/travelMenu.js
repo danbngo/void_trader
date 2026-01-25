@@ -78,9 +78,8 @@ const TravelMenu = (() => {
         // Use first ship for engine calculation (fleet moves together)
         const activeShip = gameState.ships[0];
         
-        // Get player officer for skill calculations
-        const playerOfficer = gameState.captain; // Assuming player is first officer
-        const pilotingLevel = playerOfficer ? (playerOfficer.skills.piloting || 0) : 0;
+        // Get max piloting skill from all crew
+        const pilotingLevel = getMaxCrewSkill(currentGameState, 'piloting');
         
         // Calculate duration based on engine level
         // Engine level of AVERAGE_SHIP_ENGINE_LEVEL means normal speed
@@ -377,9 +376,8 @@ const TravelMenu = (() => {
             shipsAfter: currentGameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
         });
         
-        // Apply engineering skill repairs during travel
-        const playerOfficer = currentGameState.captain;
-        const engineeringLevel = playerOfficer ? (playerOfficer.skills.engineering || 0) : 0;
+        // Apply engineering skill repairs during travel (use max from all crew)
+        const engineeringLevel = getMaxCrewSkill(currentGameState, 'engineering');
         
         if (engineeringLevel > 0) {
             const repairResults = SkillEffects.applyEngineeringRepairs(
@@ -477,6 +475,30 @@ const TravelMenu = (() => {
             shipFuelCosts,
             fuelConsumed: shipFuelCosts.map((cost, i) => (cost * progress).toFixed(1))
         });
+    }
+    
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {GameState} gameState 
+     * @param {string} skillName 
+     * @returns {number}
+     */
+    function getMaxCrewSkill(gameState, skillName) {
+        let maxSkill = 0;
+        
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        
+        return maxSkill;
     }
     
     return {

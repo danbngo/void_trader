@@ -145,10 +145,9 @@ class CombatActionHandler {
                     const dy = this.action.targetShip.y - this.ship.y;
                     let distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    // Apply piloting skill for dodge if target is player ship
+                    // Apply piloting skill for dodge if target is player ship (use max from all crew)
                     if (this.gameState && this.action.targetShip && this.action.targetShip.isPlayer) {
-                        const playerOfficer = this.gameState.captain;
-                        const pilotingLevel = playerOfficer ? (playerOfficer.skills.piloting || 0) : 0;
+                        const pilotingLevel = this.getMaxCrewSkill('piloting');
                         distance = SkillEffects.getDodgeDistance(distance, pilotingLevel);
                     }
                     
@@ -172,11 +171,10 @@ class CombatActionHandler {
                     
                     // Target is in arc (or we just turned to align), fire laser
                     // Calculate hit chance: radar / distance
-                    // Apply gunnery skill for attacker accuracy (player ships only)
+                    // Apply gunnery skill for attacker accuracy (use max from all crew)
                     let effectiveDistance = distance;
                     if (this.gameState && this.ship.isPlayer) {
-                        const playerOfficer = this.gameState.captain;
-                        const gunneryLevel = playerOfficer ? (playerOfficer.skills.gunnery || 0) : 0;
+                        const gunneryLevel = this.getMaxCrewSkill('gunnery');
                         effectiveDistance = SkillEffects.getAccuracyDistance(distance, gunneryLevel);
                     }
                     
@@ -191,10 +189,9 @@ class CombatActionHandler {
                     if (hit) {
                         let damage = Math.floor(Math.random() * this.ship.lasers) + 1;
                         
-                        // Apply gunnery skill for damage boost (player ships only)
+                        // Apply gunnery skill for damage boost (use max from all crew)
                         if (this.gameState && this.ship.isPlayer) {
-                            const playerOfficer = this.gameState.captain;
-                            const gunneryLevel = playerOfficer ? (playerOfficer.skills.gunnery || 0) : 0;
+                            const gunneryLevel = this.getMaxCrewSkill('gunnery');
                             damage = SkillEffects.getLaserDamage(damage, gunneryLevel);
                         }
                         
@@ -527,6 +524,31 @@ class CombatActionHandler {
         while (angle > Math.PI) angle -= Math.PI * 2;
         while (angle < -Math.PI) angle += Math.PI * 2;
         return angle;
+    }
+    
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {string} skillName 
+     * @returns {number}
+     */
+    getMaxCrewSkill(skillName) {
+        if (!this.gameState) return 0;
+        
+        let maxSkill = 0;
+        
+        if (this.gameState.captain && this.gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, this.gameState.captain.skills[skillName]);
+        }
+        
+        if (this.gameState.subordinates) {
+            this.gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        
+        return maxSkill;
     }
     
     /**

@@ -31,7 +31,7 @@ const OfficerGenerator = (() => {
         'Adler', 'Beck', 'Cain', 'Dean', 'Ellis', 'Frost', 'Grant',
         'Hayes', 'Iyer', 'James', 'Kwan', 'Luna', 'Mills', 'Nair',
         'Owen', 'Price', 'Roth', 'Stone', 'Tran', 'Voss', 'Webb',
-        'Yang', 'Zeng', 'Amin', 'Berg', 'Chou', 'Deng', 'Esposito'
+        'Yang', 'Zeng', 'Amin', 'Berg', 'Chou', 'Deng'
     ];
     
     const usedNames = new Set();

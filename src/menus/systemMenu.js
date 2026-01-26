@@ -57,7 +57,8 @@ const DockMenu = (() => {
         const yearsSinceDock = timeSinceDock / (1000 * 60 * 60 * 24 * 365);
         
         // Simulate alien conquest behavior
-        simulateAlienConquest(gameState, yearsSinceDock);
+        const instantlyCompletedNews = simulateAlienConquest(gameState, yearsSinceDock);
+        expiredNews.push(...instantlyCompletedNews);
         
         const newsChance = NEWS_CHANCE_PER_SYSTEM_PER_YEAR * yearsSinceDock;
         
@@ -667,6 +668,7 @@ const DockMenu = (() => {
      * @param {number} yearsSinceDock - Years since last dock
      */
     function simulateAlienConquest(gameState, yearsSinceDock) {
+        const instantlyCompletedNews = [];
         // Check if aliens should spawn
         if (!gameState.aliensSpawned && gameState.currentYear >= ALIENS_SPAWN_AFTER_X_YEARS) {
             gameState.aliensSpawned = true;
@@ -730,22 +732,25 @@ const DockMenu = (() => {
             });
             
             // Create ONE global announcement news event AFTER individual events
-            // Give it a slightly later timestamp so it appears first in the news list (sorted newest first)
             const globalNews = new News(
                 NEWS_TYPES.ALIEN_INVASION_ANNOUNCEMENT,
                 null,
                 null,
-                gameState.currentYear + 0.0001, // Slightly later than individual conquest events
+                gameState.currentYear, // Same timestamp as individual conquest events
                 0, // Instant
                 gameState,
                 true // globalNews flag
             );
             gameState.newsEvents.push(globalNews);
+            
+            // Complete instantly since duration is 0
+            globalNews.complete(gameState);
+            instantlyCompletedNews.push(globalNews);
         }
         
-        // If aliens haven't spawned yet, nothing else to do
+        // If aliens haven't spawned yet, return any completed news
         if (!gameState.aliensSpawned) {
-            return;
+            return instantlyCompletedNews;
         }
         
         // Spontaneous conquests
@@ -878,6 +883,8 @@ const DockMenu = (() => {
                 }
             }
         });
+        
+        return instantlyCompletedNews;
     }
     
     return {

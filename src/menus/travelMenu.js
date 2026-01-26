@@ -263,8 +263,8 @@ const TravelMenu = (() => {
         } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight) {
             encounterType = ENCOUNTER_TYPES.ABANDONED_SHIP;
         } else {
-            // Alien encounter - randomly pick skirmish or defense
-            encounterType = Math.random() < 0.5 ? ENCOUNTER_TYPES.ALIEN_SKIRMISH : ENCOUNTER_TYPES.ALIEN_DEFENSE;
+            // Alien encounter during travel - only skirmish (defense happens at destination)
+            encounterType = ENCOUNTER_TYPES.ALIEN_SKIRMISH;
         }
         
         // Generate encounter ships
@@ -317,7 +317,7 @@ const TravelMenu = (() => {
                 Math.floor(Math.random() * encounterType.shipTypes.length)
             ];
             
-            const ship = ShipGenerator.generateShipOfType(randomShipType);
+            const ship = ShipGenerator.generateShipOfType(randomShipType.id);
             
             // Optionally damage the ship
             if (Math.random() < ENEMY_SHIP_HULL_DAMAGED_CHANCE) {

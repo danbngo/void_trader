@@ -122,23 +122,27 @@ const TravelConfirmMenu = (() => {
             rightY++;
         }
         
-        // Warnings (under left column)
+        // Calculate where to place warnings (below both columns)
+        const warningY = Math.max(leftY, rightY) + 1;
+        let currentWarningY = warningY;
+        
+        // Alien occupation warning (centered below both columns)
         if (targetSystem.conqueredByAliens) {
-            leftY++;
-            UI.addText(leftColumnX, leftY++, '╔═══════════════════════════════════╗', COLORS.TEXT_ERROR);
-            UI.addText(leftColumnX, leftY++, '║ ☢  WARNING: ALIEN OCCUPATION  ☢ ║', COLORS.TEXT_ERROR);
-            UI.addText(leftColumnX, leftY++, '╚═══════════════════════════════════╝', COLORS.TEXT_ERROR);
-            leftY++;
-            UI.addText(leftColumnX, leftY++, 'This system is under alien control!', COLORS.TEXT_ERROR);
-            UI.addText(leftColumnX, leftY++, 'Expect fierce resistance from its', COLORS.TEXT_ERROR);
-            UI.addText(leftColumnX, leftY++, 'defenders. Alien skirmishes are', COLORS.TEXT_ERROR);
-            UI.addText(leftColumnX, leftY++, 'highly likely during approach.', COLORS.TEXT_ERROR);
-            leftY++;
+            const centerX = 5;
+            UI.addText(centerX, currentWarningY++, '╔══════════════════════════════════════════════════════════════════════╗', COLORS.TEXT_ERROR);
+            UI.addText(centerX, currentWarningY++, '║                    ☢  WARNING: ALIEN OCCUPATION  ☢                  ║', COLORS.TEXT_ERROR);
+            UI.addText(centerX, currentWarningY++, '╚══════════════════════════════════════════════════════════════════════╝', COLORS.TEXT_ERROR);
+            currentWarningY++;
+            UI.addText(centerX, currentWarningY++, 'This system is under alien control! Expect fierce resistance from hostile', COLORS.TEXT_ERROR);
+            UI.addText(centerX, currentWarningY++, 'defenders. Alien skirmishes are highly likely during approach and landing.', COLORS.TEXT_ERROR);
+            currentWarningY++;
         }
         
+        // Insufficient fuel warning
         if (fuelAfter < 0) {
-            UI.addText(leftColumnX, leftY++, 'WARNING: Insufficient fuel for journey!', COLORS.TEXT_ERROR);
-            leftY++;
+            const centerX = 5;
+            UI.addText(centerX, currentWarningY++, 'WARNING: Insufficient fuel for journey!', COLORS.TEXT_ERROR);
+            currentWarningY++;
         }
         
         // Buttons - centered at bottom

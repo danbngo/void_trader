@@ -464,7 +464,7 @@ const EncounterMenu = (() => {
         
         UI.addHeaderLine(startX, 0, 'Your Ship');
         if (activeShip) {
-            const shipType = SHIP_TYPES[activeShip.type] || { name: 'Unknown' };
+            const shipType = SHIP_TYPES[activeShip.type] || ALIEN_SHIP_TYPES[activeShip.type] || { name: 'Unknown' };
             
             let y = 1;
             UI.addText(startX, y, 'Name:', COLORS.TEXT_DIM);
@@ -498,7 +498,7 @@ const EncounterMenu = (() => {
         
         UI.addText(startX, 10, `=== ${encounterType.name} Ship ===`, COLORS.YELLOW);
         if (targetShip && !targetShip.fled && !targetShip.disabled && !targetShip.escaped) {
-            const shipType = SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
+            const shipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
             const distance = activeShip ? Math.sqrt(
                 Math.pow(activeShip.x - targetShip.x, 2) + 
                 Math.pow(activeShip.y - targetShip.y, 2)
@@ -979,11 +979,11 @@ const EncounterMenu = (() => {
         
         // Grant flee experience
         const playerFleetValue = currentGameState.ships.reduce((sum, s) => {
-            const shipType = SHIP_TYPES[s.type];
+            const shipType = SHIP_TYPES[s.type] || ALIEN_SHIP_TYPES[s.type];
             return sum + (shipType ? shipType.value : 0);
         }, 0);
         const enemyFleetValue = currentGameState.encounterShips.reduce((sum, s) => {
-            const shipType = SHIP_TYPES[s.type];
+            const shipType = SHIP_TYPES[s.type] || ALIEN_SHIP_TYPES[s.type];
             return sum + (shipType ? shipType.value : 0);
         }, 0);
         const valueRatio = playerFleetValue > 0 ? enemyFleetValue / playerFleetValue : 1;
@@ -1053,14 +1053,14 @@ const EncounterMenu = (() => {
         
         UI.addText(10, y++, `Disabled ships:`, COLORS.TEXT_DIM);
         disabledShips.forEach(ship => {
-            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
             UI.addText(10, y++, `  ${ship.name} (${shipType.name})`, COLORS.TEXT_ERROR);
         });
         y++;
         
         UI.addText(10, y++, `Escaped ships:`, COLORS.TEXT_DIM);
         escapedShips.forEach(ship => {
-            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
             UI.addText(10, y++, `  ${ship.name} (${shipType.name})`, COLORS.GREEN);
         });
         y += 2;
@@ -1385,11 +1385,11 @@ const EncounterMenu = (() => {
             
             // Grant combat victory experience
             const playerFleetValue = currentGameState.ships.reduce((sum, s) => {
-                const shipType = SHIP_TYPES[s.type];
+                const shipType = SHIP_TYPES[s.type] || ALIEN_SHIP_TYPES[s.type];
                 return sum + (shipType ? shipType.value : 0);
             }, 0);
             const enemyFleetValue = defeatedShips.reduce((sum, s) => {
-                const shipType = SHIP_TYPES[s.type];
+                const shipType = SHIP_TYPES[s.type] || ALIEN_SHIP_TYPES[s.type];
                 return sum + (shipType ? shipType.value : 0);
             }, 0);
             const valueRatio = playerFleetValue > 0 ? enemyFleetValue / playerFleetValue : 1;
@@ -1418,7 +1418,7 @@ const EncounterMenu = (() => {
         const targetShip = currentGameState.encounterShips[targetIndex];
         if (!targetShip || targetShip.fled || targetShip.disabled) return;
         
-        const targetShipType = SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
+        const targetShipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
         
         // Store initial distance
         const initialDistance = Math.sqrt(
@@ -1627,7 +1627,7 @@ const EncounterMenu = (() => {
         );
         
         // Get enemy ship type for messages
-        const enemyShipType = SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+        const enemyShipType = SHIP_TYPES[action.ship.type] || ALIEN_SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
         
         // Set initial message
         if (action.actionType === COMBAT_ACTIONS.PURSUE) {
@@ -1646,7 +1646,7 @@ const EncounterMenu = (() => {
             // Set message based on action type
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
                 // Get enemy ship type name
-                const enemyShipType = SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+                const enemyShipType = SHIP_TYPES[action.ship.type] || ALIEN_SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
                 
                 // Check if ship just turned instead of firing
                 if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
@@ -1677,7 +1677,7 @@ const EncounterMenu = (() => {
                 const distanceMoved = Math.abs(finalDistance - initialDistance).toFixed(1);
                 
                 // Get enemy ship type for messages
-                const enemyShipType = SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+                const enemyShipType = SHIP_TYPES[action.ship.type] || ALIEN_SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
                 
                 // Set message for the completed action
                 if (action.actionType === COMBAT_ACTIONS.PURSUE) {
@@ -1742,7 +1742,7 @@ const EncounterMenu = (() => {
                     const rammerIsPlayer = currentGameState.ships.includes(ramAction.rammer);
                     if (rammerIsPlayer) {
                         rammerName = ramAction.rammer.name;
-                        const rammedType = SHIP_TYPES[ramAction.ship.type] || { name: 'Unknown' };
+                        const rammedType = SHIP_TYPES[ramAction.ship.type] || ALIEN_SHIP_TYPES[ramAction.ship.type] || { name: 'Unknown' };
                         rammedName = rammedType.name;
                     } else {
                         rammerName = 'Enemy';

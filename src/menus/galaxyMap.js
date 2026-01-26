@@ -136,8 +136,17 @@ const GalaxyMap = (() => {
                 
                 // Prioritize selection color over everything else
                 if (isSelected) {
-                    // Selected: yellow if reachable, dark gray if not
-                    color = canReach ? COLORS.YELLOW : COLORS.TEXT_DIM;
+                    // Selected: 
+                    // - If out of range: always gray (even if conquered)
+                    // - If in range and conquered: red
+                    // - If in range and not conquered: yellow
+                    if (!canReach) {
+                        color = COLORS.TEXT_DIM; // Gray for unreachable
+                    } else if (item.system.conqueredByAliens) {
+                        color = COLORS.TEXT_ERROR; // Red for reachable conquered
+                    } else {
+                        color = COLORS.YELLOW; // Yellow for reachable normal
+                    }
                 } else if (item.system.conqueredByAliens) {
                     // Conquered systems are always red
                     color = COLORS.TEXT_ERROR;
@@ -173,12 +182,16 @@ const GalaxyMap = (() => {
         // Draw line between current and selected system
         if (selectedScreenX !== null && selectedScreenY !== null) {
             let lineColor;
-            if (selectedIsAlienConquered) {
-                lineColor = COLORS.TEXT_ERROR; // Red for alien-conquered systems
-            } else if (selectedCanReach) {
-                lineColor = COLORS.YELLOW; // Yellow for reachable
-            } else {
+            // Line color logic:
+            // - If out of range: always gray (even if conquered)
+            // - If in range and conquered: red
+            // - If in range and not conquered: yellow
+            if (!selectedCanReach) {
                 lineColor = COLORS.TEXT_DIM; // Dark gray for unreachable
+            } else if (selectedIsAlienConquered) {
+                lineColor = COLORS.TEXT_ERROR; // Red for reachable alien-conquered systems
+            } else {
+                lineColor = COLORS.YELLOW; // Yellow for reachable normal systems
             }
             const linePoints = LineDrawer.drawLine(
                 mapCenterX, mapCenterY,

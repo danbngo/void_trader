@@ -234,10 +234,9 @@ const DockMenu = (() => {
         otherSystemsNews.forEach(news => {
             if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
                 if (news.globalNews) {
-                    UI.addText(leftColumnX, newsY++, `ALERT: ${news.description}`, getNewsColor(news));
+                    UI.addText(leftColumnX, newsY++, news.description, getNewsColor(news));
                 } else {
-                    const systemName = news.originSystem ? news.originSystem.name : (news.targetSystem ? news.targetSystem.name : 'Unknown');
-                    UI.addText(leftColumnX, newsY++, `${systemName}: ${news.description}`, getNewsColor(news));
+                    UI.addText(leftColumnX, newsY++, news.description, getNewsColor(news));
                 }
                 newsCount++;
             }

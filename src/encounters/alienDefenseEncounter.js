@@ -55,6 +55,6 @@ const AlienDefenseEncounter = {
         gameState.encounterType = encType;
         
         // Start combat
-        EncounterMenu.show(gameState);
+        EncounterMenu.show(gameState, encType);
     }
 };

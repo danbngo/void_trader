@@ -12,6 +12,9 @@ const ENCOUNTER_TYPES = {
         shipTypes: ['CORVETTE', 'DESTROYER'],
         cargoTypes: [],
         maxCredits: 500,
+        minShips: 1,
+        maxShips: 3,
+        surrenderPermitted: true,
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }
@@ -24,6 +27,9 @@ const ENCOUNTER_TYPES = {
         shipTypes: ['FREIGHTER', 'HAULER'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(!ct.illegal))],
         maxCredits: 2000,
+        minShips: 1,
+        maxShips: 3,
+        surrenderPermitted: true,
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }
@@ -36,6 +42,9 @@ const ENCOUNTER_TYPES = {
         shipTypes: ['SCOUT', 'RAIDER', 'CORVETTE'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(ct.illegal))],
         maxCredits: 1000,
+        minShips: 1,
+        maxShips: 3,
+        surrenderPermitted: true,
         onGreet: function(gameState, encType) {
             EncounterDecisionMenu.show(gameState, encType);
         }
@@ -48,8 +57,41 @@ const ENCOUNTER_TYPES = {
         shipTypes: ['SHUTTLE', 'SCOUT', 'FREIGHTER', 'HAULER', 'RAIDER', 'CORVETTE', 'DESTROYER'],
         cargoTypes: [...ALL_CARGO_TYPES],
         maxCredits: 0,
+        minShips: 1,
+        maxShips: 3,
+        surrenderPermitted: true,
         onGreet: function(gameState, encType) {
             AbandonedShipEncounter.show(gameState, encType);
+        }
+    },
+    ALIEN_SKIRMISH: {
+        id: 'ALIEN_SKIRMISH',
+        name: 'Alien Skirmish',
+        color: COLORS.PURPLE,
+        description: 'Hostile alien vessels attacking without warning',
+        shipTypes: SHIP_TYPES_ALIEN,
+        cargoTypes: [CARGO_TYPES.RELICS],
+        maxCredits: 0,
+        minShips: 3,
+        maxShips: 6,
+        surrenderPermitted: false,
+        onGreet: function(gameState, encType) {
+            AlienSkirmishEncounter.show(gameState, encType);
+        }
+    },
+    ALIEN_DEFENSE: {
+        id: 'ALIEN_DEFENSE',
+        name: 'Alien Defense',
+        color: COLORS.PURPLE,
+        description: 'Alien defense forces protecting their territory',
+        shipTypes: SHIP_TYPES_ALIEN,
+        cargoTypes: [CARGO_TYPES.RELICS],
+        maxCredits: 0,
+        minShips: 6,
+        maxShips: 9,
+        surrenderPermitted: false,
+        onGreet: function(gameState, encType) {
+            AlienDefenseEncounter.show(gameState, encType);
         }
     }
 };

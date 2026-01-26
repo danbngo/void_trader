@@ -77,12 +77,15 @@ const AbandonedShipEncounter = {
         y++;
         UI.addText(10, y++, `Your shields are down! You're vulnerable!`, COLORS.YELLOW);
         
-        // Generate pirate ships for ambush (1-3 ships)
-        const numPirateShips = Math.floor(Math.random() * 3) + 1;
+        // Generate pirate ships for ambush using PIRATE encounter type's min/max ships
+        const pirateEncType = ENCOUNTER_TYPES.PIRATE;
+        const minShips = pirateEncType.minShips || 1;
+        const maxShips = pirateEncType.maxShips || 3;
+        const numPirateShips = minShips + Math.floor(Math.random() * (maxShips - minShips + 1));
         gameState.encounterShips = [];
         
         for (let i = 0; i < numPirateShips; i++) {
-            const pirateShipTypes = ENCOUNTER_TYPES.PIRATE.shipTypes;
+            const pirateShipTypes = pirateEncType.shipTypes;
             const randomShipType = pirateShipTypes[Math.floor(Math.random() * pirateShipTypes.length)];
             const ship = ShipGenerator.generateShipOfType(randomShipType);
             

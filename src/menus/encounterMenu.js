@@ -687,9 +687,12 @@ const EncounterMenu = (() => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, fleeHelpText);
             
-            UI.addButton(middleX, col2Y++, '6', 'Surrender', () => {
-                handleSurrender(gameState);
-            }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
+            // Only show surrender option if encounter type permits it
+            if (gameState.encounterType.surrenderPermitted !== false) {
+                UI.addButton(middleX, col2Y++, '6', 'Surrender', () => {
+                    handleSurrender(gameState);
+                }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
+            }
             
             // Column 3: Zoom In, Zoom Out
             let col3Y = buttonY;

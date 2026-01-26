@@ -295,8 +295,16 @@ const TravelMenu = (() => {
             return;
         }
         
-        // For abandoned ships, generate exactly 1 ship. For others, 1-3 ships
-        const numShips = encounterType.id === 'ABANDONED_SHIP' ? 1 : Math.floor(Math.random() * 3) + 1;
+        // For abandoned ships, generate exactly 1 ship. For others, use encounter type's min/max
+        let numShips;
+        if (encounterType.id === 'ABANDONED_SHIP') {
+            numShips = 1;
+        } else {
+            // Use encounter type's min/max ships
+            const minShips = encounterType.minShips || 1;
+            const maxShips = encounterType.maxShips || 3;
+            numShips = minShips + Math.floor(Math.random() * (maxShips - minShips + 1));
+        }
         
         for (let i = 0; i < numShips; i++) {
             const randomShipType = encounterType.shipTypes[

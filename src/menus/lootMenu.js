@@ -82,7 +82,6 @@ const LootMenu = (() => {
         }
         
         // Loot table - show all enabled cargo types (don't filter by loot amount)
-        const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const startY = 9;
         const rows = ALL_CARGO_TYPES
             .filter(cargoType => gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id))

@@ -299,6 +299,27 @@ const NEWS_TYPES = {
         onEnd: function(news, gameState) {
             // Already conquered at start
         }
+    },
+    ALIEN_INVASION_ANNOUNCEMENT: {
+        id: 'ALIEN_INVASION_ANNOUNCEMENT',
+        name: 'Alien Invasion Alert',
+        minDuration: 30,
+        maxDuration: 90,
+        descriptionGenerator: function(news) {
+            return `GALAXY-WIDE ALERT: Unknown alien forces have launched a surprise attack, conquering multiple star systems across the galaxy!`;
+        },
+        endDescriptionGenerator: function(news, gameState) {
+            return `The initial alien invasion wave has subsided, but conquered systems remain under their control.`;
+        },
+        checkValidity: function(news, gameState) {
+            return true; // Always valid
+        },
+        onStart: function(news, gameState) {
+            // No immediate effect, just an announcement
+        },
+        onEnd: function(news, gameState) {
+            // No effect on end
+        }
     }
 };
 

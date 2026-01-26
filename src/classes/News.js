@@ -12,7 +12,7 @@ class News {
      * @param {number} duration - Duration in days
      * @param {GameState} gameState - Current game state (optional, for alien news)
      */
-    constructor(newsType, originSystem, targetSystem, startYear, duration, gameState = null) {
+    constructor(newsType, originSystem, targetSystem, startYear, duration, gameState = null, globalNews = false) {
         this.newsType = newsType;
         this.originSystem = originSystem;
         this.targetSystem = targetSystem;
@@ -21,6 +21,7 @@ class News {
         this.endYear = startYear + (duration / 365.25); // Convert days to years
         this.completed = false;
         this.readByPlayer = false;
+        this.globalNews = globalNews; // Global news shows up everywhere
         
         // Generate descriptions
         this.name = newsType.name;

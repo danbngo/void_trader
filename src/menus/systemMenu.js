@@ -169,9 +169,10 @@ const DockMenu = (() => {
         const maxNewsLines = 5; // Max lines to show
         let newsCount = 0;
         
-        // Filter function: only show news where player has visited origin or target system
+        // Filter function: only show news where player has visited origin or target system, or it's global
         const hasVisitedNewsSystem = (news) => {
-            return (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
+            return news.globalNews || 
+                   (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
                    (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index));
         };
         
@@ -217,7 +218,12 @@ const DockMenu = (() => {
         
         unreadNews.forEach(news => {
             if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
-                UI.addText(leftColumnX, newsY++, `${news.originSystem.name}: ${news.description}`, COLORS.CYAN);
+                if (news.globalNews) {
+                    UI.addText(leftColumnX, newsY++, `ALERT: ${news.description}`, COLORS.TEXT_ERROR);
+                } else {
+                    const systemName = news.originSystem ? news.originSystem.name : (news.targetSystem ? news.targetSystem.name : 'Unknown');
+                    UI.addText(leftColumnX, newsY++, `${systemName}: ${news.description}`, COLORS.CYAN);
+                }
                 newsCount++;
             }
         });
@@ -640,7 +646,19 @@ const DockMenu = (() => {
                 .sort(() => Math.random() - 0.5)
                 .slice(0, ALIENS_CONQUER_X_SYSTEMS_AT_START);
             
-            // Create instant conquest news events (duration = 0)
+            // Create ONE global announcement news event
+            const globalNews = new News(
+                NEWS_TYPES.ALIEN_INVASION_ANNOUNCEMENT,
+                null,
+                null,
+                gameState.currentYear,
+                30 + Math.random() * 60, // 30-90 days
+                gameState,
+                true // globalNews flag
+            );
+            gameState.newsEvents.push(globalNews);
+            
+            // Create instant conquest news events (duration = 0) for each system
             systemsToConquer.forEach(system => {
                 const news = new News(
                     NEWS_TYPES.ALIEN_INSTA_CONQUEST,

@@ -30,12 +30,30 @@ const NewsMenu = (() => {
         // Title
         UI.addTitleLineCentered(0, 'News');
         
-        // Get all active news (not completed) where player has visited origin or target system
+        // Get all active news (not completed) where player has visited origin or target system, or it's global news
         const activeNews = gameState.newsEvents.filter(news => 
             !news.completed && 
-            (gameState.visitedSystems.includes(news.originSystem.index) || 
-             gameState.visitedSystems.includes(news.targetSystem.index))
+            (news.globalNews || 
+             (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
+             (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index)))
         );
+        
+        // Debug logging
+        console.log('[NewsMenu] All news events:', gameState.newsEvents.map(n => ({
+            name: n.name,
+            completed: n.completed,
+            originSystem: n.originSystem?.name || 'null',
+            targetSystem: n.targetSystem?.name || 'null',
+            startYear: n.startYear,
+            duration: n.duration
+        })));
+        console.log('[NewsMenu] Active news after filter:', activeNews.map(n => ({
+            name: n.name,
+            originSystem: n.originSystem?.name || 'null',
+            targetSystem: n.targetSystem?.name || 'null'
+        })));
+        console.log('[NewsMenu] Visited systems:', gameState.visitedSystems);
+        console.log('[NewsMenu] Aliens spawned:', gameState.aliensSpawned);
         
         // Mark all as read
         activeNews.forEach(news => news.markAsRead());

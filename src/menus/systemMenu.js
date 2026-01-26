@@ -223,14 +223,14 @@ const DockMenu = (() => {
         });
         
         // Show unread news from other systems (filtered by visited)
-        const unreadNews = gameState.newsEvents.filter(news => 
-            !news.completed && !news.readByPlayer && 
+        const otherSystemsNews = gameState.newsEvents.filter(news => 
+            !news.completed && 
             (!news.originSystem || news.originSystem.index !== currentSystemIndex) && 
             (!news.targetSystem || news.targetSystem.index !== currentSystemIndex) &&
             hasVisitedNewsSystem(news)
         );
         
-        unreadNews.forEach(news => {
+        otherSystemsNews.forEach(news => {
             if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
                 if (news.globalNews) {
                     UI.addText(leftColumnX, newsY++, `ALERT: ${news.description}`, getNewsColor(news));
@@ -243,7 +243,7 @@ const DockMenu = (() => {
         });
         
         // If there are more news items, show overflow indicator
-        const totalNews = newNews.length + expiredNews.length + activeNewsForSystem.length + unreadNews.length;
+        const totalNews = newNews.length + expiredNews.length + activeNewsForSystem.length + otherSystemsNews.length;
         if (totalNews > maxNewsLines) {
             UI.addText(leftColumnX, newsY++, '...', COLORS.TEXT_DIM);
             UI.addText(leftColumnX, newsY++, '(See Assistant > News for more)', COLORS.TEXT_DIM);

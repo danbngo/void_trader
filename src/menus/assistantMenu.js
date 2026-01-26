@@ -124,8 +124,15 @@ const AssistantMenu = (() => {
         const jobsColor = hasActiveJob ? COLORS.BUTTON : COLORS.TEXT_DIM;
         UI.addButton(middleX, buttonY + 2, '6', 'Jobs', () => tryOpenJobs(gameState, onReturn), jobsColor, jobsHelpText);
         
-        // News - highlight if there are unread news events
-        const hasUnreadNews = gameState.newsEvents.some(news => !news.readByPlayer && !news.completed);
+        // News - highlight if there are unread news events that player can see
+        const hasUnreadNews = gameState.newsEvents.some(news => {
+            if (news.readByPlayer || news.completed) return false;
+            // Only count news from visited systems or global news
+            const hasVisited = news.globalNews || 
+                             (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
+                             (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index));
+            return hasVisited;
+        });
         const newsHelpText = hasUnreadNews ? 'View news (new events available)' : 'View active news events';
         const newsColor = hasUnreadNews ? COLORS.YELLOW : COLORS.BUTTON;
         UI.addButton(middleX, buttonY + 3, '7', 'News', () => NewsMenu.show(gameState, () => show(gameState, returnCallback)), newsColor, newsHelpText);

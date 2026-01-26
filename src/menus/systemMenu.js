@@ -788,18 +788,6 @@ const DockMenu = (() => {
                     break; // Only attack one system per alien system per dock
                 }
             }
-                            gameState.currentYear,
-                            duration,
-                            gameState
-                        );
-                        gameState.newsEvents.push(news);
-                        
-                        if (!gameState.systemsWithNewNews.includes(nearestHuman.index)) {
-                            gameState.systemsWithNewNews.push(nearestHuman.index);
-                        }
-                    }
-                }
-            }
         });
         
         // Human liberation efforts

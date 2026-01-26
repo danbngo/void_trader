@@ -205,6 +205,10 @@ const TradeRecommendationsMenu = (() => {
         // Check all systems
         for (let i = 0; i < currentGameState.systems.length; i++) {
             const system = currentGameState.systems[i];
+            
+            // Skip conquered systems
+            if (system.conqueredByAliens) continue;
+            
             const distance = currentSystem.distanceTo(system);
             const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
             const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);

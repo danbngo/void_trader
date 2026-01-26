@@ -24,18 +24,31 @@ const ScanSystemMenu = (() => {
         y = UI.addHeaderLine(5, y, 'Overview');
         const flavorText = getFlavorText(system);
         const isVisited = gameState.visitedSystems.includes(gameState.systems.indexOf(system));
-        y = TableRenderer.renderKeyValueList(5, y, [
+        const overviewData = [
             { label: 'System Name:', value: system.name, valueColor: COLORS.CYAN },
             { label: 'Coordinates:', value: `(${system.x}, ${system.y})`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Population:', value: `${system.population} million`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Economy Type:', value: system.economy, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Visited:', value: isVisited ? 'Yes' : 'No', valueColor: isVisited ? COLORS.GREEN : COLORS.TEXT_DIM },
-            { label: 'Description:', value: flavorText, valueColor: COLORS.TEXT_NORMAL }
-        ]);
+            { label: 'Economy Type:', value: system.economy, valueColor: COLORS.TEXT_NORMAL }
+        ];
+        
+        // Add conquest status if conquered
+        if (system.conqueredByAliens) {
+            overviewData.push({ label: 'Status:', value: 'CONQUERED BY ALIENS', valueColor: COLORS.TEXT_ERROR });
+        }
+        
+        overviewData.push({ label: 'Visited:', value: isVisited ? 'Yes' : 'No', valueColor: isVisited ? COLORS.GREEN : COLORS.TEXT_DIM });
+        overviewData.push({ label: 'Description:', value: flavorText, valueColor: COLORS.TEXT_NORMAL });
+        
+        y = TableRenderer.renderKeyValueList(5, y, overviewData);
         y++;
         
-        // Buildings
-        y = UI.addHeaderLine(5, y, 'Facilities');
+        // Buildings - hide if conquered
+        if (system.conqueredByAliens) {
+            y = UI.addHeaderLine(5, y, 'Facilities');
+            UI.addText(5, y++, 'All facilities destroyed by alien occupation', COLORS.TEXT_ERROR);
+            y++;
+        } else {
+            y = UI.addHeaderLine(5, y, 'Facilities');
         if (isVisited) {
             const buildingNames = system.buildings.map(buildingId => {
                 const building = BUILDING_TYPES[buildingId];
@@ -79,9 +92,10 @@ const ScanSystemMenu = (() => {
             UI.addText(5, y++, '?', COLORS.TEXT_DIM);
             y++;
         }
+        }
         
-        // Market goods table
-        if (system.buildings.includes('MARKET')) {
+        // Market goods table - skip if conquered
+        if (!system.conqueredByAliens && system.buildings.includes('MARKET')) {
             y = UI.addHeaderLine(5, y, 'Market Goods');
             
             if (!isVisited) {

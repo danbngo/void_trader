@@ -99,18 +99,21 @@ const NewsMenu = (() => {
                     y++;
                 });
                 
-                // Calculate expiration date
-                const startDate = new Date(3000, 0, 1);
-                const daysFromStart = news.endYear * 365.25;
-                const expirationDate = new Date(startDate.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const expirationStr = `${months[expirationDate.getMonth()]} ${expirationDate.getDate()}, ${expirationDate.getFullYear()}`;
-                
-                // Duration info with date
-                const yearsRemaining = news.endYear - gameState.currentYear;
-                const daysRemaining = Math.ceil(yearsRemaining * 365.25);
-                UI.addText(7, y, `Expires: ${expirationStr} (${daysRemaining} days)`, COLORS.TEXT_DIM);
-                y++;
+                // Only show expiration for non-instant news (duration > 0)
+                if (news.duration > 0) {
+                    // Calculate expiration date
+                    const startDate = new Date(3000, 0, 1);
+                    const daysFromStart = news.endYear * 365.25;
+                    const expirationDate = new Date(startDate.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const expirationStr = `${months[expirationDate.getMonth()]} ${expirationDate.getDate()}, ${expirationDate.getFullYear()}`;
+                    
+                    // Duration info with date
+                    const yearsRemaining = news.endYear - gameState.currentYear;
+                    const daysRemaining = Math.ceil(yearsRemaining * 365.25);
+                    UI.addText(7, y, `Expires: ${expirationStr} (${daysRemaining} days)`, COLORS.TEXT_DIM);
+                    y++;
+                }
                 
                 // Blank line between news items
                 y++;

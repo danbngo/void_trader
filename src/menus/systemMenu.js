@@ -187,7 +187,9 @@ const DockMenu = (() => {
         // Show newly expired news second (filtered)
         expiredNews.filter(hasVisitedNewsSystem).forEach(news => {
             if (newsCount < maxNewsLines) {
-                UI.addText(leftColumnX, newsY++, `ENDED: ${news.endDescription}`, COLORS.TEXT_DIM);
+                // Don't show ENDED prefix for instant news (duration = 0)
+                const prefix = news.duration > 0 ? 'ENDED: ' : '';
+                UI.addText(leftColumnX, newsY++, `${prefix}${news.endDescription}`, COLORS.TEXT_DIM);
                 newsCount++;
             }
         });

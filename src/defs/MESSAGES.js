@@ -35,7 +35,54 @@ const MESSAGES = {
                 updateSystemsWithQuests(gameState);
             }
         },
-        null // This message doesn't complete a quest
+        null, // This message doesn't complete a quest
+        (gameState) => {
+            // First message - always add on first dock
+            return true;
+        }
+    ),
+    
+    TERRA_ALIEN_INVESTIGATION: new Message(
+        'TERRA_ALIEN_INVESTIGATION',
+        'Urgent Message from Terra',
+        [
+            'Attention all void traders,',
+            '',
+            'This is Commander Voss of the Terra Defense Bureau.',
+            '',
+            'Your recent engagement with hostile alien forces has not',
+            'gone unnoticed. These xeno vessels represent an existential',
+            'threat to all of humanity.',
+            '',
+            'Terra Command requires alien relics for analysis. We must',
+            'understand their technology if we are to mount an effective',
+            'defense against future incursions.',
+            '',
+            'Deliver 10 alien relics to Terra. You will be compensated',
+            'generously for your service. These artifacts can only be',
+            'recovered from defeated alien vessels.',
+            '',
+            'Terra is located far from the Nexus system. Prepare for',
+            'a lengthy journey.',
+            '',
+            'Humanity is counting on you.',
+            '',
+            '- Commander Voss, Terra Defense Bureau'
+        ],
+        (gameState) => {
+            // Add the quest when message is read
+            const quest = QUESTS.DELIVER_RELICS_TO_TERRA;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
+        null, // This message doesn't complete a quest
+        (gameState) => {
+            // Add message after player defeats their first alien
+            const aliensDefeated = gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0;
+            return aliensDefeated >= 1;
+        }
     ),
     
     TRADING_BASICS_COMPLETE: new Message(
@@ -266,5 +313,32 @@ const MESSAGES = {
         ],
         null, // No next quest - end of chain
         'BUY_SECOND_SHIP' // This message completes the BUY_SECOND_SHIP quest
+    ),
+    
+    RELICS_DELIVERED: new Message(
+        'RELICS_DELIVERED',
+        'Terra Defense Bureau - Payment Confirmed',
+        [
+            'Commander Voss here.',
+            '',
+            'The relics have been received and our analysis teams are',
+            'already at work. What we\'re discovering... it\'s unprecedented.',
+            '',
+            'These alien vessels utilize technology far beyond our current',
+            'understanding. Gravity-based propulsion, adaptive armor plating,',
+            'and energy signatures that defy conventional physics.',
+            '',
+            'Your contribution to humanity\'s defense cannot be overstated.',
+            'Payment has been transferred to your account as promised.',
+            '',
+            'We may call upon you again if the alien threat escalates.',
+            'Terra remembers those who stand when others flee.',
+            '',
+            'Stay vigilant out there.',
+            '',
+            '- Commander Voss, Terra Defense Bureau'
+        ],
+        null, // No next quest in chain (for now)
+        'DELIVER_RELICS_TO_TERRA' // This message completes the DELIVER_RELICS_TO_TERRA quest
     )
 };

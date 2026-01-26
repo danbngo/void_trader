@@ -1371,8 +1371,16 @@ const EncounterMenu = (() => {
             // Grant reputation for defeating aliens
             if (encounterType.id === 'ALIEN_SKIRMISH') {
                 currentGameState.reputation += 5;
+                // Track alien ships defeated
+                const alienShipsDefeated = defeatedShips.length;
+                currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] = 
+                    (currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0) + alienShipsDefeated;
             } else if (encounterType.id === 'ALIEN_DEFENSE') {
                 currentGameState.reputation += 10;
+                // Track alien ships defeated
+                const alienShipsDefeated = defeatedShips.length;
+                currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] = 
+                    (currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0) + alienShipsDefeated;
             }
             
             // Grant combat victory experience

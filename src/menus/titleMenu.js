@@ -183,8 +183,7 @@ const TitleMenu = (() => {
             // Generate initial news events (pass starting system index to ensure Nexus has news)
             gameState.newsEvents = SystemGenerator.generateInitialNews(gameState.systems, gameState.currentYear, gameState.currentSystemIndex);
             
-            // Add initial welcome message from uncle
-            gameState.messages.push(MESSAGES.UNCLE_WELCOME);
+            // Messages will be added when player first docks (via checkShouldAdd)
             
             // Create player as first officer (captain) with starting stats
             const playerOfficer = new Officer('Captain', 'Commander', 10);
@@ -283,8 +282,7 @@ const TitleMenu = (() => {
             // Generate initial news events (pass starting system index to ensure Nexus has news)
             gameState.newsEvents = SystemGenerator.generateInitialNews(gameState.systems, gameState.currentYear, gameState.currentSystemIndex);
             
-            // Add initial welcome message from uncle
-            gameState.messages.push(MESSAGES.UNCLE_WELCOME);
+            // Messages will be added when player first docks (via checkShouldAdd)
             
             // Create player as first officer (captain) with starting stats
             const playerOfficer = new Officer('Captain', 'Commander', 10);

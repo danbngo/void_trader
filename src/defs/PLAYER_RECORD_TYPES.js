@@ -13,5 +13,6 @@ const PLAYER_RECORD_TYPES = {
     COMBAT_ENCOUNTERS_WON: 'COMBAT_ENCOUNTERS_WON',     // Combats won
     COMBAT_ENCOUNTERS_FLED: 'COMBAT_ENCOUNTERS_FLED',   // Combats fled from
     SHIPS_DESTROYED: 'SHIPS_DESTROYED',                 // Enemy ships destroyed
+    ALIEN_SHIPS_DEFEATED: 'ALIEN_SHIPS_DEFEATED',       // Alien ships defeated
     TIMES_DIED: 'TIMES_DIED'                            // Number of player deaths
 };

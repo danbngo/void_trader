@@ -157,5 +157,46 @@ const QUESTS = {
             return gameState.ships.length >= 2 ? 1.0 : Math.min(0.8, gameState.ships.length / 2);
         },
         'Ships Owned'
+    ),
+    
+    DELIVER_RELICS_TO_TERRA: new Quest(
+        'DELIVER_RELICS_TO_TERRA',
+        'Alien Investigation',
+        'Deliver 10 Relics to Terra',
+        50000,
+        10000,
+        (gameState) => {
+            // Check if player is at Terra with 10+ relics
+            const currentSystem = gameState.getCurrentSystem();
+            if (!currentSystem || currentSystem.name !== 'Terra') {
+                return false;
+            }
+            
+            // Count total relics across all ships
+            let totalRelics = 0;
+            for (const ship of gameState.ships) {
+                totalRelics += ship.cargo['RELICS'] || 0;
+            }
+            
+            return totalRelics >= 10;
+        },
+        'RELICS_DELIVERED', // Message to add when complete
+        ['Terra'], // Related systems
+        (gameState) => {
+            // Count total relics across all ships
+            let totalRelics = 0;
+            for (const ship of gameState.ships) {
+                totalRelics += ship.cargo['RELICS'] || 0;
+            }
+            return Math.min(1.0, totalRelics / 10);
+        },
+        (gameState) => {
+            // Count total relics across all ships
+            let totalRelics = 0;
+            for (const ship of gameState.ships) {
+                totalRelics += ship.cargo['RELICS'] || 0;
+            }
+            return `Relics: ${totalRelics}/10`;
+        }
     )
 };

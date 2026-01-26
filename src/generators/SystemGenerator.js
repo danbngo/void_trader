@@ -301,6 +301,72 @@ const SystemGenerator = (() => {
     }
     
     /**
+     * Generate Terra - the capital world immune to alien conquest
+     * @param {Array<StarSystem>} systems - All star systems
+     * @param {number} nexusIndex - Index of Nexus system
+     * @returns {StarSystem} Terra system or null if failed
+     */
+    function generateTerraSystem(systems, nexusIndex) {
+        const nexus = systems[nexusIndex];
+        
+        // Find a suitable system that is at least MIN_DISTANCE_NEXUS_TO_TERRA from Nexus
+        // and is not Nexus or Proxima
+        const candidateSystems = systems.filter((system, index) => {
+            if (index === nexusIndex || system.name === 'Proxima') return false;
+            const dist = distance(nexus.x, nexus.y, system.x, system.y);
+            return dist >= MIN_DISTANCE_NEXUS_TO_TERRA;
+        });
+        
+        if (candidateSystems.length === 0) {
+            return null;
+        }
+        
+        // Pick a random candidate
+        const terraSystem = candidateSystems[Math.floor(Math.random() * candidateSystems.length)];
+        
+        // Rename to "Terra"
+        const oldName = terraSystem.name;
+        terraSystem.name = 'Terra';
+        usedNames.delete(oldName);
+        usedNames.add('Terra');
+        
+        // Set minimum fees
+        terraSystem.fees = STAR_SYSTEM_MIN_FEES;
+        
+        // Give Terra ALL buildings
+        terraSystem.buildings = Object.values(BUILDING_TYPES).map(building => building.id);
+        
+        // Mark Terra as immune to alien conquest
+        terraSystem.immuneToAlienConquest = true;
+        
+        // Stock Terra's market with half to full capacity of every cargo type (excluding RELICS)
+        CARGO_TYPES_TRADEABLE.forEach(cargoType => {
+            const minAmount = Math.floor(MAX_CARGO_AMOUNT_IN_MARKET * TERRA_MIN_CARGO_RATIO);
+            const maxAmount = Math.floor(MAX_CARGO_AMOUNT_IN_MARKET * TERRA_MAX_CARGO_RATIO);
+            terraSystem.cargoStock[cargoType.id] = minAmount + Math.floor(Math.random() * (maxAmount - minAmount + 1));
+            
+            // Set reasonable price modifiers (between 0.5 and 2.0)
+            terraSystem.cargoPriceModifier[cargoType.id] = 0.5 + Math.random() * 1.5;
+        });
+        
+        // Generate maximum officers for Terra's tavern
+        const numOfficers = TERRA_MIN_OFFICERS + Math.floor(Math.random() * (TERRA_MAX_OFFICERS - TERRA_MIN_OFFICERS + 1));
+        for (let i = 0; i < numOfficers; i++) {
+            terraSystem.officers.push(OfficerGenerator.generate());
+        }
+        
+        // Generate maximum ships for Terra's shipyard
+        const numShips = TERRA_MIN_SHIPS + Math.floor(Math.random() * (TERRA_MAX_SHIPS - TERRA_MIN_SHIPS + 1));
+        for (let i = 0; i < numShips; i++) {
+            terraSystem.ships.push(ShipGenerator.generateRandomShip());
+        }
+        
+        console.log(`[Galaxy Generation] Terra created at distance ${distance(nexus.x, nexus.y, terraSystem.x, terraSystem.y).toFixed(1)} LY from Nexus`);
+        
+        return terraSystem;
+    }
+    
+    /**
      * Validate and adjust galaxy for game start
      * Names the starting system "Nexus", removes its guild,
      * and names the nearest guild system "Proxima"
@@ -365,6 +431,13 @@ const SystemGenerator = (() => {
             nearestGuildSystem.name = 'Proxima';
             usedNames.delete(oldProximaName);
             usedNames.add('Proxima');
+            
+            // Generate Terra system - capital world immune to alien conquest
+            const terraSystem = generateTerraSystem(systems, startSystemIndex);
+            if (!terraSystem) {
+                console.log('[Galaxy Validation] Failed to generate Terra system');
+                return false;
+            }
             
             // Check if there's a valid path from Nexus to Proxima using 10ly jumps
             // This ensures it's reachable even though it's >10ly direct distance

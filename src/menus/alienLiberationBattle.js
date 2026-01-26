@@ -144,6 +144,11 @@ const AlienLiberationBattle = (() => {
         // Grant reputation for liberation
         gameState.reputation += 10;
         
+        // Track alien ships defeated
+        const alienShipsDefeated = gameState.encounterShips.filter(ship => ship.disabled).length;
+        gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] = 
+            (gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0) + alienShipsDefeated;
+        
         // Create instant news event about liberation
         const news = new News(
             NEWS_TYPES.ALIEN_LIBERATION,

@@ -109,6 +109,9 @@ const DockMenu = (() => {
         // Check for completed quests when docking
         checkQuestCompletion(gameState);
         
+        // Check for new messages that should be added
+        checkNewMessages(gameState);
+        
         // Pay officer salaries if this is first landing at this system
         paySalaries(gameState);
         
@@ -592,6 +595,26 @@ const DockMenu = (() => {
     }
     
     /**
+     * Check if any messages should be added to player's inbox
+     * Iterates through all message templates and adds those that pass checkShouldAdd
+     * @param {GameState} gameState - Current game state
+     */
+    function checkNewMessages(gameState) {
+        // Iterate through all message templates
+        Object.values(MESSAGES).forEach(messageTemplate => {
+            // Check if message is already in player's inbox
+            const alreadyHas = gameState.messages.some(m => m.id === messageTemplate.id);
+            
+            if (!alreadyHas) {
+                // Check if message should be added
+                if (messageTemplate.shouldBeAdded(gameState)) {
+                    gameState.messages.push(messageTemplate);
+                }
+            }
+        });
+    }
+    
+    /**
      * Try to open a building, checking availability and rank requirements
      * @param {GameState} gameState - Current game state
      * @param {Object} building - Building definition with id, name, buildingType, openMenu
@@ -651,6 +674,7 @@ const DockMenu = (() => {
             // Initial alien conquest - conquer ALIENS_CONQUER_X_SYSTEMS_AT_START systems instantly
             const humanSystems = gameState.systems.filter(sys => 
                 !sys.conqueredByAliens && 
+                !sys.immuneToAlienConquest &&
                 sys.name !== 'Nexus' && 
                 sys.name !== 'Proxima' &&
                 sys.index !== gameState.currentSystemIndex
@@ -729,6 +753,7 @@ const DockMenu = (() => {
         if (Math.random() < spontaneousConquestChance) {
             const humanSystems = gameState.systems.filter(sys => 
                 !sys.conqueredByAliens && 
+                !sys.immuneToAlienConquest &&
                 sys.name !== 'Nexus' && 
                 sys.name !== 'Proxima' &&
                 sys.index !== gameState.currentSystemIndex
@@ -759,7 +784,7 @@ const DockMenu = (() => {
             const nearbyHumans = [];
             
             gameState.systems.forEach(sys => {
-                if (!sys.conqueredByAliens && sys.name !== 'Nexus' && sys.name !== 'Proxima' && sys.index !== gameState.currentSystemIndex) {
+                if (!sys.conqueredByAliens && !sys.immuneToAlienConquest && sys.name !== 'Nexus' && sys.name !== 'Proxima' && sys.index !== gameState.currentSystemIndex) {
                     const dist = alienSystem.distanceTo(sys);
                     if (dist <= ALIENS_MAX_ATTACK_DISTANCE) {
                         nearbyHumans.push({ system: sys, distance: dist });

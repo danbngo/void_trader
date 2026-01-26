@@ -121,3 +121,12 @@ const ALIENS_LIBERATED_CHANCE_PER_YEARS = 0.1 //every alien-conquered system who
 const ALIENS_ENCOUNTER_WEIGHT = 4.0 //when traveling to a conquered system, this is added to encounter weights, otherwise chance of alien encounters is 0
 const ALIENS_MAX_ATTACK_DISTANCE = 20 //maximum distance in LY that aliens will attack from conquered systems
 
+// Terra system constants
+const MIN_DISTANCE_NEXUS_TO_TERRA = 75 // Minimum distance from Nexus to Terra in LY
+const TERRA_MIN_OFFICERS = 10 // Minimum officers in Terra's tavern
+const TERRA_MAX_OFFICERS = 15 // Maximum officers in Terra's tavern
+const TERRA_MIN_SHIPS = 10 // Minimum ships in Terra's shipyard
+const TERRA_MAX_SHIPS = 15 // Maximum ships in Terra's shipyard
+const TERRA_MIN_CARGO_RATIO = 0.5 // Minimum ratio of max cargo in Terra's market
+const TERRA_MAX_CARGO_RATIO = 1.0 // Maximum ratio of max cargo in Terra's market
+

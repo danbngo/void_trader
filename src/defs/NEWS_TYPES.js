@@ -189,10 +189,10 @@ const NEWS_TYPES = {
         maxDuration: 90,
         priceMultiplier: 2.5,
         descriptionGenerator: function(news) {
-            return `${news.originSystem.name} research project. Isotope prices rising.`;
+            return `${news.originSystem.name} shield research. Isotope prices rising.`;
         },
         endDescriptionGenerator: function(news) {
-            return `Research project at ${news.originSystem.name} concluded.`;
+            return `Shield research at ${news.originSystem.name} concluded.`;
         },
         onStart: function(news) {
             const currentModifier = news.originSystem.cargoPriceModifier[this.cargoType];

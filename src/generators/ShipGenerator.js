@@ -127,7 +127,8 @@ const ShipGenerator = (() => {
      */
     function generateShipOfType(shipTypeId) {
         const name = ''; // Blank name for encounter ships
-        const shipType = SHIP_TYPES[shipTypeId] || SHIP_TYPES.FREIGHTER;
+        // Check both SHIP_TYPES and ALIEN_SHIP_TYPES
+        const shipType = SHIP_TYPES[shipTypeId] || ALIEN_SHIP_TYPES[shipTypeId] || SHIP_TYPES.FREIGHTER;
         
         const maxFuel = applyStatVariation(shipType.baseMaxFuel);
         const fuel = maxFuel;

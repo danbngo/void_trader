@@ -61,6 +61,11 @@ const TravelConfirmMenu = (() => {
             pirateWeightRange = `${currentSystem.pirateWeight.toFixed(1)} - ?`;
             policeWeightRange = `${currentSystem.policeWeight.toFixed(1)} - ?`;
             merchantWeightRange = `${currentSystem.merchantWeight.toFixed(1)} - ?`;
+            
+            // Alien weight if target is conquered
+            if (targetSystem.conqueredByAliens) {
+                alienWeightRange = ALIENS_ENCOUNTER_WEIGHT.toFixed(1);
+            }
         }
         
         // Draw title

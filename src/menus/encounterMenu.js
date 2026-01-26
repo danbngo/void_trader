@@ -962,6 +962,12 @@ const EncounterMenu = (() => {
      * Handle all player ships escaped successfully
      */
     function handleAllShipsEscaped() {
+        // Check if this is a liberation battle
+        if (currentGameState.liberationBattle) {
+            AlienLiberationBattle.handleFlee(currentGameState);
+            return;
+        }
+        
         UI.clear();
         UI.clearOutputRow();
         
@@ -1103,6 +1109,12 @@ const EncounterMenu = (() => {
      * Handle total defeat - all ships disabled, automatic surrender
      */
     function handleTotalDefeat() {
+        // Check if this is a liberation battle
+        if (currentGameState.liberationBattle) {
+            AlienLiberationBattle.handleDefeat(currentGameState);
+            return;
+        }
+        
         UI.clear();
         UI.clearOutputRow();
         
@@ -1121,6 +1133,9 @@ const EncounterMenu = (() => {
             handleTotalDefeatPirate(y);
         } else if (encounterType.id === 'MERCHANT') {
             handleTotalDefeatMerchant(y);
+        } else if (encounterType.id === 'ALIEN_SKIRMISH' || encounterType.id === 'ALIEN_DEFENSE') {
+            // Aliens destroyed player fleet - tow back
+            handleAlienDefeat(y);
         }
     }
     
@@ -1238,6 +1253,50 @@ const EncounterMenu = (() => {
     }
     
     /**
+     * Handle defeat by aliens - tow back to origin
+     */
+    function handleAlienDefeat(startY) {
+        let y = startY;
+        
+        UI.addText(10, y++, `The aliens destroy your fleet!`, COLORS.TEXT_ERROR);
+        y++;
+        UI.addText(10, y++, `Your ships are towed back for emergency repairs...`, COLORS.TEXT_NORMAL);
+        
+        const buttonY = UI.getGridSize().height - 3;
+        
+        UI.addCenteredButton(buttonY, '1', 'Continue', () => {
+            // Clean up combat properties
+            currentGameState.ships.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounterShips.forEach(ship => {
+                delete ship.x;
+                delete ship.y;
+                delete ship.angle;
+                delete ship.fled;
+                delete ship.disabled;
+                delete ship.acted;
+                delete ship.escaped;
+            });
+            
+            currentGameState.encounter = false;
+            currentGameState.encounterShips = [];
+            
+            // Handle tow back to origin with fuel consumption
+            TravelMenu.handleTowedBack();
+        }, COLORS.TEXT_ERROR);
+        
+        UI.draw();
+    }
+    
+    /**
      * Check if player has won (all enemies disabled or fled)
      */
     function checkForVictory() {
@@ -1269,6 +1328,12 @@ const EncounterMenu = (() => {
         }
         
         if (allEnemiesDefeated) {
+            // Check if this is a liberation battle
+            if (currentGameState.liberationBattle) {
+                AlienLiberationBattle.handleVictory(currentGameState);
+                return true;
+            }
+            
             // Get disabled enemy ships for looting
             const defeatedShips = currentGameState.encounterShips.filter(ship => ship.disabled);
             

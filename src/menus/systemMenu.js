@@ -19,17 +19,33 @@ const DockMenu = (() => {
             gameState.systemsWithNewNews.splice(systemIdxInArray, 1);
         }
         
+        // Check validity of active news events and terminate invalid ones
+        const invalidNews = [];
+        gameState.newsEvents.forEach(news => {
+            if (!news.completed && !news.isValid(gameState)) {
+                news.complete(gameState);
+                invalidNews.push(news);
+                // Track that systems have new news
+                if (news.originSystem && !gameState.systemsWithNewNews.includes(news.originSystem.index)) {
+                    gameState.systemsWithNewNews.push(news.originSystem.index);
+                }
+                if (news.targetSystem && !gameState.systemsWithNewNews.includes(news.targetSystem.index)) {
+                    gameState.systemsWithNewNews.push(news.targetSystem.index);
+                }
+            }
+        });
+        
         // Check for expired news and complete them
         const expiredNews = [];
         gameState.newsEvents.forEach(news => {
             if (!news.completed && news.shouldExpire(gameState.currentYear)) {
-                news.complete();
+                news.complete(gameState);
                 expiredNews.push(news);
                 // Track that this system has new news
-                if (!gameState.systemsWithNewNews.includes(news.originSystem.index)) {
+                if (news.originSystem && !gameState.systemsWithNewNews.includes(news.originSystem.index)) {
                     gameState.systemsWithNewNews.push(news.originSystem.index);
                 }
-                if (!gameState.systemsWithNewNews.includes(news.targetSystem.index)) {
+                if (news.targetSystem && !gameState.systemsWithNewNews.includes(news.targetSystem.index)) {
                     gameState.systemsWithNewNews.push(news.targetSystem.index);
                 }
             }
@@ -39,6 +55,10 @@ const DockMenu = (() => {
         // Calculate probability based on time spent traveling
         const timeSinceDock = gameState.timeSinceDock || 0; // In milliseconds
         const yearsSinceDock = timeSinceDock / (1000 * 60 * 60 * 24 * 365);
+        
+        // Simulate alien conquest behavior
+        simulateAlienConquest(gameState, yearsSinceDock);
+        
         const newsChance = NEWS_CHANCE_PER_SYSTEM_PER_YEAR * yearsSinceDock;
         
         const newNews = [];
@@ -52,8 +72,8 @@ const DockMenu = (() => {
             );
             
             if (!hasActiveNews) {
-                // Pick a random news type
-                const newsType = ALL_NEWS_TYPES[Math.floor(Math.random() * ALL_NEWS_TYPES.length)];
+                // Pick a random news type (only random types, not alien)
+                const newsType = RANDOM_NEWS_TYPES[Math.floor(Math.random() * RANDOM_NEWS_TYPES.length)];
                 
                 // Pick a different random system as target
                 let targetSystem;
@@ -592,6 +612,180 @@ const DockMenu = (() => {
             console.log(`[DockMenu] Player has access, opening menu`);
             building.openMenu();
         }
+    }
+    
+    /**
+     * Simulate alien conquest behavior
+     * @param {GameState} gameState - Current game state
+     * @param {number} yearsSinceDock - Years since last dock
+     */
+    function simulateAlienConquest(gameState, yearsSinceDock) {
+        // Check if aliens should spawn
+        if (!gameState.aliensSpawned && gameState.currentYear >= ALIENS_SPAWN_AFTER_X_YEARS) {
+            gameState.aliensSpawned = true;
+            
+            // Initial alien conquest - conquer ALIENS_CONQUER_X_SYSTEMS_AT_START systems instantly
+            const humanSystems = gameState.systems.filter(sys => 
+                !sys.conqueredByAliens && 
+                sys.name !== 'Nexus' && 
+                sys.name !== 'Proxima'
+            );
+            
+            // Shuffle and take first X systems
+            const systemsToConquer = humanSystems
+                .sort(() => Math.random() - 0.5)
+                .slice(0, ALIENS_CONQUER_X_SYSTEMS_AT_START);
+            
+            // Create instant conquest news events (duration = 0)
+            systemsToConquer.forEach(system => {
+                const news = new News(
+                    NEWS_TYPES.ALIEN_INSTA_CONQUEST,
+                    null, // No origin for initial spawn
+                    system,
+                    gameState.currentYear,
+                    0, // Instant
+                    gameState
+                );
+                gameState.newsEvents.push(news);
+                
+                // Track new news
+                if (!gameState.systemsWithNewNews.includes(system.index)) {
+                    gameState.systemsWithNewNews.push(system.index);
+                }
+            });
+        }
+        
+        // If aliens haven't spawned yet, nothing else to do
+        if (!gameState.aliensSpawned) {
+            return;
+        }
+        
+        // Spontaneous conquests
+        const spontaneousConquestChance = ALIENS_SPONTANEOUS_CONQUESTS_PER_YEAR * yearsSinceDock;
+        if (Math.random() < spontaneousConquestChance) {
+            const humanSystems = gameState.systems.filter(sys => 
+                !sys.conqueredByAliens && 
+                sys.name !== 'Nexus' && 
+                sys.name !== 'Proxima'
+            );
+            
+            if (humanSystems.length > 0) {
+                const targetSystem = humanSystems[Math.floor(Math.random() * humanSystems.length)];
+                const news = new News(
+                    NEWS_TYPES.ALIEN_INSTA_CONQUEST,
+                    null,
+                    targetSystem,
+                    gameState.currentYear,
+                    0,
+                    gameState
+                );
+                gameState.newsEvents.push(news);
+                
+                if (!gameState.systemsWithNewNews.includes(targetSystem.index)) {
+                    gameState.systemsWithNewNews.push(targetSystem.index);
+                }
+            }
+        }
+        
+        // Alien expansion from conquered systems
+        const alienSystems = gameState.systems.filter(sys => sys.conqueredByAliens);
+        alienSystems.forEach(alienSystem => {
+            // Find nearest human neighbor
+            let nearestHuman = null;
+            let nearestDistance = Infinity;
+            
+            gameState.systems.forEach(sys => {
+                if (!sys.conqueredByAliens && sys.name !== 'Nexus' && sys.name !== 'Proxima') {
+                    const dist = alienSystem.distanceTo(sys);
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestHuman = sys;
+                    }
+                }
+            });
+            
+            if (nearestHuman) {
+                // Check if already being attacked
+                const alreadyUnderAttack = gameState.newsEvents.some(n => 
+                    !n.completed && 
+                    n.newsType.id === 'ALIEN_CONQUEST' && 
+                    n.targetSystem === nearestHuman
+                );
+                
+                if (!alreadyUnderAttack) {
+                    const conquestChance = ALIENS_CONQUER_CHANCE_PER_YEAR * yearsSinceDock;
+                    if (Math.random() < conquestChance) {
+                        // Start conquest news event
+                        const duration = NEWS_TYPES.ALIEN_CONQUEST.minDuration + 
+                            Math.random() * (NEWS_TYPES.ALIEN_CONQUEST.maxDuration - NEWS_TYPES.ALIEN_CONQUEST.minDuration);
+                        
+                        const news = new News(
+                            NEWS_TYPES.ALIEN_CONQUEST,
+                            alienSystem,
+                            nearestHuman,
+                            gameState.currentYear,
+                            duration,
+                            gameState
+                        );
+                        gameState.newsEvents.push(news);
+                        
+                        if (!gameState.systemsWithNewNews.includes(nearestHuman.index)) {
+                            gameState.systemsWithNewNews.push(nearestHuman.index);
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Human liberation efforts
+        const humanSystems = gameState.systems.filter(sys => !sys.conqueredByAliens);
+        humanSystems.forEach(humanSystem => {
+            // Find nearest alien neighbor
+            let nearestAlien = null;
+            let nearestDistance = Infinity;
+            
+            gameState.systems.forEach(sys => {
+                if (sys.conqueredByAliens) {
+                    const dist = humanSystem.distanceTo(sys);
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestAlien = sys;
+                    }
+                }
+            });
+            
+            if (nearestAlien) {
+                // Check if already being liberated
+                const alreadyBeingLiberated = gameState.newsEvents.some(n => 
+                    !n.completed && 
+                    n.newsType.id === 'ALIEN_LIBERATION' && 
+                    n.targetSystem === nearestAlien
+                );
+                
+                if (!alreadyBeingLiberated) {
+                    const liberationChance = ALIENS_LIBERATED_CHANCE_PER_YEARS * yearsSinceDock;
+                    if (Math.random() < liberationChance) {
+                        // Start liberation news event
+                        const duration = NEWS_TYPES.ALIEN_LIBERATION.minDuration + 
+                            Math.random() * (NEWS_TYPES.ALIEN_LIBERATION.maxDuration - NEWS_TYPES.ALIEN_LIBERATION.minDuration);
+                        
+                        const news = new News(
+                            NEWS_TYPES.ALIEN_LIBERATION,
+                            humanSystem,
+                            nearestAlien,
+                            gameState.currentYear,
+                            duration,
+                            gameState
+                        );
+                        gameState.newsEvents.push(news);
+                        
+                        if (!gameState.systemsWithNewNews.includes(nearestAlien.index)) {
+                            gameState.systemsWithNewNews.push(nearestAlien.index);
+                        }
+                    }
+                }
+            }
+        });
     }
     
     return {

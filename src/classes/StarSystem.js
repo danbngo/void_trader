@@ -36,6 +36,10 @@ class StarSystem {
         this.pirateWeight = 0;
         this.policeWeight = 0;
         this.merchantWeight = 0;
+        
+        // Alien conquest state
+        this.conqueredByAliens = false; // Whether this system is under alien control
+        this.conqueredYear = null; // Year when system was conquered (if conquered)
     }
     
     /**

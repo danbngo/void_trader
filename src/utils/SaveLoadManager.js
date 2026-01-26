@@ -62,6 +62,7 @@ const SaveLoadManager = (() => {
                 // Save news events
                 newsEvents: gameState.newsEvents ? gameState.newsEvents.map(n => n.serialize()) : [],
                 systemsWithNewNews: gameState.systemsWithNewNews || [],
+                aliensSpawned: gameState.aliensSpawned || false,
                 // Save job system
                 currentJob: gameState.currentJob ? gameState.currentJob.serialize() : null,
                 completedJobReward: gameState.completedJobReward ? gameState.completedJobReward.serialize() : null,
@@ -171,6 +172,8 @@ const SaveLoadManager = (() => {
             system.policeWeight = s.policeWeight || 0;
             system.merchantWeight = s.merchantWeight || 0;
             system.buildings = s.buildings || [];
+            system.conqueredByAliens = s.conqueredByAliens || false;
+            system.conqueredYear = s.conqueredYear || null;
             return system;
         });
         
@@ -216,6 +219,7 @@ const SaveLoadManager = (() => {
             });
         }
         gameState.systemsWithNewNews = data.systemsWithNewNews || [];
+        gameState.aliensSpawned = data.aliensSpawned || false;
         
         // Restore job system
         gameState.currentJob = null;

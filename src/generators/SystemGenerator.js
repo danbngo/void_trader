@@ -505,8 +505,8 @@ const SystemGenerator = (() => {
                 continue;
             }
             
-            // Pick a random news type
-            const newsType = ALL_NEWS_TYPES[Math.floor(Math.random() * ALL_NEWS_TYPES.length)];
+            // Pick a random news type (only random news types, not alien news)
+            const newsType = RANDOM_NEWS_TYPES[Math.floor(Math.random() * RANDOM_NEWS_TYPES.length)];
             
             // Pick a different random system as target
             let targetSystem;

@@ -114,8 +114,9 @@ const NEWS_NUM_ON_START = 10 //number of news events to generate on game start
 
 //simulation says aliens will take ~60-75 years to conquer everything, which is above the game time limit of 50y 
 const ALIENS_SPAWN_AFTER_X_YEARS = 0.001 //alien behavior will start after this many years
-const ALIENS_CONQUER_X_SYSTEMS_AT_START = 10
-const ALIENS_SPONTANEOUS_CONQUESTS_PER_YEAR = 0.5 //aliens will randomly conquer 1 system per year this likelihood
-const ALIENS_CONQUER_CHANCE_PER_YEAR = 0.15 //every alien-conquered system whose nearest neighbor is human has a chance to conquer them each year
+const ALIENS_CONQUER_X_SYSTEMS_AT_START = 10 //in a single instant news event, aliens will conquer multiple random systems initially. dont include nexus or proxima
+const ALIENS_SPONTANEOUS_CONQUESTS_PER_YEAR = 0.5 //aliens will randomly conquer 1 system per year this likelihood. dont include nexus or proxima
+const ALIENS_CONQUER_CHANCE_PER_YEAR = 0.15 //every alien-conquered system whose nearest neighbor is human has a chance to conquer them each year. dont include nexus or proxima
 const ALIENS_LIBERATED_CHANCE_PER_YEARS = 0.1 //every alien-conquered system whose nearest neighbor is human has a chance to be liberated each year
-const ALIENS_ENCOUNTER_WEIGHT = 4.0 //when traveling to a conquered system, this is added to encounter weights
+const ALIENS_ENCOUNTER_WEIGHT = 4.0 //when traveling to a conquered system, this is added to encounter weights, otherwise chance of alien encounters is 0
+

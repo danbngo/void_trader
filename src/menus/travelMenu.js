@@ -245,8 +245,11 @@ const TravelMenu = (() => {
         const avgMerchantWeight = (currentSystem.merchantWeight + targetSystem.merchantWeight) / 2;
         const abandonedShipWeight = ABANDONED_SHIP_ENCOUNTER_WEIGHT;
         
+        // Add alien encounter weight if traveling to conquered system
+        const alienWeight = targetSystem.conqueredByAliens ? ALIENS_ENCOUNTER_WEIGHT : 0;
+        
         // Total weight
-        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight;
+        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight + alienWeight;
         
         // Random selection based on weights
         const roll = Math.random() * totalWeight;
@@ -257,8 +260,11 @@ const TravelMenu = (() => {
             encounterType = ENCOUNTER_TYPES.POLICE;
         } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight) {
             encounterType = ENCOUNTER_TYPES.MERCHANT;
-        } else {
+        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight) {
             encounterType = ENCOUNTER_TYPES.ABANDONED_SHIP;
+        } else {
+            // Alien encounter - randomly pick skirmish or defense
+            encounterType = Math.random() < 0.5 ? ENCOUNTER_TYPES.ALIEN_SKIRMISH : ENCOUNTER_TYPES.ALIEN_DEFENSE;
         }
         
         // Generate encounter ships
@@ -328,37 +334,45 @@ const TravelMenu = (() => {
         const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
         const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
         
-        // Generate cargo (with retry logic for merchants and abandoned ships)
-        const maxRetries = (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') ? 100 : 1;
-        let retryCount = 0;
-        let cargoGenerated = false;
-        
-        while (!cargoGenerated && retryCount < maxRetries) {
-            retryCount++;
+        // Special handling for alien encounters - they only carry RELICS
+        if (encounterType.id === 'ALIEN_SKIRMISH' || encounterType.id === 'ALIEN_DEFENSE') {
             currentGameState.encounterCargo = {};
-            
-            if (totalCargoAmount > 0 || encounterType.id === 'ABANDONED_SHIP') {
-                // Use CARGO_TYPES_TRADEABLE to exclude RELICS from encounter cargo
-                const cargoTypes = CARGO_TYPES_TRADEABLE.map(ct => ct.id);
-                
-                // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
-                cargoTypes.forEach(cargoTypeId => {
-                    if (Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
-                        // This cargo type is included - give it a random amount (at least 1)
-                        const amount = Math.floor(Math.random() * Math.max(1, totalCargoAmount)) + 1;
-                        currentGameState.encounterCargo[cargoTypeId] = amount;
-                    }
-                });
+            if (totalCargoAmount > 0) {
+                currentGameState.encounterCargo['RELICS'] = totalCargoAmount;
             }
+        } else {
+            // Generate cargo (with retry logic for merchants and abandoned ships)
+            const maxRetries = (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') ? 100 : 1;
+            let retryCount = 0;
+            let cargoGenerated = false;
             
-            // Check if we generated any cargo
-            const hasAnyCargo = Object.values(currentGameState.encounterCargo).some(amount => amount > 0);
-            
-            // For merchants and abandoned ships, keep trying until we get cargo. For others, accept even zero cargo.
-            if (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') {
-                cargoGenerated = hasAnyCargo;
-            } else {
-                cargoGenerated = true; // Accept whatever we got
+            while (!cargoGenerated && retryCount < maxRetries) {
+                retryCount++;
+                currentGameState.encounterCargo = {};
+                
+                if (totalCargoAmount > 0 || encounterType.id === 'ABANDONED_SHIP') {
+                    // Use CARGO_TYPES_TRADEABLE to exclude RELICS from encounter cargo
+                    const cargoTypes = CARGO_TYPES_TRADEABLE.map(ct => ct.id);
+                    
+                    // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
+                    cargoTypes.forEach(cargoTypeId => {
+                        if (Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
+                            // This cargo type is included - give it a random amount (at least 1)
+                            const amount = Math.floor(Math.random() * Math.max(1, totalCargoAmount)) + 1;
+                            currentGameState.encounterCargo[cargoTypeId] = amount;
+                        }
+                    });
+                }
+                
+                // Check if we generated any cargo
+                const hasAnyCargo = Object.values(currentGameState.encounterCargo).some(amount => amount > 0);
+                
+                // For merchants and abandoned ships, keep trying until we get cargo. For others, accept even zero cargo.
+                if (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') {
+                    cargoGenerated = hasAnyCargo;
+                } else {
+                    cargoGenerated = true; // Accept whatever we got
+                }
             }
         }
         
@@ -422,6 +436,13 @@ const TravelMenu = (() => {
         // Move to target system
         const targetIndex = currentGameState.systems.indexOf(targetSystem);
         currentGameState.setCurrentSystem(targetIndex);
+        
+        // Check if target system is conquered by aliens
+        if (targetSystem.conqueredByAliens) {
+            // Trigger liberation battle
+            AlienLiberationBattle.show(currentGameState, targetSystem);
+            return;
+        }
         
         // Restore shields to max at the end of journey
         currentGameState.ships.forEach(ship => {

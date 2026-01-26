@@ -35,6 +35,10 @@ class GameState {
         // News system
         this.newsEvents = []; // Array of News objects
         this.systemsWithNewNews = []; // Array of system indices where news started/ended since last visit
+        this.timeSinceDock = 0; // Time in milliseconds since last dock
+        
+        // Alien conquest system
+        this.aliensSpawned = false; // Whether aliens have started their invasion
         
         // Job system
         this.currentJob = null; // Currently active job (player can only have one at a time)

@@ -10,8 +10,9 @@ class News {
      * @param {StarSystem} targetSystem - Target system (null for local events)
      * @param {number} startYear - Year when news event starts
      * @param {number} duration - Duration in days
+     * @param {GameState} gameState - Current game state (optional, for alien news)
      */
-    constructor(newsType, originSystem, targetSystem, startYear, duration) {
+    constructor(newsType, originSystem, targetSystem, startYear, duration, gameState = null) {
         this.newsType = newsType;
         this.originSystem = originSystem;
         this.targetSystem = targetSystem;
@@ -24,10 +25,26 @@ class News {
         // Generate descriptions
         this.name = newsType.name;
         this.description = newsType.descriptionGenerator(this);
-        this.endDescription = newsType.endDescriptionGenerator(this);
+        // endDescription will be generated when completing
         
         // Call onStart to apply effects
-        newsType.onStart(this);
+        if (gameState) {
+            newsType.onStart(this, gameState);
+        } else {
+            newsType.onStart(this);
+        }
+    }
+    
+    /**
+     * Check if news event is still valid
+     * @param {GameState} gameState - Current game state
+     * @returns {boolean} True if news is still valid
+     */
+    isValid(gameState) {
+        if (this.newsType.checkValidity) {
+            return this.newsType.checkValidity(this, gameState);
+        }
+        return true; // News types without checkValidity are always valid
     }
     
     /**
@@ -41,11 +58,23 @@ class News {
     
     /**
      * Mark news as completed and apply end effects
+     * @param {GameState} gameState - Current game state
      */
-    complete() {
+    complete(gameState) {
         if (!this.completed) {
             this.completed = true;
-            this.newsType.onEnd(this);
+            
+            // Generate end description based on current state
+            if (this.newsType.endDescriptionGenerator) {
+                this.endDescription = this.newsType.endDescriptionGenerator(this, gameState);
+            }
+            
+            // Apply end effects
+            if (gameState) {
+                this.newsType.onEnd(this, gameState);
+            } else {
+                this.newsType.onEnd(this);
+            }
         }
     }
     

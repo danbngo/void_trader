@@ -108,6 +108,7 @@ const ALIEN_SHIP_TYPES = {
     ALIEN_FIGHTER: {
         id: 'ALIEN_FIGHTER',
         name: 'Fighter',
+        symbol: '◊',  // Alternatives: ◊ ◈ ⬧ ◇ ⟡ ⬥ ◆
         description: 'Small alien fighter craft',
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: 0,
@@ -120,6 +121,7 @@ const ALIEN_SHIP_TYPES = {
     ALIEN_BOMBER: {
         id: 'ALIEN_BOMBER',
         name: 'Bomber',
+        symbol: '▲',  // Alternatives: ▲ ▼ ◄ ► ⯁ ⮝ ⯅ △
         description: 'Heavily armed alien bomber',
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.1,
@@ -132,6 +134,7 @@ const ALIEN_SHIP_TYPES = {
     ALIEN_MOTHERSHIP: {
         id: 'ALIEN_MOTHERSHIP',
         name: 'Mothership',
+        symbol: '●',  // Alternatives: ● ◉ ◯ ⬤ ⭕ ◙ ◘ ⊙
         description: 'Large alien command vessel',
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.25,

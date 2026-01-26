@@ -33,7 +33,9 @@ const EncounterDecisionMenu = {
      * Show encounter ignoring the player
      */
     showIgnoreEncounter: function(gameState, encType) {
+        UI.clearOutputRow();
         UI.clear();
+        UI.resetSelection();
         
         const grid = UI.getGridSize();
         

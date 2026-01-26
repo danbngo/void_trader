@@ -171,8 +171,8 @@ const DockMenu = (() => {
         
         // Filter function: only show news where player has visited origin or target system
         const hasVisitedNewsSystem = (news) => {
-            return gameState.visitedSystems.includes(news.originSystem.index) || 
-                   gameState.visitedSystems.includes(news.targetSystem.index);
+            return (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
+                   (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index));
         };
         
         // Show newly started news first (filtered)
@@ -194,7 +194,10 @@ const DockMenu = (() => {
         // Show active news for this system (origin or target) - already filtered by visited
         const currentSystemIndex = gameState.currentSystemIndex;
         const activeNewsForSystem = gameState.newsEvents.filter(news => 
-            !news.completed && (news.originSystem.index === currentSystemIndex || news.targetSystem.index === currentSystemIndex)
+            !news.completed && (
+                (news.originSystem && news.originSystem.index === currentSystemIndex) || 
+                (news.targetSystem && news.targetSystem.index === currentSystemIndex)
+            )
         );
         
         activeNewsForSystem.forEach(news => {
@@ -207,7 +210,8 @@ const DockMenu = (() => {
         // Show unread news from other systems (filtered by visited)
         const unreadNews = gameState.newsEvents.filter(news => 
             !news.completed && !news.readByPlayer && 
-            news.originSystem.index !== currentSystemIndex && news.targetSystem.index !== currentSystemIndex &&
+            (!news.originSystem || news.originSystem.index !== currentSystemIndex) && 
+            (!news.targetSystem || news.targetSystem.index !== currentSystemIndex) &&
             hasVisitedNewsSystem(news)
         );
         

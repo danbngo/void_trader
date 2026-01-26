@@ -10,6 +10,10 @@ const PirateEncounter = {
      * @param {boolean} neverIgnore - If true, pirates will never ignore the player (for ambushes)
      */
     show: function(gameState, encType, neverIgnore = false) {
+        UI.clearOutputRow();
+        UI.clear();
+        UI.resetSelection();
+        
         // Check if player has any cargo
         const playerCargo = Ship.getFleetCargo(gameState.ships);
         const hasAnyCargo = Object.values(playerCargo).some(amount => amount > 0);
@@ -20,10 +24,6 @@ const PirateEncounter = {
             this.showNoCargoPirates(gameState);
             return;
         }
-        
-        UI.clear();
-        UI.clearOutputRow();
-        UI.resetSelection(); // Clear alert from in-transit screen
         
         const grid = UI.getGridSize();
         

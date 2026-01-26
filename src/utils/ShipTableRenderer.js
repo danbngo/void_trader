@@ -99,15 +99,19 @@ const ShipTableRenderer = (() => {
         
         // Build table rows
         const rows = ships.map((ship, index) => {
-            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            // Check both human and alien ship types
+            const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.maxShields > 0 ? ship.shields / ship.maxShields : 0;
             const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             
+            // Display symbol + name for alien ships, just name for humans
+            const displayName = shipType.symbol ? `${shipType.symbol} ${shipType.name}` : shipType.name;
+            
             return [
-                { text: shipType.name, color: COLORS.TEXT_NORMAL },
+                { text: displayName, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },

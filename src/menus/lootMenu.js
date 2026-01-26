@@ -213,12 +213,12 @@ const LootMenu = (() => {
     }
     
     /**
-     * Dump cargo from loot into space
+     * Dump cargo from player fleet into loot
      */
     function dumpCargo(amount, onContinue) {
-        // Get the selected cargo type from filtered list (only enabled cargo with loot)
+        // Get the selected cargo type from filtered list (all enabled cargo types)
         const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
-            lootCargo[ct.id] > 0 && gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
+            gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
         );
         if (selectedCargoIndex >= availableCargoTypes.length) {
             outputMessage = 'Invalid cargo selection.';
@@ -228,21 +228,25 @@ const LootMenu = (() => {
         }
         
         const cargoType = availableCargoTypes[selectedCargoIndex];
-        const availableLoot = lootCargo[cargoType.id] || 0;
+        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        const playerAmount = fleetCargo[cargoType.id] || 0;
         
-        // Adjust amount based on availability (no capacity limit for dumping)
-        const actualAmount = Math.min(amount, availableLoot);
+        // Adjust amount based on what player has
+        const actualAmount = Math.min(amount, playerAmount);
         
         if (actualAmount === 0) {
             outputMessage = 'No cargo to dump!';
             outputColor = COLORS.TEXT_ERROR;
         } else {
-            // Dump the cargo
-            lootCargo[cargoType.id] -= actualAmount;
+            // Remove cargo from player fleet
+            Ship.removeCargoFromFleet(gameState.ships, cargoType.id, actualAmount);
+            
+            // Add to loot
+            lootCargo[cargoType.id] = (lootCargo[cargoType.id] || 0) + actualAmount;
             
             const message = actualAmount < amount 
-                ? `Dumped all ${actualAmount}x ${cargoType.name} into space.` 
-                : `Dumped ${actualAmount}x ${cargoType.name} into space.`;
+                ? `Dumped all ${actualAmount}x ${cargoType.name} into loot.` 
+                : `Dumped ${actualAmount}x ${cargoType.name} into loot.`;
             outputMessage = message;
             outputColor = COLORS.TEXT_NORMAL;
         }

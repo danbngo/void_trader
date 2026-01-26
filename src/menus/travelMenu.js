@@ -355,12 +355,16 @@ const TravelMenu = (() => {
                     // Use CARGO_TYPES_TRADEABLE to exclude RELICS from encounter cargo
                     const cargoTypes = CARGO_TYPES_TRADEABLE.map(ct => ct.id);
                     
+                    // Distribute cargo amount across types
+                    let remainingCargo = totalCargoAmount;
+                    
                     // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
                     cargoTypes.forEach(cargoTypeId => {
-                        if (Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
-                            // This cargo type is included - give it a random amount (at least 1)
-                            const amount = Math.floor(Math.random() * Math.max(1, totalCargoAmount)) + 1;
+                        if (remainingCargo > 0 && Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
+                            // This cargo type is included - give it a random amount from remaining
+                            const amount = Math.min(remainingCargo, Math.floor(Math.random() * Math.max(1, remainingCargo)) + 1);
                             currentGameState.encounterCargo[cargoTypeId] = amount;
+                            remainingCargo -= amount;
                         }
                     });
                 }

@@ -1368,6 +1368,13 @@ const EncounterMenu = (() => {
             currentGameState.encounter = false;
             currentGameState.encounterShips = [];
             
+            // Grant reputation for defeating aliens
+            if (encounterType.id === 'ALIEN_SKIRMISH') {
+                currentGameState.reputation += 5;
+            } else if (encounterType.id === 'ALIEN_DEFENSE') {
+                currentGameState.reputation += 10;
+            }
+            
             // Grant combat victory experience
             const playerFleetValue = currentGameState.ships.reduce((sum, s) => {
                 const shipType = SHIP_TYPES[s.type];

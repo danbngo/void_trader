@@ -334,6 +334,8 @@ const TravelMenu = (() => {
         const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
         const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
         
+        let retryCount = 0; // Declare outside for logging
+        
         // Special handling for alien encounters - they only carry RELICS
         if (encounterType.id === 'ALIEN_SKIRMISH' || encounterType.id === 'ALIEN_DEFENSE') {
             currentGameState.encounterCargo = {};
@@ -343,7 +345,6 @@ const TravelMenu = (() => {
         } else {
             // Generate cargo (with retry logic for merchants and abandoned ships)
             const maxRetries = (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') ? 100 : 1;
-            let retryCount = 0;
             let cargoGenerated = false;
             
             while (!cargoGenerated && retryCount < maxRetries) {

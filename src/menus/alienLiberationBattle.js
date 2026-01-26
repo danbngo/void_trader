@@ -141,6 +141,9 @@ const AlienLiberationBattle = (() => {
         currentSystem.conqueredByAliens = false;
         currentSystem.conqueredYear = null;
         
+        // Grant reputation for liberation
+        gameState.reputation += 10;
+        
         // Create instant news event about liberation
         const news = new News(
             NEWS_TYPES.ALIEN_LIBERATION,

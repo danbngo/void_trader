@@ -1438,7 +1438,7 @@ const EncounterMenu = (() => {
         if (actionType === COMBAT_ACTIONS.PURSUE) {
             outputMessage = `${activeShip.name} pursuing ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FLEE) {
-            outputMessage = `Fleeing from ${targetShipType.name}...`;
+            outputMessage = `${activeShip.name} fleeing from ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
             outputMessage = `${activeShip.name} firing laser at ${targetShipType.name}...`;
         }
@@ -1478,7 +1478,17 @@ const EncounterMenu = (() => {
                 } else if (action.hitObstruction) {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
-                        outputMessage = `${activeShip.name} hit ${action.hitObstruction.name} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                        const obstructedShip = action.hitObstruction.ship;
+                        let obstructedName = '';
+                        // Check if obstruction is a player ship or enemy ship
+                        if (currentGameState.ships.includes(obstructedShip)) {
+                            obstructedName = obstructedShip.name; // Player ship
+                        } else {
+                            // Enemy ship - use ship type name
+                            const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Unknown' };
+                            obstructedName = obstructedType.name;
+                        }
+                        outputMessage = `${activeShip.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
                         outputColor = COLORS.YELLOW;
                     } else {
                         outputMessage = `${activeShip.name} hit an asteroid (obstruction)!`;
@@ -1502,7 +1512,7 @@ const EncounterMenu = (() => {
                 // Only set message if it's not already set (e.g., from ramming)
                 if (!outputMessage.includes('RAMMED')) {
                     if (actionType === COMBAT_ACTIONS.FLEE) {
-                        outputMessage = `Fled ${distanceMoved} AU from ${targetShipType.name}`;
+                        outputMessage = `${activeShip.name} fled ${distanceMoved} AU from ${targetShipType.name}`;
                         outputColor = COLORS.TEXT_NORMAL;
                     } else if (actionType === COMBAT_ACTIONS.PURSUE) {
                         outputMessage = `${activeShip.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
@@ -1663,7 +1673,17 @@ const EncounterMenu = (() => {
                 } else if (action.hitObstruction) {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
-                        outputMessage = `${enemyShipType.name} hit ${action.hitObstruction.name} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                        const obstructedShip = action.hitObstruction.ship;
+                        let obstructedName = '';
+                        // Check if obstruction is a player ship or enemy ship
+                        if (currentGameState.ships.includes(obstructedShip)) {
+                            obstructedName = obstructedShip.name; // Player ship
+                        } else {
+                            // Enemy ship - use ship type name
+                            const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Unknown' };
+                            obstructedName = obstructedType.name;
+                        }
+                        outputMessage = `${enemyShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
                         outputColor = COLORS.YELLOW;
                     } else {
                         outputMessage = `${enemyShipType.name} hit an asteroid (obstruction)!`;

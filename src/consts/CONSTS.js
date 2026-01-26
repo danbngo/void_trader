@@ -119,4 +119,5 @@ const ALIENS_SPONTANEOUS_CONQUESTS_PER_YEAR = 0.5 //aliens will randomly conquer
 const ALIENS_CONQUER_CHANCE_PER_YEAR = 0.15 //every alien-conquered system whose nearest neighbor is human has a chance to conquer them each year. dont include nexus or proxima
 const ALIENS_LIBERATED_CHANCE_PER_YEARS = 0.1 //every alien-conquered system whose nearest neighbor is human has a chance to be liberated each year
 const ALIENS_ENCOUNTER_WEIGHT = 4.0 //when traveling to a conquered system, this is added to encounter weights, otherwise chance of alien encounters is 0
+const ALIENS_MAX_ATTACK_DISTANCE = 20 //maximum distance in LY that aliens will attack from conquered systems
 

@@ -286,7 +286,7 @@ const NEWS_TYPES = {
             return `BREAKING: Alien forces have conquered ${news.targetSystem.name}!`;
         },
         endDescriptionGenerator: function(news, gameState) {
-            return `${news.targetSystem.name} under alien control.`;
+            return `BREAKING: Alien forces have conquered ${news.targetSystem.name}!`;
         },
         checkValidity: function(news, gameState) {
             return true; // Insta-conquests are always valid
@@ -303,13 +303,13 @@ const NEWS_TYPES = {
     ALIEN_INVASION_ANNOUNCEMENT: {
         id: 'ALIEN_INVASION_ANNOUNCEMENT',
         name: 'Alien Invasion Alert',
-        minDuration: 30,
-        maxDuration: 90,
+        minDuration: 0, // Instant
+        maxDuration: 0,
         descriptionGenerator: function(news) {
-            return `GALAXY-WIDE ALERT: Unknown alien forces have launched a surprise attack, conquering multiple star systems across the galaxy!`;
+            return `GALAXY-WIDE ALERT: Unknown alien forces launch surprise attack! Multiple systems conquered!!`;
         },
         endDescriptionGenerator: function(news, gameState) {
-            return `The initial alien invasion wave has subsided, but conquered systems remain under their control.`;
+            return `GALAXY-WIDE ALERT: Unknown alien forces launch surprise attack! Multiple systems conquered!!`;
         },
         checkValidity: function(news, gameState) {
             return true; // Always valid

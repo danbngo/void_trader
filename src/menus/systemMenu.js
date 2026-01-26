@@ -232,9 +232,12 @@ const DockMenu = (() => {
         const totalNews = newNews.length + expiredNews.length + activeNewsForSystem.length + unreadNews.length;
         if (totalNews > maxNewsLines) {
             UI.addText(leftColumnX, newsY++, '...', COLORS.TEXT_DIM);
-            UI.addText(leftColumnX, newsY++, 'Read news on assistant menu for more details', COLORS.TEXT_DIM);
+            UI.addText(leftColumnX, newsY++, '(See Assistant > News for more)', COLORS.TEXT_DIM);
         } else if (totalNews === 0) {
             UI.addText(leftColumnX, newsY++, 'No active news', COLORS.TEXT_DIM);
+        } else if (newsCount > 0) {
+            // Show hint if any news was displayed
+            UI.addText(leftColumnX, newsY++, '(See Assistant > News for more)', COLORS.TEXT_DIM);
         }
         
         // Menu buttons - 3 column layout at bottom edge
@@ -641,10 +644,36 @@ const DockMenu = (() => {
                 sys.name !== 'Proxima'
             );
             
-            // Shuffle and take first X systems
-            const systemsToConquer = humanSystems
+            const systemsToConquer = [];
+            
+            // First, find and conquer the nearest system to Nexus
+            const nexus = gameState.systems.find(sys => sys.name === 'Nexus');
+            if (nexus && humanSystems.length > 0) {
+                let nearestToNexus = null;
+                let nearestDistance = Infinity;
+                
+                humanSystems.forEach(sys => {
+                    const dist = nexus.distanceTo(sys);
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestToNexus = sys;
+                    }
+                });
+                
+                if (nearestToNexus) {
+                    systemsToConquer.push(nearestToNexus);
+                    // Remove from humanSystems pool
+                    const index = humanSystems.indexOf(nearestToNexus);
+                    if (index > -1) humanSystems.splice(index, 1);
+                }
+            }
+            
+            // Then conquer random systems for the rest
+            const remainingCount = ALIENS_CONQUER_X_SYSTEMS_AT_START - systemsToConquer.length;
+            const randomSystems = humanSystems
                 .sort(() => Math.random() - 0.5)
-                .slice(0, ALIENS_CONQUER_X_SYSTEMS_AT_START);
+                .slice(0, remainingCount);
+            systemsToConquer.push(...randomSystems);
             
             // Create ONE global announcement news event
             const globalNews = new News(
@@ -652,7 +681,7 @@ const DockMenu = (() => {
                 null,
                 null,
                 gameState.currentYear,
-                30 + Math.random() * 60, // 30-90 days
+                0, // Instant
                 gameState,
                 true // globalNews flag
             );
@@ -712,21 +741,22 @@ const DockMenu = (() => {
         // Alien expansion from conquered systems
         const alienSystems = gameState.systems.filter(sys => sys.conqueredByAliens);
         alienSystems.forEach(alienSystem => {
-            // Find nearest human neighbor
-            let nearestHuman = null;
-            let nearestDistance = Infinity;
+            // Find nearby human systems within max attack distance
+            const nearbyHumans = [];
             
             gameState.systems.forEach(sys => {
                 if (!sys.conqueredByAliens && sys.name !== 'Nexus' && sys.name !== 'Proxima') {
                     const dist = alienSystem.distanceTo(sys);
-                    if (dist < nearestDistance) {
-                        nearestDistance = dist;
-                        nearestHuman = sys;
+                    if (dist <= ALIENS_MAX_ATTACK_DISTANCE) {
+                        nearbyHumans.push({ system: sys, distance: dist });
                     }
                 }
             });
             
-            if (nearestHuman) {
+            // Sort by distance and try to attack the nearest that's not already under attack
+            nearbyHumans.sort((a, b) => a.distance - b.distance);
+            
+            for (const { system: nearestHuman } of nearbyHumans) {
                 // Check if already being attacked
                 const alreadyUnderAttack = gameState.newsEvents.some(n => 
                     !n.completed && 
@@ -745,6 +775,19 @@ const DockMenu = (() => {
                             NEWS_TYPES.ALIEN_CONQUEST,
                             alienSystem,
                             nearestHuman,
+                            gameState.currentYear,
+                            duration,
+                            gameState
+                        );
+                        gameState.newsEvents.push(news);
+                        
+                        if (!gameState.systemsWithNewNews.includes(nearestHuman.index)) {
+                            gameState.systemsWithNewNews.push(nearestHuman.index);
+                        }
+                    }
+                    break; // Only attack one system per alien system per dock
+                }
+            }
                             gameState.currentYear,
                             duration,
                             gameState

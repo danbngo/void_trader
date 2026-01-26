@@ -64,6 +64,7 @@ class News {
     complete(gameState) {
         if (!this.completed) {
             this.completed = true;
+            this.completionYear = gameState ? gameState.currentYear : this.endYear;
             
             // Generate end description based on current state
             if (this.newsType.endDescriptionGenerator) {
@@ -99,6 +100,7 @@ class News {
             duration: this.duration,
             endYear: this.endYear,
             completed: this.completed,
+            completionYear: this.completionYear,
             readByPlayer: this.readByPlayer
         };
     }
@@ -117,6 +119,7 @@ class News {
         const news = new News(newsType, originSystem, targetSystem, data.startYear, data.duration);
         news.endYear = data.endYear;
         news.completed = data.completed;
+        news.completionYear = data.completionYear;
         news.readByPlayer = data.readByPlayer;
         
         return news;

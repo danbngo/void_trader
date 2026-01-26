@@ -36,6 +36,7 @@ const TravelConfirmMenu = (() => {
         let pirateWeightRange = '?';
         let policeWeightRange = '?';
         let merchantWeightRange = '?';
+        let alienWeightRange = '0';
         
         if (isVisited) {
             // Show range between current and target system
@@ -50,6 +51,11 @@ const TravelConfirmMenu = (() => {
             const minMerchant = Math.min(currentSystem.merchantWeight, targetSystem.merchantWeight).toFixed(1);
             const maxMerchant = Math.max(currentSystem.merchantWeight, targetSystem.merchantWeight).toFixed(1);
             merchantWeightRange = `${minMerchant} - ${maxMerchant}`;
+            
+            // Alien weight if target is conquered
+            if (targetSystem.conqueredByAliens) {
+                alienWeightRange = ALIENS_ENCOUNTER_WEIGHT.toFixed(1);
+            }
         } else {
             // Only know current system weights
             pirateWeightRange = `${currentSystem.pirateWeight.toFixed(1)} - ?`;
@@ -91,11 +97,18 @@ const TravelConfirmMenu = (() => {
         const policeColor = COLORS.WHITE // UI.calcStatColor(avgPoliceWeight); //police dont actually do anything good for the player per-se
         const merchantColor = UI.calcStatColor(avgMerchantWeight);
         
-        rightY = TableRenderer.renderKeyValueList(rightColumnX, rightY, [
+        const encounterList = [
             { label: 'Pirates:', value: pirateWeightRange, valueColor: pirateColor },
             { label: 'Police:', value: policeWeightRange, valueColor: policeColor },
             { label: 'Merchants:', value: merchantWeightRange, valueColor: merchantColor }
-        ]);
+        ];
+        
+        // Add alien encounters if target is conquered
+        if (targetSystem.conqueredByAliens) {
+            encounterList.push({ label: 'Alien Skirmish:', value: alienWeightRange, valueColor: COLORS.TEXT_ERROR });
+        }
+        
+        rightY = TableRenderer.renderKeyValueList(rightColumnX, rightY, encounterList);
         rightY++;
         
         if (!isVisited) {
@@ -105,6 +118,19 @@ const TravelConfirmMenu = (() => {
         }
         
         // Warnings (under left column)
+        if (targetSystem.conqueredByAliens) {
+            leftY++;
+            UI.addText(leftColumnX, leftY++, '╔═══════════════════════════════════╗', COLORS.TEXT_ERROR);
+            UI.addText(leftColumnX, leftY++, '║ ☢  WARNING: ALIEN OCCUPATION  ☢ ║', COLORS.TEXT_ERROR);
+            UI.addText(leftColumnX, leftY++, '╚═══════════════════════════════════╝', COLORS.TEXT_ERROR);
+            leftY++;
+            UI.addText(leftColumnX, leftY++, 'This system is under alien control!', COLORS.TEXT_ERROR);
+            UI.addText(leftColumnX, leftY++, 'Expect fierce resistance from its', COLORS.TEXT_ERROR);
+            UI.addText(leftColumnX, leftY++, 'defenders. Alien skirmishes are', COLORS.TEXT_ERROR);
+            UI.addText(leftColumnX, leftY++, 'highly likely during approach.', COLORS.TEXT_ERROR);
+            leftY++;
+        }
+        
         if (fuelAfter < 0) {
             UI.addText(leftColumnX, leftY++, 'WARNING: Insufficient fuel for journey!', COLORS.TEXT_ERROR);
             leftY++;

@@ -30,13 +30,26 @@ const NewsMenu = (() => {
         // Title
         UI.addTitleLineCentered(0, 'News');
         
-        // Get all active news (not completed) where player has visited origin or target system, or it's global news
-        const activeNews = gameState.newsEvents.filter(news => 
-            !news.completed && 
-            (news.globalNews || 
-             (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
-             (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index)))
-        );
+        // Get all active news (not completed) OR recently completed (within 1 day)
+        // where player has visited origin or target system, or it's global news
+        const ONE_DAY_IN_YEARS = 1 / 365.25;
+        const activeNews = gameState.newsEvents.filter(news => {
+            const hasVisited = news.globalNews || 
+                             (news.originSystem && gameState.visitedSystems.includes(news.originSystem.index)) || 
+                             (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index));
+            
+            if (!hasVisited) return false;
+            
+            // Show if not completed
+            if (!news.completed) return true;
+            
+            // Show if completed within the last day
+            if (news.completionYear && (gameState.currentYear - news.completionYear) <= ONE_DAY_IN_YEARS) {
+                return true;
+            }
+            
+            return false;
+        });
         
         // Debug logging
         console.log('[NewsMenu] All news events:', gameState.newsEvents.map(n => ({
@@ -76,13 +89,15 @@ const NewsMenu = (() => {
                 const globalIndex = startIndex + index;
                 
                 // News header with name and systems
-                UI.addText(5, y, `${globalIndex + 1}. ${news.name}`, COLORS.YELLOW);
+                const newsTitle = news.completed ? `${globalIndex + 1}. ${news.name} [ENDED]` : `${globalIndex + 1}. ${news.name}`;
+                UI.addText(5, y, newsTitle, COLORS.YELLOW);
                 y++;
                 
                 // Description - wrap to multiple lines if needed (max 60 chars per line)
+                // Use endDescription if news is completed
                 const descLines = [];
                 const maxLineLength = 60;
-                let remainingText = news.description;
+                let remainingText = news.completed && news.endDescription ? news.endDescription : news.description;
                 while (remainingText.length > 0) {
                     if (remainingText.length <= maxLineLength) {
                         descLines.push(remainingText);

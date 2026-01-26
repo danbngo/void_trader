@@ -103,6 +103,7 @@ const GalaxyMap = (() => {
         let selectedScreenX = null;
         let selectedScreenY = null;
         let selectedCanReach = false;
+        let selectedIsAlienConquered = false;
         
         // Draw nearby systems
         nearbySystems.forEach((item, index) => {
@@ -125,13 +126,21 @@ const GalaxyMap = (() => {
                 const hasQuestOrJob = hasQuest || isJobTarget;
                 
                 // Determine symbol and color
-                let symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
+                let symbol;
+                if (item.system.conqueredByAliens) {
+                    symbol = '☣'; // Radiation symbol for alien-conquered systems
+                } else {
+                    symbol = isVisited ? '★' : '☆'; // Filled star for visited, unfilled for unvisited
+                }
                 let color = COLORS.GRAY; // Unreachable default
                 
                 // Prioritize selection color over everything else
                 if (isSelected) {
-                    // Selected: yellow if reachable, red if not
-                    color = canReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
+                    // Selected: yellow if reachable, dark gray if not
+                    color = canReach ? COLORS.YELLOW : COLORS.TEXT_DIM;
+                } else if (item.system.conqueredByAliens) {
+                    // Conquered systems are always red
+                    color = COLORS.TEXT_ERROR;
                 } else if (hasQuestOrJob) {
                     // Systems with quests or jobs are cyan (whether reachable or not)
                     color = COLORS.CYAN;
@@ -150,11 +159,12 @@ const GalaxyMap = (() => {
                         render(gameState);
                     });
                     
-                    // Store selected system coordinates
+                    // Store selected system coordinates and alien status
                     if (isSelected) {
                         selectedScreenX = screenX;
                         selectedScreenY = screenY;
                         selectedCanReach = canReach;
+                        selectedIsAlienConquered = item.system.conqueredByAliens;
                     }
                 }
             }
@@ -162,7 +172,14 @@ const GalaxyMap = (() => {
         
         // Draw line between current and selected system
         if (selectedScreenX !== null && selectedScreenY !== null) {
-            const lineColor = selectedCanReach ? COLORS.YELLOW : COLORS.TEXT_ERROR;
+            let lineColor;
+            if (selectedIsAlienConquered) {
+                lineColor = COLORS.TEXT_ERROR; // Red for alien-conquered systems
+            } else if (selectedCanReach) {
+                lineColor = COLORS.YELLOW; // Yellow for reachable
+            } else {
+                lineColor = COLORS.TEXT_DIM; // Dark gray for unreachable
+            }
             const linePoints = LineDrawer.drawLine(
                 mapCenterX, mapCenterY,
                 selectedScreenX, selectedScreenY,

@@ -306,10 +306,10 @@ const NEWS_TYPES = {
         minDuration: 0, // Instant
         maxDuration: 0,
         descriptionGenerator: function(news) {
-            return `GALAXY-WIDE ALERT: Unknown alien forces launch surprise attack! Multiple systems conquered!!`;
+            return `Unknown alien forces launch surprise attack! Multiple systems conquered!!`;
         },
         endDescriptionGenerator: function(news, gameState) {
-            return `GALAXY-WIDE ALERT: Unknown alien forces launch surprise attack! Multiple systems conquered!!`;
+            return `Unknown alien forces launch surprise attack! Multiple systems conquered!!`;
         },
         checkValidity: function(news, gameState) {
             return true; // Always valid

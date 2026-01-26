@@ -176,10 +176,19 @@ const DockMenu = (() => {
                    (news.targetSystem && gameState.visitedSystems.includes(news.targetSystem.index));
         };
         
+        // Helper function to determine news color based on type
+        const getNewsColor = (news) => {
+            const isAlienNews = news.newsType.id === 'ALIEN_INVASION_ANNOUNCEMENT' || 
+                               news.newsType.id === 'ALIEN_INSTA_CONQUEST' ||
+                               news.newsType.id === 'ALIEN_CONQUEST' ||
+                               news.newsType.id === 'ALIEN_LIBERATION';
+            return isAlienNews ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL;
+        };
+        
         // Show newly started news first (filtered)
         newNews.filter(hasVisitedNewsSystem).forEach(news => {
             if (newsCount < maxNewsLines) {
-                UI.addText(leftColumnX, newsY++, `NEW: ${news.description}`, COLORS.YELLOW);
+                UI.addText(leftColumnX, newsY++, `NEW: ${news.description}`, getNewsColor(news));
                 newsCount++;
             }
         });
@@ -189,7 +198,7 @@ const DockMenu = (() => {
             if (newsCount < maxNewsLines) {
                 // Don't show ENDED prefix for instant news (duration = 0)
                 const prefix = news.duration > 0 ? 'ENDED: ' : '';
-                UI.addText(leftColumnX, newsY++, `${prefix}${news.endDescription}`, COLORS.TEXT_DIM);
+                UI.addText(leftColumnX, newsY++, `${prefix}${news.endDescription}`, getNewsColor(news));
                 newsCount++;
             }
         });
@@ -205,7 +214,7 @@ const DockMenu = (() => {
         
         activeNewsForSystem.forEach(news => {
             if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
-                UI.addText(leftColumnX, newsY++, news.description, COLORS.TEXT_NORMAL);
+                UI.addText(leftColumnX, newsY++, news.description, getNewsColor(news));
                 newsCount++;
             }
         });
@@ -221,10 +230,10 @@ const DockMenu = (() => {
         unreadNews.forEach(news => {
             if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
                 if (news.globalNews) {
-                    UI.addText(leftColumnX, newsY++, `ALERT: ${news.description}`, COLORS.TEXT_ERROR);
+                    UI.addText(leftColumnX, newsY++, `ALERT: ${news.description}`, getNewsColor(news));
                 } else {
                     const systemName = news.originSystem ? news.originSystem.name : (news.targetSystem ? news.targetSystem.name : 'Unknown');
-                    UI.addText(leftColumnX, newsY++, `${systemName}: ${news.description}`, COLORS.CYAN);
+                    UI.addText(leftColumnX, newsY++, `${systemName}: ${news.description}`, getNewsColor(news));
                 }
                 newsCount++;
             }
@@ -643,7 +652,8 @@ const DockMenu = (() => {
             const humanSystems = gameState.systems.filter(sys => 
                 !sys.conqueredByAliens && 
                 sys.name !== 'Nexus' && 
-                sys.name !== 'Proxima'
+                sys.name !== 'Proxima' &&
+                sys.index !== gameState.currentSystemIndex
             );
             
             const systemsToConquer = [];
@@ -677,18 +687,6 @@ const DockMenu = (() => {
                 .slice(0, remainingCount);
             systemsToConquer.push(...randomSystems);
             
-            // Create ONE global announcement news event
-            const globalNews = new News(
-                NEWS_TYPES.ALIEN_INVASION_ANNOUNCEMENT,
-                null,
-                null,
-                gameState.currentYear,
-                0, // Instant
-                gameState,
-                true // globalNews flag
-            );
-            gameState.newsEvents.push(globalNews);
-            
             // Create instant conquest news events (duration = 0) for each system
             systemsToConquer.forEach(system => {
                 const news = new News(
@@ -706,6 +704,19 @@ const DockMenu = (() => {
                     gameState.systemsWithNewNews.push(system.index);
                 }
             });
+            
+            // Create ONE global announcement news event AFTER individual events
+            // Give it a slightly later timestamp so it appears first in the news list (sorted newest first)
+            const globalNews = new News(
+                NEWS_TYPES.ALIEN_INVASION_ANNOUNCEMENT,
+                null,
+                null,
+                gameState.currentYear + 0.0001, // Slightly later than individual conquest events
+                0, // Instant
+                gameState,
+                true // globalNews flag
+            );
+            gameState.newsEvents.push(globalNews);
         }
         
         // If aliens haven't spawned yet, nothing else to do
@@ -719,7 +730,8 @@ const DockMenu = (() => {
             const humanSystems = gameState.systems.filter(sys => 
                 !sys.conqueredByAliens && 
                 sys.name !== 'Nexus' && 
-                sys.name !== 'Proxima'
+                sys.name !== 'Proxima' &&
+                sys.index !== gameState.currentSystemIndex
             );
             
             if (humanSystems.length > 0) {
@@ -747,7 +759,7 @@ const DockMenu = (() => {
             const nearbyHumans = [];
             
             gameState.systems.forEach(sys => {
-                if (!sys.conqueredByAliens && sys.name !== 'Nexus' && sys.name !== 'Proxima') {
+                if (!sys.conqueredByAliens && sys.name !== 'Nexus' && sys.name !== 'Proxima' && sys.index !== gameState.currentSystemIndex) {
                     const dist = alienSystem.distanceTo(sys);
                     if (dist <= ALIENS_MAX_ATTACK_DISTANCE) {
                         nearbyHumans.push({ system: sys, distance: dist });

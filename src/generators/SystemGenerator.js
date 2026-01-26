@@ -98,6 +98,9 @@ const SystemGenerator = (() => {
             system.cargoPriceModifier[cargoType.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
         });
         
+        // Also add RELICS even though they're not tradeable (for news system)
+        system.cargoPriceModifier[CARGO_TYPES.RELICS.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
+        
         // Generate ships for shipyard
         const shipCount = Math.floor(Math.random() * (MAX_NUM_SHIPS_IN_SHIPYARD - MIN_NUM_SHIPS_IN_SHIPYARD + 1)) + MIN_NUM_SHIPS_IN_SHIPYARD;
         for (let i = 0; i < shipCount; i++) {
@@ -195,6 +198,11 @@ const SystemGenerator = (() => {
         const connectedSystems = systems.filter(system => {
             const nearestDistance = findNearestNeighborDistance(system, systems);
             return nearestDistance <= STAR_SYSTEM_MAX_DISTANCE_FROM_NEIGHBORS;
+        });
+        
+        // Assign index to each system
+        connectedSystems.forEach((system, index) => {
+            system.index = index;
         });
         
         return connectedSystems;
@@ -469,10 +477,66 @@ const SystemGenerator = (() => {
         });
     }
     
+    /**
+     * Generate initial news events for a new game
+     * @param {Array<StarSystem>} systems - All star systems
+     * @param {number} currentYear - Current game year
+     * @param {number} startingSystemIndex - Index of the starting system (Nexus)
+     * @returns {Array<News>} Array of generated news events
+     */
+    function generateInitialNews(systems, currentYear, startingSystemIndex) {
+        const newsEvents = [];
+        const nexusSystem = systems[startingSystemIndex];
+        let nexusHasNews = false;
+        
+        for (let i = 0; i < NEWS_NUM_ON_START; i++) {
+            // For first news event, always use Nexus as origin
+            // For remaining events, pick random systems
+            const originSystem = (i === 0) ? nexusSystem : systems[Math.floor(Math.random() * systems.length)];
+            
+            // Check if this system already has a news event
+            const hasActiveNews = newsEvents.some(n => 
+                n.originSystem === originSystem || n.targetSystem === originSystem
+            );
+            
+            if (hasActiveNews) {
+                // Try again with a different system
+                i--;
+                continue;
+            }
+            
+            // Pick a random news type
+            const newsType = ALL_NEWS_TYPES[Math.floor(Math.random() * ALL_NEWS_TYPES.length)];
+            
+            // Pick a different random system as target
+            let targetSystem;
+            do {
+                targetSystem = systems[Math.floor(Math.random() * systems.length)];
+            } while (targetSystem === originSystem);
+            
+            // Random duration within the news type's range
+            // For the first news (Nexus news), set duration to 1 day for testing
+            const duration = (i === 0) ? 1 : newsType.minDuration + Math.random() * (newsType.maxDuration - newsType.minDuration);
+            
+            // Create the news event
+            const news = new News(newsType, originSystem, targetSystem, currentYear, duration);
+            news.markAsRead(); // Mark as read so initial news doesn't overwhelm player
+            newsEvents.push(news);
+            
+            // Track if Nexus has news
+            if (originSystem === nexusSystem || targetSystem === nexusSystem) {
+                nexusHasNews = true;
+            }
+        }
+        
+        return newsEvents;
+    }
+    
     return {
         generate,
         generateMany,
         validateGalaxy,
-        generateJobsForAllSystems
+        generateJobsForAllSystems,
+        generateInitialNews
     };
 })();

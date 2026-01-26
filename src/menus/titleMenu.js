@@ -180,6 +180,9 @@ const TitleMenu = (() => {
             // Generate jobs for all systems after galaxy is finalized
             SystemGenerator.generateJobsForAllSystems(gameState.systems);
             
+            // Generate initial news events (pass starting system index to ensure Nexus has news)
+            gameState.newsEvents = SystemGenerator.generateInitialNews(gameState.systems, gameState.currentYear, gameState.currentSystemIndex);
+            
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);
             
@@ -276,6 +279,9 @@ const TitleMenu = (() => {
             
             // Generate jobs for all systems after galaxy is finalized
             SystemGenerator.generateJobsForAllSystems(gameState.systems);
+            
+            // Generate initial news events (pass starting system index to ensure Nexus has news)
+            gameState.newsEvents = SystemGenerator.generateInitialNews(gameState.systems, gameState.currentYear, gameState.currentSystemIndex);
             
             // Add initial welcome message from uncle
             gameState.messages.push(MESSAGES.UNCLE_WELCOME);

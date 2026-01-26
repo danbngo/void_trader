@@ -12,6 +12,73 @@ const DockMenu = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
+        // Clear news tracking for this system (we'll rebuild it below)
+        const currentSystemIndex = gameState.currentSystemIndex;
+        const systemIdxInArray = gameState.systemsWithNewNews.indexOf(currentSystemIndex);
+        if (systemIdxInArray !== -1) {
+            gameState.systemsWithNewNews.splice(systemIdxInArray, 1);
+        }
+        
+        // Check for expired news and complete them
+        const expiredNews = [];
+        gameState.newsEvents.forEach(news => {
+            if (!news.completed && news.shouldExpire(gameState.currentYear)) {
+                news.complete();
+                expiredNews.push(news);
+                // Track that this system has new news
+                if (!gameState.systemsWithNewNews.includes(news.originSystem.index)) {
+                    gameState.systemsWithNewNews.push(news.originSystem.index);
+                }
+                if (!gameState.systemsWithNewNews.includes(news.targetSystem.index)) {
+                    gameState.systemsWithNewNews.push(news.targetSystem.index);
+                }
+            }
+        });
+        
+        // Generate new news events based on time traveled since last dock
+        // Calculate probability based on time spent traveling
+        const timeSinceDock = gameState.timeSinceDock || 0; // In milliseconds
+        const yearsSinceDock = timeSinceDock / (1000 * 60 * 60 * 24 * 365);
+        const newsChance = NEWS_CHANCE_PER_SYSTEM_PER_YEAR * yearsSinceDock;
+        
+        const newNews = [];
+        if (Math.random() < newsChance) {
+            // Generate a news event for a random system
+            const randomSystem = gameState.systems[Math.floor(Math.random() * gameState.systems.length)];
+            
+            // Check if system already has an active news event
+            const hasActiveNews = gameState.newsEvents.some(n => 
+                !n.completed && (n.originSystem === randomSystem || n.targetSystem === randomSystem)
+            );
+            
+            if (!hasActiveNews) {
+                // Pick a random news type
+                const newsType = ALL_NEWS_TYPES[Math.floor(Math.random() * ALL_NEWS_TYPES.length)];
+                
+                // Pick a different random system as target
+                let targetSystem;
+                do {
+                    targetSystem = gameState.systems[Math.floor(Math.random() * gameState.systems.length)];
+                } while (targetSystem === randomSystem);
+                
+                // Create the news event
+                const news = new News(newsType, randomSystem, targetSystem, gameState.currentYear, newsType.minDuration + Math.random() * (newsType.maxDuration - newsType.minDuration));
+                gameState.newsEvents.push(news);
+                newNews.push(news);
+                
+                // Track that this system has new news
+                if (!gameState.systemsWithNewNews.includes(news.originSystem.index)) {
+                    gameState.systemsWithNewNews.push(news.originSystem.index);
+                }
+                if (!gameState.systemsWithNewNews.includes(news.targetSystem.index)) {
+                    gameState.systemsWithNewNews.push(news.targetSystem.index);
+                }
+            }
+        }
+        
+        // Reset time since dock
+        gameState.timeSinceDock = 0;
+        
         // Check for expired/completed jobs when docking
         const showedJobReward = checkJobs(gameState);
         if (showedJobReward) {
@@ -29,14 +96,16 @@ const DockMenu = (() => {
         outputColor = COLORS.TEXT_NORMAL;
         
         UI.resetSelection(); // Only reset selection when first entering menu
-        render(gameState);
+        render(gameState, newNews, expiredNews);
     }
     
     /**
      * Render the dock menu
      * @param {GameState} gameState - Current game state
+     * @param {Array<News>} newNews - News events that just started
+     * @param {Array<News>} expiredNews - News events that just expired
      */
-    function render(gameState) {
+    function render(gameState, newNews = [], expiredNews = []) {
         console.log(`[DockMenu] render called. outputMessage:`, outputMessage, `outputColor:`, outputColor);
         
         UI.clear();
@@ -71,6 +140,72 @@ const DockMenu = (() => {
         TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
             { label: 'Citizenship:', value: currentRank.name, valueColor: currentRank.color }
         ]);
+        
+        // News section - show newly started news, newly expired news, active news for this system, and unread news
+        const newsStartY = startY + 4;
+        UI.addHeaderLine(leftColumnX, newsStartY, 'News');
+        
+        let newsY = newsStartY + 1;
+        const maxNewsLines = 5; // Max lines to show
+        let newsCount = 0;
+        
+        // Filter function: only show news where player has visited origin or target system
+        const hasVisitedNewsSystem = (news) => {
+            return gameState.visitedSystems.includes(news.originSystem.index) || 
+                   gameState.visitedSystems.includes(news.targetSystem.index);
+        };
+        
+        // Show newly started news first (filtered)
+        newNews.filter(hasVisitedNewsSystem).forEach(news => {
+            if (newsCount < maxNewsLines) {
+                UI.addText(leftColumnX, newsY++, `NEW: ${news.description}`, COLORS.YELLOW);
+                newsCount++;
+            }
+        });
+        
+        // Show newly expired news second (filtered)
+        expiredNews.filter(hasVisitedNewsSystem).forEach(news => {
+            if (newsCount < maxNewsLines) {
+                UI.addText(leftColumnX, newsY++, `ENDED: ${news.endDescription}`, COLORS.TEXT_DIM);
+                newsCount++;
+            }
+        });
+        
+        // Show active news for this system (origin or target) - already filtered by visited
+        const currentSystemIndex = gameState.currentSystemIndex;
+        const activeNewsForSystem = gameState.newsEvents.filter(news => 
+            !news.completed && (news.originSystem.index === currentSystemIndex || news.targetSystem.index === currentSystemIndex)
+        );
+        
+        activeNewsForSystem.forEach(news => {
+            if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
+                UI.addText(leftColumnX, newsY++, news.description, COLORS.TEXT_NORMAL);
+                newsCount++;
+            }
+        });
+        
+        // Show unread news from other systems (filtered by visited)
+        const unreadNews = gameState.newsEvents.filter(news => 
+            !news.completed && !news.readByPlayer && 
+            news.originSystem.index !== currentSystemIndex && news.targetSystem.index !== currentSystemIndex &&
+            hasVisitedNewsSystem(news)
+        );
+        
+        unreadNews.forEach(news => {
+            if (newsCount < maxNewsLines && !newNews.includes(news)) { // Don't duplicate if just started
+                UI.addText(leftColumnX, newsY++, `${news.originSystem.name}: ${news.description}`, COLORS.CYAN);
+                newsCount++;
+            }
+        });
+        
+        // If there are more news items, show overflow indicator
+        const totalNews = newNews.length + expiredNews.length + activeNewsForSystem.length + unreadNews.length;
+        if (totalNews > maxNewsLines) {
+            UI.addText(leftColumnX, newsY++, '...', COLORS.TEXT_DIM);
+            UI.addText(leftColumnX, newsY++, 'Read news on assistant menu for more details', COLORS.TEXT_DIM);
+        } else if (totalNews === 0) {
+            UI.addText(leftColumnX, newsY++, 'No active news', COLORS.TEXT_DIM);
+        }
         
         // Menu buttons - 3 column layout at bottom edge
         const buttonY = grid.height - 5;

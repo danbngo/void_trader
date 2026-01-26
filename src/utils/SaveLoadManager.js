@@ -55,6 +55,17 @@ const SaveLoadManager = (() => {
                 // Quest arrays are already just IDs
                 activeQuests: gameState.activeQuests,
                 completedQuests: gameState.completedQuests,
+                readQuests: gameState.readQuests || [],
+                questCompletedDates: gameState.questCompletedDates || {},
+                questAddedDates: gameState.questAddedDates || {},
+                systemsWithQuests: gameState.systemsWithQuests || [],
+                // Save news events
+                newsEvents: gameState.newsEvents ? gameState.newsEvents.map(n => n.serialize()) : [],
+                systemsWithNewNews: gameState.systemsWithNewNews || [],
+                // Save job system
+                currentJob: gameState.currentJob ? gameState.currentJob.serialize() : null,
+                completedJobReward: gameState.completedJobReward ? gameState.completedJobReward.serialize() : null,
+                timeSinceDock: gameState.timeSinceDock || 0,
                 // Save rank system
                 systemRanks: gameState.systemRanks,
                 reputation: gameState.reputation,
@@ -150,8 +161,9 @@ const SaveLoadManager = (() => {
         });
         
         // Reconstruct systems
-        gameState.systems = data.systems.map(s => {
+        gameState.systems = data.systems.map((s, index) => {
             const system = new StarSystem(s.name, s.x, s.y, s.population, s.economy);
+            system.index = index; // Restore index
             system.cargoStock = s.cargoStock || {};
             system.cargoPriceModifier = s.cargoPriceModifier || {};
             system.ships = s.ships || [];
@@ -188,6 +200,33 @@ const SaveLoadManager = (() => {
         // Restore quest arrays (already just IDs)
         gameState.activeQuests = data.activeQuests || [];
         gameState.completedQuests = data.completedQuests || [];
+        gameState.readQuests = data.readQuests || [];
+        gameState.questCompletedDates = data.questCompletedDates || {};
+        gameState.questAddedDates = data.questAddedDates || {};
+        gameState.systemsWithQuests = data.systemsWithQuests || [];
+        
+        // Restore news events
+        gameState.newsEvents = [];
+        if (data.newsEvents && Array.isArray(data.newsEvents)) {
+            data.newsEvents.forEach(newsData => {
+                const news = News.deserialize(newsData, gameState.systems);
+                if (news) {
+                    gameState.newsEvents.push(news);
+                }
+            });
+        }
+        gameState.systemsWithNewNews = data.systemsWithNewNews || [];
+        
+        // Restore job system
+        gameState.currentJob = null;
+        if (data.currentJob) {
+            gameState.currentJob = Job.deserialize(data.currentJob, gameState.systems);
+        }
+        gameState.completedJobReward = null;
+        if (data.completedJobReward) {
+            gameState.completedJobReward = Job.deserialize(data.completedJobReward, gameState.systems);
+        }
+        gameState.timeSinceDock = data.timeSinceDock || 0;
         
         // Restore rank system
         gameState.systemRanks = data.systemRanks || {};

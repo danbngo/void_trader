@@ -110,6 +110,7 @@ const ABANDONED_SHIP_AMBUSH_CHANCE = 0.25
 const ABANDONED_SHIP_ENCOUNTER_WEIGHT = 0.5
 
 const NEWS_CHANCE_PER_SYSTEM_PER_YEAR = 0.05 //each year, each human-controlled system has this chance to generate news
+const NEWS_NUM_ON_START = 10 //number of news events to generate on game start
 
 //simulation says aliens will take ~60-75 years to conquer everything, which is above the game time limit of 50y 
 const ALIENS_SPAWN_AFTER_X_YEARS = 0.001 //alien behavior will start after this many years

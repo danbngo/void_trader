@@ -32,6 +32,10 @@ class GameState {
         this.questAddedDates = {}; // Map of quest ID to Date when added
         this.systemsWithQuests = []; // Array of system indices that have related quests
         
+        // News system
+        this.newsEvents = []; // Array of News objects
+        this.systemsWithNewNews = []; // Array of system indices where news started/ended since last visit
+        
         // Job system
         this.currentJob = null; // Currently active job (player can only have one at a time)
         this.completedJobReward = null; // Completed job waiting for reward collection
@@ -113,6 +117,16 @@ class GameState {
         const currentDate = this.date;
         const yearsPassed = (currentDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
         return yearsPassed >= 50;
+    }
+    
+    /**
+     * Get current year as a decimal value from game start
+     * @returns {number}
+     */
+    get currentYear() {
+        const startDate = new Date(3000, 0, 1);
+        const currentDate = this.date;
+        return (currentDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
     }
     
     /**

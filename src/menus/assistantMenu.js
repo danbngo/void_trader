@@ -124,17 +124,23 @@ const AssistantMenu = (() => {
         const jobsColor = hasActiveJob ? COLORS.BUTTON : COLORS.TEXT_DIM;
         UI.addButton(middleX, buttonY + 2, '6', 'Jobs', () => tryOpenJobs(gameState, onReturn), jobsColor, jobsHelpText);
         
+        // News - highlight if there are unread news events
+        const hasUnreadNews = gameState.newsEvents.some(news => !news.readByPlayer && !news.completed);
+        const newsHelpText = hasUnreadNews ? 'View news (new events available)' : 'View active news events';
+        const newsColor = hasUnreadNews ? COLORS.YELLOW : COLORS.BUTTON;
+        UI.addButton(middleX, buttonY + 3, '7', 'News', () => NewsMenu.show(gameState, () => show(gameState, returnCallback)), newsColor, newsHelpText);
+        
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(middleX, buttonY + 3, '7', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
+        UI.addButton(middleX, buttonY + 4, '8', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
         // Column 3: Trade Recs, Score, Back
         // Trade recs - never highlight (removed recommendation highlight behavior)
         const recommendation = TradeRecommendationsMenu.getBestTradeRecommendation(gameState);
         const hasRecommendation = recommendation !== null && recommendation.type !== 'nodata';
         const tradeRecsHelp = hasRecommendation ? 'Trade opportunities available! View recommendations' : 'View trade opportunities in nearby systems';
-        UI.addButton(rightX, buttonY, '8', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, tradeRecsHelp);
+        UI.addButton(rightX, buttonY, '9', 'Trade Recs', () => TradeRecommendationsMenu.show(gameState, () => show(gameState, returnCallback)), COLORS.BUTTON, tradeRecsHelp);
         
-        UI.addButton(rightX, buttonY + 1, '9', 'Score', () => tryOpenScore(gameState, returnCallback), COLORS.BUTTON, 'View your current score and rank');
+        UI.addButton(rightX, buttonY + 1, 's', 'Score', () => tryOpenScore(gameState, returnCallback), COLORS.BUTTON, 'View your current score and rank');
         UI.addButton(rightX, buttonY + 2, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         // Alert messages 2 rows above output row

@@ -406,8 +406,10 @@ const TravelMenu = (() => {
             }
         }
         
-        // Advance date
-        currentGameState.date.setDate(currentGameState.date.getDate() + Math.ceil(totalDuration));
+        // Advance date and track time since dock for news generation
+        const daysElapsed = Math.ceil(totalDuration);
+        currentGameState.date.setDate(currentGameState.date.getDate() + daysElapsed);
+        currentGameState.timeSinceDock = (currentGameState.timeSinceDock || 0) + (daysElapsed * 24 * 60 * 60 * 1000); // Add milliseconds
         
         // Move to target system
         const targetIndex = currentGameState.systems.indexOf(targetSystem);

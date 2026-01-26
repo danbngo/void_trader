@@ -28,9 +28,10 @@ class CombatAI {
         });
         
         if (nearestShip) {
-            // Check if we should flee (low hull)
+            // Check if we should flee (low hull) - aliens never flee
+            const shipType = SHIP_TYPES[enemyShip.type] || ALIEN_SHIP_TYPES[enemyShip.type];
             const hullRatio = enemyShip.hull / enemyShip.maxHull;
-            if (hullRatio <= ENEMY_FLEE_AT_HULL_RATIO) {
+            if (hullRatio <= ENEMY_FLEE_AT_HULL_RATIO && !(shipType && shipType.isAlien)) {
                 return new CombatAction(enemyShip, COMBAT_ACTIONS.FLEE, nearestShip);
             }
             

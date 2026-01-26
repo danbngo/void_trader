@@ -22,9 +22,17 @@ const EncounterMenu = (() => {
     }
     
     /**
-     * Get triangle symbol based on angle
+     * Get ship symbol - triangle for normal ships, fixed symbol for aliens
      */
-    function getShipSymbol(angle) {
+    function getShipSymbol(ship) {
+        // Check if alien ship - use fixed symbol from ship type
+        const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type];
+        if (shipType && shipType.isAlien && shipType.symbol) {
+            return shipType.symbol;
+        }
+        
+        // Normal ships use rotating triangle based on angle
+        const angle = ship.angle;
         // Convert angle to degrees and normalize to 0-360
         const degrees = (angle * (180 / Math.PI) + 360) % 360;
         
@@ -316,7 +324,7 @@ const EncounterMenu = (() => {
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                let symbol = getShipSymbol(ship.angle);
+                let symbol = getShipSymbol(ship);
                 let color = COLORS.CYAN;
                 
                 if (ship.disabled) {
@@ -343,7 +351,7 @@ const EncounterMenu = (() => {
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                let symbol = getShipSymbol(ship.angle);
+                let symbol = getShipSymbol(ship);
                 let color = COLORS.TEXT_ERROR;
                 
                 if (ship.disabled) {

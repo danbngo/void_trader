@@ -108,11 +108,12 @@ const ALIEN_SHIP_TYPES = {
     ALIEN_FIGHTER: {
         id: 'ALIEN_FIGHTER',
         name: 'Fighter',
-        symbol: '◊',  // Alternatives: ◊ ◈ ⬧ ◇ ⟡ ⬥ ◆
+        symbol: '҈',  // Alternatives: ◊ ◈ ⬧ ◇ ⟡ ⬥ ◆
         description: 'Small alien fighter craft',
+        isAlien: true,
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: 0,
-        baseMaxHull: AVERAGE_SHIP_HULL * 0.25,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.1,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5,
@@ -121,11 +122,12 @@ const ALIEN_SHIP_TYPES = {
     ALIEN_BOMBER: {
         id: 'ALIEN_BOMBER',
         name: 'Bomber',
-        symbol: '▲',  // Alternatives: ▲ ▼ ◄ ► ⯁ ⮝ ⯅ △
+        symbol: 'Ѧ',  // Alternatives: ▲ ▼ ◄ ► ⯁ ⮝ ⯅ △
         description: 'Heavily armed alien bomber',
+        isAlien: true,
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.1,
-        baseMaxHull: AVERAGE_SHIP_HULL * 0.5,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.25,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 1,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1,
@@ -134,11 +136,12 @@ const ALIEN_SHIP_TYPES = {
     ALIEN_MOTHERSHIP: {
         id: 'ALIEN_MOTHERSHIP',
         name: 'Mothership',
-        symbol: '●',  // Alternatives: ● ◉ ◯ ⬤ ⭕ ◙ ◘ ⊙
+        symbol: '⊙',  // Alternatives: ● ◉ ◯ ⬤ ⭕ ◙ ◘ ⊙
         description: 'Large alien command vessel',
+        isAlien: true,
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.25,
-        baseMaxHull: AVERAGE_SHIP_HULL * 1.5,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.5,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 2,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,

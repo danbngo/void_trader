@@ -96,6 +96,7 @@ const UndetectedEncounter = {
             { key: '1', label: 'Avoid', callback: () => {
                 // Player successfully avoids encounter
                 UI.clear();
+                UI.clearOutputRow();
                 
                 UI.addTitleLineCentered(0, 'Encounter Avoided');
                 let y = 2;

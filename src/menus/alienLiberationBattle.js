@@ -117,7 +117,7 @@ const AlienLiberationBattle = (() => {
         };
         
         // Start combat
-        EncounterMenu.show(currentGameState);
+        EncounterMenu.show(currentGameState, ENCOUNTER_TYPES.ALIEN_DEFENSE);
     }
     
     /**

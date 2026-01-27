@@ -1722,6 +1722,16 @@ const EncounterMenu = (() => {
         executeActionWithTicks(action, () => {
             // Mark ship as acted
             activeShip.acted = true;
+            
+            // Regenerate shields (1 per turn, or 4 if ship has SHIELD_RECHARGER module)
+            const baseRegen = 1;
+            const hasRecharger = activeShip.modules && activeShip.modules.includes('SHIELD_RECHARGER');
+            const regenAmount = hasRecharger ? baseRegen * 4 : baseRegen;
+            if (activeShip.shields < activeShip.maxShields) {
+                const actualRegen = Math.min(regenAmount, activeShip.maxShields - activeShip.shields);
+                activeShip.shields += actualRegen;
+            }
+            
             waitingForContinue = true; // Wait for player to press Continue
             
             // Clear target selection so yellow highlighting is removed
@@ -2010,6 +2020,15 @@ const EncounterMenu = (() => {
         executeActionWithTicks(action, () => {
             // Mark enemy ship as acted
             action.ship.acted = true;
+            
+            // Regenerate shields (1 per turn, or 4 if ship has SHIELD_RECHARGER module)
+            const baseRegen = 1;
+            const hasRecharger = action.ship.modules && action.ship.modules.includes('SHIELD_RECHARGER');
+            const regenAmount = hasRecharger ? baseRegen * 4 : baseRegen;
+            if (action.ship.shields < action.ship.maxShields) {
+                const actualRegen = Math.min(regenAmount, action.ship.maxShields - action.ship.shields);
+                action.ship.shields += actualRegen;
+            }
             
             // Set message based on action type
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {

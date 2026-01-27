@@ -191,7 +191,7 @@ const ALIEN_SHIP_TYPES = {
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.5,
-        defaultModule: 'REFLECTOR'
+        defaultModule: 'SHIELD_RECHARGER'
     },
     ALIEN_GUARDIAN: {
         id: 'ALIEN_GUARDIAN',
@@ -207,6 +207,21 @@ const ALIEN_SHIP_TYPES = {
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1,
         defaultModule: 'REPULSOR'
+    },
+    ALIEN_GNAT: {
+        id: 'ALIEN_GNAT',
+        name: 'Gnat',
+        symbol: '·',  // Alternatives: · ˙ ∙ • ‧
+        description: 'Extremely fast but fragile alien harasser',
+        isAlien: true,
+        baseMaxFuel: AVERAGE_SHIP_FUEL * 0.5,
+        baseCargoCapacity: 0,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.05,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.1,
+        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.1,
+        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 3,
+        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.25,
+        defaultModule: 'REFLECTOR'
     }
 }
 
@@ -217,4 +232,4 @@ const SHIP_TYPES_BASIC = [SHIP_TYPES.SHUTTLE, SHIP_TYPES.SCOUT]
 const SHIP_TYPES_MERCANTILE = [SHIP_TYPES.FREIGHTER, SHIP_TYPES.HAULER, SHIP_TYPES.TANKER]
 const SHIP_TYPES_PARAMILITARY = [SHIP_TYPES.CORVETTE, SHIP_TYPES.RAIDER, SHIP_TYPES.STEALTH_SHIP]
 const SHIP_TYPES_MILITARY = [SHIP_TYPES.DESTROYER, SHIP_TYPES.BATTLESHIP, SHIP_TYPES.FIGHTER]
-const SHIP_TYPES_ALIEN = [ALIEN_SHIP_TYPES.ALIEN_FIGHTER, ALIEN_SHIP_TYPES.ALIEN_BOMBER, ALIEN_SHIP_TYPES.ALIEN_MOTHERSHIP, ALIEN_SHIP_TYPES.ALIEN_GUARDIAN]
+const SHIP_TYPES_ALIEN = [ALIEN_SHIP_TYPES.ALIEN_FIGHTER, ALIEN_SHIP_TYPES.ALIEN_BOMBER, ALIEN_SHIP_TYPES.ALIEN_MOTHERSHIP, ALIEN_SHIP_TYPES.ALIEN_GUARDIAN, ALIEN_SHIP_TYPES.ALIEN_GNAT]

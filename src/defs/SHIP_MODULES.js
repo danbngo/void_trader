@@ -195,6 +195,16 @@ const SHIP_MODULES = {
         onInstall: (ship) => {
             // Passive effect, handled in encounters
         }
+    },
+    
+    SHIELD_RECHARGER: {
+        id: 'SHIELD_RECHARGER',
+        name: 'Shield Recharger',
+        description: '4x shield regen in combat',
+        value: 9000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
     }
 };
 

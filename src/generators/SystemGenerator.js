@@ -354,8 +354,9 @@ const SystemGenerator = (() => {
         // Mark Terra as immune to alien conquest
         terraSystem.immuneToAlienConquest = true;
         
-        // Stock Terra's market with half to full capacity of every cargo type (excluding RELICS)
-        CARGO_TYPES_TRADEABLE.forEach(cargoType => {
+        // Stock Terra's market with half to full capacity of LEGAL cargo types only
+        const legalCargoTypes = CARGO_TYPES_TRADEABLE.filter(ct => !ct.illegal);
+        legalCargoTypes.forEach(cargoType => {
             const minAmount = Math.floor(MAX_CARGO_AMOUNT_IN_MARKET * TERRA_MIN_CARGO_RATIO);
             const maxAmount = Math.floor(MAX_CARGO_AMOUNT_IN_MARKET * TERRA_MAX_CARGO_RATIO);
             terraSystem.cargoStock[cargoType.id] = minAmount + Math.floor(Math.random() * (maxAmount - minAmount + 1));
@@ -363,6 +364,17 @@ const SystemGenerator = (() => {
             // Set reasonable price modifiers (between 0.5 and 2.0)
             terraSystem.cargoPriceModifier[cargoType.id] = 0.5 + Math.random() * 1.5;
         });
+        // Remove illegal cargo from Terra
+        CARGO_TYPES_TRADEABLE.filter(ct => ct.illegal).forEach(cargoType => {
+            terraSystem.cargoStock[cargoType.id] = 0;
+            terraSystem.cargoPriceModifier[cargoType.id] = 1.0;
+        });
+        
+        // Set encounter weights for Terra (lawful)
+        terraSystem.policeWeight = TERRA_POLICE_WEIGHT;
+        terraSystem.soldiersWeight = TERRA_SOLDIERS_WEIGHT;
+        terraSystem.pirateWeight = 0;
+        terraSystem.smugglersWeight = 0;
         
         // Generate maximum officers for Terra's tavern
         const numOfficers = TERRA_MIN_OFFICERS + Math.floor(Math.random() * (TERRA_MAX_OFFICERS - TERRA_MIN_OFFICERS + 1));
@@ -379,6 +391,70 @@ const SystemGenerator = (() => {
         console.log(`[Galaxy Generation] Terra created at distance ${distance(nexus.x, nexus.y, terraSystem.x, terraSystem.y).toFixed(1)} LY from Nexus`);
         
         return terraSystem;
+    }
+
+    /**
+     * Generate Blackreach - an outlaw hub immune to alien conquest
+     * @param {Array<StarSystem>} systems - All star systems
+     * @param {number} nexusIndex - Index of Nexus system
+     * @returns {StarSystem} Blackreach system or null if failed
+     */
+    function generateBlackreachSystem(systems, nexusIndex) {
+        const nexus = systems[nexusIndex];
+        
+        const candidateSystems = systems.filter((system, index) => {
+            if (index === nexusIndex || system.name === 'Proxima' || system.name === 'Terra') return false;
+            const dist = distance(nexus.x, nexus.y, system.x, system.y);
+            return dist >= MIN_DISTANCE_NEXUS_TO_BLACKREACH;
+        });
+        
+        if (candidateSystems.length === 0) {
+            return null;
+        }
+        
+        const blackreachSystem = candidateSystems[Math.floor(Math.random() * candidateSystems.length)];
+        const oldName = blackreachSystem.name;
+        blackreachSystem.name = 'Blackreach';
+        usedNames.delete(oldName);
+        usedNames.add('Blackreach');
+        
+        // Mark Blackreach as immune to alien conquest
+        blackreachSystem.immuneToAlienConquest = true;
+        
+        // Illegal cargo focus, no bonuses for legal cargo
+        const illegalCargoTypes = CARGO_TYPES_TRADEABLE.filter(ct => ct.illegal);
+        illegalCargoTypes.forEach(cargoType => {
+            const minAmount = Math.floor(MAX_CARGO_AMOUNT_IN_MARKET * BLACKREACH_MIN_ILLEGAL_CARGO_RATIO);
+            const maxAmount = Math.floor(MAX_CARGO_AMOUNT_IN_MARKET * BLACKREACH_MAX_ILLEGAL_CARGO_RATIO);
+            blackreachSystem.cargoStock[cargoType.id] = minAmount + Math.floor(Math.random() * (maxAmount - minAmount + 1));
+            blackreachSystem.cargoPriceModifier[cargoType.id] = 0.5 + Math.random() * 0.5; // 0.5 to 1.0
+        });
+        const legalCargoTypes = CARGO_TYPES_TRADEABLE.filter(ct => !ct.illegal);
+        legalCargoTypes.forEach(cargoType => {
+            blackreachSystem.cargoPriceModifier[cargoType.id] = 1.0;
+        });
+        
+        // Set encounter weights for Blackreach (lawless)
+        blackreachSystem.policeWeight = 0;
+        blackreachSystem.soldiersWeight = 0;
+        blackreachSystem.pirateWeight = BLACKREACH_PIRATE_WEIGHT;
+        blackreachSystem.smugglersWeight = BLACKREACH_SMUGGLERS_WEIGHT;
+        
+        // Generate officers for Blackreach's tavern
+        const numOfficers = BLACKREACH_MIN_OFFICERS + Math.floor(Math.random() * (BLACKREACH_MAX_OFFICERS - BLACKREACH_MIN_OFFICERS + 1));
+        for (let i = 0; i < numOfficers; i++) {
+            blackreachSystem.officers.push(OfficerGenerator.generate());
+        }
+        
+        // Generate ships for Blackreach's shipyard
+        const numShips = BLACKREACH_MIN_SHIPS + Math.floor(Math.random() * (BLACKREACH_MAX_SHIPS - BLACKREACH_MIN_SHIPS + 1));
+        for (let i = 0; i < numShips; i++) {
+            blackreachSystem.ships.push(ShipGenerator.generateRandomShip());
+        }
+        
+        console.log(`[Galaxy Generation] Blackreach created at distance ${distance(nexus.x, nexus.y, blackreachSystem.x, blackreachSystem.y).toFixed(1)} LY from Nexus`);
+        
+        return blackreachSystem;
     }
     
     /**
@@ -451,6 +527,13 @@ const SystemGenerator = (() => {
             const terraSystem = generateTerraSystem(systems, startSystemIndex);
             if (!terraSystem) {
                 console.log('[Galaxy Validation] Failed to generate Terra system');
+                return false;
+            }
+            
+            // Generate Blackreach system - outlaw hub immune to alien conquest
+            const blackreachSystem = generateBlackreachSystem(systems, startSystemIndex);
+            if (!blackreachSystem) {
+                console.log('[Galaxy Validation] Failed to generate Blackreach system');
                 return false;
             }
             

@@ -59,6 +59,16 @@ const LootMenu = (() => {
         UI.resetSelection();
         render(onContinue);
     }
+
+    /**
+     * Get maximum modules allowed per ship based on engineering perks
+     */
+    function getMaxModulesAllowed() {
+        if (gameState.perks && gameState.perks.has('ENGINEERING_III')) return 3;
+        if (gameState.perks && gameState.perks.has('ENGINEERING_II')) return 2;
+        if (gameState.perks && gameState.perks.has('ENGINEERING_I')) return 1;
+        return 0;
+    }
     
     /**
      * Render the loot screen
@@ -253,14 +263,14 @@ const LootMenu = (() => {
     function renderSelectModuleShip(onContinue, grid) {
         UI.addTitleLineCentered(0, 'Install Alien Module');
         UI.addText(5, 4, `Select ship to install ${selectedModule.name}:`, COLORS.YELLOW);
+        const maxModulesAllowed = Math.min(SHIP_MAX_NUM_MODULES, getMaxModulesAllowed());
 
         const startY = 6;
         const rows = gameState.ships.map((ship) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-            const numModules = ship.modules ? ship.modules.length : 0;
             const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
-            const canInstall = numInstalledModules < SHIP_MAX_NUM_MODULES;
-            const statusText = canInstall ? `${numInstalledModules}/${SHIP_MAX_NUM_MODULES}` : 'FULL';
+            const canInstall = numInstalledModules < maxModulesAllowed;
+            const statusText = canInstall ? `${numInstalledModules}/${maxModulesAllowed}` : 'FULL';
             const statusColor = canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR;
 
             return [
@@ -319,10 +329,11 @@ const LootMenu = (() => {
 
     function confirmModuleInstall(onContinue) {
         const ship = gameState.ships[selectedModuleShipIndex];
+        const maxModulesAllowed = Math.min(SHIP_MAX_NUM_MODULES, getMaxModulesAllowed());
         const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
-
-        if (numInstalledModules >= SHIP_MAX_NUM_MODULES) {
-            outputMessage = `Ship already has maximum modules (${SHIP_MAX_NUM_MODULES})!`;
+ 
+        if (numInstalledModules >= maxModulesAllowed) {
+            outputMessage = `Ship already has maximum modules (${maxModulesAllowed})!`;
             outputColor = COLORS.TEXT_ERROR;
             render(onContinue);
             return;

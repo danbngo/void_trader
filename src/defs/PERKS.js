@@ -66,6 +66,27 @@ const PERKS = {
         baseCost: 60000,
         requiredPerks: ['LEADERSHIP_II']
     },
+    ENGINEERING_I: {
+        id: 'ENGINEERING_I',
+        name: 'Engineering I',
+        description: 'Enable installation of 1 module per ship',
+        baseCost: 15000,
+        requiredPerks: []
+    },
+    ENGINEERING_II: {
+        id: 'ENGINEERING_II',
+        name: 'Engineering II',
+        description: 'Enable installation of 2 modules per ship',
+        baseCost: 30000,
+        requiredPerks: ['ENGINEERING_I']
+    },
+    ENGINEERING_III: {
+        id: 'ENGINEERING_III',
+        name: 'Engineering III',
+        description: 'Enable installation of 3 modules per ship',
+        baseCost: 60000,
+        requiredPerks: ['ENGINEERING_II']
+    },
 };
 
 // Array of all perks for iteration

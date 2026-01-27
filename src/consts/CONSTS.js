@@ -2,7 +2,7 @@ const MIN_NUM_SHIPS_IN_SHIPYARD = 0
 const MAX_NUM_SHIPS_IN_SHIPYARD = 3
 const SHIPYARD_MIN_NUM_MODULES = 0
 const SHIPYARD_MAX_NUM_MODULES = 2
-const SHIP_MAX_NUM_MODULES = 2
+const SHIP_MAX_NUM_MODULES = 3
 const TAVERN_MIN_NUM_OFFICERS = 1
 const TAVERN_MAX_NUM_OFFICERS = 3
 const TAVERN_MIN_NUM_JOBS = 1
@@ -138,6 +138,19 @@ const TERRA_MIN_SHIPS = 10 // Minimum ships in Terra's shipyard
 const TERRA_MAX_SHIPS = 15 // Maximum ships in Terra's shipyard
 const TERRA_MIN_CARGO_RATIO = 0.5 // Minimum ratio of max cargo in Terra's market
 const TERRA_MAX_CARGO_RATIO = 1.0 // Maximum ratio of max cargo in Terra's market
+const TERRA_POLICE_WEIGHT = 4.0
+const TERRA_SOLDIERS_WEIGHT = 4.0
+
+// Blackreach system constants
+const MIN_DISTANCE_NEXUS_TO_BLACKREACH = 50 // Minimum distance from Nexus to Blackreach in LY
+const BLACKREACH_MIN_OFFICERS = 3 // Minimum officers in Blackreach's tavern
+const BLACKREACH_MAX_OFFICERS = 6 // Maximum officers in Blackreach's tavern
+const BLACKREACH_MIN_SHIPS = 3 // Minimum ships in Blackreach's shipyard
+const BLACKREACH_MAX_SHIPS = 6 // Maximum ships in Blackreach's shipyard
+const BLACKREACH_MIN_ILLEGAL_CARGO_RATIO = 0.5 // Minimum ratio of max illegal cargo in Blackreach's market
+const BLACKREACH_MAX_ILLEGAL_CARGO_RATIO = 1.0 // Maximum ratio of max illegal cargo in Blackreach's market
+const BLACKREACH_PIRATE_WEIGHT = 4.0
+const BLACKREACH_SMUGGLERS_WEIGHT = 4.0
 
 // Ship module effect constants
 const MODULE_REFLECTOR_CHANCE = 0.25 // Chance to reflect laser back

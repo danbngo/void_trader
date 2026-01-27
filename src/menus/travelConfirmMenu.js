@@ -36,7 +36,10 @@ const TravelConfirmMenu = (() => {
         let pirateWeightRange = '?';
         let policeWeightRange = '?';
         let merchantWeightRange = '?';
+        let smugglersWeightRange = '?';
+        let soldiersWeightRange = '?';
         let alienWeightRange = '0';
+        let showAlienWeight = false;
         
         if (isVisited) {
             // Show range between current and target system
@@ -52,19 +55,40 @@ const TravelConfirmMenu = (() => {
             const maxMerchant = Math.max(currentSystem.merchantWeight, targetSystem.merchantWeight).toFixed(1);
             merchantWeightRange = `${minMerchant} - ${maxMerchant}`;
             
-            // Alien weight if target is conquered
+            const minSmugglers = Math.min(currentSystem.smugglersWeight, targetSystem.smugglersWeight).toFixed(1);
+            const maxSmugglers = Math.max(currentSystem.smugglersWeight, targetSystem.smugglersWeight).toFixed(1);
+            smugglersWeightRange = `${minSmugglers} - ${maxSmugglers}`;
+            
+            const minSoldiers = Math.min(currentSystem.soldiersWeight, targetSystem.soldiersWeight).toFixed(1);
+            const maxSoldiers = Math.max(currentSystem.soldiersWeight, targetSystem.soldiersWeight).toFixed(1);
+            soldiersWeightRange = `${minSoldiers} - ${maxSoldiers}`;
+            
+            // Alien weight if target is conquered, otherwise use proximity-based weights
             if (targetSystem.conqueredByAliens) {
                 alienWeightRange = ALIENS_ENCOUNTER_WEIGHT.toFixed(1);
+                showAlienWeight = true;
+            } else {
+                const minAlien = Math.min(currentSystem.alienWeight || 0, targetSystem.alienWeight || 0).toFixed(1);
+                const maxAlien = Math.max(currentSystem.alienWeight || 0, targetSystem.alienWeight || 0).toFixed(1);
+                alienWeightRange = `${minAlien} - ${maxAlien}`;
+                showAlienWeight = (parseFloat(maxAlien) > 0);
             }
         } else {
             // Only know current system weights
             pirateWeightRange = `${currentSystem.pirateWeight.toFixed(1)} - ?`;
             policeWeightRange = `${currentSystem.policeWeight.toFixed(1)} - ?`;
             merchantWeightRange = `${currentSystem.merchantWeight.toFixed(1)} - ?`;
+            smugglersWeightRange = `${currentSystem.smugglersWeight.toFixed(1)} - ?`;
+            soldiersWeightRange = `${currentSystem.soldiersWeight.toFixed(1)} - ?`;
             
-            // Alien weight if target is conquered
+            // Alien weight if target is conquered, otherwise use current system proximity
             if (targetSystem.conqueredByAliens) {
                 alienWeightRange = ALIENS_ENCOUNTER_WEIGHT.toFixed(1);
+                showAlienWeight = true;
+            } else {
+                const currentAlien = (currentSystem.alienWeight || 0).toFixed(1);
+                alienWeightRange = `${currentAlien} - ?`;
+                showAlienWeight = (parseFloat(currentAlien) > 0);
             }
         }
         
@@ -96,20 +120,26 @@ const TravelConfirmMenu = (() => {
         const avgPirateWeight = (currentSystem.pirateWeight + (isVisited ? targetSystem.pirateWeight : currentSystem.pirateWeight)) / 2;
         const avgPoliceWeight = (currentSystem.policeWeight + (isVisited ? targetSystem.policeWeight : currentSystem.policeWeight)) / 2;
         const avgMerchantWeight = (currentSystem.merchantWeight + (isVisited ? targetSystem.merchantWeight : currentSystem.merchantWeight)) / 2;
+        const avgSmugglersWeight = (currentSystem.smugglersWeight + (isVisited ? targetSystem.smugglersWeight : currentSystem.smugglersWeight)) / 2;
+        const avgSoldiersWeight = (currentSystem.soldiersWeight + (isVisited ? targetSystem.soldiersWeight : currentSystem.soldiersWeight)) / 2;
         
         // Pirates: 2x weight = 0.5x ratio (bad), Police/Merchants: 2x weight = 2x ratio (good)
         const pirateColor = UI.calcStatColor(1 / Math.max(0.5, avgPirateWeight));
         const policeColor = COLORS.WHITE // UI.calcStatColor(avgPoliceWeight); //police dont actually do anything good for the player per-se
         const merchantColor = UI.calcStatColor(avgMerchantWeight);
+        const smugglersColor = UI.calcStatColor(avgSmugglersWeight);
+        const soldiersColor = COLORS.WHITE;
         
         const encounterList = [
             { label: 'Pirates:', value: pirateWeightRange, valueColor: pirateColor },
             { label: 'Police:', value: policeWeightRange, valueColor: policeColor },
-            { label: 'Merchants:', value: merchantWeightRange, valueColor: merchantColor }
+            { label: 'Merchants:', value: merchantWeightRange, valueColor: merchantColor },
+            { label: 'Smugglers:', value: smugglersWeightRange, valueColor: smugglersColor },
+            { label: 'Soldiers:', value: soldiersWeightRange, valueColor: soldiersColor }
         ];
         
-        // Add alien encounters if target is conquered
-        if (targetSystem.conqueredByAliens) {
+        // Add alien encounters if there is any chance
+        if (showAlienWeight) {
             encounterList.push({ label: 'Alien Skirmish:', value: alienWeightRange, valueColor: COLORS.TEXT_ERROR });
         }
         

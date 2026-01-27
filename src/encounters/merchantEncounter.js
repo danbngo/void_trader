@@ -13,31 +13,19 @@ const MerchantEncounter = {
         const grid = UI.getGridSize();
         
         const reputation = gameState.reputation || 0;
-        const isMerchant = encType.id === 'MERCHANT';
-        const isSmuggler = encType.id === 'SMUGGLERS';
         
         // Check if trade is permitted based on reputation
-        const tradeAllowed = (isMerchant && reputation >= 0) || (isSmuggler && reputation < 0);
+        const tradeAllowed = reputation >= 0;
         
         UI.addTitleLineCentered(0, `${encType.name} Encounter`);
         let y = 2;
         
-        if (isMerchant) {
-            UI.addText(10, y++, `A merchant vessel hails your fleet.`, COLORS.TEXT_NORMAL);
-            if (tradeAllowed) {
-                UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
-            } else {
-                UI.addText(10, y++, `"We don't deal with criminals. Move along."`, COLORS.YELLOW);
-                UI.addText(10, y++, `(Merchants only trade with captains of neutral or positive reputation)`, COLORS.TEXT_DIM);
-            }
-        } else if (isSmuggler) {
-            UI.addText(10, y++, `A suspicious-looking vessel signals you.`, COLORS.TEXT_NORMAL);
-            if (tradeAllowed) {
-                UI.addText(10, y++, `"You look like someone who can keep their mouth shut. Let's talk business."`, COLORS.DARK_MAGENTA);
-            } else {
-                UI.addText(10, y++, `"You're too clean for our operation. Get lost."`, COLORS.DARK_MAGENTA);
-                UI.addText(10, y++, `(Smugglers only trade with captains of negative reputation)`, COLORS.TEXT_DIM);
-            }
+        UI.addText(10, y++, `A merchant vessel hails your fleet.`, COLORS.TEXT_NORMAL);
+        if (tradeAllowed) {
+            UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
+        } else {
+            UI.addText(10, y++, `"We don't deal with criminals. Move along."`, COLORS.YELLOW);
+            UI.addText(10, y++, `(Merchants only trade with captains of neutral or positive reputation)`, COLORS.TEXT_DIM);
         }
         y++;
         
@@ -68,7 +56,7 @@ const MerchantEncounter = {
             }, color: COLORS.GREEN, helpText: `Trade with ${encType.name.toLowerCase()} (buy or sell cargo at base price)` });
         }
         
-        const attackText = isMerchant ? 'Attack innocent traders (-5 reputation, +1000 bounty)' : 'Attack smugglers (+5 reputation, no bounty)';
+        const attackText = 'Attack innocent traders (-5 reputation, +1000 bounty)';
         buttons.push({ key: '3', label: 'Attack', callback: () => {
             this.showAttackConsequences(gameState, encType);
         }, color: COLORS.TEXT_ERROR, helpText: attackText });

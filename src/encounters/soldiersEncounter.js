@@ -17,10 +17,8 @@ const SoldiersEncounter = {
         let y = 2;
         
         UI.addText(10, y++, `A military patrol approaches and hails your fleet.`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `"This is a military security patrol. Stand by."`, COLORS.CYAN);
         y++;
-        UI.addText(10, y++, `"Seen any alien activity in this sector, captain?"`, COLORS.CYAN);
-        UI.addText(10, y++, `"How about pirates or other hostiles?"`, COLORS.CYAN);
+        UI.addText(10, y++, `"Seen any aliens or pirates in this sector, captain?"`, COLORS.CYAN);
         y++;
         
         // Show radar advantage messages
@@ -37,7 +35,7 @@ const SoldiersEncounter = {
         // Buttons centered at bottom
         const buttonY = grid.height - 4;
         UI.addCenteredButtons(buttonY, [
-            { key: '1', label: 'Report Nothing Unusual', callback: () => {
+            { key: '1', label: 'Ignore', callback: () => {
                 this.handleReport(gameState, encType);
             }, color: COLORS.GREEN, helpText: 'Give a brief report and continue on your way' },
             { key: '2', label: 'Attack', callback: () => {

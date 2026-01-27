@@ -149,6 +149,10 @@ const AlienLiberationBattle = (() => {
         gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] = 
             (gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0) + alienShipsDefeated;
         
+        // Track systems liberated
+        gameState.playerRecord[PLAYER_RECORD_TYPES.SYSTEMS_LIBERATED] = 
+            (gameState.playerRecord[PLAYER_RECORD_TYPES.SYSTEMS_LIBERATED] || 0) + 1;
+        
         // Create instant news event about liberation
         const news = new News(
             NEWS_TYPES.ALIEN_LIBERATION,

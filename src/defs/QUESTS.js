@@ -198,5 +198,51 @@ const QUESTS = {
             }
             return `Relics: ${totalRelics}/10`;
         }
+    ),
+    
+    LIBERATE_FIRST_PLANET: new Quest(
+        'LIBERATE_FIRST_PLANET',
+        'Strike Back',
+        'Liberate a planet from alien control',
+        100000,
+        20000,
+        (gameState) => {
+            // Check if player has liberated at least one system
+            const systemsLiberated = gameState.playerRecord[PLAYER_RECORD_TYPES.SYSTEMS_LIBERATED] || 0;
+            return systemsLiberated >= 1;
+        },
+        'FIRST_PLANET_LIBERATED', // Message to add when complete
+        [], // No specific related systems
+        (gameState) => {
+            const systemsLiberated = gameState.playerRecord[PLAYER_RECORD_TYPES.SYSTEMS_LIBERATED] || 0;
+            return systemsLiberated >= 1 ? 1.0 : 0.0;
+        },
+        (gameState) => {
+            const systemsLiberated = gameState.playerRecord[PLAYER_RECORD_TYPES.SYSTEMS_LIBERATED] || 0;
+            return `Systems Liberated: ${systemsLiberated}/1`;
+        }
+    ),
+    
+    DEFEAT_ALIEN_FLEET: new Quest(
+        'DEFEAT_ALIEN_FLEET',
+        'Alien Hunter',
+        'Destroy 100 alien ships',
+        250000,
+        50000,
+        (gameState) => {
+            // Check if player has defeated at least 100 alien ships
+            const alienShipsDefeated = gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0;
+            return alienShipsDefeated >= 100;
+        },
+        'HUNDRED_ALIENS_DEFEATED', // Message to add when complete
+        [], // No specific related systems
+        (gameState) => {
+            const alienShipsDefeated = gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0;
+            return Math.min(1.0, alienShipsDefeated / 100);
+        },
+        (gameState) => {
+            const alienShipsDefeated = gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0;
+            return `Alien Ships Defeated: ${alienShipsDefeated}/100`;
+        }
     )
 };

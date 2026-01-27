@@ -36,7 +36,7 @@ const ScanSystemMenu = (() => {
             overviewData.push({ label: 'Status:', value: 'CONQUERED BY ALIENS', valueColor: COLORS.TEXT_ERROR });
         }
         
-        overviewData.push({ label: 'Visited:', value: isVisited ? 'Yes' : 'No', valueColor: isVisited ? COLORS.GREEN : COLORS.TEXT_DIM });
+        overviewData.push({ label: 'Visited:', value: isVisited ? 'Yes' : 'No', valueColor: isVisited ? COLORS.GREEN : COLORS.GRAY });
         overviewData.push({ label: 'Description:', value: flavorText, valueColor: COLORS.TEXT_NORMAL });
         
         y = TableRenderer.renderKeyValueList(5, y, overviewData);

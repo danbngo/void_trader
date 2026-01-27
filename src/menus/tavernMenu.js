@@ -147,7 +147,12 @@ const TavernMenu = (() => {
             let hireHelp = '';
             
             if (atMaxCapacity) {
-                hireHelp = `Max officers: ${maxOfficers}. Learn Leadership perks to increase.`;
+                // Check if player has max leadership (4 officers total)
+                if (maxOfficers >= 4) {
+                    hireHelp = `Max officers: ${maxOfficers}. You have maximum Leadership.`;
+                } else {
+                    hireHelp = `Max officers: ${maxOfficers}. Visit the Guild to increase Leadership.`;
+                }
             } else if (!canAfford) {
                 hireHelp = `Need ${hireCost} CR to hire`;
             } else {
@@ -452,7 +457,12 @@ const TavernMenu = (() => {
         const maxOfficers = getMaxOfficers();
         if (gameState.subordinates.length >= maxOfficers) {
             console.log('BLOCKED: At max officers');
-            outputMessage = `Cannot hire more officers! Max: ${maxOfficers}. Learn Leadership perks at Guild to increase.`;
+            // Check if player has max leadership (4 officers total)
+            if (maxOfficers >= 4) {
+                outputMessage = `Cannot hire more officers! Max: ${maxOfficers}. You have maximum Leadership.`;
+            } else {
+                outputMessage = `Cannot hire more officers! Max: ${maxOfficers}. Visit the Guild to increase Leadership.`;
+            }
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;

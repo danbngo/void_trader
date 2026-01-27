@@ -5,8 +5,10 @@
 
 const ShipyardMenu = (() => {
     let gameState = null;
-    let mode = 'manage'; // 'manage', 'buy', 'sell', 'confirm-buy', 'confirm-sell', 'confirm-tradein'
+    let mode = 'manage'; // 'manage', 'buy', 'sell', 'select-tradein-ship', 'confirm-buy', 'confirm-sell', 'confirm-tradein'
     let selectedShipIndex = 0;
+    let selectedTradeInShipIndex = 0; // Index of ship to trade in
+    let buyShipForTradeIn = null; // Ship to buy when doing trade-in
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
     let pendingTransaction = null;
@@ -82,6 +84,8 @@ const ShipyardMenu = (() => {
             renderBuyMode(onReturn, grid);
         } else if (mode === 'sell') {
             renderSellMode(onReturn, grid);
+        } else if (mode === 'select-tradein-ship') {
+            renderSelectTradeInShipMode(onReturn, grid);
         }
     }
     
@@ -294,6 +298,69 @@ const ShipyardMenu = (() => {
     }
     
     /**
+     * Render select trade-in ship mode (choose which ship to trade in)
+     */
+    function renderSelectTradeInShipMode(onReturn, grid) {
+        const startY = 6;
+        const newShipType = SHIP_TYPES[buyShipForTradeIn.type] || { name: 'Unknown' };
+        
+        UI.addText(5, 5, `Trading for: ${newShipType.name}`, COLORS.YELLOW);
+        UI.addText(5, 6, 'Select a ship to trade in:', COLORS.TEXT_NORMAL);
+        
+        const rows = gameState.ships.map((ship, index) => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const tradeInValue = Math.round(ship.getValue() / (1 + getEffectiveFees()));
+            const textColor = index === selectedTradeInShipIndex ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+            
+            return [
+                { text: ship.name, color: textColor },
+                { text: shipType.name, color: textColor },
+                { text: `${ship.hull}/${ship.maxHull}`, color: textColor },
+                { text: String(ship.cargoCapacity), color: textColor },
+                { text: `${tradeInValue}`, color: index === selectedTradeInShipIndex ? COLORS.GREEN : COLORS.TEXT_DIM }
+            ];
+        });
+        
+        TableRenderer.renderTable(5, startY + 2, ['Ship', 'Type', 'Hull', 'Cargo', 'Trade Value'], rows, selectedTradeInShipIndex, 2, (rowIndex) => {
+            selectedTradeInShipIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
+        
+        // Show trade-in calculation
+        const selectedShip = gameState.ships[selectedTradeInShipIndex];
+        const tradeInValue = Math.round(selectedShip.getValue() / (1 + getEffectiveFees()));
+        const cost = Math.round(buyShipForTradeIn.getValue() * (1 + getEffectiveFees()));
+        const netCost = cost - tradeInValue;
+        
+        const calcY = startY + 2 + rows.length + 3;
+        TableRenderer.renderKeyValueList(5, calcY, [
+            { label: 'New Ship Cost:', value: `${cost} CR`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Trade-In Value:', value: `${tradeInValue} CR`, valueColor: COLORS.GREEN },
+            { label: 'Net Cost:', value: `${netCost} CR`, valueColor: netCost > 0 ? COLORS.TEXT_ERROR : COLORS.GREEN },
+            { label: 'Your Credits:', value: `${gameState.credits} CR`, valueColor: gameState.credits >= netCost ? COLORS.GREEN : COLORS.TEXT_ERROR }
+        ]);
+        
+        // Buttons
+        const buttonY = grid.height - 4;
+        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship to trade in');
+        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship to trade in');
+        
+        const canAfford = gameState.credits >= netCost;
+        const confirmColor = canAfford ? COLORS.GREEN : COLORS.TEXT_DIM;
+        const confirmHelp = canAfford ? 'Confirm trade-in' : `Not enough credits (need ${netCost} CR)`;
+        UI.addButton(25, buttonY, '3', 'Confirm Trade', () => confirmTradeInSelection(onReturn), confirmColor, confirmHelp);
+        
+        UI.addButton(5, buttonY + 2, '0', 'Cancel', () => cancelTradeInSelection(onReturn), COLORS.BUTTON, 'Return to ship browsing');
+        
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+        
+        UI.draw();
+    }
+    
+    /**
      * Render confirmation screen
      */
     function renderConfirmation(onReturn) {
@@ -360,8 +427,15 @@ const ShipyardMenu = (() => {
             maxIndex = gameState.ships.length - 1;
         } else if (mode === 'buy') {
             maxIndex = gameState.getCurrentSystem().ships.length - 1;
+        } else if (mode === 'select-tradein-ship') {
+            maxIndex = gameState.ships.length - 1;
         }
-        selectedShipIndex = (selectedShipIndex + 1) % (maxIndex + 1);
+        
+        if (mode === 'select-tradein-ship') {
+            selectedTradeInShipIndex = (selectedTradeInShipIndex + 1) % (maxIndex + 1);
+        } else {
+            selectedShipIndex = (selectedShipIndex + 1) % (maxIndex + 1);
+        }
         outputMessage = '';
         render(onReturn);
     }
@@ -372,8 +446,15 @@ const ShipyardMenu = (() => {
             maxIndex = gameState.ships.length - 1;
         } else if (mode === 'buy') {
             maxIndex = gameState.getCurrentSystem().ships.length - 1;
+        } else if (mode === 'select-tradein-ship') {
+            maxIndex = gameState.ships.length - 1;
         }
-        selectedShipIndex = (selectedShipIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
+        
+        if (mode === 'select-tradein-ship') {
+            selectedTradeInShipIndex = (selectedTradeInShipIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
+        } else {
+            selectedShipIndex = (selectedShipIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
+        }
         outputMessage = '';
         render(onReturn);
     }
@@ -469,7 +550,7 @@ const ShipyardMenu = (() => {
         render(onReturn);
     }
     
-    // Trade in (replace a ship)
+    // Trade in (replace a ship) - step 1: store ship to buy, go to ship selection
     function initiateTradeIn(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
         if (!currentSystem.ships || currentSystem.ships.length === 0) {
@@ -490,8 +571,19 @@ const ShipyardMenu = (() => {
             return;
         }
         
-        // Trade in the first ship (could be enhanced to let player choose)
-        const oldShip = gameState.ships[0];
+        // Store the ship to buy and switch to ship selection mode
+        buyShipForTradeIn = newShip;
+        selectedTradeInShipIndex = 0;
+        mode = 'select-tradein-ship';
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    // Trade in - step 2: confirm the trade-in with selected ship
+    function confirmTradeInSelection(onReturn) {
+        const oldShip = gameState.ships[selectedTradeInShipIndex];
+        const newShip = buyShipForTradeIn;
         
         const tradeInValue = Math.round(oldShip.getValue() / (1 + getEffectiveFees()));
         const cost = Math.round(newShip.getValue() * (1 + getEffectiveFees()));
@@ -500,11 +592,12 @@ const ShipyardMenu = (() => {
         if (netCost > gameState.credits) {
             outputMessage = `Not enough credits! Need ${netCost} CR, have ${gameState.credits} CR.`;
             outputColor = COLORS.TEXT_ERROR;
+            mode = 'select-tradein-ship';
             render(onReturn);
             return;
         }
         
-        pendingTransaction = { oldShip, newShip, tradeInValue, cost, netCost, buyShipIndex: selectedShipIndex };
+        pendingTransaction = { oldShip, newShip, tradeInValue, cost, netCost, tradeInShipIndex: selectedTradeInShipIndex };
         mode = 'confirm-tradein';
         UI.resetSelection();
         render(onReturn);
@@ -534,26 +627,51 @@ const ShipyardMenu = (() => {
         } else if (mode === 'confirm-tradein') {
             // Trade in
             gameState.credits -= pendingTransaction.netCost;
-            gameState.ships[0] = pendingTransaction.newShip; // Replace first ship
-            currentSystem.ships.splice(pendingTransaction.buyShipIndex, 1);
+            gameState.ships[pendingTransaction.tradeInShipIndex] = pendingTransaction.newShip; // Replace selected ship
+            // Remove the new ship from system inventory
+            const shipIndexInSystem = currentSystem.ships.indexOf(pendingTransaction.newShip);
+            if (shipIndexInSystem !== -1) {
+                currentSystem.ships.splice(shipIndexInSystem, 1);
+            }
             
             outputMessage = `Traded in ${pendingTransaction.oldShip.name} for ${pendingTransaction.newShip.name}!`;
             outputColor = COLORS.TEXT_SUCCESS;
         }
         
-        switchToManageMode(onReturn);
+        // After buying or trading in, stay on buy mode; after selling, go to manage mode
+        if (mode === 'confirm-buy' || mode === 'confirm-tradein') {
+            mode = 'buy';
+            selectedShipIndex = 0;
+            pendingTransaction = null;
+            UI.resetSelection();
+            render(onReturn);
+        } else {
+            switchToManageMode(onReturn);
+        }
     }
     
     function cancelTransaction(onReturn) {
-        if (mode === 'confirm-buy' || mode === 'confirm-tradein') {
+        if (mode === 'confirm-buy') {
             // Go back to buy mode
             mode = 'buy';
+        } else if (mode === 'confirm-tradein') {
+            // Go back to trade-in ship selection
+            mode = 'select-tradein-ship';
         } else if (mode === 'confirm-sell') {
             // Go back to manage mode
             mode = 'manage';
         }
         
         pendingTransaction = null;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    function cancelTradeInSelection(onReturn) {
+        mode = 'buy';
+        buyShipForTradeIn = null;
+        selectedTradeInShipIndex = 0;
         outputMessage = '';
         UI.resetSelection();
         render(onReturn);

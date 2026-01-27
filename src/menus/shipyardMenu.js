@@ -720,7 +720,7 @@ const ShipyardMenu = (() => {
             
             return [
                 { text: module.name, color: canAfford ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM },
-                { text: module.description, color: COLORS.TEXT_DIM },
+                { text: module.description, color: COLORS.TEXT_NORMAL },
                 { text: `${cost} CR`, color: canAfford ? COLORS.GREEN : COLORS.TEXT_ERROR }
             ];
         });

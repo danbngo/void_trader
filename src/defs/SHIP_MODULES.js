@@ -7,7 +7,7 @@ const SHIP_MODULES = {
     ARMOR_PLATING: {
         id: 'ARMOR_PLATING',
         name: 'Armor Plating',
-        description: 'Reinforced hull plating. +5 max hull.',
+        description: '+5 max hull',
         value: 5000,
         onInstall: (ship) => {
             ship.maxHull += 5;
@@ -18,7 +18,7 @@ const SHIP_MODULES = {
     HARDENED_SHIELDS: {
         id: 'HARDENED_SHIELDS',
         name: 'Hardened Shields',
-        description: 'Enhanced shield generator. +5 max shields.',
+        description: '+5 max shields',
         value: 5000,
         onInstall: (ship) => {
             ship.maxShields += 5;
@@ -29,7 +29,7 @@ const SHIP_MODULES = {
     FUEL_TANK: {
         id: 'FUEL_TANK',
         name: 'Expanded Fuel Tank',
-        description: 'Additional fuel storage capacity. +5 max fuel.',
+        description: '+5 max fuel',
         value: 3000,
         onInstall: (ship) => {
             ship.maxFuel += 5;
@@ -40,7 +40,7 @@ const SHIP_MODULES = {
     LASER_UPGRADE: {
         id: 'LASER_UPGRADE',
         name: 'Laser Upgrade',
-        description: 'Enhanced laser weapons system. +5 laser level.',
+        description: '+5 laser level',
         value: 6000,
         onInstall: (ship) => {
             ship.lasers += 5;
@@ -50,7 +50,7 @@ const SHIP_MODULES = {
     ENGINE_UPGRADE: {
         id: 'ENGINE_UPGRADE',
         name: 'Engine Upgrade',
-        description: 'Improved propulsion system. +5 engine level.',
+        description: '+5 engine level',
         value: 6000,
         onInstall: (ship) => {
             ship.engine += 5;
@@ -60,7 +60,7 @@ const SHIP_MODULES = {
     RADAR_UPGRADE: {
         id: 'RADAR_UPGRADE',
         name: 'Radar Upgrade',
-        description: 'Advanced sensor array. +5 radar level.',
+        description: '+5 radar level',
         value: 4000,
         onInstall: (ship) => {
             ship.radar += 5;
@@ -70,7 +70,7 @@ const SHIP_MODULES = {
     CARGO_EXPANSION: {
         id: 'CARGO_EXPANSION',
         name: 'Cargo Expansion',
-        description: 'Additional cargo bay capacity. +5 cargo space.',
+        description: '+5 cargo space',
         value: 4000,
         onInstall: (ship) => {
             ship.cargoCapacity += 5;

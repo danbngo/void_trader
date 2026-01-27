@@ -226,41 +226,76 @@ const QUESTS = {
     DELIVER_ALIEN_MODULES_TO_TERRA: new Quest(
         'DELIVER_ALIEN_MODULES_TO_TERRA',
         'Alien Technology Transfer',
-        'Bring a ship to Terra with 2 installed alien modules',
-        150000,
-        30000,
+        'Deliver 3 alien modules to Terra (modules can be across ships)',
+        250000,
+        60000,
         (gameState) => {
+            if (gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_MODULES_DELIVERED]) {
+                return true;
+            }
             const currentSystem = gameState.getCurrentSystem();
             if (!currentSystem || currentSystem.name !== 'Terra') {
                 return false;
             }
-            const maxAlienModules = gameState.ships.reduce((maxCount, ship) => {
+            const totalAlienModules = gameState.ships.reduce((count, ship) => {
                 const alienModules = (ship.modules || []).filter(moduleId =>
                     SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology
                 ).length;
-                return Math.max(maxCount, alienModules);
+                return count + alienModules;
             }, 0);
-            return maxAlienModules >= 2;
+            if (totalAlienModules < 3) {
+                return false;
+            }
+            
+            // Remove 3 alien modules across the fleet
+            let modulesToRemove = 3;
+            gameState.ships.forEach(ship => {
+                if (modulesToRemove <= 0) {
+                    return;
+                }
+                if (!ship.modules || ship.modules.length === 0) {
+                    return;
+                }
+                const remainingModules = [];
+                ship.modules.forEach(moduleId => {
+                    const isAlienModule = SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology;
+                    if (isAlienModule && modulesToRemove > 0) {
+                        modulesToRemove -= 1;
+                    } else {
+                        remainingModules.push(moduleId);
+                    }
+                });
+                ship.modules = remainingModules;
+            });
+            
+            gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_MODULES_DELIVERED] = true;
+            return true;
         },
         'ALIEN_MODULES_DELIVERED',
         ['Terra'],
         (gameState) => {
-            const maxAlienModules = gameState.ships.reduce((maxCount, ship) => {
+            if (gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_MODULES_DELIVERED]) {
+                return 1.0;
+            }
+            const totalAlienModules = gameState.ships.reduce((count, ship) => {
                 const alienModules = (ship.modules || []).filter(moduleId =>
                     SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology
                 ).length;
-                return Math.max(maxCount, alienModules);
+                return count + alienModules;
             }, 0);
-            return Math.min(1.0, maxAlienModules / 2);
+            return Math.min(1.0, totalAlienModules / 3);
         },
         (gameState) => {
-            const maxAlienModules = gameState.ships.reduce((maxCount, ship) => {
+            if (gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_MODULES_DELIVERED]) {
+                return 'Alien Modules Delivered: 3/3';
+            }
+            const totalAlienModules = gameState.ships.reduce((count, ship) => {
                 const alienModules = (ship.modules || []).filter(moduleId =>
                     SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology
                 ).length;
-                return Math.max(maxCount, alienModules);
+                return count + alienModules;
             }, 0);
-            return `Alien Modules on a Ship: ${Math.min(maxAlienModules, 2)}/2`;
+            return `Alien Modules Delivered: ${Math.min(totalAlienModules, 3)}/3`;
         }
     ),
     

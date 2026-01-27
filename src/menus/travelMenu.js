@@ -286,8 +286,8 @@ const TravelMenu = (() => {
             encounterType = ENCOUNTER_TYPES.ALIEN_SKIRMISH;
         }
         
-        // Generate encounter ships
-        generateEncounterShips();
+        // Generate encounter ships/cargo/modules
+        const generationResults = EncounterGenerator.generateEncounter(currentGameState, encounterType);
         
         // Consume fuel for distance traveled so far
         consumeFuelForProgress();
@@ -308,120 +308,6 @@ const TravelMenu = (() => {
             console.log('[TravelMenu] Flash callback triggered, calling render()');
             render();
         }, 200, 2000, true); // true = call callback immediately for first render
-    }
-    
-    /**
-     * Generate ships for the encounter
-     */
-    function generateEncounterShips() {
-        currentGameState.encounterShips = [];
-        
-        if (!encounterType || !encounterType.shipTypes) {
-            return;
-        }
-        
-        // For abandoned ships, generate exactly 1 ship. For others, use encounter type's min/max
-        let numShips;
-        if (encounterType.id === 'ABANDONED_SHIP') {
-            numShips = 1;
-        } else {
-            // Use encounter type's min/max ships
-            const minShips = encounterType.minShips || 1;
-            const maxShips = encounterType.maxShips || 3;
-            numShips = minShips + Math.floor(Math.random() * (maxShips - minShips + 1));
-        }
-        
-        for (let i = 0; i < numShips; i++) {
-            const randomShipType = encounterType.shipTypes[
-                Math.floor(Math.random() * encounterType.shipTypes.length)
-            ];
-            
-            // Handle both string IDs and ship type objects
-            const shipTypeId = typeof randomShipType === 'string' ? randomShipType : randomShipType.id;
-            const ship = ShipGenerator.generateShipOfType(shipTypeId);
-            
-            // Optionally damage the ship
-            if (Math.random() < ENEMY_SHIP_HULL_DAMAGED_CHANCE) {
-                const hullRatio = ENEMY_DAMAGED_SHIP_MIN_HULL_RATIO + 
-                    Math.random() * (ENEMY_DAMAGED_SHIP_MAX_HULL_RATIO - ENEMY_DAMAGED_SHIP_MIN_HULL_RATIO);
-                ship.hull = Math.floor(ship.maxHull * hullRatio);
-            }
-            
-            currentGameState.encounterShips.push(ship);
-        }
-        
-        // Calculate total cargo capacity and generate encounter cargo
-        const totalCargoCapacity = currentGameState.encounterShips.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
-        const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
-        
-        let retryCount = 0; // Declare outside for logging
-        
-        // Special handling for alien encounters - they only carry RELICS
-        if (encounterType.id === 'ALIEN_SKIRMISH' || encounterType.id === 'ALIEN_DEFENSE') {
-            currentGameState.encounterCargo = {};
-            if (totalCargoAmount > 0) {
-                currentGameState.encounterCargo['RELICS'] = totalCargoAmount;
-            }
-        } else {
-            // Generate cargo (with retry logic for merchants and abandoned ships)
-            const maxRetries = (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') ? 100 : 1;
-            let cargoGenerated = false;
-            
-            while (!cargoGenerated && retryCount < maxRetries) {
-                retryCount++;
-                currentGameState.encounterCargo = {};
-                
-                if (totalCargoAmount > 0 || encounterType.id === 'ABANDONED_SHIP') {
-                    // Use CARGO_TYPES_TRADEABLE to exclude RELICS from encounter cargo
-                    const cargoTypes = CARGO_TYPES_TRADEABLE.map(ct => ct.id);
-                    
-                    // Distribute cargo amount across types
-                    let remainingCargo = totalCargoAmount;
-                    
-                    // Try each cargo type with ENEMY_HAS_CARGO_TYPE_CHANCE probability
-                    cargoTypes.forEach(cargoTypeId => {
-                        if (remainingCargo > 0 && Math.random() < ENEMY_HAS_CARGO_TYPE_CHANCE) {
-                            // This cargo type is included - give it a random amount from remaining
-                            const amount = Math.min(remainingCargo, Math.floor(Math.random() * Math.max(1, remainingCargo)) + 1);
-                            currentGameState.encounterCargo[cargoTypeId] = amount;
-                            remainingCargo -= amount;
-                        }
-                    });
-                }
-                
-                // Check if we generated any cargo
-                const hasAnyCargo = Object.values(currentGameState.encounterCargo).some(amount => amount > 0);
-                
-                // For merchants and abandoned ships, keep trying until we get cargo. For others, accept even zero cargo.
-                if (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') {
-                    cargoGenerated = hasAnyCargo;
-                } else {
-                    cargoGenerated = true; // Accept whatever we got
-                }
-            }
-        }
-        
-        // Log cargo generation results
-        console.log('[TravelMenu] Encounter cargo generated:', {
-            encounterType: encounterType.id,
-            retries: retryCount,
-            totalCargoCapacity,
-            totalCargoAmount,
-            cargoRatio,
-            encounterCargo: currentGameState.encounterCargo,
-            hasAnyCargo: Object.values(currentGameState.encounterCargo).some(amount => amount > 0)
-        });
-        
-        // Transfer encounterCargo to the first ship's cargo (for LootMenu compatibility)
-        if (currentGameState.encounterShips.length > 0) {
-            const firstShip = currentGameState.encounterShips[0];
-            for (const cargoId in currentGameState.encounterCargo) {
-                if (currentGameState.encounterCargo[cargoId] > 0) {
-                    firstShip.cargo[cargoId] = currentGameState.encounterCargo[cargoId];
-                }
-            }
-        }
     }
     
     /**
@@ -534,6 +420,7 @@ const TravelMenu = (() => {
         currentGameState.encounter = false;
         currentGameState.encounterShips = [];
         currentGameState.encounterCargo = {};
+        currentGameState.encounterShipModules = [];
         encounterTriggered = false;
         encounterType = null;
         

@@ -22,6 +22,7 @@ class GameState {
         this.encounter = false; // Whether an encounter is active
         this.asteroids = []; // Asteroids in current combat encounter
         this.encounterCargo = {}; // Cargo held by encounter ships
+        this.encounterShipModules = []; // Ship modules recovered from encounters
         
         // Quest and message system
         this.messages = []; // Array of Message objects

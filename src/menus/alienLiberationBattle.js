@@ -36,7 +36,7 @@ const AlienLiberationBattle = (() => {
         y += 2;
         
         // Generate alien defense fleet
-        generateAlienDefenseFleet();
+        EncounterGenerator.generateEncounter(currentGameState, ENCOUNTER_TYPES.ALIEN_DEFENSE);
         
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
@@ -56,50 +56,6 @@ const AlienLiberationBattle = (() => {
         UI.setOutputRow('Press 1 to begin combat', COLORS.TEXT_DIM);
         
         UI.draw();
-    }
-    
-    /**
-     * Generate alien defense fleet based on system
-     */
-    function generateAlienDefenseFleet() {
-        currentGameState.encounterShips = [];
-        
-        // Use ALIEN_DEFENSE encounter type for ship generation
-        const alienDefenseType = ENCOUNTER_TYPES.ALIEN_DEFENSE;
-        const minShips = alienDefenseType.minShips || 6;
-        const maxShips = alienDefenseType.maxShips || 9;
-        const numShips = minShips + Math.floor(Math.random() * (maxShips - minShips + 1));
-        
-        for (let i = 0; i < numShips; i++) {
-            const randomShipType = SHIP_TYPES_ALIEN[Math.floor(Math.random() * SHIP_TYPES_ALIEN.length)];
-            const ship = ShipGenerator.generateShipOfType(randomShipType.id);
-            
-            // Optionally damage the ship
-            if (Math.random() < ENEMY_SHIP_HULL_DAMAGED_CHANCE) {
-                const hullRatio = ENEMY_DAMAGED_SHIP_MIN_HULL_RATIO + 
-                    Math.random() * (ENEMY_DAMAGED_SHIP_MAX_HULL_RATIO - ENEMY_DAMAGED_SHIP_MIN_HULL_RATIO);
-                ship.hull = Math.floor(ship.maxHull * hullRatio);
-            }
-            
-            currentGameState.encounterShips.push(ship);
-        }
-        
-        // Aliens carry relics
-        const totalCargoCapacity = currentGameState.encounterShips.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        const cargoRatio = ENEMY_MIN_CARGO_RATIO + Math.random() * (ENEMY_MAX_CARGO_RATIO - ENEMY_MIN_CARGO_RATIO);
-        const totalCargoAmount = Math.floor(totalCargoCapacity * cargoRatio);
-        
-        currentGameState.encounterCargo = {};
-        if (totalCargoAmount > 0) {
-            // Aliens only carry RELICS
-            currentGameState.encounterCargo['RELICS'] = totalCargoAmount;
-        }
-        
-        // Transfer encounterCargo to the first ship's cargo (for LootMenu compatibility)
-        if (currentGameState.encounterShips.length > 0) {
-            const firstShip = currentGameState.encounterShips[0];
-            firstShip.cargo['RELICS'] = totalCargoAmount;
-        }
     }
     
     /**

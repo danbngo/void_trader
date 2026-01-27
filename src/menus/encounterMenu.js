@@ -66,8 +66,8 @@ const EncounterMenu = (() => {
      * @param {Object} entity - The entity to flash
      */
     function triggerFlash(entity) {
-        const flashDuration = 1000; // 1 second
-        flashingEntities.set(entity, Date.now() + flashDuration);
+        // Store start time - will flash 4 times over 1 second
+        flashingEntities.set(entity, Date.now());
     }
     
     /**
@@ -271,6 +271,14 @@ const EncounterMenu = (() => {
         
         const grid = UI.getGridSize();
         
+        // Clean up expired flash effects (flashes last 1 second)
+        const now = Date.now();
+        for (const [entity, startTime] of flashingEntities.entries()) {
+            if (now - startTime > 1000) {
+                flashingEntities.delete(entity);
+            }
+        }
+        
         // Draw map on left side (50% of width + 5)
         const mapWidth = COMBAT_MAP_WIDTH;
         const mapHeight = COMBAT_MAP_HEIGHT;
@@ -285,8 +293,8 @@ const EncounterMenu = (() => {
         
         UI.draw();
         
-        // If there are flashing entities or active explosions, schedule a re-render to update the animation
-        if (flashingEntities.size > 0 || explosions.length > 0) {
+        // If there are flashing entities, active explosions, or AOE effects, schedule a re-render to update the animation
+        if (flashingEntities.size > 0 || explosions.length > 0 || aoeEffects.length > 0) {
             setTimeout(() => {
                 if (currentGameState === gameState) { // Only re-render if still in same game state
                     render();
@@ -356,9 +364,9 @@ const EncounterMenu = (() => {
         // Draw asteroids (render before projectiles and ships)
         const now = Date.now();
         gameState.asteroids.forEach(asteroid => {
-            // Check if flashing and should be removed
-            const flashEnd = flashingEntities.get(asteroid);
-            if (flashEnd && now >= flashEnd) {
+            // Check if flash has ended and asteroid should be removed
+            const flashStartTime = flashingEntities.get(asteroid);
+            if (flashStartTime && now - flashStartTime > 1000) {
                 // Flash period over, disable the asteroid
                 asteroid.disabled = true;
                 flashingEntities.delete(asteroid);
@@ -372,8 +380,18 @@ const EncounterMenu = (() => {
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                const isFlashing = flashingEntities.has(asteroid);
-                const color = isFlashing ? COLORS.ORANGE : COLORS.TEXT_DIM;
+                // Check if asteroid should flash orange (4 flashes over 1 second)
+                let shouldFlash = false;
+                if (flashingEntities.has(asteroid)) {
+                    const flashStartTime = flashingEntities.get(asteroid);
+                    const elapsed = now - flashStartTime;
+                    if (elapsed < 1000) {
+                        // Each flash cycle is 250ms, visible for first 125ms of each cycle
+                        const cyclePosition = elapsed % 250;
+                        shouldFlash = cyclePosition < 125;
+                    }
+                }
+                const color = shouldFlash ? COLORS.ORANGE : COLORS.TEXT_DIM;
                 UI.addText(screenX, screenY, 'O', color, 0.5);
             }
         });
@@ -466,9 +484,20 @@ const EncounterMenu = (() => {
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
                 let color = COLORS.CYAN;
-                const isFlashing = flashingEntities.has(ship);
                 
-                if (isFlashing) {
+                // Check if ship should flash orange (4 flashes over 1 second)
+                let shouldFlash = false;
+                if (flashingEntities.has(ship)) {
+                    const flashStartTime = flashingEntities.get(ship);
+                    const elapsed = now - flashStartTime;
+                    if (elapsed < 1000) {
+                        // Each flash cycle is 250ms, visible for first 125ms of each cycle
+                        const cyclePosition = elapsed % 250;
+                        shouldFlash = cyclePosition < 125;
+                    }
+                }
+                
+                if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
@@ -487,9 +516,9 @@ const EncounterMenu = (() => {
         gameState.encounterShips.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
             
-            // Check if flashing and should become disabled
-            const flashEnd = flashingEntities.get(ship);
-            if (flashEnd && now >= flashEnd && ship.hull <= 0) {
+            // Check if flash has ended and ship should become disabled
+            const flashStartTime = flashingEntities.get(ship);
+            if (flashStartTime && now - flashStartTime > 1000 && ship.hull <= 0) {
                 // Flash period over, disable the ship and trigger explosion
                 ship.disabled = true;
                 flashingEntities.delete(ship);
@@ -558,12 +587,24 @@ const EncounterMenu = (() => {
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
                 let color = COLORS.TEXT_ERROR;
-                const isFlashing = flashingEntities.has(ship);
                 
-                if (isFlashing) {
+                // Check if ship should flash orange (4 flashes over 1 second)
+                let shouldFlash = false;
+                if (flashingEntities.has(ship)) {
+                    const flashStartTime = flashingEntities.get(ship);
+                    const elapsed = now - flashStartTime;
+                    if (elapsed < 1000) {
+                        // Each flash cycle is 250ms, visible for first 125ms of each cycle
+                        const cyclePosition = elapsed % 250;
+                        shouldFlash = cyclePosition < 125;
+                    }
+                }
+                
+                if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (index === targetIndex) {
-                    color = COLORS.YELLOW;
+                    // Yellow during player's turn, red during enemy's turn or when waiting
+                    color = waitingForContinue ? COLORS.TEXT_ERROR : COLORS.YELLOW;
                     // Store position even if already stored
                     targetShipScreenX = screenX;
                     targetShipScreenY = screenY;

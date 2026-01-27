@@ -24,21 +24,20 @@ const TowMenu = (() => {
         
         const grid = UI.getGridSize();
         
-        let y = 5;
-        y = UI.addHeaderLineCentered(y, 'Calling for Assistance');
-        y += 2;
+        let y = 0;
+        y = UI.addCenteredText(y, 'Calling for Assistance', COLORS.GREEN);
+        y += 1;
         
         const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
         
-        UI.addText(10, y++, `You call for a tow ship...`, COLORS.CYAN);
-        y++;
-        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.CYAN);
-        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.CYAN);
+        UI.addText(10, y++, `You call for a tow ship...`, COLORS.TEXT);
+        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.TEXT);
+        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.TEXT);
         UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
-        y += 2;
-        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.CYAN);
-        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.CYAN);
-        y += 2;
+        y += 1;
+        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.TEXT);
+        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.TEXT);
+        y += 1;
         
         const buttonY = grid.height - 3;
         UI.addCenteredButton(buttonY, '1', 'Continue', () => {

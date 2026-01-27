@@ -143,6 +143,7 @@ const SaveLoadManager = (() => {
                 s.radar || 5
             );
             ship.cargo = s.cargo || {};
+            ship.modules = s.modules || [];
             // Restore combat state
             ship.x = s.x || 0;
             ship.y = s.y || 0;
@@ -174,6 +175,7 @@ const SaveLoadManager = (() => {
                 s.radar || 5
             );
             ship.cargo = s.cargo || {};
+            ship.modules = s.modules || [];
             return ship;
         });
         
@@ -217,8 +219,11 @@ const SaveLoadManager = (() => {
                     shipData.radar || 5
                 );
                 ship.cargo = shipData.cargo || {};
+                ship.modules = shipData.modules || [];
                 return ship;
             });
+            
+            system.modules = s.modules || [];
             
             system.pirateWeight = s.pirateWeight || 0;
             system.policeWeight = s.policeWeight || 0;

@@ -86,6 +86,10 @@ const ShipyardMenu = (() => {
             renderSellMode(onReturn, grid);
         } else if (mode === 'select-tradein-ship') {
             renderSelectTradeInShipMode(onReturn, grid);
+        } else if (mode === 'install-modules') {
+            renderInstallModulesMode(onReturn, grid);
+        } else if (mode === 'select-module-ship') {
+            renderSelectModuleShipMode(onReturn, grid);
         }
     }
     
@@ -105,6 +109,7 @@ const ShipyardMenu = (() => {
             const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const numModules = ship.modules ? ship.modules.length : 0;
             return [
                 //{ text: marker, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_NORMAL },
@@ -115,11 +120,12 @@ const ShipyardMenu = (() => {
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
+                { text: String(numModules), color: COLORS.TEXT_NORMAL },
                 { text: `${ship.getValue()}`, color: COLORS.TEXT_NORMAL }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Type', 'Fuel', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Fuel', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Mod', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';
@@ -145,7 +151,8 @@ const ShipyardMenu = (() => {
         UI.addButton(middleX, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), sellColor, sellHelpText);
         
         UI.addButton(middleX, buttonY + 1, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
-        UI.addButton(rightX, buttonY, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addButton(rightX, buttonY, '5', 'Install Modules', () => switchToInstallModulesMode(onReturn), COLORS.BUTTON, 'Install ship modules');
+        UI.addButton(rightX, buttonY + 1, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {
@@ -673,6 +680,208 @@ const ShipyardMenu = (() => {
         mode = 'buy';
         buyShipForTradeIn = null;
         selectedTradeInShipIndex = 0;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    // Install Modules functionality
+    let selectedModuleIndex = 0;
+    let selectedModuleShipIndex = 0;
+    let selectedModule = null;
+    
+    function switchToInstallModulesMode(onReturn) {
+        const currentSystem = gameState.getCurrentSystem();
+        if (!currentSystem.modules || currentSystem.modules.length === 0) {
+            outputMessage = 'No modules available at this shipyard!';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        mode = 'install-modules';
+        selectedModuleIndex = 0;
+        selectedModule = null;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    function renderInstallModulesMode(onReturn, grid) {
+        const currentSystem = gameState.getCurrentSystem();
+        
+        UI.addText(5, 6, 'Available Modules:', COLORS.TEXT_NORMAL);
+        
+        const startY = 8;
+        const rows = currentSystem.modules.map((moduleId, index) => {
+            const module = SHIP_MODULES[moduleId];
+            const cost = Math.round(module.value * (1 + getEffectiveFees()));
+            const canAfford = cost <= gameState.credits;
+            
+            return [
+                { text: module.name, color: canAfford ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM },
+                { text: module.description, color: COLORS.TEXT_DIM },
+                { text: `${cost} CR`, color: canAfford ? COLORS.GREEN : COLORS.TEXT_ERROR }
+            ];
+        });
+        
+        TableRenderer.renderTable(5, startY, ['Module', 'Effect', 'Price'], rows, selectedModuleIndex, 2, (rowIndex) => {
+            selectedModuleIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
+        
+        const buttonY = grid.height - 4;
+        UI.addButton(5, buttonY, '1', 'Next Module', () => nextModule(onReturn), COLORS.BUTTON, 'Select next module');
+        UI.addButton(5, buttonY + 1, '2', 'Prev Module', () => prevModule(onReturn), COLORS.BUTTON, 'Select previous module');
+        UI.addButton(28, buttonY, '3', 'Install on Ship', () => initiateModuleInstall(onReturn), COLORS.GREEN, 'Choose a ship to install this module');
+        UI.addButton(28, buttonY + 1, '0', 'Back', () => switchToManageMode(onReturn), COLORS.BUTTON);
+        
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+        
+        UI.draw();
+    }
+    
+    function renderSelectModuleShipMode(onReturn, grid) {
+        UI.addText(5, 6, `Select ship to install ${selectedModule.name}:`, COLORS.TEXT_NORMAL);
+        
+        const startY = 8;
+        const rows = gameState.ships.map((ship, index) => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const numModules = ship.modules ? ship.modules.length : 0;
+            const canInstall = numModules < SHIP_MAX_NUM_MODULES;
+            const statusText = canInstall ? `${numModules}/${SHIP_MAX_NUM_MODULES}` : 'FULL';
+            const statusColor = canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR;
+            
+            return [
+                { text: shipType.name, color: canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM },
+                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: statusText, color: statusColor }
+            ];
+        });
+        
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Modules'], rows, selectedModuleShipIndex, 2, (rowIndex) => {
+            selectedModuleShipIndex = rowIndex;
+            outputMessage = '';
+            render(onReturn);
+        });
+        
+        const buttonY = grid.height - 4;
+        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextModuleShip(onReturn), COLORS.BUTTON);
+        UI.addButton(5, buttonY + 1, '2', 'Prev Ship', () => prevModuleShip(onReturn), COLORS.BUTTON);
+        UI.addButton(28, buttonY, '3', 'Confirm Install', () => confirmModuleInstall(onReturn), COLORS.GREEN);
+        UI.addButton(28, buttonY + 1, '0', 'Cancel', () => cancelModuleInstall(onReturn), COLORS.BUTTON);
+        
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+        
+        UI.draw();
+    }
+    
+    function nextModule(onReturn) {
+        const currentSystem = gameState.getCurrentSystem();
+        const maxIndex = currentSystem.modules.length - 1;
+        selectedModuleIndex = (selectedModuleIndex + 1) % (maxIndex + 1);
+        outputMessage = '';
+        render(onReturn);
+    }
+    
+    function prevModule(onReturn) {
+        const currentSystem = gameState.getCurrentSystem();
+        const maxIndex = currentSystem.modules.length - 1;
+        selectedModuleIndex = (selectedModuleIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
+        outputMessage = '';
+        render(onReturn);
+    }
+    
+    function nextModuleShip(onReturn) {
+        const maxIndex = gameState.ships.length - 1;
+        selectedModuleShipIndex = (selectedModuleShipIndex + 1) % (maxIndex + 1);
+        outputMessage = '';
+        render(onReturn);
+    }
+    
+    function prevModuleShip(onReturn) {
+        const maxIndex = gameState.ships.length - 1;
+        selectedModuleShipIndex = (selectedModuleShipIndex - 1 + (maxIndex + 1)) % (maxIndex + 1);
+        outputMessage = '';
+        render(onReturn);
+    }
+    
+    function initiateModuleInstall(onReturn) {
+        const currentSystem = gameState.getCurrentSystem();
+        const moduleId = currentSystem.modules[selectedModuleIndex];
+        selectedModule = SHIP_MODULES[moduleId];
+        const cost = Math.round(selectedModule.value * (1 + getEffectiveFees()));
+        
+        if (cost > gameState.credits) {
+            outputMessage = `Not enough credits! Need ${cost} CR, have ${gameState.credits} CR.`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        mode = 'select-module-ship';
+        selectedModuleShipIndex = 0;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    function confirmModuleInstall(onReturn) {
+        const ship = gameState.ships[selectedModuleShipIndex];
+        const numModules = ship.modules ? ship.modules.length : 0;
+        
+        if (numModules >= SHIP_MAX_NUM_MODULES) {
+            outputMessage = `Ship already has maximum modules (${SHIP_MAX_NUM_MODULES})!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        const cost = Math.round(selectedModule.value * (1 + getEffectiveFees()));
+        
+        // Deduct credits
+        gameState.credits -= cost;
+        
+        // Install module
+        if (!ship.modules) {
+            ship.modules = [];
+        }
+        ship.modules.push(selectedModule.id);
+        
+        // Apply module effect
+        selectedModule.onInstall(ship);
+        
+        // Remove module from system inventory
+        const currentSystem = gameState.getCurrentSystem();
+        currentSystem.modules.splice(selectedModuleIndex, 1);
+        
+        const shipType = SHIP_TYPES[ship.type] || { name: 'Ship' };
+        outputMessage = `Installed ${selectedModule.name} on ${shipType.name}!`;
+        outputColor = COLORS.TEXT_SUCCESS;
+        
+        // Return to module selection or manage if no modules left
+        if (currentSystem.modules.length === 0) {
+            mode = 'manage';
+        } else {
+            mode = 'install-modules';
+            selectedModuleIndex = Math.min(selectedModuleIndex, currentSystem.modules.length - 1);
+        }
+        
+        selectedModule = null;
+        selectedModuleShipIndex = 0;
+        UI.resetSelection();
+        render(onReturn);
+    }
+    
+    function cancelModuleInstall(onReturn) {
+        mode = 'install-modules';
+        selectedModule = null;
+        selectedModuleShipIndex = 0;
         outputMessage = '';
         UI.resetSelection();
         render(onReturn);

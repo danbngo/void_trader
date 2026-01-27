@@ -107,6 +107,14 @@ const SystemGenerator = (() => {
             system.ships.push(ShipGenerator.generateRandomShip());
         }
         
+        // Generate modules for shipyard
+        const moduleCount = Math.floor(Math.random() * (SHIPYARD_MAX_NUM_MODULES - SHIPYARD_MIN_NUM_MODULES + 1)) + SHIPYARD_MIN_NUM_MODULES;
+        system.modules = [];
+        for (let i = 0; i < moduleCount; i++) {
+            const randomModule = SHIP_MODULES_ARRAY[Math.floor(Math.random() * SHIP_MODULES_ARRAY.length)];
+            system.modules.push(randomModule.id);
+        }
+        
         // Generate officers for tavern
         const officerCount = Math.floor(Math.random() * (TAVERN_MAX_NUM_OFFICERS - TAVERN_MIN_NUM_OFFICERS + 1)) + TAVERN_MIN_NUM_OFFICERS;
         for (let i = 0; i < officerCount; i++) {

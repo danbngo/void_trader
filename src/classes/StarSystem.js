@@ -28,6 +28,7 @@ class StarSystem {
         
         // Shipyard data
         this.ships = []; // Ships available for purchase
+        this.modules = []; // Ship modules available for purchase
         
         // Tavern data
         this.officers = []; // Officers available for hire

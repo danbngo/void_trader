@@ -29,6 +29,7 @@ class Ship {
         this.lasers = lasers;
         this.engine = engine;
         this.radar = radar;
+        this.modules = []; // Installed modules
         // Initialize cargo for all types
         this.cargo = {};
         ALL_CARGO_TYPES.forEach(cargoType => {

@@ -640,26 +640,23 @@ const EncounterMenu = (() => {
                 return false; // Remove if progress is invalid
             }
             
-            const maxRadius = 4; // Maximum explosion radius
-            const currentRadius = progress * maxRadius;
-            
-            // Draw expanding circle of particles
-            const particleCount = 16; // Number of particles around the circle
-            for (let i = 0; i < particleCount; i++) {
-                const angle = (i / particleCount) * Math.PI * 2;
-                const x = explosion.x + Math.cos(angle) * currentRadius;
-                const y = explosion.y + Math.sin(angle) * currentRadius;
-                
-                const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
-                const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
-                
-                // Check if in bounds
-                if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                    // Pick a block character based on progress (fade out)
-                    const charIndex = Math.min(2, Math.max(0, Math.floor(progress * 3)));
-                    const char = blockChars[charIndex];
-                    if (char) {
-                        UI.addText(screenX, screenY, char, COLORS.ORANGE, 0.9);
+            // Draw 3x3 grid of explosion particles centered on ship
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const x = explosion.x + dx;
+                    const y = explosion.y + dy;
+                    
+                    const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
+                    const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
+                    
+                    // Check if in bounds
+                    if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                        // Pick a block character based on progress (fade out)
+                        const charIndex = Math.min(2, Math.max(0, Math.floor(progress * 3)));
+                        const char = blockChars[charIndex];
+                        if (char) {
+                            UI.addText(screenX, screenY, char, COLORS.ORANGE, 0.9);
+                        }
                     }
                 }
             }

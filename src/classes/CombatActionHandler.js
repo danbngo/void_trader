@@ -22,6 +22,8 @@ class CombatActionHandler {
         this.movementPerTick = { x: 0, y: 0 };
         this.initialized = false;
         this.justTurned = false; // Flag if ship turned instead of firing
+        this.minTicksRemaining = 0; // Minimum ticks to show laser animation
+        this.tickCount = 0; // Current tick count
     }
     
     /**
@@ -208,6 +210,10 @@ class CombatActionHandler {
                         this.movementPerTick.y = (dy / distance) * 10;
                     }
                     
+                    // Set minimum ticks to ensure laser is visible (at least 3 ticks = 300ms)
+                    this.minTicksRemaining = 3;
+                    this.tickCount = 0;
+                    
                     // Create projectile visual
                     this.action.projectile = {
                         x: this.ship.x,
@@ -260,13 +266,19 @@ class CombatActionHandler {
             return true;
         }
         
-        // Move projectile
+        // Increment tick counter
+        this.tickCount++;
+        
+        // Move projectile (only if distance remaining)
         const moveAmount = Math.min(10, this.remainingDistance);
         const oldX = this.action.projectile.x;
         const oldY = this.action.projectile.y;
-        this.action.projectile.x += this.movementPerTick.x;
-        this.action.projectile.y += this.movementPerTick.y;
-        this.remainingDistance -= moveAmount;
+        
+        if (this.remainingDistance > 0) {
+            this.action.projectile.x += this.movementPerTick.x;
+            this.action.projectile.y += this.movementPerTick.y;
+            this.remainingDistance -= moveAmount;
+        }
         
         // Check for obstruction collisions (asteroids and ships)
         const hitObstruction = this.checkObstructionCollision(oldX, oldY, this.action.projectile.x, this.action.projectile.y);
@@ -319,8 +331,8 @@ class CombatActionHandler {
             return true;
         }
         
-        // Check if projectile reached target
-        if (this.remainingDistance <= 0) {
+        // Check if projectile reached target AND minimum ticks elapsed
+        if (this.remainingDistance <= 0 && this.tickCount >= this.minTicksRemaining) {
             // Apply damage if hit
             if (this.action.hit && this.action.targetShip) {
                 const damage = this.action.damage;

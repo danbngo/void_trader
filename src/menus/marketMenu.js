@@ -63,7 +63,7 @@ const MarketMenu = (() => {
         // Market table
         let startY = 6;
         const rows = allCargoTypes.map((cargoType, index) => {
-            const stock = currentSystem.cargoStock[cargoType.id];
+            const stock = currentSystem.cargoStock[cargoType.id] || 0;
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
             const buyPrice = Math.floor(basePrice * (1 + effectiveFees));
             const sellPrice = Math.floor(basePrice / (1 + effectiveFees));

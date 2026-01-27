@@ -34,8 +34,8 @@ const LootMenu = (() => {
             }
         });
         
-        // Calculate credit reward (random between 1 and maxCredits)
-        creditReward = Math.floor(Math.random() * encounterType.maxCredits) + 1;
+        // Calculate credit reward (random between 1 and maxCredits, or 0 if maxCredits is 0)
+        creditReward = encounterType.maxCredits === 0 ? 0 : Math.floor(Math.random() * encounterType.maxCredits) + 1;
         
         // Award credits immediately
         gameState.credits += creditReward;
@@ -55,8 +55,10 @@ const LootMenu = (() => {
         // Title
         UI.addTitleLineCentered(0, 'Victory: Salvage Operations');
         
-        // Credits awarded
-        UI.addText(5, 5, `Credits found: +${creditReward} CR`, COLORS.GREEN);
+        // Credits awarded (only show if credits were actually found)
+        if (creditReward > 0) {
+            UI.addText(5, 5, `Credits found: +${creditReward} CR`, COLORS.GREEN);
+        }
         
         // Player cargo info
         const fleetCargo = Ship.getFleetCargo(gameState.ships);

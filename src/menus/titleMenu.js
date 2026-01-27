@@ -299,6 +299,9 @@ const TitleMenu = (() => {
             // Give 1 million credits
             gameState.credits = 1000000;
             
+            // Give 50 skill points
+            playerOfficer.skillPoints = 50;
+            
             // Give all perks
             ALL_PERKS.forEach(perk => {
                 gameState.perks.add(perk.id);

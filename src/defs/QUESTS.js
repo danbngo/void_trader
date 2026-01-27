@@ -268,8 +268,8 @@ const QUESTS = {
         'DEFEAT_ALIEN_FLEET',
         'Alien Hunter',
         'Destroy 100 alien ships',
-        250000,
-        50000,
+        500000,
+        100000,
         (gameState) => {
             // Check if player has defeated at least 100 alien ships
             const alienShipsDefeated = gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0;

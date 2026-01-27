@@ -338,8 +338,44 @@ const MESSAGES = {
             '',
             '- Commander Voss, Terra Defense Bureau'
         ],
-        null, // No next quest in chain (for now)
+        (gameState) => {
+            // Add next alien quest
+            const quest = QUESTS.LIBERATE_FIRST_PLANET;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
         'DELIVER_RELICS_TO_TERRA' // This message completes the DELIVER_RELICS_TO_TERRA quest
+    ),
+
+    FIRST_PLANET_LIBERATED: new Message(
+        'FIRST_PLANET_LIBERATED',
+        'Terra Defense Bureau - Liberation Confirmed',
+        [
+            'Commander Voss here.',
+            '',
+            'Our sensors confirm the system has been liberated. This is',
+            'a decisive victory and a clear signal that humanity will not',
+            'yield to the invaders.',
+            '',
+            'We now require hands-on testing of recovered alien modules.',
+            'Bring a ship to Terra with two installed alien modules so our',
+            'engineers can analyze their performance in field conditions.',
+            '',
+            'Your service continues to turn the tide.',
+            '',
+            '- Commander Voss, Terra Defense Bureau'
+        ],
+        (gameState) => {
+            // Add next alien quest
+            const quest = QUESTS.DELIVER_ALIEN_MODULES_TO_TERRA;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
+        'LIBERATE_FIRST_PLANET' // This message completes the LIBERATE_FIRST_PLANET quest
     ),
     
     ALIEN_MODULES_DELIVERED: new Message(
@@ -369,5 +405,26 @@ const MESSAGES = {
             }
         },
         'DELIVER_ALIEN_MODULES_TO_TERRA' // This message completes the DELIVER_ALIEN_MODULES_TO_TERRA quest
+    ),
+
+    HUNDRED_ALIENS_DEFEATED: new Message(
+        'HUNDRED_ALIENS_DEFEATED',
+        'Terra Defense Bureau - Commendation',
+        [
+            'Commander Voss here.',
+            '',
+            'Reports confirm 100 hostile alien vessels destroyed by your',
+            'fleet. This is an extraordinary achievement, and your actions',
+            'have saved countless human lives across the frontier.',
+            '',
+            'A substantial reward has been transferred to your account in',
+            'recognition of your service. Terra stands with you, captain.',
+            '',
+            'Continue the fight. The void needs you.',
+            '',
+            '- Commander Voss, Terra Defense Bureau'
+        ],
+        null,
+        'DEFEAT_ALIEN_FLEET' // This message completes the DEFEAT_ALIEN_FLEET quest
     )
 };

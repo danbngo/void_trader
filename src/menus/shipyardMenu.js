@@ -113,8 +113,8 @@ const ShipyardMenu = (() => {
             return [
                 //{ text: marker, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
-                { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
+                { text: `${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
+                { text: `${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
@@ -354,8 +354,12 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship to trade in');
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship to trade in');
+        
+        // Only show next/prev ship buttons if more than 1 ship
+        if (gameState.ships.length > 1) {
+            UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON, 'Select next ship to trade in');
+            UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON, 'Select previous ship to trade in');
+        }
         
         const canAfford = gameState.credits >= netCost;
         const confirmColor = canAfford ? COLORS.GREEN : COLORS.TEXT_DIM;

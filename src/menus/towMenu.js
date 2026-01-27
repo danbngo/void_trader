@@ -55,12 +55,12 @@ const TowMenu = (() => {
         // Consume fuel based on progress made before defeat
         TravelMenu.handleTowedBack();
         
-        // Find weakest disabled ship (lowest maxHull)
-        const disabledShips = currentGameState.ships.filter(s => s.disabled);
-        if (disabledShips.length > 0) {
-            disabledShips.sort((a, b) => a.maxHull - b.maxHull);
-            const weakestShip = disabledShips[0];
-            
+        // Find weakest ship (lowest getValue()) - don't filter by disabled since ships might still be flashing
+        // Sort by ship value to find the weakest/cheapest ship
+        currentGameState.ships.sort((a, b) => a.getValue() - b.getValue());
+        const weakestShip = currentGameState.ships[0];
+        
+        if (weakestShip) {
             // Resurrect with 1 hull
             weakestShip.hull = 1;
             weakestShip.disabled = false;
@@ -76,7 +76,7 @@ const TowMenu = (() => {
             // Keep only this ship
             currentGameState.ships = [weakestShip];
         } else {
-            // Fallback: if no disabled ships, keep nothing
+            // Fallback: if no ships exist, this shouldn't happen
             currentGameState.ships = [];
         }
         

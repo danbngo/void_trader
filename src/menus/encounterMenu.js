@@ -347,7 +347,8 @@ const EncounterMenu = (() => {
             }
         }
         
-        // Draw player ships
+        // Draw player ships - disabled ships first, then alive ships (so alive ships render on top)
+        // First pass: draw disabled ships
         gameState.ships.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
             
@@ -359,8 +360,23 @@ const EncounterMenu = (() => {
                 flashingEntities.delete(ship);
             }
             
+            if (!ship.disabled) return; // Skip alive ships in this pass
+            
             const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale); // Negate Y because screen Y increases downward
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+            
+            // Check if in bounds
+            if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                UI.addText(screenX, screenY, 'x', COLORS.GRAY, 0.7);
+            }
+        });
+        
+        // Second pass: draw alive ships (on top of disabled ships)
+        gameState.ships.forEach((ship, index) => {
+            if (ship.fled || ship.escaped || ship.disabled) return;
+            
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -368,10 +384,7 @@ const EncounterMenu = (() => {
                 let color = COLORS.CYAN;
                 const isFlashing = flashingEntities.has(ship);
                 
-                if (ship.disabled) {
-                    symbol = 'x';
-                    color = COLORS.GRAY;
-                } else if (isFlashing) {
+                if (isFlashing) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
@@ -385,7 +398,8 @@ const EncounterMenu = (() => {
             }
         });
         
-        // Draw enemy ships
+        // Draw enemy ships - disabled ships first, then alive ships (so alive ships render on top)
+        // First pass: draw disabled ships
         gameState.encounterShips.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
             
@@ -397,8 +411,23 @@ const EncounterMenu = (() => {
                 flashingEntities.delete(ship);
             }
             
+            if (!ship.disabled) return; // Skip alive ships in this pass
+            
             const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale); // Negate Y because screen Y increases downward
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+            
+            // Check if in bounds
+            if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                UI.addText(screenX, screenY, 'X', COLORS.GRAY, 0.7);
+            }
+        });
+        
+        // Second pass: draw alive ships (on top of disabled ships)
+        gameState.encounterShips.forEach((ship, index) => {
+            if (ship.fled || ship.escaped || ship.disabled) return;
+            
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -406,10 +435,7 @@ const EncounterMenu = (() => {
                 let color = COLORS.TEXT_ERROR;
                 const isFlashing = flashingEntities.has(ship);
                 
-                if (ship.disabled) {
-                    symbol = 'X';
-                    color = COLORS.GRAY;
-                } else if (isFlashing) {
+                if (isFlashing) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (index === targetIndex) {
                     color = COLORS.YELLOW;
@@ -419,12 +445,10 @@ const EncounterMenu = (() => {
                 }
                 
                 // Make non-disabled enemy ships clickable
-                if (!ship.disabled) {
-                    UI.addClickable(screenX, screenY, 1, () => {
-                        targetIndex = index;
-                        render();
-                    });
-                }
+                UI.addClickable(screenX, screenY, 1, () => {
+                    targetIndex = index;
+                    render();
+                });
                 
                 UI.addText(screenX, screenY, symbol, color, 0.7);
             }

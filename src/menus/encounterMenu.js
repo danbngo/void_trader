@@ -14,6 +14,7 @@ const EncounterMenu = (() => {
     let mapViewRange = ENCOUNTER_MAP_VIEW_RANGE; // Current view range
     let continueEnemyTurn = null; // Function to continue after enemy ship moves
     let flashingEntities = new Map(); // Track entities that should flash orange (key: entity object, value: timestamp when flash ends)
+    let explosions = []; // Track active explosion animations { x, y, startTime, duration }
     
     /**
      * Calculate angle from one point to another (in radians)
@@ -66,6 +67,20 @@ const EncounterMenu = (() => {
     function triggerFlash(entity) {
         const flashDuration = 1000; // 1 second
         flashingEntities.set(entity, Date.now() + flashDuration);
+    }
+    
+    /**
+     * Trigger an explosion animation at a position
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     */
+    function triggerExplosion(x, y) {
+        explosions.push({
+            x: x,
+            y: y,
+            startTime: Date.now(),
+            duration: 800 // 0.8 seconds
+        });
     }
     
     /**
@@ -174,6 +189,7 @@ const EncounterMenu = (() => {
         targetIndex = 0;
         waitingForContinue = false;
         flashingEntities.clear(); // Clear any previous flashing entities
+        explosions = []; // Clear any previous explosions
         
         // Initialize combat if not already done
         if (!gameState.ships[0].hasOwnProperty('x')) {
@@ -242,13 +258,13 @@ const EncounterMenu = (() => {
         
         UI.draw();
         
-        // If there are flashing entities, schedule a re-render to update the animation
-        if (flashingEntities.size > 0) {
+        // If there are flashing entities or active explosions, schedule a re-render to update the animation
+        if (flashingEntities.size > 0 || explosions.length > 0) {
             setTimeout(() => {
                 if (currentGameState === gameState) { // Only re-render if still in same game state
                     render();
                 }
-            }, 100); // Re-render every 100ms while flashing
+            }, 50); // Re-render every 50ms while animating (smoother for explosions)
         }
     }
     
@@ -355,9 +371,10 @@ const EncounterMenu = (() => {
             // Check if flashing and should become disabled
             const flashEnd = flashingEntities.get(ship);
             if (flashEnd && now >= flashEnd && ship.hull <= 0) {
-                // Flash period over, disable the ship
+                // Flash period over, disable the ship and trigger explosion
                 ship.disabled = true;
                 flashingEntities.delete(ship);
+                triggerExplosion(ship.x, ship.y);
             }
             
             if (!ship.disabled) return; // Skip alive ships in this pass
@@ -406,9 +423,10 @@ const EncounterMenu = (() => {
             // Check if flashing and should become disabled
             const flashEnd = flashingEntities.get(ship);
             if (flashEnd && now >= flashEnd && ship.hull <= 0) {
-                // Flash period over, disable the ship
+                // Flash period over, disable the ship and trigger explosion
                 ship.disabled = true;
                 flashingEntities.delete(ship);
+                triggerExplosion(ship.x, ship.y);
             }
             
             if (!ship.disabled) return; // Skip alive ships in this pass
@@ -452,6 +470,41 @@ const EncounterMenu = (() => {
                 
                 UI.addText(screenX, screenY, symbol, color, 0.7);
             }
+        });
+        
+        // Draw explosion animations (on top of everything else)
+        const blockChars = ['░', '▒', '▓'];
+        explosions = explosions.filter(explosion => {
+            const elapsed = now - explosion.startTime;
+            if (elapsed >= explosion.duration) {
+                return false; // Remove finished explosions
+            }
+            
+            // Calculate expansion progress (0 to 1)
+            const progress = elapsed / explosion.duration;
+            const maxRadius = 4; // Maximum explosion radius
+            const currentRadius = progress * maxRadius;
+            
+            // Draw expanding circle of particles
+            const particleCount = 16; // Number of particles around the circle
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (i / particleCount) * Math.PI * 2;
+                const x = explosion.x + Math.cos(angle) * currentRadius;
+                const y = explosion.y + Math.sin(angle) * currentRadius;
+                
+                const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
+                const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
+                
+                // Check if in bounds
+                if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                    // Pick a block character based on progress (fade out)
+                    const charIndex = Math.min(2, Math.floor(progress * 3));
+                    const char = blockChars[charIndex];
+                    UI.addText(screenX, screenY, char, COLORS.ORANGE, 0.9);
+                }
+            }
+            
+            return true; // Keep active explosion
         });
         
         // Draw line between active ship and target (only if not firing laser with projectile)

@@ -337,6 +337,71 @@ class CombatActionHandler {
                     this.action.targetShip.hull -= damage;
                 }
                 
+                // Store module effects for caller to handle
+                this.action.moduleEffects = this.action.moduleEffects || {};
+                
+                // Check attacker modules
+                if (this.ship.modules) {
+                    // DISRUPTER: 25% chance to remove all target shields
+                    if (this.ship.modules.includes('DISRUPTER')) {
+                        if (Math.random() < CONSTS.MODULE_DISRUPTER_CHANCE) {
+                            this.action.targetShip.shields = 0;
+                            this.action.moduleEffects.disrupterTriggered = true;
+                        }
+                    }
+                    
+                    // WARHEAD: Deal splash damage to nearby enemies
+                    if (this.ship.modules.includes('WARHEAD')) {
+                        this.action.moduleEffects.warheadTriggered = true;
+                        this.action.moduleEffects.warheadDamage = Math.floor(damage * CONSTS.MODULE_WARHEAD_DAMAGE_MULT);
+                    }
+                    
+                    // TRACTOR_BEAM: Pull target toward attacker
+                    if (this.ship.modules.includes('TRACTOR_BEAM')) {
+                        const pullDistance = damage * CONSTS.MODULE_TRACTOR_DISTANCE_MULT;
+                        this.action.moduleEffects.tractorPull = {
+                            distance: pullDistance,
+                            angle: this.ship.angle
+                        };
+                    }
+                    
+                    // REPULSOR: Push target away from attacker
+                    if (this.ship.modules.includes('REPULSOR')) {
+                        const pushDistance = damage * CONSTS.MODULE_REPULSOR_DISTANCE_MULT;
+                        this.action.moduleEffects.repulsorPush = {
+                            distance: pushDistance,
+                            angle: this.ship.angle
+                        };
+                    }
+                }
+                
+                // Check target modules
+                if (this.action.targetShip.modules) {
+                    // REFLECTOR: Bounce laser back at attacker
+                    if (this.action.targetShip.modules.includes('REFLECTOR')) {
+                        if (Math.random() < CONSTS.MODULE_REFLECTOR_CHANCE) {
+                            const reflectedDamage = Math.floor(damage * CONSTS.MODULE_REFLECTOR_DAMAGE_MULT);
+                            this.action.moduleEffects.reflectorBounce = {
+                                damage: reflectedDamage,
+                                fromShip: this.action.targetShip,
+                                toShip: this.ship
+                            };
+                        }
+                    }
+                    
+                    // BLINK: 25% chance to teleport when hit
+                    if (this.action.targetShip.modules.includes('BLINK')) {
+                        if (Math.random() < CONSTS.MODULE_BLINK_CHANCE) {
+                            // Teleport to random position
+                            const angle = Math.random() * Math.PI * 2;
+                            const distance = CONSTS.MODULE_BLINK_DISTANCE;
+                            this.action.targetShip.x += Math.cos(angle) * distance;
+                            this.action.targetShip.y += Math.sin(angle) * distance;
+                            this.action.moduleEffects.blinkTriggered = true;
+                        }
+                    }
+                }
+                
                 // Check if ship is disabled
                 if (this.action.targetShip.hull <= 0) {
                     this.action.targetShip.hull = 0;

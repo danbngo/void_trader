@@ -133,3 +133,17 @@ const TERRA_MAX_SHIPS = 15 // Maximum ships in Terra's shipyard
 const TERRA_MIN_CARGO_RATIO = 0.5 // Minimum ratio of max cargo in Terra's market
 const TERRA_MAX_CARGO_RATIO = 1.0 // Maximum ratio of max cargo in Terra's market
 
+// Ship module effect constants
+const MODULE_REFLECTOR_CHANCE = 0.25 // Chance to reflect laser back
+const MODULE_REFLECTOR_DAMAGE_MULTIPLIER = 1.0 // Damage multiplier for reflected laser
+const MODULE_DISRUPTER_CHANCE = 0.25 // Chance to remove all enemy shields
+const MODULE_DRILL_DAMAGE_MULTIPLIER = 2.0 // Ramming damage multiplier
+const MODULE_REGENERATIVE_HULL_PER_DAY = 1 // Hull restored per day of travel
+const MODULE_TRACTOR_BEAM_DISTANCE_RATIO = 0.5 // Pull distance as ratio of damage
+const MODULE_REPULSOR_DISTANCE_RATIO = 0.5 // Push distance as ratio of damage
+const MODULE_BLINK_CHANCE = 0.25 // Chance to teleport when hit
+const MODULE_BLINK_DISTANCE = 10 // Teleport distance in LY
+const MODULE_SELF_DESTRUCT_RANGE = 25 // Damage range
+const MODULE_SELF_DESTRUCT_DAMAGE_RATIO = 0.25 // Damage as ratio of max hull
+const MODULE_WARHEAD_RANGE = 5 // Splash damage range
+const MODULE_WARHEAD_DAMAGE_RATIO = 0.5 // Splash damage as ratio of base damage

@@ -15,6 +15,7 @@ const EncounterMenu = (() => {
     let continueEnemyTurn = null; // Function to continue after enemy ship moves
     let flashingEntities = new Map(); // Track entities that should flash orange (key: entity object, value: timestamp when flash ends)
     let explosions = []; // Track active explosion animations { x, y, startTime, duration }
+    let aoeEffects = []; // Track AOE effect animations { x, y, startTime, duration, color }
     
     /**
      * Calculate angle from one point to another (in radians)
@@ -81,6 +82,32 @@ const EncounterMenu = (() => {
             startTime: Date.now(),
             duration: 800 // 0.8 seconds
         });
+    }
+    
+    /**
+     * Trigger an AOE effect animation at a position
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {string} color - Color for the effect
+     */
+    function triggerAOE(x, y, color) {
+        aoeEffects.push({
+            x: x,
+            y: y,
+            startTime: Date.now(),
+            duration: 800, // 0.8 seconds
+            color: color
+        });
+    }
+    
+    /**
+     * Check if a ship has a specific module installed
+     * @param {Ship} ship - The ship to check
+     * @param {string} moduleId - Module ID to check for
+     * @returns {boolean} - True if ship has the module
+     */
+    function shipHasModule(ship, moduleId) {
+        return ship.modules && ship.modules.includes(moduleId);
     }
     
     /**
@@ -375,6 +402,46 @@ const EncounterMenu = (() => {
                 ship.disabled = true;
                 flashingEntities.delete(ship);
                 triggerExplosion(ship.x, ship.y);
+                
+                // Check for SELF_DESTRUCT module
+                if (ship.modules && ship.modules.includes('SELF_DESTRUCT')) {
+                    // Trigger red AOE effect
+                    triggerAOE(ship.x, ship.y, COLORS.TEXT_ERROR);
+                    
+                    // Deal damage to nearby ships
+                    const shipType = SHIP_TYPES[ship.type] || { hull: 100 };
+                    const maxDamage = Math.floor(shipType.hull * CONSTS.MODULE_SELF_DESTRUCT_DAMAGE_MULT);
+                    
+                    // Check all enemy ships
+                    gameState.encounterShips.forEach(enemyShip => {
+                        if (enemyShip === ship || enemyShip.disabled) return;
+                        const dx = enemyShip.x - ship.x;
+                        const dy = enemyShip.y - ship.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                            // Damage falls off with distance
+                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damage = Math.floor(maxDamage * damageMult);
+                            enemyShip.hull -= damage;
+                            triggerFlash(enemyShip);
+                        }
+                    });
+                    
+                    // Check all player ships
+                    gameState.ships.forEach(otherShip => {
+                        if (otherShip === ship || otherShip.disabled) return;
+                        const dx = otherShip.x - ship.x;
+                        const dy = otherShip.y - ship.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                            // Damage falls off with distance
+                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damage = Math.floor(maxDamage * damageMult);
+                            otherShip.hull -= damage;
+                            triggerFlash(otherShip);
+                        }
+                    });
+                }
             }
             
             if (!ship.disabled) return; // Skip alive ships in this pass
@@ -427,6 +494,46 @@ const EncounterMenu = (() => {
                 ship.disabled = true;
                 flashingEntities.delete(ship);
                 triggerExplosion(ship.x, ship.y);
+                
+                // Check for SELF_DESTRUCT module
+                if (ship.modules && ship.modules.includes('SELF_DESTRUCT')) {
+                    // Trigger red AOE effect
+                    triggerAOE(ship.x, ship.y, COLORS.TEXT_ERROR);
+                    
+                    // Deal damage to nearby ships
+                    const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { hull: 100 };
+                    const maxDamage = Math.floor(shipType.hull * CONSTS.MODULE_SELF_DESTRUCT_DAMAGE_MULT);
+                    
+                    // Check all enemy ships
+                    gameState.encounterShips.forEach(otherShip => {
+                        if (otherShip === ship || otherShip.disabled) return;
+                        const dx = otherShip.x - ship.x;
+                        const dy = otherShip.y - ship.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                            // Damage falls off with distance
+                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damage = Math.floor(maxDamage * damageMult);
+                            otherShip.hull -= damage;
+                            triggerFlash(otherShip);
+                        }
+                    });
+                    
+                    // Check all player ships
+                    gameState.ships.forEach(playerShip => {
+                        if (playerShip === ship || playerShip.disabled) return;
+                        const dx = playerShip.x - ship.x;
+                        const dy = playerShip.y - ship.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                            // Damage falls off with distance
+                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damage = Math.floor(maxDamage * damageMult);
+                            playerShip.hull -= damage;
+                            triggerFlash(playerShip);
+                        }
+                    });
+                }
             }
             
             if (!ship.disabled) return; // Skip alive ships in this pass
@@ -505,6 +612,40 @@ const EncounterMenu = (() => {
             }
             
             return true; // Keep active explosion
+        });
+        
+        // Draw AOE effect animations
+        aoeEffects = aoeEffects.filter(effect => {
+            const elapsed = now - effect.startTime;
+            if (elapsed >= effect.duration) {
+                return false; // Remove finished effects
+            }
+            
+            // Calculate expansion progress (0 to 1)
+            const progress = elapsed / effect.duration;
+            const maxRadius = 4; // Maximum AOE radius
+            const currentRadius = progress * maxRadius;
+            
+            // Draw expanding circle of particles
+            const particleCount = 16; // Number of particles around the circle
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (i / particleCount) * Math.PI * 2;
+                const x = effect.x + Math.cos(angle) * currentRadius;
+                const y = effect.y + Math.sin(angle) * currentRadius;
+                
+                const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
+                const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
+                
+                // Check if in bounds
+                if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
+                    // Pick a block character based on progress (fade out)
+                    const charIndex = Math.min(2, Math.floor(progress * 3));
+                    const char = blockChars[charIndex];
+                    UI.addText(screenX, screenY, char, effect.color, 0.9);
+                }
+            }
+            
+            return true; // Keep active effect
         });
         
         // Draw line between active ship and target (only if not firing laser with projectile)
@@ -1634,6 +1775,73 @@ const EncounterMenu = (() => {
                     }
                     outputMessage = `${activeShipType.name} fires laser and hits ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.GREEN;
+                    
+                    // Handle module effects
+                    if (action.moduleEffects) {
+                        // DISRUPTER: Shields removed
+                        if (action.moduleEffects.disrupterTriggered) {
+                            outputMessage += ` DISRUPTER removes shields!`;
+                        }
+                        
+                        // WARHEAD: Splash damage to nearby enemies
+                        if (action.moduleEffects.warheadTriggered) {
+                            triggerAOE(action.targetShip.x, action.targetShip.y, COLORS.TEXT_ERROR);
+                            const warheadDamage = action.moduleEffects.warheadDamage;
+                            
+                            // Damage nearby enemy ships
+                            currentGameState.encounterShips.forEach(enemy => {
+                                if (enemy === action.targetShip || enemy.disabled) return;
+                                const dx = enemy.x - action.targetShip.x;
+                                const dy = enemy.y - action.targetShip.y;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+                                if (distance <= CONSTS.MODULE_WARHEAD_RANGE) {
+                                    enemy.hull -= warheadDamage;
+                                    triggerFlash(enemy);
+                                }
+                            });
+                            outputMessage += ` WARHEAD splash damage!`;
+                        }
+                        
+                        // BLINK: Target teleported
+                        if (action.moduleEffects.blinkTriggered) {
+                            outputMessage += ` BLINK teleports away!`;
+                        }
+                        
+                        // REFLECTOR: Laser bounced back
+                        if (action.moduleEffects.reflectorBounce) {
+                            const reflectDamage = action.moduleEffects.reflectorBounce.damage;
+                            if (activeShip.shields > 0) {
+                                const shieldDamage = Math.min(reflectDamage, activeShip.shields);
+                                activeShip.shields -= shieldDamage;
+                                const remainingDamage = reflectDamage - shieldDamage;
+                                if (remainingDamage > 0) {
+                                    activeShip.hull -= remainingDamage;
+                                }
+                            } else {
+                                activeShip.hull -= reflectDamage;
+                            }
+                            triggerFlash(activeShip);
+                            outputMessage += ` REFLECTOR bounces laser back for ${reflectDamage} damage!`;
+                        }
+                        
+                        // TRACTOR_BEAM: Pull target closer
+                        if (action.moduleEffects.tractorPull) {
+                            const pullDistance = action.moduleEffects.tractorPull.distance;
+                            const pullAngle = action.moduleEffects.tractorPull.angle;
+                            action.targetShip.x += Math.cos(pullAngle) * pullDistance;
+                            action.targetShip.y += Math.sin(pullAngle) * pullDistance;
+                            outputMessage += ` TRACTOR BEAM pulls target!`;
+                        }
+                        
+                        // REPULSOR: Push target away
+                        if (action.moduleEffects.repulsorPush) {
+                            const pushDistance = action.moduleEffects.repulsorPush.distance;
+                            const pushAngle = action.moduleEffects.repulsorPush.angle + Math.PI; // Opposite direction
+                            action.targetShip.x += Math.cos(pushAngle) * pushDistance;
+                            action.targetShip.y += Math.sin(pushAngle) * pushDistance;
+                            outputMessage += ` REPULSOR pushes target!`;
+                        }
+                    }
                 } else {
                     outputMessage = `${activeShipType.name} fires laser and misses ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
@@ -1839,6 +2047,73 @@ const EncounterMenu = (() => {
                     }
                     outputMessage = `${enemyShipType.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_ERROR;
+                    
+                    // Handle module effects
+                    if (action.moduleEffects) {
+                        // DISRUPTER: Shields removed
+                        if (action.moduleEffects.disrupterTriggered) {
+                            outputMessage += ` DISRUPTER removes shields!`;
+                        }
+                        
+                        // WARHEAD: Splash damage to nearby enemies
+                        if (action.moduleEffects.warheadTriggered) {
+                            triggerAOE(action.targetShip.x, action.targetShip.y, COLORS.TEXT_ERROR);
+                            const warheadDamage = action.moduleEffects.warheadDamage;
+                            
+                            // Damage nearby player ships
+                            currentGameState.ships.forEach(playerShip => {
+                                if (playerShip === action.targetShip || playerShip.disabled) return;
+                                const dx = playerShip.x - action.targetShip.x;
+                                const dy = playerShip.y - action.targetShip.y;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+                                if (distance <= CONSTS.MODULE_WARHEAD_RANGE) {
+                                    playerShip.hull -= warheadDamage;
+                                    triggerFlash(playerShip);
+                                }
+                            });
+                            outputMessage += ` WARHEAD splash damage!`;
+                        }
+                        
+                        // BLINK: Target teleported
+                        if (action.moduleEffects.blinkTriggered) {
+                            outputMessage += ` BLINK teleports away!`;
+                        }
+                        
+                        // REFLECTOR: Laser bounced back
+                        if (action.moduleEffects.reflectorBounce) {
+                            const reflectDamage = action.moduleEffects.reflectorBounce.damage;
+                            if (action.ship.shields > 0) {
+                                const shieldDamage = Math.min(reflectDamage, action.ship.shields);
+                                action.ship.shields -= shieldDamage;
+                                const remainingDamage = reflectDamage - shieldDamage;
+                                if (remainingDamage > 0) {
+                                    action.ship.hull -= remainingDamage;
+                                }
+                            } else {
+                                action.ship.hull -= reflectDamage;
+                            }
+                            triggerFlash(action.ship);
+                            outputMessage += ` REFLECTOR bounces laser back for ${reflectDamage} damage!`;
+                        }
+                        
+                        // TRACTOR_BEAM: Pull target closer
+                        if (action.moduleEffects.tractorPull) {
+                            const pullDistance = action.moduleEffects.tractorPull.distance;
+                            const pullAngle = action.moduleEffects.tractorPull.angle;
+                            action.targetShip.x += Math.cos(pullAngle) * pullDistance;
+                            action.targetShip.y += Math.sin(pullAngle) * pullDistance;
+                            outputMessage += ` TRACTOR BEAM pulls target!`;
+                        }
+                        
+                        // REPULSOR: Push target away
+                        if (action.moduleEffects.repulsorPush) {
+                            const pushDistance = action.moduleEffects.repulsorPush.distance;
+                            const pushAngle = action.moduleEffects.repulsorPush.angle + Math.PI; // Opposite direction
+                            action.targetShip.x += Math.cos(pushAngle) * pushDistance;
+                            action.targetShip.y += Math.sin(pushAngle) * pushDistance;
+                            outputMessage += ` REPULSOR pushes target!`;
+                        }
+                    }
                 } else {
                     outputMessage = `${enemyShipType.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
@@ -1899,13 +2174,29 @@ const EncounterMenu = (() => {
                 // Calculate ramming damage (between 1 and distance travelled)
                 const ramAction = handler.ramAction;
                 const distanceTravelled = ramAction.knockbackDistance;
-                const damage = Math.floor(Math.random() * Math.max(1, distanceTravelled)) + 1;
+                let damage = Math.floor(Math.random() * Math.max(1, distanceTravelled)) + 1;
+                
+                // Check for DRILL module on rammer (2x damage)
+                if (ramAction.rammer && ramAction.rammer.modules && ramAction.rammer.modules.includes('DRILL')) {
+                    damage = Math.floor(damage * CONSTS.MODULE_DRILL_DAMAGE_MULTIPLIER);
+                }
                 
                 // Apply hull damage to rammed ship
                 ramAction.ship.hull -= damage;
                 
                 // Trigger flash for rammed ship
                 triggerFlash(ramAction.ship);
+                
+                // Check for BLINK module on rammed ship (25% chance to teleport)
+                if (ramAction.ship.modules && ramAction.ship.modules.includes('BLINK')) {
+                    if (Math.random() < CONSTS.MODULE_BLINK_CHANCE) {
+                        // Teleport to random position
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = CONSTS.MODULE_BLINK_DISTANCE;
+                        ramAction.ship.x += Math.cos(angle) * distance;
+                        ramAction.ship.y += Math.sin(angle) * distance;
+                    }
+                }
                 
                 // Check if ship is disabled
                 if (ramAction.ship.hull <= 0) {

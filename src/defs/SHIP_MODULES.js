@@ -75,6 +75,96 @@ const SHIP_MODULES = {
         onInstall: (ship) => {
             ship.cargoCapacity += 5;
         }
+    },
+    
+    REFLECTOR: {
+        id: 'REFLECTOR',
+        name: 'Reflector',
+        description: '25% chance to reflect lasers',
+        value: 8000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    DISRUPTER: {
+        id: 'DISRUPTER',
+        name: 'Disrupter',
+        description: '25% chance to strip shields',
+        value: 7000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    DRILL: {
+        id: 'DRILL',
+        name: 'Drill',
+        description: '2x ramming damage',
+        value: 6000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    REGENERATIVE_HULL: {
+        id: 'REGENERATIVE_HULL',
+        name: 'Regenerative Hull',
+        description: '+1 hull per day travel',
+        value: 10000,
+        onInstall: (ship) => {
+            // Passive effect, handled in travel
+        }
+    },
+    
+    TRACTOR_BEAM: {
+        id: 'TRACTOR_BEAM',
+        name: 'Tractor Beam',
+        description: 'Pulls enemies on laser hit',
+        value: 9000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    REPULSOR: {
+        id: 'REPULSOR',
+        name: 'Repulsor',
+        description: 'Pushes enemies on laser hit',
+        value: 9000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    BLINK: {
+        id: 'BLINK',
+        name: 'Blink',
+        description: '25% chance to teleport when hit',
+        value: 12000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    SELF_DESTRUCT: {
+        id: 'SELF_DESTRUCT',
+        name: 'Self Destruct',
+        description: 'Damages nearby on death',
+        value: 8000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
+    },
+    
+    WARHEAD: {
+        id: 'WARHEAD',
+        name: 'Warhead',
+        description: 'Splash damage on laser hit',
+        value: 11000,
+        onInstall: (ship) => {
+            // Passive effect, handled in combat
+        }
     }
 };
 

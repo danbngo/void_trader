@@ -433,8 +433,20 @@ const TravelMenu = (() => {
             }
         }
         
-        // Advance date and track time since dock for news generation
+        // Apply regenerative hull module effects during travel
         const daysElapsed = Math.ceil(totalDuration);
+        currentGameState.ships.forEach(ship => {
+            if (ship.modules && ship.modules.includes('REGENERATIVE_HULL')) {
+                const hullToRestore = daysElapsed * MODULE_REGENERATIVE_HULL_PER_DAY;
+                const actualRestored = Math.min(hullToRestore, ship.maxHull - ship.hull);
+                if (actualRestored > 0) {
+                    ship.hull += actualRestored;
+                    console.log(`[TravelMenu] Regenerative Hull restored ${actualRestored} hull to ship`);
+                }
+            }
+        });
+        
+        // Advance date and track time since dock for news generation
         currentGameState.date.setDate(currentGameState.date.getDate() + daysElapsed);
         currentGameState.timeSinceDock = (currentGameState.timeSinceDock || 0) + (daysElapsed * 24 * 60 * 60 * 1000); // Add milliseconds
         

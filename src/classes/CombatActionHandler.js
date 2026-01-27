@@ -277,8 +277,9 @@ class CombatActionHandler {
             
             // Hit an obstruction
             if (hitObstruction.type === 'asteroid') {
-                hitObstruction.object.disabled = true;
-                this.action.hitObstruction = { type: 'asteroid', name: 'asteroid', x: hitX, y: hitY };
+                // Don't disable immediately - mark for flashing (will be disabled after 1s)
+                // hitObstruction.object.disabled = true;
+                this.action.hitObstruction = { type: 'asteroid', name: 'asteroid', x: hitX, y: hitY, asteroid: hitObstruction.object };
             } else if (hitObstruction.type === 'ship') {
                 // Apply damage to the obstructing ship
                 const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
@@ -299,7 +300,8 @@ class CombatActionHandler {
                 // Check if ship is disabled
                 if (hitShip.hull <= 0) {
                     hitShip.hull = 0;
-                    hitShip.disabled = true;
+                    // Don't disable immediately - will be disabled after flash
+                    // hitShip.disabled = true;
                 }
                 
                 this.action.hitObstruction = { 

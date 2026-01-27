@@ -13,6 +13,7 @@ const EncounterMenu = (() => {
     let cameraOffsetY = 0;
     let mapViewRange = ENCOUNTER_MAP_VIEW_RANGE; // Current view range
     let continueEnemyTurn = null; // Function to continue after enemy ship moves
+    let flashingEntities = new Map(); // Track entities that should flash orange (key: entity object, value: timestamp when flash ends)
     
     /**
      * Calculate angle from one point to another (in radians)
@@ -56,6 +57,15 @@ const EncounterMenu = (() => {
         } else {
             return '\u25E2'; // Lower-Right ◢
         }
+    }
+    
+    /**
+     * Trigger a flash effect for an entity (ship or asteroid)
+     * @param {Object} entity - The entity to flash
+     */
+    function triggerFlash(entity) {
+        const flashDuration = 1000; // 1 second
+        flashingEntities.set(entity, Date.now() + flashDuration);
     }
     
     /**
@@ -163,6 +173,7 @@ const EncounterMenu = (() => {
         outputMessage = '';
         targetIndex = 0;
         waitingForContinue = false;
+        flashingEntities.clear(); // Clear any previous flashing entities
         
         // Initialize combat if not already done
         if (!gameState.ships[0].hasOwnProperty('x')) {
@@ -230,6 +241,15 @@ const EncounterMenu = (() => {
         drawButtons(currentGameState, mapWidth + 2, mapHeight);
         
         UI.draw();
+        
+        // If there are flashing entities, schedule a re-render to update the animation
+        if (flashingEntities.size > 0) {
+            setTimeout(() => {
+                if (currentGameState === gameState) { // Only re-render if still in same game state
+                    render();
+                }
+            }, 100); // Re-render every 100ms while flashing
+        }
     }
     
     /**
@@ -291,7 +311,17 @@ const EncounterMenu = (() => {
         }
         
         // Draw asteroids (render before projectiles and ships)
+        const now = Date.now();
         gameState.asteroids.forEach(asteroid => {
+            // Check if flashing and should be removed
+            const flashEnd = flashingEntities.get(asteroid);
+            if (flashEnd && now >= flashEnd) {
+                // Flash period over, disable the asteroid
+                asteroid.disabled = true;
+                flashingEntities.delete(asteroid);
+                return;
+            }
+            
             if (asteroid.disabled) return;
             
             const screenX = Math.floor(mapCenterX + (asteroid.x - cameraOffsetX) * scale);
@@ -299,7 +329,9 @@ const EncounterMenu = (() => {
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
-                UI.addText(screenX, screenY, 'O', COLORS.TEXT_DIM, 0.5);
+                const isFlashing = flashingEntities.has(asteroid);
+                const color = isFlashing ? COLORS.ORANGE : COLORS.TEXT_DIM;
+                UI.addText(screenX, screenY, 'O', color, 0.5);
             }
         });
         
@@ -319,6 +351,14 @@ const EncounterMenu = (() => {
         gameState.ships.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
             
+            // Check if flashing and should become disabled
+            const flashEnd = flashingEntities.get(ship);
+            if (flashEnd && now >= flashEnd && ship.hull <= 0) {
+                // Flash period over, disable the ship
+                ship.disabled = true;
+                flashingEntities.delete(ship);
+            }
+            
             const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
             const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale); // Negate Y because screen Y increases downward
             
@@ -326,10 +366,13 @@ const EncounterMenu = (() => {
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
                 let color = COLORS.CYAN;
+                const isFlashing = flashingEntities.has(ship);
                 
                 if (ship.disabled) {
                     symbol = 'x';
                     color = COLORS.GRAY;
+                } else if (isFlashing) {
+                    color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
                 } else if (ship === activeShip) {
@@ -346,6 +389,14 @@ const EncounterMenu = (() => {
         gameState.encounterShips.forEach((ship, index) => {
             if (ship.fled || ship.escaped) return;
             
+            // Check if flashing and should become disabled
+            const flashEnd = flashingEntities.get(ship);
+            if (flashEnd && now >= flashEnd && ship.hull <= 0) {
+                // Flash period over, disable the ship
+                ship.disabled = true;
+                flashingEntities.delete(ship);
+            }
+            
             const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
             const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale); // Negate Y because screen Y increases downward
             
@@ -353,10 +404,13 @@ const EncounterMenu = (() => {
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
                 let color = COLORS.TEXT_ERROR;
+                const isFlashing = flashingEntities.has(ship);
                 
                 if (ship.disabled) {
                     symbol = 'X';
                     color = COLORS.GRAY;
+                } else if (isFlashing) {
+                    color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (index === targetIndex) {
                     color = COLORS.YELLOW;
                     // Store position even if already stored
@@ -1481,17 +1535,26 @@ const EncounterMenu = (() => {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
                         const obstructedShip = action.hitObstruction.ship;
+                        triggerFlash(obstructedShip); // Flash the hit ship
                         let obstructedName = '';
                         // Get ship type name for obstruction
                         const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Ship' };
                         obstructedName = obstructedType.name;
                         outputMessage = `${activeShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
                         outputColor = COLORS.YELLOW;
-                    } else {
+                    } else if (action.hitObstruction.type === 'asteroid') {
+                        // Flash the asteroid
+                        if (action.hitObstruction.asteroid) {
+                            triggerFlash(action.hitObstruction.asteroid);
+                        }
                         outputMessage = `${activeShipType.name} hit an asteroid (obstruction)!`;
                         outputColor = COLORS.YELLOW;
                     }
                 } else if (action.hit) {
+                    // Flash the target ship when hit
+                    if (action.targetShip) {
+                        triggerFlash(action.targetShip);
+                    }
                     outputMessage = `${activeShipType.name} fires laser and hits ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.GREEN;
                 } else {
@@ -1678,16 +1741,25 @@ const EncounterMenu = (() => {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
                         const obstructedShip = action.hitObstruction.ship;
+                        triggerFlash(obstructedShip); // Flash the hit ship
                         // Get ship type name for obstruction
                         const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Ship' };
                         const obstructedName = obstructedType.name;
                         outputMessage = `${enemyShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
                         outputColor = COLORS.YELLOW;
-                    } else {
+                    } else if (action.hitObstruction.type === 'asteroid') {
+                        // Flash the asteroid
+                        if (action.hitObstruction.asteroid) {
+                            triggerFlash(action.hitObstruction.asteroid);
+                        }
                         outputMessage = `${enemyShipType.name} hit an asteroid (obstruction)!`;
                         outputColor = COLORS.YELLOW;
                     }
                 } else if (action.hit) {
+                    // Flash the target ship when hit
+                    if (action.targetShip) {
+                        triggerFlash(action.targetShip);
+                    }
                     outputMessage = `${enemyShipType.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_ERROR;
                 } else {
@@ -1755,10 +1827,14 @@ const EncounterMenu = (() => {
                 // Apply hull damage to rammed ship
                 ramAction.ship.hull -= damage;
                 
+                // Trigger flash for rammed ship
+                triggerFlash(ramAction.ship);
+                
                 // Check if ship is disabled
                 if (ramAction.ship.hull <= 0) {
                     ramAction.ship.hull = 0;
-                    ramAction.ship.disabled = true;
+                    // Don't disable immediately - will be disabled after flash
+                    // ramAction.ship.disabled = true;
                 }
                 
                 // Get ship names/types for message

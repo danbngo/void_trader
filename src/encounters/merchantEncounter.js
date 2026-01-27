@@ -256,6 +256,9 @@ const MerchantEncounter = {
                     // Track player records
                     gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] || 0) + playerAmount;
                     gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0) + totalRevenue;
+                    if (cargoType.id === CARGO_TYPES.DRUGS.id) {
+                        gameState.playerRecord[PLAYER_RECORD_TYPES.DRUGS_SOLD_TOTAL] = (gameState.playerRecord[PLAYER_RECORD_TYPES.DRUGS_SOLD_TOTAL] || 0) + playerAmount;
+                    }
                     
                     // Grant trading experience
                     const tradingExpFraction = totalRevenue / 1000;

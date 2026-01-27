@@ -16,6 +16,11 @@ const PLAYER_RECORD_TYPES = {
     ALIEN_SHIPS_DEFEATED: 'ALIEN_SHIPS_DEFEATED',       // Alien ships defeated
     ALIEN_DEFENSE_FLEETS_DEFEATED: 'ALIEN_DEFENSE_FLEETS_DEFEATED', // Alien defense fleets defeated
     ALIEN_MODULES_DELIVERED: 'ALIEN_MODULES_DELIVERED', // Alien modules delivered to Terra
+    BLACKREACH_INTRO_TRIGGERED: 'BLACKREACH_INTRO_TRIGGERED', // Triggered Blackreach intro message
+    DRUGS_SOLD_TOTAL: 'DRUGS_SOLD_TOTAL',               // Total drugs sold
+    BLACKREACH_WEAPONS_SOLD: 'BLACKREACH_WEAPONS_SOLD', // Weapons sold at Blackreach
+    BLACKREACH_ANTIMATTER_DELIVERED: 'BLACKREACH_ANTIMATTER_DELIVERED', // Antimatter delivered to Terra
+    POLICE_SHIPS_DESTROYED: 'POLICE_SHIPS_DESTROYED',   // Police ships destroyed
     SYSTEMS_LIBERATED: 'SYSTEMS_LIBERATED',             // Systems liberated from alien control
     TIMES_DIED: 'TIMES_DIED'                            // Number of player deaths
 };

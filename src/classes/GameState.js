@@ -148,6 +148,19 @@ class GameState {
      * @param {string} rankId - Rank ID to set
      */
     setRankAtCurrentSystem(rankId) {
-        this.systemRanks[this.currentSystemIndex] = rankId;
+        this.setRankAtSystemIndex(this.currentSystemIndex, rankId);
+    }
+
+    /**
+     * Set player's rank at a specific system index
+     * @param {number} systemIndex - System index
+     * @param {string} rankId - Rank ID to set
+     */
+    setRankAtSystemIndex(systemIndex, rankId) {
+        this.systemRanks[systemIndex] = rankId;
+        const system = this.systems[systemIndex];
+        if (system && rankId === 'ELITE') {
+            system.fees = 0; // Elite rank removes fees permanently
+        }
     }
 }

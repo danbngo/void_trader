@@ -374,6 +374,12 @@ const MarketMenu = (() => {
             // Track player records
             gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD] || 0) + actualAmount;
             gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD] || 0) + totalValue;
+            if (cargoType.id === CARGO_TYPES.DRUGS.id) {
+                gameState.playerRecord[PLAYER_RECORD_TYPES.DRUGS_SOLD_TOTAL] = (gameState.playerRecord[PLAYER_RECORD_TYPES.DRUGS_SOLD_TOTAL] || 0) + actualAmount;
+            }
+            if (currentSystem.name === 'Blackreach' && cargoType.id === CARGO_TYPES.WEAPONS.id) {
+                gameState.playerRecord[PLAYER_RECORD_TYPES.BLACKREACH_WEAPONS_SOLD] = (gameState.playerRecord[PLAYER_RECORD_TYPES.BLACKREACH_WEAPONS_SOLD] || 0) + actualAmount;
+            }
             
             // Grant trading experience
             const tradingExpFraction = totalValue / 1000;

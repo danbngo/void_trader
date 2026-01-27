@@ -348,8 +348,10 @@ const SystemGenerator = (() => {
         // Set minimum fees
         terraSystem.fees = STAR_SYSTEM_MIN_FEES;
         
-        // Give Terra ALL buildings
-        terraSystem.buildings = Object.values(BUILDING_TYPES).map(building => building.id);
+        // Give Terra all buildings except Courthouse
+        terraSystem.buildings = Object.values(BUILDING_TYPES)
+            .filter(building => building.id !== 'COURTHOUSE')
+            .map(building => building.id);
         
         // Mark Terra as immune to alien conquest
         terraSystem.immuneToAlienConquest = true;
@@ -417,6 +419,11 @@ const SystemGenerator = (() => {
         blackreachSystem.name = 'Blackreach';
         usedNames.delete(oldName);
         usedNames.add('Blackreach');
+        
+        // Give Blackreach all buildings except Courthouse
+        blackreachSystem.buildings = Object.values(BUILDING_TYPES)
+            .filter(building => building.id !== 'COURTHOUSE')
+            .map(building => building.id);
         
         // Mark Blackreach as immune to alien conquest
         blackreachSystem.immuneToAlienConquest = true;

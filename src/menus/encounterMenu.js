@@ -1719,6 +1719,17 @@ const EncounterMenu = (() => {
                     (currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0) + alienShipsDefeated;
             }
             
+            // Track police ships destroyed
+            if (encounterType.id === 'POLICE') {
+                currentGameState.playerRecord[PLAYER_RECORD_TYPES.POLICE_SHIPS_DESTROYED] =
+                    (currentGameState.playerRecord[PLAYER_RECORD_TYPES.POLICE_SHIPS_DESTROYED] || 0) + defeatedShips.length;
+            }
+            
+            // Trigger Blackreach intro after defeating any non-pirate, non-smuggler fleet
+            if (defeatedShips.length > 0 && encounterType.id !== 'PIRATE' && encounterType.id !== 'SMUGGLERS') {
+                currentGameState.playerRecord[PLAYER_RECORD_TYPES.BLACKREACH_INTRO_TRIGGERED] = true;
+            }
+            
             // Grant combat victory experience
             const playerFleetValue = currentGameState.ships.reduce((sum, s) => {
                 const shipType = SHIP_TYPES[s.type] || ALIEN_SHIP_TYPES[s.type];

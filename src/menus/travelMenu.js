@@ -243,13 +243,15 @@ const TravelMenu = (() => {
         const avgPirateWeight = (currentSystem.pirateWeight + targetSystem.pirateWeight) / 2;
         const avgPoliceWeight = (currentSystem.policeWeight + targetSystem.policeWeight) / 2;
         const avgMerchantWeight = (currentSystem.merchantWeight + targetSystem.merchantWeight) / 2;
+        const avgSmugglersWeight = (currentSystem.smugglersWeight + targetSystem.smugglersWeight) / 2;
+        const avgSoldiersWeight = (currentSystem.soldiersWeight + targetSystem.soldiersWeight) / 2;
         const abandonedShipWeight = ABANDONED_SHIP_ENCOUNTER_WEIGHT;
         
         // Add alien encounter weight if traveling to conquered system
         const alienWeight = targetSystem.conqueredByAliens ? ALIENS_ENCOUNTER_WEIGHT : 0;
         
         // Total weight
-        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight + alienWeight;
+        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight + alienWeight;
         
         // Random selection based on weights
         const roll = Math.random() * totalWeight;
@@ -260,7 +262,11 @@ const TravelMenu = (() => {
             encounterType = ENCOUNTER_TYPES.POLICE;
         } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight) {
             encounterType = ENCOUNTER_TYPES.MERCHANT;
-        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + abandonedShipWeight) {
+        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight) {
+            encounterType = ENCOUNTER_TYPES.SMUGGLERS;
+        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight) {
+            encounterType = ENCOUNTER_TYPES.SOLDIERS;
+        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight) {
             encounterType = ENCOUNTER_TYPES.ABANDONED_SHIP;
         } else {
             // Alien encounter during travel - only skirmish (defense happens at destination)

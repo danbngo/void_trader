@@ -133,6 +133,8 @@ const SystemGenerator = (() => {
         system.pirateWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         system.policeWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         system.merchantWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
+        system.smugglersWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
+        system.soldiersWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         
         // Generate buildings based on generation chances
         Object.values(BUILDING_TYPES).forEach(buildingType => {

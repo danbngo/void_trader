@@ -12,38 +12,68 @@ const MerchantEncounter = {
         
         const grid = UI.getGridSize();
         
-        UI.addTitleLineCentered(0, 'Merchant Encounter');
+        const reputation = gameState.reputation || 0;
+        const isMerchant = encType.id === 'MERCHANT';
+        const isSmuggler = encType.id === 'SMUGGLERS';
+        
+        // Check if trade is permitted based on reputation
+        const tradeAllowed = (isMerchant && reputation >= 0) || (isSmuggler && reputation < 0);
+        
+        UI.addTitleLineCentered(0, `${encType.name} Encounter`);
         let y = 2;
         
-        UI.addText(10, y++, `A merchant vessel hails your fleet.`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
+        if (isMerchant) {
+            UI.addText(10, y++, `A merchant vessel hails your fleet.`, COLORS.TEXT_NORMAL);
+            if (tradeAllowed) {
+                UI.addText(10, y++, `"Greetings, captain. Interested in some trade?"`, COLORS.YELLOW);
+            } else {
+                UI.addText(10, y++, `"We don't deal with criminals. Move along."`, COLORS.YELLOW);
+                UI.addText(10, y++, `(Merchants only trade with captains of neutral or positive reputation)`, COLORS.TEXT_DIM);
+            }
+        } else if (isSmuggler) {
+            UI.addText(10, y++, `A suspicious-looking vessel signals you.`, COLORS.TEXT_NORMAL);
+            if (tradeAllowed) {
+                UI.addText(10, y++, `"You look like someone who can keep their mouth shut. Let's talk business."`, COLORS.DARK_MAGENTA);
+            } else {
+                UI.addText(10, y++, `"You're too clean for our operation. Get lost."`, COLORS.DARK_MAGENTA);
+                UI.addText(10, y++, `(Smugglers only trade with captains of negative reputation)`, COLORS.TEXT_DIM);
+            }
+        }
         y++;
         
         // Show radar advantage messages
-        y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, "Merchants");
-        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, "Merchants");
+        y = EncounterUtils.showPlayerRadarAdvantage(gameState, y, encType.name);
+        y = EncounterUtils.showRadarAdvantageWarning(gameState, y, encType.name);
         
         // Show player ships
         y = ShipTableRenderer.addPlayerFleet(10, y, 'Your Fleet:', gameState.ships, false);
         y++;
         
         // Show merchant ships
-        y = ShipTableRenderer.addNPCFleet(10, y, 'Merchant Vessels:', gameState.encounterShips);
+        y = ShipTableRenderer.addNPCFleet(10, y, `${encType.name} Vessels:`, gameState.encounterShips);
         
         // Buttons centered at bottom
         const buttonY = grid.height - 4;
-        UI.addCenteredButtons(buttonY, [
+        
+        const buttons = [
             { key: '1', label: 'Ignore', callback: () => {
                 // Return to travel menu
                 TravelMenu.resume();
-            }, color: COLORS.BUTTON, helpText: 'Continue journey without trading' },
-            { key: '2', label: 'Accept Trade Offer', callback: () => {
+            }, color: COLORS.BUTTON, helpText: 'Continue journey without trading' }
+        ];
+        
+        if (tradeAllowed) {
+            buttons.push({ key: '2', label: 'Accept Trade Offer', callback: () => {
                 this.handleTrade(gameState, encType);
-            }, color: COLORS.GREEN, helpText: 'Trade with merchants (buy or sell cargo at base price)' },
-            { key: '3', label: 'Attack', callback: () => {
-                this.showAttackConsequences(gameState, encType);
-            }, color: COLORS.TEXT_ERROR, helpText: 'Attack innocent traders (-5 reputation, +1000 bounty)' }
-        ]);
+            }, color: COLORS.GREEN, helpText: `Trade with ${encType.name.toLowerCase()} (buy or sell cargo at base price)` });
+        }
+        
+        const attackText = isMerchant ? 'Attack innocent traders (-5 reputation, +1000 bounty)' : 'Attack smugglers (+5 reputation, no bounty)';
+        buttons.push({ key: '3', label: 'Attack', callback: () => {
+            this.showAttackConsequences(gameState, encType);
+        }, color: COLORS.TEXT_ERROR, helpText: attackText });
+        
+        UI.addCenteredButtons(buttonY, buttons);
         
         UI.draw();
     },

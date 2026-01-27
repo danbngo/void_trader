@@ -18,8 +18,15 @@ const EncounterDecisionMenu = {
                 case 'MERCHANT':
                     MerchantEncounter.show(gameState, encType);
                     break;
+                case 'SMUGGLERS':
+                    MerchantEncounter.show(gameState, encType); // Use same menu as merchants
+                    break;
                 case 'PIRATE':
                     PirateEncounter.show(gameState, encType);
+                    break;
+                case 'SOLDIERS':
+                    // Soldiers behave like police but more aggressive
+                    PoliceEncounter.show(gameState, encType);
                     break;
                 default:
                     // Unknown encounter type, go straight to combat
@@ -55,6 +62,14 @@ const EncounterDecisionMenu = {
             case 'MERCHANT':
                 UI.addText(10, y++, `The merchant ships alter course to avoid you.`, COLORS.TEXT_NORMAL);
                 UI.addText(10, y++, `Perhaps they suspect you're a threat.`, COLORS.TEXT_NORMAL);
+                break;
+            case 'SMUGGLERS':
+                UI.addText(10, y++, `The smugglers' ships fade into the void.`, COLORS.TEXT_NORMAL);
+                UI.addText(10, y++, `They don't trust strangers.`, COLORS.TEXT_NORMAL);
+                break;
+            case 'SOLDIERS':
+                UI.addText(10, y++, `The military patrol continues on its route.`, COLORS.TEXT_NORMAL);
+                UI.addText(10, y++, `They're not interested in small-time traders.`, COLORS.TEXT_NORMAL);
                 break;
             default:
                 UI.addText(10, y++, `The ${encType.name.toLowerCase()} ships pass by without incident.`, COLORS.TEXT_NORMAL);
@@ -93,6 +108,16 @@ const EncounterDecisionMenu = {
                 reputationEffect = REPUTATION_EFFECT_ON_ATTACK_CIVILIAN;
                 bountyEffect = BOUNTY_INCREASE_ON_ATTACK_CIVILIANS;
                 break;
+            case 'SMUGGLERS':
+                hoverText = 'Attack criminals (+5 reputation, no bounty)';
+                reputationEffect = REPUTATION_EFFECT_ON_ATTACK_CRIMINALS;
+                bountyEffect = 0;
+                break;
+            case 'SOLDIERS':
+                hoverText = 'Attack military (-10 reputation, +2000 bounty)';
+                reputationEffect = REPUTATION_EFFECT_ON_ATTACK_AUTHORITIES;
+                bountyEffect = BOUNTY_INCREASE_ON_ATTACK_AUTHORITIES;
+                break;
             case 'PIRATE':
                 hoverText = 'Attack criminals (+5 reputation, no bounty)';
                 reputationEffect = REPUTATION_EFFECT_ON_ATTACK_CRIMINALS;
@@ -126,9 +151,9 @@ const EncounterDecisionMenu = {
                     let repValue = `${sign}${reputationEffect}`;
                     
                     // Add descriptive text based on encounter type
-                    if (encType.id === 'PIRATE') {
+                    if (encType.id === 'PIRATE' || encType.id === 'SMUGGLERS') {
                         repValue = `${sign}${reputationEffect} for attacking criminals`;
-                    } else if (encType.id === 'POLICE') {
+                    } else if (encType.id === 'POLICE' || encType.id === 'SOLDIERS') {
                         repValue = `${sign}${reputationEffect} for attacking authorities`;
                     } else if (encType.id === 'MERCHANT') {
                         repValue = `${sign}${reputationEffect} for attacking civilians`;

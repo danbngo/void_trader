@@ -222,6 +222,47 @@ const QUESTS = {
             return `Systems Liberated: ${systemsLiberated}/1`;
         }
     ),
+
+    DELIVER_ALIEN_MODULES_TO_TERRA: new Quest(
+        'DELIVER_ALIEN_MODULES_TO_TERRA',
+        'Alien Technology Transfer',
+        'Bring a ship to Terra with 2 installed alien modules',
+        150000,
+        30000,
+        (gameState) => {
+            const currentSystem = gameState.getCurrentSystem();
+            if (!currentSystem || currentSystem.name !== 'Terra') {
+                return false;
+            }
+            const maxAlienModules = gameState.ships.reduce((maxCount, ship) => {
+                const alienModules = (ship.modules || []).filter(moduleId =>
+                    SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology
+                ).length;
+                return Math.max(maxCount, alienModules);
+            }, 0);
+            return maxAlienModules >= 2;
+        },
+        'ALIEN_MODULES_DELIVERED',
+        ['Terra'],
+        (gameState) => {
+            const maxAlienModules = gameState.ships.reduce((maxCount, ship) => {
+                const alienModules = (ship.modules || []).filter(moduleId =>
+                    SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology
+                ).length;
+                return Math.max(maxCount, alienModules);
+            }, 0);
+            return Math.min(1.0, maxAlienModules / 2);
+        },
+        (gameState) => {
+            const maxAlienModules = gameState.ships.reduce((maxCount, ship) => {
+                const alienModules = (ship.modules || []).filter(moduleId =>
+                    SHIP_MODULES[moduleId] && SHIP_MODULES[moduleId].alienTechnology
+                ).length;
+                return Math.max(maxCount, alienModules);
+            }, 0);
+            return `Alien Modules on a Ship: ${Math.min(maxAlienModules, 2)}/2`;
+        }
+    ),
     
     DEFEAT_ALIEN_FLEET: new Quest(
         'DEFEAT_ALIEN_FLEET',

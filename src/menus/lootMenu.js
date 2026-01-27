@@ -10,6 +10,11 @@ const LootMenu = (() => {
     let outputColor = COLORS.TEXT_NORMAL;
     let lootCargo = {}; // Combined cargo from all enemy ships
     let creditReward = 0; // One-time credit reward
+    let mode = 'loot'; // 'loot', 'modules', 'select-module-ship'
+    let pendingModules = [];
+    let selectedModuleIndex = 0;
+    let selectedModuleShipIndex = 0;
+    let selectedModule = null;
     
     /**
      * Show the loot menu
@@ -40,6 +45,30 @@ const LootMenu = (() => {
         // Award credits immediately
         gameState.credits += creditReward;
         
+        // Determine alien module drops (if not explicitly provided)
+        const hasProvidedModules = Array.isArray(encounterType.shipModules);
+        let shipModules = hasProvidedModules ? [...encounterType.shipModules] : null;
+        if (encounterType.id === 'ALIEN_DEFENSE') {
+            const defenseFleetsDefeated = gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_DEFENSE_FLEETS_DEFEATED] || 0;
+            if (!hasProvidedModules) {
+                const forceDrop = defenseFleetsDefeated === 0;
+                const shouldDrop = forceDrop || Math.random() < ALIEN_DEFENSE_FLEET_DROP_MODULE_CHANCE;
+                const alienModules = SHIP_MODULES_ARRAY.filter(module => module.alienTechnology);
+                if (shouldDrop && alienModules.length > 0) {
+                    const module = alienModules[Math.floor(Math.random() * alienModules.length)];
+                    shipModules = [module.id];
+                }
+            }
+            // Track alien defense fleet victories
+            gameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_DEFENSE_FLEETS_DEFEATED] = defenseFleetsDefeated + 1;
+        }
+        
+        pendingModules = shipModules || [];
+        selectedModuleIndex = 0;
+        selectedModuleShipIndex = 0;
+        selectedModule = null;
+        mode = pendingModules.length > 0 ? 'modules' : 'loot';
+        
         UI.resetSelection();
         render(onContinue);
     }
@@ -51,6 +80,15 @@ const LootMenu = (() => {
         UI.clear();
         
         const grid = UI.getGridSize();
+        
+        if (mode === 'modules') {
+            renderModuleInstall(onContinue, grid);
+            return;
+        }
+        if (mode === 'select-module-ship') {
+            renderSelectModuleShip(onContinue, grid);
+            return;
+        }
         
         // Title
         UI.addTitleLineCentered(0, 'Victory: Salvage Operations');
@@ -168,6 +206,191 @@ const LootMenu = (() => {
         }
         
         UI.draw();
+    }
+
+    /**
+     * Render alien module installation screen
+     */
+    function renderModuleInstall(onContinue, grid) {
+        UI.addTitleLineCentered(0, 'Recovered Alien Technology');
+        UI.addText(5, 4, 'Recovered Modules:', COLORS.TEXT_NORMAL);
+
+        const startY = 6;
+        const rows = pendingModules.map((moduleId) => {
+            const module = SHIP_MODULES[moduleId];
+            return [
+                { text: module.name, color: COLORS.TEXT_NORMAL },
+                { text: module.description, color: COLORS.TEXT_DIM }
+            ];
+        });
+
+        // Ensure selectedModuleIndex is valid
+        if (selectedModuleIndex >= rows.length) {
+            selectedModuleIndex = Math.max(0, rows.length - 1);
+        }
+
+        TableRenderer.renderTable(5, startY, ['Module', 'Effect'], rows, selectedModuleIndex, 2, (rowIndex) => {
+            selectedModuleIndex = rowIndex;
+            outputMessage = '';
+            render(onContinue);
+        });
+
+        const buttonY = grid.height - 4;
+
+        if (pendingModules.length > 1) {
+            UI.addButton(5, buttonY, '1', 'Next Module', () => {
+                selectedModuleIndex = (selectedModuleIndex + 1) % pendingModules.length;
+                outputMessage = '';
+                render(onContinue);
+            }, COLORS.BUTTON, 'Select next module');
+            UI.addButton(5, buttonY + 1, '2', 'Prev Module', () => {
+                selectedModuleIndex = (selectedModuleIndex - 1 + pendingModules.length) % pendingModules.length;
+                outputMessage = '';
+                render(onContinue);
+            }, COLORS.BUTTON, 'Select previous module');
+        }
+
+        UI.addButton(28, buttonY, '3', 'Install on Ship', () => initiateModuleInstall(onContinue), COLORS.GREEN, 'Choose a ship to install this module');
+        UI.addButton(28, buttonY + 1, '0', 'Skip Installation', () => skipModuleInstall(onContinue), COLORS.BUTTON, 'Proceed to salvage without installing');
+
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+
+        UI.draw();
+    }
+
+    /**
+     * Render ship selection for module install
+     */
+    function renderSelectModuleShip(onContinue, grid) {
+        UI.addTitleLineCentered(0, 'Install Alien Module');
+        UI.addText(5, 4, `Select ship to install ${selectedModule.name}:`, COLORS.YELLOW);
+
+        const startY = 6;
+        const rows = gameState.ships.map((ship) => {
+            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+            const numModules = ship.modules ? ship.modules.length : 0;
+            const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
+            const canInstall = numInstalledModules < SHIP_MAX_NUM_MODULES;
+            const statusText = canInstall ? `${numInstalledModules}/${SHIP_MAX_NUM_MODULES}` : 'FULL';
+            const statusColor = canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR;
+
+            return [
+                { text: shipType.name, color: canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM },
+                { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
+                { text: statusText, color: statusColor }
+            ];
+        });
+
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Cargo', 'Modules'], rows, selectedModuleShipIndex, 2, (rowIndex) => {
+            selectedModuleShipIndex = rowIndex;
+            outputMessage = '';
+            render(onContinue);
+        });
+
+        const buttonY = grid.height - 4;
+        if (gameState.ships.length > 1) {
+            UI.addButton(5, buttonY, '1', 'Next Ship', () => {
+                selectedModuleShipIndex = (selectedModuleShipIndex + 1) % gameState.ships.length;
+                outputMessage = '';
+                render(onContinue);
+            }, COLORS.BUTTON);
+            UI.addButton(5, buttonY + 1, '2', 'Prev Ship', () => {
+                selectedModuleShipIndex = (selectedModuleShipIndex - 1 + gameState.ships.length) % gameState.ships.length;
+                outputMessage = '';
+                render(onContinue);
+            }, COLORS.BUTTON);
+        }
+
+        UI.addButton(28, buttonY, '3', 'Confirm Install', () => confirmModuleInstall(onContinue), COLORS.GREEN);
+        UI.addButton(28, buttonY + 1, '0', 'Cancel', () => cancelModuleInstall(onContinue), COLORS.BUTTON);
+
+        if (outputMessage) {
+            UI.setOutputRow(outputMessage, outputColor);
+        }
+
+        UI.draw();
+    }
+
+    function initiateModuleInstall(onContinue) {
+        if (pendingModules.length === 0) {
+            outputMessage = 'No modules to install.';
+            outputColor = COLORS.TEXT_ERROR;
+            render(onContinue);
+            return;
+        }
+        const moduleId = pendingModules[selectedModuleIndex];
+        selectedModule = SHIP_MODULES[moduleId];
+        mode = 'select-module-ship';
+        selectedModuleShipIndex = 0;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onContinue);
+    }
+
+    function confirmModuleInstall(onContinue) {
+        const ship = gameState.ships[selectedModuleShipIndex];
+        const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
+
+        if (numInstalledModules >= SHIP_MAX_NUM_MODULES) {
+            outputMessage = `Ship already has maximum modules (${SHIP_MAX_NUM_MODULES})!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onContinue);
+            return;
+        }
+
+        if (ship.modules && ship.modules.includes(selectedModule.id)) {
+            outputMessage = `Ship already has ${selectedModule.name} installed!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onContinue);
+            return;
+        }
+
+        if (!ship.modules) {
+            ship.modules = [];
+        }
+        ship.modules.push(selectedModule.id);
+        selectedModule.onInstall(ship);
+
+        const shipType = SHIP_TYPES[ship.type] || { name: 'Ship' };
+        outputMessage = `Installed ${selectedModule.name} on ${shipType.name}!`;
+        outputColor = COLORS.TEXT_SUCCESS;
+
+        pendingModules.splice(selectedModuleIndex, 1);
+        selectedModule = null;
+        selectedModuleShipIndex = 0;
+
+        if (pendingModules.length === 0) {
+            mode = 'loot';
+        } else {
+            mode = 'modules';
+            selectedModuleIndex = Math.min(selectedModuleIndex, pendingModules.length - 1);
+        }
+
+        UI.resetSelection();
+        render(onContinue);
+    }
+
+    function cancelModuleInstall(onContinue) {
+        mode = 'modules';
+        selectedModule = null;
+        selectedModuleShipIndex = 0;
+        outputMessage = '';
+        UI.resetSelection();
+        render(onContinue);
+    }
+
+    function skipModuleInstall(onContinue) {
+        pendingModules = [];
+        selectedModuleIndex = 0;
+        selectedModuleShipIndex = 0;
+        selectedModule = null;
+        mode = 'loot';
+        outputMessage = '';
+        UI.resetSelection();
+        render(onContinue);
     }
     
     /**

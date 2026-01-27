@@ -77,7 +77,7 @@ const SHIP_TYPES = {
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 2,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.5,
-        defaultModule: 'TRACTOR_BEAM'
+        defaultModule: 'SELF_DESTRUCT'
     },
     DESTROYER: {
         id: 'DESTROYER',
@@ -156,7 +156,7 @@ const ALIEN_SHIP_TYPES = {
         isAlien: true,
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: 0,
-        baseMaxHull: AVERAGE_SHIP_HULL * 0.1,
+        baseMaxHull: AVERAGE_SHIP_HULL * 0.25,
         baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.25,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5,
@@ -176,7 +176,7 @@ const ALIEN_SHIP_TYPES = {
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1,
-        defaultModule: 'SELF_DESTRUCT'
+        defaultModule: 'TRACTOR_BEAM'
     },
     ALIEN_MOTHERSHIP: {
         id: 'ALIEN_MOTHERSHIP',
@@ -208,21 +208,6 @@ const ALIEN_SHIP_TYPES = {
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1,
         defaultModule: 'REPULSOR'
     },
-    ALIEN_GNAT: {
-        id: 'ALIEN_GNAT',
-        name: 'Gnat',
-        symbol: '·',  // Alternatives: · ˙ ∙ • ‧
-        description: 'Extremely fast but fragile alien harasser',
-        isAlien: true,
-        baseMaxFuel: AVERAGE_SHIP_FUEL * 0.5,
-        baseCargoCapacity: 0,
-        baseMaxHull: AVERAGE_SHIP_HULL * 0.05,
-        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.1,
-        baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.1,
-        baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 3,
-        baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.25,
-        defaultModule: 'REFLECTOR'
-    }
 }
 
 // Array of all ship types for iteration

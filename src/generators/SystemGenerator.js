@@ -107,11 +107,15 @@ const SystemGenerator = (() => {
             system.ships.push(ShipGenerator.generateRandomShip());
         }
         
-        // Generate modules for shipyard
+        // Generate modules for shipyard (exclude alien technology)
         const moduleCount = Math.floor(Math.random() * (SHIPYARD_MAX_NUM_MODULES - SHIPYARD_MIN_NUM_MODULES + 1)) + SHIPYARD_MIN_NUM_MODULES;
+        const availableModules = SHIP_MODULES_ARRAY.filter(module => !module.alienTechnology);
         system.modules = [];
         for (let i = 0; i < moduleCount; i++) {
-            const randomModule = SHIP_MODULES_ARRAY[Math.floor(Math.random() * SHIP_MODULES_ARRAY.length)];
+            if (availableModules.length === 0) {
+                break;
+            }
+            const randomModule = availableModules[Math.floor(Math.random() * availableModules.length)];
             system.modules.push(randomModule.id);
         }
         

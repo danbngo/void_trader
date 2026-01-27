@@ -340,5 +340,34 @@ const MESSAGES = {
         ],
         null, // No next quest in chain (for now)
         'DELIVER_RELICS_TO_TERRA' // This message completes the DELIVER_RELICS_TO_TERRA quest
+    ),
+    
+    ALIEN_MODULES_DELIVERED: new Message(
+        'ALIEN_MODULES_DELIVERED',
+        'Terra Defense Bureau - Alien Tech Installed',
+        [
+            'Commander Voss here.',
+            '',
+            'Our engineers confirm the alien modules are now integrated',
+            'into your vessel. This technology is beyond anything in the',
+            'Terran arsenal, and your cooperation gives us a vital edge.',
+            '',
+            'Continue to strike at alien forces whenever possible. The',
+            'Defense Bureau is authorizing expanded bounties for confirmed',
+            'alien kills to accelerate our counteroffensive.',
+            '',
+            'Stay sharp out there, captain. You are on the front line.',
+            '',
+            '- Commander Voss, Terra Defense Bureau'
+        ],
+        (gameState) => {
+            // Add next alien quest
+            const quest = QUESTS.DEFEAT_ALIEN_FLEET;
+            if (!gameState.activeQuests.includes(quest.id)) {
+                gameState.activeQuests.push(quest.id);
+                updateSystemsWithQuests(gameState);
+            }
+        },
+        'DELIVER_ALIEN_MODULES_TO_TERRA' // This message completes the DELIVER_ALIEN_MODULES_TO_TERRA quest
     )
 };

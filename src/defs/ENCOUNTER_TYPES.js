@@ -168,6 +168,7 @@ const ENCOUNTER_TYPES = {
         description: 'Alien defense forces protecting their territory',
         shipTypes: SHIP_TYPES_ALIEN,
         cargoTypes: [CARGO_TYPES.RELICS],
+        shipModules: [],
         maxCredits: 0,
         minShips: 6,
         maxShips: 9,

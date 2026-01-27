@@ -640,14 +640,13 @@ const EncounterMenu = (() => {
                 return false; // Remove if progress is invalid
             }
             
-            // Draw 3x3 grid of explosion particles centered on ship
+            // Draw 3x3 grid of explosion particles centered on ship (in screen space)
+            const centerScreenX = Math.floor(mapCenterX + (explosion.x - cameraOffsetX) * scale);
+            const centerScreenY = Math.floor(mapCenterY - (explosion.y - cameraOffsetY) * scale);
             for (let dx = -1; dx <= 1; dx++) {
                 for (let dy = -1; dy <= 1; dy++) {
-                    const x = explosion.x + dx;
-                    const y = explosion.y + dy;
-                    
-                    const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
-                    const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
+                    const screenX = centerScreenX + dx;
+                    const screenY = centerScreenY + dy;
                     
                     // Check if in bounds
                     if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {

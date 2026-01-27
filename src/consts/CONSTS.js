@@ -128,6 +128,7 @@ const ALIENS_CONQUER_CHANCE_PER_YEAR = 0.15 //every alien-conquered system whose
 const ALIENS_LIBERATED_CHANCE_PER_YEARS = 0.1 //every alien-conquered system whose nearest neighbor is human has a chance to be liberated each year
 const ALIENS_ENCOUNTER_WEIGHT = 4.0 //when traveling to a conquered system, this is added to encounter weights, otherwise chance of alien encounters is 0
 const ALIENS_MAX_ATTACK_DISTANCE = 20 //maximum distance in LY that aliens will attack from conquered systems
+const ALIEN_DEFENSE_FLEET_DROP_MODULE_CHANCE = 0.5 // chance alien defense fleets drop an alien module
 
 // Terra system constants
 const MIN_DISTANCE_NEXUS_TO_TERRA = 75 // Minimum distance from Nexus to Terra in LY

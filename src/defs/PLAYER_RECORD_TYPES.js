@@ -14,6 +14,7 @@ const PLAYER_RECORD_TYPES = {
     COMBAT_ENCOUNTERS_FLED: 'COMBAT_ENCOUNTERS_FLED',   // Combats fled from
     SHIPS_DESTROYED: 'SHIPS_DESTROYED',                 // Enemy ships destroyed
     ALIEN_SHIPS_DEFEATED: 'ALIEN_SHIPS_DEFEATED',       // Alien ships defeated
+    ALIEN_DEFENSE_FLEETS_DEFEATED: 'ALIEN_DEFENSE_FLEETS_DEFEATED', // Alien defense fleets defeated
     SYSTEMS_LIBERATED: 'SYSTEMS_LIBERATED',             // Systems liberated from alien control
     TIMES_DIED: 'TIMES_DIED'                            // Number of player deaths
 };

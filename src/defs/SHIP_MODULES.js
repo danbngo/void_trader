@@ -121,6 +121,7 @@ const SHIP_MODULES = {
         id: 'TRACTOR_BEAM',
         name: 'Tractor Beam',
         description: 'Pulls enemies on laser hit',
+        alienTechnology: true,
         value: 9000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -131,6 +132,7 @@ const SHIP_MODULES = {
         id: 'REPULSOR',
         name: 'Repulsor',
         description: 'Pushes enemies on laser hit',
+        alienTechnology: true,
         value: 9000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -141,6 +143,7 @@ const SHIP_MODULES = {
         id: 'BLINK',
         name: 'Blink',
         description: '25% chance to teleport when hit',
+        alienTechnology: true,
         value: 12000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -201,6 +204,7 @@ const SHIP_MODULES = {
         id: 'SHIELD_RECHARGER',
         name: 'Shield Recharger',
         description: '4x shield regen in combat',
+        alienTechnology: true,
         value: 9000,
         onInstall: (ship) => {
             // Passive effect, handled in combat

@@ -19,14 +19,13 @@ const EncounterDecisionMenu = {
                     MerchantEncounter.show(gameState, encType);
                     break;
                 case 'SMUGGLERS':
-                    MerchantEncounter.show(gameState, encType); // Use same menu as merchants
+                    SmugglersEncounter.show(gameState, encType);
                     break;
                 case 'PIRATE':
                     PirateEncounter.show(gameState, encType);
                     break;
                 case 'SOLDIERS':
-                    // Soldiers behave like police but more aggressive
-                    PoliceEncounter.show(gameState, encType);
+                    SoldiersEncounter.show(gameState, encType);
                     break;
                 default:
                     // Unknown encounter type, go straight to combat
@@ -109,8 +108,8 @@ const EncounterDecisionMenu = {
                 bountyEffect = BOUNTY_INCREASE_ON_ATTACK_CIVILIANS;
                 break;
             case 'SMUGGLERS':
-                hoverText = 'Attack criminals (+5 reputation, no bounty)';
-                reputationEffect = REPUTATION_EFFECT_ON_ATTACK_CRIMINALS;
+                hoverText = 'Attack smugglers (no reputation or bounty change)';
+                reputationEffect = 0;
                 bountyEffect = 0;
                 break;
             case 'SOLDIERS':

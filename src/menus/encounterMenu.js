@@ -13,6 +13,7 @@ const EncounterMenu = (() => {
     let cameraOffsetY = 0;
     let mapViewRange = ENCOUNTER_MAP_VIEW_RANGE; // Current view range
     let continueEnemyTurn = null; // Function to continue after enemy ship moves
+    let waitingForContinue = false; // Whether waiting for player to press Continue after their ship acts
     let flashingEntities = new Map(); // Track entities that should flash orange (key: entity object, value: timestamp when flash ends)
     let explosions = []; // Track active explosion animations { x, y, startTime, duration }
     let aoeEffects = []; // Track AOE effect animations { x, y, startTime, duration, color }
@@ -623,13 +624,22 @@ const EncounterMenu = (() => {
         // Draw explosion animations (on top of everything else)
         const blockChars = ['░', '▒', '▓'];
         explosions = explosions.filter(explosion => {
+            // Validate explosion data
+            if (!explosion || explosion.startTime === undefined) {
+                return false; // Remove invalid explosions
+            }
+            
             const elapsed = now - explosion.startTime;
-            if (elapsed >= explosion.duration) {
-                return false; // Remove finished explosions
+            if (elapsed >= explosion.duration || isNaN(elapsed)) {
+                return false; // Remove finished or invalid explosions
             }
             
             // Calculate expansion progress (0 to 1)
             const progress = elapsed / explosion.duration;
+            if (isNaN(progress)) {
+                return false; // Remove if progress is invalid
+            }
+            
             const maxRadius = 4; // Maximum explosion radius
             const currentRadius = progress * maxRadius;
             
@@ -646,9 +656,11 @@ const EncounterMenu = (() => {
                 // Check if in bounds
                 if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                     // Pick a block character based on progress (fade out)
-                    const charIndex = Math.min(2, Math.floor(progress * 3));
+                    const charIndex = Math.min(2, Math.max(0, Math.floor(progress * 3)));
                     const char = blockChars[charIndex];
-                    UI.addText(screenX, screenY, char, COLORS.ORANGE, 0.9);
+                    if (char) {
+                        UI.addText(screenX, screenY, char, COLORS.ORANGE, 0.9);
+                    }
                 }
             }
             
@@ -657,13 +669,22 @@ const EncounterMenu = (() => {
         
         // Draw AOE effect animations
         aoeEffects = aoeEffects.filter(effect => {
+            // Validate effect data
+            if (!effect || effect.startTime === undefined) {
+                return false; // Remove invalid effects
+            }
+            
             const elapsed = now - effect.startTime;
-            if (elapsed >= effect.duration) {
-                return false; // Remove finished effects
+            if (elapsed >= effect.duration || isNaN(elapsed)) {
+                return false; // Remove finished or invalid effects
             }
             
             // Calculate expansion progress (0 to 1)
             const progress = elapsed / effect.duration;
+            if (isNaN(progress)) {
+                return false; // Remove if progress is invalid
+            }
+            
             const maxRadius = 4; // Maximum AOE radius
             const currentRadius = progress * maxRadius;
             
@@ -680,9 +701,11 @@ const EncounterMenu = (() => {
                 // Check if in bounds
                 if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                     // Pick a block character based on progress (fade out)
-                    const charIndex = Math.min(2, Math.floor(progress * 3));
+                    const charIndex = Math.min(2, Math.max(0, Math.floor(progress * 3)));
                     const char = blockChars[charIndex];
-                    UI.addText(screenX, screenY, char, effect.color, 0.9);
+                    if (char) {
+                        UI.addText(screenX, screenY, char, effect.color, 0.9);
+                    }
                 }
             }
             

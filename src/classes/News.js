@@ -74,6 +74,12 @@ class News {
             // Apply end effects
             if (gameState) {
                 this.newsType.onEnd(this, gameState);
+                
+                // If this was an alien conquest or liberation event, adjust encounter weights
+                const alienNewsTypes = ['ALIEN_CONQUEST', 'ALIEN_LIBERATION', 'ALIEN_INSTA_CONQUEST'];
+                if (alienNewsTypes.includes(this.newsType.id)) {
+                    SystemGenerator.adjustEncounterWeightsForAliens(gameState.systems);
+                }
             } else {
                 this.newsType.onEnd(this);
             }

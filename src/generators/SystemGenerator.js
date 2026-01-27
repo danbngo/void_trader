@@ -135,6 +135,7 @@ const SystemGenerator = (() => {
         system.merchantWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         system.smugglersWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
         system.soldiersWeight = Math.pow(MAX_ENCOUNTER_WEIGHT, Math.random() * 2 - 1);
+        system.alienWeight = 0; // Initially 0, adjusted based on alien proximity
         
         // Generate buildings based on generation chances
         Object.values(BUILDING_TYPES).forEach(buildingType => {
@@ -615,11 +616,62 @@ const SystemGenerator = (() => {
         return newsEvents;
     }
     
+    /**
+     * Adjust encounter weights based on proximity to alien-controlled systems
+     * Should be called after alien conquests occur
+     * @param {Array<StarSystem>} systems - All star systems
+     */
+    function adjustEncounterWeightsForAliens(systems) {
+        // Find all alien-conquered systems
+        const conqueredSystems = systems.filter(system => system.conqueredByAliens);
+        
+        // Reset all alien weights and soldier bonuses first
+        systems.forEach(system => {
+            if (!system.conqueredByAliens) {
+                system.alienWeight = 0;
+                // Note: We don't reset soldiersWeight here since we're multiplying it
+                // Instead we'll need to track the base value
+            }
+        });
+        
+        // For each unconquered system, check if it's within attack distance of a conquered system
+        systems.forEach(system => {
+            if (system.conqueredByAliens) {
+                return; // Skip conquered systems
+            }
+            
+            // Check distance to nearest conquered system
+            let nearestConqueredDistance = Infinity;
+            for (const conqueredSystem of conqueredSystems) {
+                const dist = distance(system.x, system.y, conqueredSystem.x, conqueredSystem.y);
+                if (dist < nearestConqueredDistance) {
+                    nearestConqueredDistance = dist;
+                }
+            }
+            
+            // If within attack distance, increase military presence
+            if (nearestConqueredDistance <= ALIENS_MAX_ATTACK_DISTANCE) {
+                // Store base soldier weight if not already stored
+                if (!system.baseSoldiersWeight) {
+                    system.baseSoldiersWeight = system.soldiersWeight;
+                }
+                system.soldiersWeight = system.baseSoldiersWeight * 2.0; // Double soldier presence
+                system.alienWeight = 1.0; // Add base alien encounter weight
+            } else {
+                // Reset to base if previously boosted
+                if (system.baseSoldiersWeight) {
+                    system.soldiersWeight = system.baseSoldiersWeight;
+                }
+            }
+        });
+    }
+    
     return {
         generate,
         generateMany,
         validateGalaxy,
         generateJobsForAllSystems,
-        generateInitialNews
+        generateInitialNews,
+        adjustEncounterWeightsForAliens
     };
 })();

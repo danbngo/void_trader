@@ -183,6 +183,9 @@ const TitleMenu = (() => {
             // Generate initial news events (pass starting system index to ensure Nexus has news)
             gameState.newsEvents = SystemGenerator.generateInitialNews(gameState.systems, gameState.currentYear, gameState.currentSystemIndex);
             
+            // Adjust encounter weights based on alien proximity (after initial conquests)
+            SystemGenerator.adjustEncounterWeightsForAliens(gameState.systems);
+            
             // Messages will be added when player first docks (via checkShouldAdd)
             
             // Create player as first officer (captain) with starting stats
@@ -281,6 +284,9 @@ const TitleMenu = (() => {
             
             // Generate initial news events (pass starting system index to ensure Nexus has news)
             gameState.newsEvents = SystemGenerator.generateInitialNews(gameState.systems, gameState.currentYear, gameState.currentSystemIndex);
+            
+            // Adjust encounter weights based on alien proximity (after initial conquests)
+            SystemGenerator.adjustEncounterWeightsForAliens(gameState.systems);
             
             // Messages will be added when player first docks (via checkShouldAdd)
             

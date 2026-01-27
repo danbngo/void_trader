@@ -240,18 +240,31 @@ const TravelMenu = (() => {
         const currentSystem = currentGameState.getCurrentSystem();
         
         // Calculate weights (average of current and target)
-        const avgPirateWeight = (currentSystem.pirateWeight + targetSystem.pirateWeight) / 2;
-        const avgPoliceWeight = (currentSystem.policeWeight + targetSystem.policeWeight) / 2;
-        const avgMerchantWeight = (currentSystem.merchantWeight + targetSystem.merchantWeight) / 2;
-        const avgSmugglersWeight = (currentSystem.smugglersWeight + targetSystem.smugglersWeight) / 2;
-        const avgSoldiersWeight = (currentSystem.soldiersWeight + targetSystem.soldiersWeight) / 2;
+        let avgPirateWeight = (currentSystem.pirateWeight + targetSystem.pirateWeight) / 2;
+        let avgPoliceWeight = (currentSystem.policeWeight + targetSystem.policeWeight) / 2;
+        let avgMerchantWeight = (currentSystem.merchantWeight + targetSystem.merchantWeight) / 2;
+        let avgSmugglersWeight = (currentSystem.smugglersWeight + targetSystem.smugglersWeight) / 2;
+        let avgSoldiersWeight = (currentSystem.soldiersWeight + targetSystem.soldiersWeight) / 2;
         const abandonedShipWeight = ABANDONED_SHIP_ENCOUNTER_WEIGHT;
         
-        // Add alien encounter weight if traveling to conquered system
-        const alienWeight = targetSystem.conqueredByAliens ? ALIENS_ENCOUNTER_WEIGHT : 0;
+        // Calculate alien encounter weight
+        // Use higher weight when traveling to conquered systems, otherwise use proximity-based weight
+        const avgAlienWeight = targetSystem.conqueredByAliens 
+            ? ALIENS_ENCOUNTER_WEIGHT 
+            : ((currentSystem.alienWeight || 0) + (targetSystem.alienWeight || 0)) / 2;
+        
+        // When traveling to conquered systems, suppress all encounters except soldiers and aliens
+        if (targetSystem.conqueredByAliens) {
+            avgPirateWeight = 0;
+            avgPoliceWeight = 0;
+            avgMerchantWeight = 0;
+            avgSmugglersWeight = 0;
+            // Soldiers remain active
+            // Aliens already have weight
+        }
         
         // Total weight
-        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight + alienWeight;
+        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight + avgAlienWeight;
         
         // Random selection based on weights
         const roll = Math.random() * totalWeight;

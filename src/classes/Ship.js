@@ -5,21 +5,19 @@
 
 class Ship {
     /**
-     * @param {string} name - Name of the ship
      * @param {number} fuel - Current fuel amount
      * @param {number} maxFuel - Maximum fuel capacity
      * @param {number} cargoCapacity - Maximum cargo capacity
      * @param {number} hull - Current hull integrity
      * @param {number} maxHull - Maximum hull integrity
-     * @param {string} type - Ship type ID (optional)
+     * @param {string} type - Ship type ID
      * @param {number} shields - Current shield strength
      * @param {number} maxShields - Maximum shield capacity
      * @param {number} lasers - Number of laser weapons
      * @param {number} engine - Engine level (affects travel speed)
      * @param {number} radar - Radar level (affects targeting accuracy)
      */
-    constructor(name, fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5) {
-        this.name = name;
+    constructor(fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5) {
         this.type = type;
         this.fuel = fuel;
         this.maxFuel = maxFuel;

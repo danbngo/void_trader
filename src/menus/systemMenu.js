@@ -113,11 +113,12 @@ const DockMenu = (() => {
         // Check for new messages that should be added
         checkNewMessages(gameState);
         
-        // Pay officer salaries if this is first landing at this system
-        paySalaries(gameState);
-        
+        // Clear output message before paying salaries
         outputMessage = '';
         outputColor = COLORS.TEXT_NORMAL;
+        
+        // Pay officer salaries if this is first landing at this system
+        paySalaries(gameState);
         
         UI.resetSelection(); // Only reset selection when first entering menu
         render(gameState, newNews, expiredNews);

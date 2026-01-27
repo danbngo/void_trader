@@ -116,8 +116,9 @@ const SkillEffects = (() => {
                 ships.forEach(ship => {
                     if (ship.hull < ship.maxHull) {
                         ship.hull = Math.min(ship.maxHull, ship.hull + 1);
-                        if (!shipsRepaired.includes(ship.name)) {
-                            shipsRepaired.push(ship.name);
+                        const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
+                        if (!shipsRepaired.includes(shipType.name)) {
+                            shipsRepaired.push(shipType.name);
                         }
                         repairsApplied++;
                     }

@@ -475,9 +475,6 @@ const EncounterMenu = (() => {
             const shipType = SHIP_TYPES[activeShip.type] || ALIEN_SHIP_TYPES[activeShip.type] || { name: 'Unknown' };
             
             let y = 1;
-            UI.addText(startX, y, 'Name:', COLORS.TEXT_DIM);
-            UI.addText(startX + 6, y, activeShip.name, COLORS.TEXT_NORMAL);
-            y++;
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
@@ -1062,14 +1059,14 @@ const EncounterMenu = (() => {
         UI.addText(10, y++, `Disabled ships:`, COLORS.TEXT_DIM);
         disabledShips.forEach(ship => {
             const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
-            UI.addText(10, y++, `  ${ship.name} (${shipType.name})`, COLORS.TEXT_ERROR);
+            UI.addText(10, y++, `  ${shipType.name}`, COLORS.TEXT_ERROR);
         });
         y++;
         
         UI.addText(10, y++, `Escaped ships:`, COLORS.TEXT_DIM);
         escapedShips.forEach(ship => {
             const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
-            UI.addText(10, y++, `  ${ship.name} (${shipType.name})`, COLORS.GREEN);
+            UI.addText(10, y++, `  ${shipType.name}`, COLORS.GREEN);
         });
         y += 2;
         
@@ -1267,8 +1264,7 @@ const EncounterMenu = (() => {
         let y = startY;
         
         UI.addText(10, y++, `The aliens destroy your fleet!`, COLORS.TEXT_ERROR);
-        y++;
-        UI.addText(10, y++, `Your ships are towed back for emergency repairs...`, COLORS.TEXT_NORMAL);
+        y += 2;
         
         const buttonY = UI.getGridSize().height - 3;
         
@@ -1297,9 +1293,9 @@ const EncounterMenu = (() => {
             currentGameState.encounter = false;
             currentGameState.encounterShips = [];
             
-            // Handle tow back to origin with fuel consumption
-            TravelMenu.handleTowedBack();
-        }, COLORS.TEXT_ERROR);
+            // Show tow menu
+            TowMenu.show(currentGameState);
+        }, COLORS.GREEN);
         
         UI.draw();
     }
@@ -1434,13 +1430,16 @@ const EncounterMenu = (() => {
             Math.pow(activeShip.y - targetShip.y, 2)
         );
         
+        // Get ship type for messages
+        const activeShipType = SHIP_TYPES[activeShip.type] || ALIEN_SHIP_TYPES[activeShip.type] || { name: 'Ship' };
+        
         // Set initial message
         if (actionType === COMBAT_ACTIONS.PURSUE) {
-            outputMessage = `${activeShip.name} pursuing ${targetShipType.name}...`;
+            outputMessage = `${activeShipType.name} pursuing ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FLEE) {
-            outputMessage = `${activeShip.name} fleeing from ${targetShipType.name}...`;
+            outputMessage = `${activeShipType.name} fleeing from ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
-            outputMessage = `${activeShip.name} firing laser at ${targetShipType.name}...`;
+            outputMessage = `${activeShipType.name} firing laser at ${targetShipType.name}...`;
         }
         outputColor = COLORS.TEXT_NORMAL;
         
@@ -1471,37 +1470,38 @@ const EncounterMenu = (() => {
             
             // Set completion message based on action type
             if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
+                // Get active ship type for messages
+                const activeShipType = SHIP_TYPES[activeShip.type] || ALIEN_SHIP_TYPES[activeShip.type] || { name: 'Ship' };
+                
                 // Check if ship just turned instead of firing
                 if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
-                    outputMessage = `${activeShip.name} starts turning to target ${targetShipType.name}`;
+                    outputMessage = `${activeShipType.name} starts turning to target ${targetShipType.name}`;
                     outputColor = COLORS.TEXT_NORMAL;
                 } else if (action.hitObstruction) {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
                         const obstructedShip = action.hitObstruction.ship;
                         let obstructedName = '';
-                        // Check if obstruction is a player ship or enemy ship
-                        if (currentGameState.ships.includes(obstructedShip)) {
-                            obstructedName = obstructedShip.name; // Player ship
-                        } else {
-                            // Enemy ship - use ship type name
-                            const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Unknown' };
-                            obstructedName = obstructedType.name;
-                        }
-                        outputMessage = `${activeShip.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                        // Get ship type name for obstruction
+                        const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Ship' };
+                        obstructedName = obstructedType.name;
+                        outputMessage = `${activeShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
                         outputColor = COLORS.YELLOW;
                     } else {
-                        outputMessage = `${activeShip.name} hit an asteroid (obstruction)!`;
+                        outputMessage = `${activeShipType.name} hit an asteroid (obstruction)!`;
                         outputColor = COLORS.YELLOW;
                     }
                 } else if (action.hit) {
-                    outputMessage = `${activeShip.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                    outputMessage = `${activeShipType.name} fires laser and hits ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.GREEN;
                 } else {
-                    outputMessage = `${activeShip.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
+                    outputMessage = `${activeShipType.name} fires laser and misses ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
+                // Get active ship type for messages
+                const activeShipType = SHIP_TYPES[activeShip.type] || ALIEN_SHIP_TYPES[activeShip.type] || { name: 'Ship' };
+                
                 // Calculate distance moved
                 const finalDistance = Math.sqrt(
                     Math.pow(activeShip.x - targetShip.x, 2) + 
@@ -1512,10 +1512,10 @@ const EncounterMenu = (() => {
                 // Only set message if it's not already set (e.g., from ramming)
                 if (!outputMessage.includes('RAMMED')) {
                     if (actionType === COMBAT_ACTIONS.FLEE) {
-                        outputMessage = `${activeShip.name} fled ${distanceMoved} AU from ${targetShipType.name}`;
+                        outputMessage = `${activeShipType.name} fled ${distanceMoved} AU from ${targetShipType.name}`;
                         outputColor = COLORS.TEXT_NORMAL;
                     } else if (actionType === COMBAT_ACTIONS.PURSUE) {
-                        outputMessage = `${activeShip.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
+                        outputMessage = `${activeShipType.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
                         outputColor = COLORS.TEXT_NORMAL;
                     }
                 }
@@ -1646,14 +1646,16 @@ const EncounterMenu = (() => {
         
         // Get enemy ship type for messages
         const enemyShipType = SHIP_TYPES[action.ship.type] || ALIEN_SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+        // Get target ship type for messages
+        const targetShipType = SHIP_TYPES[action.targetShip.type] || ALIEN_SHIP_TYPES[action.targetShip.type] || { name: 'Ship' };
         
         // Set initial message
         if (action.actionType === COMBAT_ACTIONS.PURSUE) {
-            outputMessage = `${enemyShipType.name} pursuing ${action.targetShip.name}...`;
+            outputMessage = `${enemyShipType.name} pursuing ${targetShipType.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
-            outputMessage = `${enemyShipType.name} fleeing from ${action.targetShip.name}...`;
+            outputMessage = `${enemyShipType.name} fleeing from ${targetShipType.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
-            outputMessage = `${enemyShipType.name} firing laser at ${action.targetShip.name}...`;
+            outputMessage = `${enemyShipType.name} firing laser at ${targetShipType.name}...`;
         }
         outputColor = COLORS.TEXT_ERROR;
         
@@ -1665,24 +1667,20 @@ const EncounterMenu = (() => {
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
                 // Get enemy ship type name
                 const enemyShipType = SHIP_TYPES[action.ship.type] || ALIEN_SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+                // Get target ship type for messages
+                const targetShipType = SHIP_TYPES[action.targetShip.type] || ALIEN_SHIP_TYPES[action.targetShip.type] || { name: 'Ship' };
                 
                 // Check if ship just turned instead of firing
                 if (currentGameState.combatHandler && currentGameState.combatHandler.justTurned && !action.projectile) {
-                    outputMessage = `${enemyShipType.name} starts turning to target ${action.targetShip.name}`;
+                    outputMessage = `${enemyShipType.name} starts turning to target ${targetShipType.name}`;
                     outputColor = COLORS.TEXT_NORMAL;
                 } else if (action.hitObstruction) {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
                         const obstructedShip = action.hitObstruction.ship;
-                        let obstructedName = '';
-                        // Check if obstruction is a player ship or enemy ship
-                        if (currentGameState.ships.includes(obstructedShip)) {
-                            obstructedName = obstructedShip.name; // Player ship
-                        } else {
-                            // Enemy ship - use ship type name
-                            const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Unknown' };
-                            obstructedName = obstructedType.name;
-                        }
+                        // Get ship type name for obstruction
+                        const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Ship' };
+                        const obstructedName = obstructedType.name;
                         outputMessage = `${enemyShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
                         outputColor = COLORS.YELLOW;
                     } else {
@@ -1690,10 +1688,10 @@ const EncounterMenu = (() => {
                         outputColor = COLORS.YELLOW;
                     }
                 } else if (action.hit) {
-                    outputMessage = `${enemyShipType.name} hit ${action.targetShip.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                    outputMessage = `${enemyShipType.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_ERROR;
                 } else {
-                    outputMessage = `${enemyShipType.name} missed ${action.targetShip.name}! (${Math.floor(action.distance)} AU)`;
+                    outputMessage = `${enemyShipType.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
@@ -1706,12 +1704,14 @@ const EncounterMenu = (() => {
                 
                 // Get enemy ship type for messages
                 const enemyShipType = SHIP_TYPES[action.ship.type] || ALIEN_SHIP_TYPES[action.ship.type] || { name: 'Unknown' };
+                // Get target ship type for messages
+                const targetShipType = SHIP_TYPES[action.targetShip.type] || ALIEN_SHIP_TYPES[action.targetShip.type] || { name: 'Ship' };
                 
                 // Set message for the completed action
                 if (action.actionType === COMBAT_ACTIONS.PURSUE) {
-                    outputMessage = `${enemyShipType.name} pursued ${action.targetShip.name} ${distanceMoved} AU`;
+                    outputMessage = `${enemyShipType.name} pursued ${targetShipType.name} ${distanceMoved} AU`;
                 } else if (action.actionType === COMBAT_ACTIONS.FLEE) {
-                    outputMessage = `${enemyShipType.name} fled ${distanceMoved} AU from ${action.targetShip.name}`;
+                    outputMessage = `${enemyShipType.name} fled ${distanceMoved} AU from ${targetShipType.name}`;
                 }
                 outputColor = COLORS.TEXT_ERROR;
             }
@@ -1769,12 +1769,14 @@ const EncounterMenu = (() => {
                     // Determine if rammer is player or enemy
                     const rammerIsPlayer = currentGameState.ships.includes(ramAction.rammer);
                     if (rammerIsPlayer) {
-                        rammerName = ramAction.rammer.name;
+                        const rammerType = SHIP_TYPES[ramAction.rammer.type] || ALIEN_SHIP_TYPES[ramAction.rammer.type] || { name: 'Ship' };
+                        rammerName = rammerType.name;
                         const rammedType = SHIP_TYPES[ramAction.ship.type] || ALIEN_SHIP_TYPES[ramAction.ship.type] || { name: 'Unknown' };
                         rammedName = rammedType.name;
                     } else {
                         rammerName = 'Enemy';
-                        rammedName = ramAction.ship.name;
+                        const rammedType = SHIP_TYPES[ramAction.ship.type] || ALIEN_SHIP_TYPES[ramAction.ship.type] || { name: 'Ship' };
+                        rammedName = rammedType.name;
                     }
                 }
                 

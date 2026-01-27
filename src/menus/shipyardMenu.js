@@ -107,7 +107,6 @@ const ShipyardMenu = (() => {
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
             return [
                 //{ text: marker, color: COLORS.TEXT_NORMAL },
-                { text: ship.name, color: COLORS.TEXT_NORMAL },
                 { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
@@ -120,7 +119,7 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Fuel', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';
@@ -269,15 +268,14 @@ const ShipyardMenu = (() => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const sellValue = Math.round(ship.getValue() / (1 + getEffectiveFees()));
             return [
-                { text: ship.name, color: COLORS.TEXT_NORMAL },
-                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
                 { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: `${sellValue}`, color: COLORS.GREEN }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Hull', 'Cargo', 'Sell Value'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Cargo', 'Sell Value'], rows, selectedShipIndex, 2, (rowIndex) => {
             selectedShipIndex = rowIndex;
             outputMessage = '';
             render(onReturn);
@@ -313,7 +311,6 @@ const ShipyardMenu = (() => {
             const textColor = index === selectedTradeInShipIndex ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
             
             return [
-                { text: ship.name, color: textColor },
                 { text: shipType.name, color: textColor },
                 { text: `${ship.hull}/${ship.maxHull}`, color: textColor },
                 { text: String(ship.cargoCapacity), color: textColor },
@@ -321,7 +318,7 @@ const ShipyardMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY + 2, ['Ship', 'Type', 'Hull', 'Cargo', 'Trade Value'], rows, selectedTradeInShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY + 2, ['Type', 'Hull', 'Cargo', 'Trade Value'], rows, selectedTradeInShipIndex, 2, (rowIndex) => {
             selectedTradeInShipIndex = rowIndex;
             outputMessage = '';
             render(onReturn);
@@ -613,7 +610,8 @@ const ShipyardMenu = (() => {
             gameState.ships.push(pendingTransaction.ship);
             currentSystem.ships.splice(currentSystem.ships.indexOf(pendingTransaction.ship), 1);
             
-            outputMessage = `Purchased ${pendingTransaction.ship.name}!`;
+            const shipType = SHIP_TYPES[pendingTransaction.ship.type] || { name: 'Ship' };
+            outputMessage = `Purchased ${shipType.name}!`;
             outputColor = COLORS.TEXT_SUCCESS;
             
         } else if (mode === 'confirm-sell') {
@@ -621,7 +619,8 @@ const ShipyardMenu = (() => {
             gameState.credits += pendingTransaction.value;
             gameState.ships.splice(pendingTransaction.shipIndex, 1);
             
-            outputMessage = `Sold ${pendingTransaction.ship.name} for ${pendingTransaction.value} CR!`;
+            const shipType = SHIP_TYPES[pendingTransaction.ship.type] || { name: 'Ship' };
+            outputMessage = `Sold ${shipType.name} for ${pendingTransaction.value} CR!`;
             outputColor = COLORS.TEXT_SUCCESS;
             
         } else if (mode === 'confirm-tradein') {
@@ -634,7 +633,9 @@ const ShipyardMenu = (() => {
                 currentSystem.ships.splice(shipIndexInSystem, 1);
             }
             
-            outputMessage = `Traded in ${pendingTransaction.oldShip.name} for ${pendingTransaction.newShip.name}!`;
+            const oldShipType = SHIP_TYPES[pendingTransaction.oldShip.type] || { name: 'Ship' };
+            const newShipType = SHIP_TYPES[pendingTransaction.newShip.type] || { name: 'Ship' };
+            outputMessage = `Traded in ${oldShipType.name} for ${newShipType.name}!`;
             outputColor = COLORS.TEXT_SUCCESS;
         }
         

@@ -81,7 +81,6 @@ const ShipGenerator = (() => {
      * @returns {Ship}
      */
     function generateStartingShip() {
-        const name = generateUniqueName();
         const shipType = SHIP_TYPES.SHUTTLE;
         
         const maxFuel = Math.floor(shipType.baseMaxFuel);
@@ -95,7 +94,7 @@ const ShipGenerator = (() => {
         const engine = Math.floor(shipType.baseEngine);
         const radar = Math.floor(shipType.baseRadar);
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        return new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }
     
     /**
@@ -103,7 +102,6 @@ const ShipGenerator = (() => {
      * @returns {Ship}
      */
     function generateRandomShip() {
-        const name = generateUniqueName();
         const shipType = ALL_SHIP_TYPES[Math.floor(Math.random() * ALL_SHIP_TYPES.length)];
         
         const maxFuel = applyStatVariation(shipType.baseMaxFuel);
@@ -117,16 +115,15 @@ const ShipGenerator = (() => {
         const engine = Math.max(1, applyStatVariation(shipType.baseEngine));
         const radar = Math.max(1, applyStatVariation(shipType.baseRadar)); // At least 1 radar
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        return new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }
     
     /**
-     * Generate a ship of a specific type (for encounters - blank name)
+     * Generate a ship of a specific type (for encounters)
      * @param {string} shipTypeId - ID of the ship type
      * @returns {Ship}
      */
     function generateShipOfType(shipTypeId) {
-        const name = ''; // Blank name for encounter ships
         // Check both SHIP_TYPES and ALIEN_SHIP_TYPES
         const shipType = SHIP_TYPES[shipTypeId] || ALIEN_SHIP_TYPES[shipTypeId] || SHIP_TYPES.FREIGHTER;
         
@@ -141,7 +138,7 @@ const ShipGenerator = (() => {
         const engine = Math.max(1, applyStatVariation(shipType.baseEngine));
         const radar = Math.max(1, applyStatVariation(shipType.baseRadar)); // At least 1 radar
         
-        return new Ship(name, fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        return new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
     }
     
     return {

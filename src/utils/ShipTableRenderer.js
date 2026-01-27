@@ -26,7 +26,7 @@ const ShipTableRenderer = (() => {
         }
         
         // Build table headers
-        const headers = ['Ship', 'Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr'];
+        const headers = ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr'];
         if (showCargo) {
             headers.push('Fuel')
             headers.push('Cargo');
@@ -45,8 +45,7 @@ const ShipTableRenderer = (() => {
             const fuelRatio = ship.maxFuel > 0 ? ship.fuel / ship.maxFuel : 0;
             
             const row = [
-                { text: ship.name, color: nameColor },
-                { text: shipType.name, color: COLORS.TEXT_NORMAL },
+                { text: shipType.name, color: nameColor },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },

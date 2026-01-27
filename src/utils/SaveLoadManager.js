@@ -126,21 +126,54 @@ const SaveLoadManager = (() => {
         gameState.y = data.y;
         gameState.visitedSystems = data.visitedSystems || [];
         gameState.date = data.date ? new Date(data.date) : new Date(3000, 0, 1);
-        gameState.encounterShips = data.encounterShips || [];
+        
+        // Reconstruct encounter ships
+        gameState.encounterShips = (data.encounterShips || []).map(s => {
+            const ship = new Ship(
+                s.fuel, 
+                s.maxFuel, 
+                s.cargoCapacity, 
+                s.hull !== undefined ? s.hull : (s.maxHull || 100),
+                s.maxHull || 100,
+                s.type || 'FREIGHTER',
+                s.shields !== undefined ? s.shields : (s.maxShields || 0),
+                s.maxShields || 0,
+                s.lasers || 5,
+                s.engine || 5,
+                s.radar || 5
+            );
+            ship.cargo = s.cargo || {};
+            // Restore combat state
+            ship.x = s.x || 0;
+            ship.y = s.y || 0;
+            ship.vx = s.vx || 0;
+            ship.vy = s.vy || 0;
+            ship.angle = s.angle || 0;
+            ship.fled = s.fled || false;
+            ship.disabled = s.disabled || false;
+            ship.escaped = s.escaped || false;
+            ship.acted = s.acted || false;
+            return ship;
+        });
+        
         gameState.encounter = data.encounter || false;
         
         // Reconstruct ships
         gameState.ships = (data.ships || []).map(s => {
-            const ship = new Ship(s.name, s.fuel, s.maxFuel, s.cargoCapacity);
+            const ship = new Ship(
+                s.fuel, 
+                s.maxFuel, 
+                s.cargoCapacity, 
+                s.hull !== undefined ? s.hull : (s.maxHull || 100),
+                s.maxHull || 100,
+                s.type || 'FREIGHTER',
+                s.shields !== undefined ? s.shields : (s.maxShields || 0),
+                s.maxShields || 0,
+                s.lasers || 5,
+                s.engine || 5,
+                s.radar || 5
+            );
             ship.cargo = s.cargo || {};
-            ship.hull = s.hull !== undefined ? s.hull : s.maxHull;
-            ship.maxHull = s.maxHull || 100;
-            ship.shields = s.shields !== undefined ? s.shields : s.maxShields;
-            ship.maxShields = s.maxShields || 0;
-            ship.engine = s.engine || 5;
-            ship.radar = s.radar || 5;
-            ship.lasers = s.lasers || 5;
-            ship.type = s.type || 'FREIGHTER';
             return ship;
         });
         
@@ -167,7 +200,26 @@ const SaveLoadManager = (() => {
             system.index = index; // Restore index
             system.cargoStock = s.cargoStock || {};
             system.cargoPriceModifier = s.cargoPriceModifier || {};
-            system.ships = s.ships || [];
+            
+            // Reconstruct ships in the system
+            system.ships = (s.ships || []).map(shipData => {
+                const ship = new Ship(
+                    shipData.fuel, 
+                    shipData.maxFuel, 
+                    shipData.cargoCapacity, 
+                    shipData.hull !== undefined ? shipData.hull : (shipData.maxHull || 100),
+                    shipData.maxHull || 100,
+                    shipData.type || 'FREIGHTER',
+                    shipData.shields !== undefined ? shipData.shields : (shipData.maxShields || 0),
+                    shipData.maxShields || 0,
+                    shipData.lasers || 5,
+                    shipData.engine || 5,
+                    shipData.radar || 5
+                );
+                ship.cargo = shipData.cargo || {};
+                return ship;
+            });
+            
             system.pirateWeight = s.pirateWeight || 0;
             system.policeWeight = s.policeWeight || 0;
             system.merchantWeight = s.merchantWeight || 0;

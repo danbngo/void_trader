@@ -45,8 +45,7 @@ const DockServicesMenu = (() => {
             const fuelCostForShip = Math.floor((ship.maxFuel - ship.fuel) * FUEL_COST_PER_UNIT);
             const repairCostForShip = Math.floor((ship.maxHull - ship.hull + ship.maxShields - ship.shields) * HULL_REPAIR_COST_PER_UNIT);
             return [
-                { text: ship.name, color: COLORS.TEXT_NORMAL },
-                { text: shipType.name, color: COLORS.TEXT_DIM },
+                { text: shipType.name, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.fuel}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
@@ -55,7 +54,7 @@ const DockServicesMenu = (() => {
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Ship', 'Type', 'Fuel', 'Hull', 'Shields', 'Refuel', 'Repair'], rows, selectedShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Fuel', 'Hull', 'Shields', 'Refuel', 'Repair'], rows, selectedShipIndex, 2, (rowIndex) => {
             // When a row is clicked, select that ship
             selectedShipIndex = rowIndex;
             outputMessage = '';

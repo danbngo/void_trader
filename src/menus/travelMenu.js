@@ -72,7 +72,7 @@ const TravelMenu = (() => {
             totalFuelCost,
             totalFuel,
             shipFuelCosts,
-            ships: gameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
+            ships: gameState.ships.map(s => ({ type: s.type, fuel: s.fuel }))
         });
         
         // Use first ship for engine calculation (fleet moves together)
@@ -414,7 +414,7 @@ const TravelMenu = (() => {
         
         console.log('[TravelMenu] Journey complete, fuel deducted:', {
             shipFuelCosts,
-            shipsAfter: currentGameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
+            shipsAfter: currentGameState.ships.map(s => ({ type: s.type, fuel: s.fuel }))
         });
         
         // Apply engineering skill repairs during travel (use max from all crew)
@@ -472,7 +472,7 @@ const TravelMenu = (() => {
             progress,
             shipFuelCosts,
             fuelConsumed: shipFuelCosts.map((cost, i) => cost * progress),
-            shipsAfter: currentGameState.ships.map(s => ({ name: s.name, fuel: s.fuel }))
+            shipsAfter: currentGameState.ships.map(s => ({ type: s.type, fuel: s.fuel }))
         });
     }
     

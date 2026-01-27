@@ -114,7 +114,7 @@ const ALIEN_SHIP_TYPES = {
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: 0,
         baseMaxHull: AVERAGE_SHIP_HULL * 0.1,
-        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.25,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.25,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 0.5
@@ -128,7 +128,7 @@ const ALIEN_SHIP_TYPES = {
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.1,
         baseMaxHull: AVERAGE_SHIP_HULL * 0.25,
-        baseMaxShields: AVERAGE_SHIP_SHIELDS * 0.5,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 1,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 0.5,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1
@@ -142,7 +142,7 @@ const ALIEN_SHIP_TYPES = {
         baseMaxFuel: AVERAGE_SHIP_FUEL * 1,
         baseCargoCapacity: AVERAGE_SHIP_CARGO * 0.25,
         baseMaxHull: AVERAGE_SHIP_HULL * 0.5,
-        baseMaxShields: AVERAGE_SHIP_SHIELDS * 1.5,
+        baseMaxShields: AVERAGE_SHIP_SHIELDS * 3,
         baseLasers: AVERAGE_SHIP_LASER_LEVEL * 0.5,
         baseEngine: AVERAGE_SHIP_ENGINE_LEVEL * 1,
         baseRadar: AVERAGE_SHIP_RADAR_LEVEL * 1.5

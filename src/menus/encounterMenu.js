@@ -693,7 +693,7 @@ const EncounterMenu = (() => {
             }, COLORS.BUTTON, fleeHelpText);
             
             // Only show surrender option if encounter type permits it
-            if (gameState.encounterType.surrenderPermitted !== false) {
+            if (encounterType.surrenderPermitted !== false) {
                 UI.addButton(middleX, col2Y++, '6', 'Surrender', () => {
                     handleSurrender(gameState);
                 }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');

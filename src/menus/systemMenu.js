@@ -199,10 +199,15 @@ const DockMenu = (() => {
             return isAlienNews ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL;
         };
         
-        // Show newly started news first (filtered)
+        // Show newly started news first (filtered) - color green or red for alien
         newNews.filter(hasVisitedNewsSystem).forEach(news => {
             if (newsCount < maxNewsLines) {
-                UI.addText(leftColumnX, newsY++, `NEW: ${news.description}`, getNewsColor(news));
+                const isAlien = news.newsType.id === 'ALIEN_INVASION_ANNOUNCEMENT' || 
+                               news.newsType.id === 'ALIEN_INSTA_CONQUEST' ||
+                               news.newsType.id === 'ALIEN_CONQUEST' ||
+                               news.newsType.id === 'ALIEN_LIBERATION';
+                const color = isAlien ? COLORS.TEXT_ERROR : COLORS.GREEN;
+                UI.addText(leftColumnX, newsY++, news.description, color);
                 newsCount++;
             }
         });
@@ -218,9 +223,8 @@ const DockMenu = (() => {
         
         recentlyCompletedNews.forEach(news => {
             if (newsCount < maxNewsLines) {
-                // Don't show ENDED prefix for instant news (duration = 0)
-                const prefix = news.duration > 0 ? 'ENDED: ' : '';
-                UI.addText(leftColumnX, newsY++, `${prefix}${news.endDescription}`, getNewsColor(news));
+                // Show completed news in gray
+                UI.addText(leftColumnX, newsY++, news.endDescription, COLORS.TEXT_DIM);
                 newsCount++;
             }
         });

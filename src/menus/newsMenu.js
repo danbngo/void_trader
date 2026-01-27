@@ -88,14 +88,21 @@ const NewsMenu = (() => {
             pageNews.forEach((news, index) => {
                 const globalIndex = startIndex + index;
                 
-                // News header with name and systems
-                // Only show [ENDED] for events with duration > 0
-                const showEnded = news.completed && news.duration > 0;
-                const newsTitle = showEnded ? `${globalIndex + 1}. ${news.name} [ENDED]` : `${globalIndex + 1}. ${news.name}`;
-                UI.addText(5, y, newsTitle, COLORS.YELLOW);
-                y++;
+                // Determine color based on status
+                const isAlien = news.newsType.id === 'ALIEN_INVASION_ANNOUNCEMENT' || 
+                               news.newsType.id === 'ALIEN_INSTA_CONQUEST' ||
+                               news.newsType.id === 'ALIEN_CONQUEST' ||
+                               news.newsType.id === 'ALIEN_LIBERATION';
+                let descColor;
+                if (isAlien) {
+                    descColor = COLORS.TEXT_ERROR; // Red for alien
+                } else if (news.completed) {
+                    descColor = COLORS.TEXT_DIM; // Gray for ended
+                } else {
+                    descColor = COLORS.GREEN; // Green for active
+                }
                 
-                // Description - wrap to multiple lines if needed (max 60 chars per line)
+                // Description next to number - wrap to multiple lines if needed (max 60 chars per line)
                 // Use endDescription if news is completed
                 const descLines = [];
                 const maxLineLength = 60;
@@ -111,10 +118,16 @@ const NewsMenu = (() => {
                     descLines.push(remainingText.substring(0, breakPoint));
                     remainingText = remainingText.substring(breakPoint + 1);
                 }
-                descLines.forEach(line => {
-                    UI.addText(7, y, line, COLORS.TEXT_NORMAL);
+                
+                // First line with number
+                UI.addText(5, y, `${globalIndex + 1}. ${descLines[0]}`, descColor);
+                y++;
+                
+                // Remaining lines indented
+                for (let i = 1; i < descLines.length; i++) {
+                    UI.addText(7, y, descLines[i], descColor);
                     y++;
-                });
+                }
                 
                 // Only show expiration for non-instant news (duration > 0)
                 if (news.duration > 0) {
@@ -125,10 +138,11 @@ const NewsMenu = (() => {
                     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const expirationStr = `${months[expirationDate.getMonth()]} ${expirationDate.getDate()}, ${expirationDate.getFullYear()}`;
                     
-                    // Duration info with date
+                    // Duration info with date - label in gray, value in white
                     const yearsRemaining = news.endYear - gameState.currentYear;
                     const daysRemaining = Math.ceil(yearsRemaining * 365.25);
-                    UI.addText(7, y, `Expires: ${expirationStr} (${daysRemaining} days)`, COLORS.TEXT_DIM);
+                    UI.addText(7, y, 'Expires: ', COLORS.TEXT_DIM);
+                    UI.addText(16, y, `${expirationStr} (${daysRemaining} days)`, COLORS.TEXT_NORMAL);
                     y++;
                 }
                 

@@ -737,8 +737,14 @@ const ShipyardMenu = (() => {
         });
         
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Module', () => nextModule(onReturn), COLORS.BUTTON, 'Select next module');
-        UI.addButton(5, buttonY + 1, '2', 'Prev Module', () => prevModule(onReturn), COLORS.BUTTON, 'Select previous module');
+        
+        // Only show next/prev module buttons if more than 1 module
+        let buttonYOffset = buttonY;
+        if (currentSystem.modules.length > 1) {
+            UI.addButton(5, buttonYOffset, '1', 'Next Module', () => nextModule(onReturn), COLORS.BUTTON, 'Select next module');
+            UI.addButton(5, buttonYOffset + 1, '2', 'Prev Module', () => prevModule(onReturn), COLORS.BUTTON, 'Select previous module');
+        }
+        
         UI.addButton(28, buttonY, '3', 'Install on Ship', () => initiateModuleInstall(onReturn), COLORS.GREEN, 'Choose a ship to install this module');
         UI.addButton(28, buttonY + 1, '0', 'Back', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
@@ -750,9 +756,9 @@ const ShipyardMenu = (() => {
     }
     
     function renderSelectModuleShipMode(onReturn, grid) {
-        UI.addText(5, 6, `Select ship to install ${selectedModule.name}:`, COLORS.TEXT_NORMAL);
+        UI.addText(5, 5, `Select ship to install ${selectedModule.name}:`, COLORS.YELLOW);
         
-        const startY = 8;
+        const startY = 7;
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const numModules = ship.modules ? ship.modules.length : 0;
@@ -763,19 +769,25 @@ const ShipyardMenu = (() => {
             return [
                 { text: shipType.name, color: canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM },
                 { text: `${ship.hull}/${ship.maxHull}`, color: COLORS.TEXT_NORMAL },
+                { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
                 { text: statusText, color: statusColor }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Modules'], rows, selectedModuleShipIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Type', 'Hull', 'Cargo', 'Modules'], rows, selectedModuleShipIndex, 2, (rowIndex) => {
             selectedModuleShipIndex = rowIndex;
             outputMessage = '';
             render(onReturn);
         });
         
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextModuleShip(onReturn), COLORS.BUTTON);
-        UI.addButton(5, buttonY + 1, '2', 'Prev Ship', () => prevModuleShip(onReturn), COLORS.BUTTON);
+        
+        // Only show next/prev ship buttons if more than 1 ship
+        if (gameState.ships.length > 1) {
+            UI.addButton(5, buttonY, '1', 'Next Ship', () => nextModuleShip(onReturn), COLORS.BUTTON);
+            UI.addButton(5, buttonY + 1, '2', 'Prev Ship', () => prevModuleShip(onReturn), COLORS.BUTTON);
+        }
+        
         UI.addButton(28, buttonY, '3', 'Confirm Install', () => confirmModuleInstall(onReturn), COLORS.GREEN);
         UI.addButton(28, buttonY + 1, '0', 'Cancel', () => cancelModuleInstall(onReturn), COLORS.BUTTON);
         

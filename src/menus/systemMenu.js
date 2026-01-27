@@ -207,8 +207,16 @@ const DockMenu = (() => {
             }
         });
         
-        // Show newly expired news second (filtered)
-        expiredNews.filter(hasVisitedNewsSystem).forEach(news => {
+        // Show recently completed news (within 1 day) - not just news that expired this session
+        const ONE_DAY_IN_YEARS = 1 / 365.25;
+        const recentlyCompletedNews = gameState.newsEvents.filter(news => 
+            news.completed && 
+            news.completionYear && 
+            (gameState.currentYear - news.completionYear) <= ONE_DAY_IN_YEARS &&
+            hasVisitedNewsSystem(news)
+        );
+        
+        recentlyCompletedNews.forEach(news => {
             if (newsCount < maxNewsLines) {
                 // Don't show ENDED prefix for instant news (duration = 0)
                 const prefix = news.duration > 0 ? 'ENDED: ' : '';
@@ -253,7 +261,7 @@ const DockMenu = (() => {
         });
         
         // If there are more news items, show overflow indicator
-        const totalNews = newNews.length + expiredNews.length + activeNewsForSystem.length + otherSystemsNews.length;
+        const totalNews = newNews.length + recentlyCompletedNews.length + activeNewsForSystem.length + otherSystemsNews.length;
         if (totalNews > maxNewsLines) {
             UI.addText(leftColumnX, newsY++, '...', COLORS.TEXT_DIM);
             UI.addText(leftColumnX, newsY++, '(See Assistant > News for more)', COLORS.TEXT_DIM);

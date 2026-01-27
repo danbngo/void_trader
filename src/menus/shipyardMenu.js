@@ -151,7 +151,14 @@ const ShipyardMenu = (() => {
         UI.addButton(middleX, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), sellColor, sellHelpText);
         
         UI.addButton(middleX, buttonY + 1, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
-        UI.addButton(rightX, buttonY, '5', 'Install Modules', () => switchToInstallModulesMode(onReturn), COLORS.BUTTON, 'Install ship modules');
+        
+        // Install Modules - gray out if no modules available at this shipyard
+        const currentSystem = gameState.getCurrentSystem();
+        const hasModules = currentSystem.modules && currentSystem.modules.length > 0;
+        const modulesColor = hasModules ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        const modulesHelpText = hasModules ? 'Install ship modules' : 'No modules available at this shipyard!';
+        UI.addButton(rightX, buttonY, '5', 'Install Modules', () => switchToInstallModulesMode(onReturn), modulesColor, modulesHelpText);
+        
         UI.addButton(rightX, buttonY + 1, '0', 'Back', onReturn, COLORS.BUTTON);
         
         // Set output message in UI output row system if there's a message
@@ -693,9 +700,7 @@ const ShipyardMenu = (() => {
     function switchToInstallModulesMode(onReturn) {
         const currentSystem = gameState.getCurrentSystem();
         if (!currentSystem.modules || currentSystem.modules.length === 0) {
-            outputMessage = 'No modules available at this shipyard!';
-            outputColor = COLORS.TEXT_ERROR;
-            render(onReturn);
+            // Error is shown in button helptext, don't switch modes
             return;
         }
         

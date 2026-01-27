@@ -144,17 +144,21 @@ const LootMenu = (() => {
             dump10HelpText = 'No cargo in your fleet to dump';
         }
         
+        // Navigation buttons
+        UI.addButton(5, buttonY, '1', 'Previous Cargo', () => prevCargo(onContinue), COLORS.BUTTON, 'Select previous cargo type');
+        UI.addButton(5, buttonY + 1, '2', 'Next Cargo', () => nextCargo(onContinue), COLORS.BUTTON, 'Select next cargo type');
+        
         // Take buttons - gray out if no training, no loot, or no space
         const canTake = hasTraining && lootQuantity > 0 && availableSpace > 0;
         const takeColor = canTake ? COLORS.GREEN : COLORS.TEXT_DIM;
-        UI.addButton(5, buttonY, '1', 'Take 1', () => takeCargo(1, onContinue), takeColor, take1HelpText);
-        UI.addButton(5, buttonY + 1, '2', 'Take 10', () => takeCargo(10, onContinue), takeColor, take10HelpText);
+        UI.addButton(25, buttonY, '3', 'Take 1', () => takeCargo(1, onContinue), takeColor, take1HelpText);
+        UI.addButton(25, buttonY + 1, '4', 'Take 10', () => takeCargo(10, onContinue), takeColor, take10HelpText);
         
         // Dump buttons - gray out if player has no cargo
         const canDump = playerQuantity > 0;
         const dumpColor = canDump ? COLORS.TEXT_ERROR : COLORS.TEXT_DIM;
-        UI.addButton(25, buttonY, '3', 'Dump 1', () => dumpCargo(1, onContinue), dumpColor, dump1HelpText);
-        UI.addButton(25, buttonY + 1, '4', 'Dump 10', () => dumpCargo(10, onContinue), dumpColor, dump10HelpText);
+        UI.addButton(45, buttonY, '5', 'Dump 1', () => dumpCargo(1, onContinue), dumpColor, dump1HelpText);
+        UI.addButton(45, buttonY + 1, '6', 'Dump 10', () => dumpCargo(10, onContinue), dumpColor, dump10HelpText);
         
         UI.addButton(5, buttonY + 2, '0', 'Continue Journey', onContinue, COLORS.BUTTON);
         
@@ -252,6 +256,40 @@ const LootMenu = (() => {
             outputColor = COLORS.TEXT_NORMAL;
         }
         
+        render(onContinue);
+    }
+    
+    /**
+     * Select next cargo type (skip untrained cargo types)
+     */
+    function nextCargo(onContinue) {
+        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
+            gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
+        );
+        
+        const startIndex = selectedCargoIndex;
+        do {
+            selectedCargoIndex = (selectedCargoIndex + 1) % availableCargoTypes.length;
+        } while (selectedCargoIndex !== startIndex && availableCargoTypes.length > 1);
+        
+        outputMessage = '';
+        render(onContinue);
+    }
+    
+    /**
+     * Select previous cargo type (skip untrained cargo types)
+     */
+    function prevCargo(onContinue) {
+        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
+            gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
+        );
+        
+        const startIndex = selectedCargoIndex;
+        do {
+            selectedCargoIndex = (selectedCargoIndex - 1 + availableCargoTypes.length) % availableCargoTypes.length;
+        } while (selectedCargoIndex !== startIndex && availableCargoTypes.length > 1);
+        
+        outputMessage = '';
         render(onContinue);
     }
     

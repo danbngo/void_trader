@@ -856,8 +856,19 @@ const ShipyardMenu = (() => {
         const ship = gameState.ships[selectedModuleShipIndex];
         const numModules = ship.modules ? ship.modules.length : 0;
         
-        if (numModules >= SHIP_MAX_NUM_MODULES) {
+        // Count non-default modules
+        const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
+        
+        if (numInstalledModules >= SHIP_MAX_NUM_MODULES) {
             outputMessage = `Ship already has maximum modules (${SHIP_MAX_NUM_MODULES})!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+        
+        // Check if ship already has this module type
+        if (ship.modules && ship.modules.includes(selectedModule.id)) {
+            outputMessage = `Ship already has ${selectedModule.name} installed!`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;

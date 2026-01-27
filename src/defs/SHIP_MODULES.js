@@ -165,6 +165,36 @@ const SHIP_MODULES = {
         onInstall: (ship) => {
             // Passive effect, handled in combat
         }
+    },
+    
+    SOLAR_COLLECTORS: {
+        id: 'SOLAR_COLLECTORS',
+        name: 'Solar Collectors',
+        description: 'Regain all fuel at destination',
+        value: 7000,
+        onInstall: (ship) => {
+            // Passive effect, handled in travel
+        }
+    },
+    
+    ENHANCED_SCANNER: {
+        id: 'ENHANCED_SCANNER',
+        name: 'Enhanced Scanner',
+        description: '-20% undetected enemy chance',
+        value: 8000,
+        onInstall: (ship) => {
+            // Passive effect, handled in encounters
+        }
+    },
+    
+    CLOAK: {
+        id: 'CLOAK',
+        name: 'Cloak',
+        description: '+20% undetected fleet chance',
+        value: 10000,
+        onInstall: (ship) => {
+            // Passive effect, handled in encounters
+        }
     }
 };
 

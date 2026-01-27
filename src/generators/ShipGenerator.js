@@ -115,7 +115,15 @@ const ShipGenerator = (() => {
         const engine = Math.max(1, applyStatVariation(shipType.baseEngine));
         const radar = Math.max(1, applyStatVariation(shipType.baseRadar)); // At least 1 radar
         
-        return new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        const ship = new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        
+        // Add default module if ship type has one
+        if (shipType.defaultModule) {
+            ship.defaultModule = shipType.defaultModule;
+            ship.modules.push(shipType.defaultModule);
+        }
+        
+        return ship;
     }
     
     /**
@@ -138,7 +146,15 @@ const ShipGenerator = (() => {
         const engine = Math.max(1, applyStatVariation(shipType.baseEngine));
         const radar = Math.max(1, applyStatVariation(shipType.baseRadar)); // At least 1 radar
         
-        return new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        const ship = new Ship(fuel, maxFuel, cargoCapacity, hull, maxHull, shipType.id, shields, maxShields, lasers, engine, radar);
+        
+        // Add default module if ship type has one
+        if (shipType.defaultModule) {
+            ship.defaultModule = shipType.defaultModule;
+            ship.modules.push(shipType.defaultModule);
+        }
+        
+        return ship;
     }
     
     return {

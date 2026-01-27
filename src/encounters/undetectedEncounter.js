@@ -33,12 +33,24 @@ const UndetectedEncounter = {
     check: function(gameState, encType) {
         // Calculate total radar strength for each side with random factor
         let playerRadarTotal = gameState.ships.reduce((sum, ship) => sum + ship.radar, 0);
-        const enemyRadarTotal = gameState.encounterShips.reduce((sum, ship) => sum + ship.radar, 0);
+        let enemyRadarTotal = gameState.encounterShips.reduce((sum, ship) => sum + ship.radar, 0);
         
         // Apply smuggling skill to improve stealth (use max from all crew)
         const smugglingLevel = getMaxCrewSkill(gameState, 'smuggling');
         if (smugglingLevel > 0) {
             playerRadarTotal = SkillEffects.getStealthRadar(playerRadarTotal, smugglingLevel);
+        }
+        
+        // Apply enhanced scanner module - reduces enemy stealth by 20%
+        const hasEnhancedScanner = gameState.ships.some(ship => ship.modules && ship.modules.includes('ENHANCED_SCANNER'));
+        if (hasEnhancedScanner) {
+            enemyRadarTotal *= 0.8; // Enemy 20% less likely to be undetected
+        }
+        
+        // Apply cloak module - increases player stealth by 20%
+        const hasCloak = gameState.ships.some(ship => ship.modules && ship.modules.includes('CLOAK'));
+        if (hasCloak) {
+            playerRadarTotal *= 1.2; // Player 20% more likely to be undetected
         }
         
         // Roll for detection (random factor makes radar investment valuable)

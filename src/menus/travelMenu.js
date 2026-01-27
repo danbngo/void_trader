@@ -444,6 +444,12 @@ const TravelMenu = (() => {
                     console.log(`[TravelMenu] Regenerative Hull restored ${actualRestored} hull to ship`);
                 }
             }
+            
+            // Apply solar collectors module - regain all fuel at destination
+            if (ship.modules && ship.modules.includes('SOLAR_COLLECTORS')) {
+                ship.fuel = ship.maxFuel;
+                console.log(`[TravelMenu] Solar Collectors refueled ship to maximum`);
+            }
         });
         
         // Advance date and track time since dock for news generation

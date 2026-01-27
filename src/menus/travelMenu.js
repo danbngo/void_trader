@@ -317,7 +317,9 @@ const TravelMenu = (() => {
                 Math.floor(Math.random() * encounterType.shipTypes.length)
             ];
             
-            const ship = ShipGenerator.generateShipOfType(randomShipType.id);
+            // Handle both string IDs and ship type objects
+            const shipTypeId = typeof randomShipType === 'string' ? randomShipType : randomShipType.id;
+            const ship = ShipGenerator.generateShipOfType(shipTypeId);
             
             // Optionally damage the ship
             if (Math.random() < ENEMY_SHIP_HULL_DAMAGED_CHANCE) {

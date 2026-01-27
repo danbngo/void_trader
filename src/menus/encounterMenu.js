@@ -410,7 +410,7 @@ const EncounterMenu = (() => {
                     
                     // Deal damage to nearby ships
                     const shipType = SHIP_TYPES[ship.type] || { hull: 100 };
-                    const maxDamage = Math.floor(shipType.hull * CONSTS.MODULE_SELF_DESTRUCT_DAMAGE_MULT);
+                    const maxDamage = Math.floor(shipType.hull * MODULE_SELF_DESTRUCT_DAMAGE_RATIO);
                     
                     // Check all enemy ships
                     gameState.encounterShips.forEach(enemyShip => {
@@ -418,9 +418,9 @@ const EncounterMenu = (() => {
                         const dx = enemyShip.x - ship.x;
                         const dy = enemyShip.y - ship.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                        if (distance <= MODULE_SELF_DESTRUCT_RANGE) {
                             // Damage falls off with distance
-                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damageMult = 1 - (distance / MODULE_SELF_DESTRUCT_RANGE);
                             const damage = Math.floor(maxDamage * damageMult);
                             enemyShip.hull -= damage;
                             triggerFlash(enemyShip);
@@ -433,9 +433,9 @@ const EncounterMenu = (() => {
                         const dx = otherShip.x - ship.x;
                         const dy = otherShip.y - ship.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                        if (distance <= MODULE_SELF_DESTRUCT_RANGE) {
                             // Damage falls off with distance
-                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damageMult = 1 - (distance / MODULE_SELF_DESTRUCT_RANGE);
                             const damage = Math.floor(maxDamage * damageMult);
                             otherShip.hull -= damage;
                             triggerFlash(otherShip);
@@ -502,7 +502,7 @@ const EncounterMenu = (() => {
                     
                     // Deal damage to nearby ships
                     const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { hull: 100 };
-                    const maxDamage = Math.floor(shipType.hull * CONSTS.MODULE_SELF_DESTRUCT_DAMAGE_MULT);
+                    const maxDamage = Math.floor(shipType.hull * MODULE_SELF_DESTRUCT_DAMAGE_RATIO);
                     
                     // Check all enemy ships
                     gameState.encounterShips.forEach(otherShip => {
@@ -510,9 +510,9 @@ const EncounterMenu = (() => {
                         const dx = otherShip.x - ship.x;
                         const dy = otherShip.y - ship.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                        if (distance <= MODULE_SELF_DESTRUCT_RANGE) {
                             // Damage falls off with distance
-                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damageMult = 1 - (distance / MODULE_SELF_DESTRUCT_RANGE);
                             const damage = Math.floor(maxDamage * damageMult);
                             otherShip.hull -= damage;
                             triggerFlash(otherShip);
@@ -525,9 +525,9 @@ const EncounterMenu = (() => {
                         const dx = playerShip.x - ship.x;
                         const dy = playerShip.y - ship.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance <= CONSTS.MODULE_SELF_DESTRUCT_RANGE) {
+                        if (distance <= MODULE_SELF_DESTRUCT_RANGE) {
                             // Damage falls off with distance
-                            const damageMult = 1 - (distance / CONSTS.MODULE_SELF_DESTRUCT_RANGE);
+                            const damageMult = 1 - (distance / MODULE_SELF_DESTRUCT_RANGE);
                             const damage = Math.floor(maxDamage * damageMult);
                             playerShip.hull -= damage;
                             triggerFlash(playerShip);
@@ -1804,7 +1804,7 @@ const EncounterMenu = (() => {
                                 const dx = enemy.x - action.targetShip.x;
                                 const dy = enemy.y - action.targetShip.y;
                                 const distance = Math.sqrt(dx * dx + dy * dy);
-                                if (distance <= CONSTS.MODULE_WARHEAD_RANGE) {
+                                if (distance <= MODULE_WARHEAD_RANGE) {
                                     enemy.hull -= warheadDamage;
                                     triggerFlash(enemy);
                                 }
@@ -2085,7 +2085,7 @@ const EncounterMenu = (() => {
                                 const dx = playerShip.x - action.targetShip.x;
                                 const dy = playerShip.y - action.targetShip.y;
                                 const distance = Math.sqrt(dx * dx + dy * dy);
-                                if (distance <= CONSTS.MODULE_WARHEAD_RANGE) {
+                                if (distance <= MODULE_WARHEAD_RANGE) {
                                     playerShip.hull -= warheadDamage;
                                     triggerFlash(playerShip);
                                 }
@@ -2197,7 +2197,7 @@ const EncounterMenu = (() => {
                 
                 // Check for DRILL module on rammer (2x damage)
                 if (ramAction.rammer && ramAction.rammer.modules && ramAction.rammer.modules.includes('DRILL')) {
-                    damage = Math.floor(damage * CONSTS.MODULE_DRILL_DAMAGE_MULTIPLIER);
+                    damage = Math.floor(damage * MODULE_DRILL_DAMAGE_MULTIPLIER);
                 }
                 
                 // Apply hull damage to rammed ship
@@ -2208,10 +2208,10 @@ const EncounterMenu = (() => {
                 
                 // Check for BLINK module on rammed ship (25% chance to teleport)
                 if (ramAction.ship.modules && ramAction.ship.modules.includes('BLINK')) {
-                    if (Math.random() < CONSTS.MODULE_BLINK_CHANCE) {
+                    if (Math.random() < MODULE_BLINK_CHANCE) {
                         // Teleport to random position
                         const angle = Math.random() * Math.PI * 2;
-                        const distance = CONSTS.MODULE_BLINK_DISTANCE;
+                        const distance = MODULE_BLINK_DISTANCE;
                         ramAction.ship.x += Math.cos(angle) * distance;
                         ramAction.ship.y += Math.sin(angle) * distance;
                     }

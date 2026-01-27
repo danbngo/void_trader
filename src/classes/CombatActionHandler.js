@@ -344,7 +344,7 @@ class CombatActionHandler {
                 if (this.ship.modules) {
                     // DISRUPTER: 25% chance to remove all target shields
                     if (this.ship.modules.includes('DISRUPTER')) {
-                        if (Math.random() < CONSTS.MODULE_DISRUPTER_CHANCE) {
+                        if (Math.random() < MODULE_DISRUPTER_CHANCE) {
                             this.action.targetShip.shields = 0;
                             this.action.moduleEffects.disrupterTriggered = true;
                         }
@@ -353,12 +353,12 @@ class CombatActionHandler {
                     // WARHEAD: Deal splash damage to nearby enemies
                     if (this.ship.modules.includes('WARHEAD')) {
                         this.action.moduleEffects.warheadTriggered = true;
-                        this.action.moduleEffects.warheadDamage = Math.floor(damage * CONSTS.MODULE_WARHEAD_DAMAGE_MULT);
+                        this.action.moduleEffects.warheadDamage = Math.floor(damage * MODULE_WARHEAD_DAMAGE_RATIO);
                     }
                     
                     // TRACTOR_BEAM: Pull target toward attacker
                     if (this.ship.modules.includes('TRACTOR_BEAM')) {
-                        const pullDistance = damage * CONSTS.MODULE_TRACTOR_DISTANCE_MULT;
+                        const pullDistance = damage * MODULE_TRACTOR_BEAM_DISTANCE_RATIO;
                         this.action.moduleEffects.tractorPull = {
                             distance: pullDistance,
                             angle: this.ship.angle
@@ -367,7 +367,7 @@ class CombatActionHandler {
                     
                     // REPULSOR: Push target away from attacker
                     if (this.ship.modules.includes('REPULSOR')) {
-                        const pushDistance = damage * CONSTS.MODULE_REPULSOR_DISTANCE_MULT;
+                        const pushDistance = damage * MODULE_REPULSOR_DISTANCE_RATIO;
                         this.action.moduleEffects.repulsorPush = {
                             distance: pushDistance,
                             angle: this.ship.angle
@@ -379,8 +379,8 @@ class CombatActionHandler {
                 if (this.action.targetShip.modules) {
                     // REFLECTOR: Bounce laser back at attacker
                     if (this.action.targetShip.modules.includes('REFLECTOR')) {
-                        if (Math.random() < CONSTS.MODULE_REFLECTOR_CHANCE) {
-                            const reflectedDamage = Math.floor(damage * CONSTS.MODULE_REFLECTOR_DAMAGE_MULT);
+                        if (Math.random() < MODULE_REFLECTOR_CHANCE) {
+                            const reflectedDamage = Math.floor(damage * MODULE_REFLECTOR_DAMAGE_MULTIPLIER);
                             this.action.moduleEffects.reflectorBounce = {
                                 damage: reflectedDamage,
                                 fromShip: this.action.targetShip,
@@ -391,10 +391,10 @@ class CombatActionHandler {
                     
                     // BLINK: 25% chance to teleport when hit
                     if (this.action.targetShip.modules.includes('BLINK')) {
-                        if (Math.random() < CONSTS.MODULE_BLINK_CHANCE) {
+                        if (Math.random() < MODULE_BLINK_CHANCE) {
                             // Teleport to random position
                             const angle = Math.random() * Math.PI * 2;
-                            const distance = CONSTS.MODULE_BLINK_DISTANCE;
+                            const distance = MODULE_BLINK_DISTANCE;
                             this.action.targetShip.x += Math.cos(angle) * distance;
                             this.action.targetShip.y += Math.sin(angle) * distance;
                             this.action.moduleEffects.blinkTriggered = true;

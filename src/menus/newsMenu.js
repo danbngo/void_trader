@@ -89,7 +89,9 @@ const NewsMenu = (() => {
                 const globalIndex = startIndex + index;
                 
                 // News header with name and systems
-                const newsTitle = news.completed ? `${globalIndex + 1}. ${news.name} [ENDED]` : `${globalIndex + 1}. ${news.name}`;
+                // Only show [ENDED] for events with duration > 0
+                const showEnded = news.completed && news.duration > 0;
+                const newsTitle = showEnded ? `${globalIndex + 1}. ${news.name} [ENDED]` : `${globalIndex + 1}. ${news.name}`;
                 UI.addText(5, y, newsTitle, COLORS.YELLOW);
                 y++;
                 

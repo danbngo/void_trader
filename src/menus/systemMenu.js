@@ -6,12 +6,22 @@
 const DockMenu = (() => {
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
+    let currentNewNews = []; // Persist new news within the current system visit
+    let currentExpiredNews = []; // Persist expired news within the current system visit
+    let lastSystemIndex = -1; // Track which system we're at
     
     /**
      * Show the dock menu
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
+        // If we changed systems, reset the news arrays
+        if (gameState.currentSystemIndex !== lastSystemIndex) {
+            currentNewNews = [];
+            currentExpiredNews = [];
+            lastSystemIndex = gameState.currentSystemIndex;
+        }
+        
         // Clear news tracking for this system (we'll rebuild it below)
         const currentSystemIndex = gameState.currentSystemIndex;
         const systemIdxInArray = gameState.systemsWithNewNews.indexOf(currentSystemIndex);
@@ -58,11 +68,10 @@ const DockMenu = (() => {
         
         // Simulate alien conquest behavior
         const instantlyCompletedNews = simulateAlienConquest(gameState, yearsSinceDock);
-        expiredNews.push(...instantlyCompletedNews);
+        currentExpiredNews.push(...instantlyCompletedNews);
         
         const newsChance = NEWS_CHANCE_PER_SYSTEM_PER_YEAR * yearsSinceDock;
         
-        const newNews = [];
         if (Math.random() < newsChance) {
             // Generate a news event for a random system
             const randomSystem = gameState.systems[Math.floor(Math.random() * gameState.systems.length)];
@@ -85,7 +94,7 @@ const DockMenu = (() => {
                 // Create the news event
                 const news = new News(newsType, randomSystem, targetSystem, gameState.currentYear, newsType.minDuration + Math.random() * (newsType.maxDuration - newsType.minDuration));
                 gameState.newsEvents.push(news);
-                newNews.push(news);
+                currentNewNews.push(news);
                 
                 // Track that this system has new news
                 if (!gameState.systemsWithNewNews.includes(news.originSystem.index)) {
@@ -121,7 +130,7 @@ const DockMenu = (() => {
         paySalaries(gameState);
         
         UI.resetSelection(); // Only reset selection when first entering menu
-        render(gameState, newNews, expiredNews);
+        render(gameState, currentNewNews, currentExpiredNews);
     }
     
     /**
@@ -635,21 +644,21 @@ const DockMenu = (() => {
             outputMessage = `${building.name} not available in this system!`;
             outputColor = COLORS.TEXT_ERROR;
             console.log(`[DockMenu] Building not available. Setting outputMessage:`, outputMessage);
-            render(gameState);
+            render(gameState, currentNewNews, currentExpiredNews);
         } else if (!hasRank) {
             // Player lacks required rank
             const requiredRank = ALL_RANKS.find(r => r.level === building.buildingType.minRankLevel);
             outputMessage = `Requires ${requiredRank.name} citizenship!`;
             outputColor = COLORS.TEXT_ERROR;
             console.log(`[DockMenu] Insufficient rank. Setting outputMessage:`, outputMessage);
-            render(gameState);
+            render(gameState, currentNewNews, currentExpiredNews);
         } else if (building.id === 'DOCK') {
             // Special check for Dock Services: if all ships are at full fuel and hull
             const allShipsFull = gameState.ships.every(ship => ship.fuel === ship.maxFuel && ship.hull === ship.maxHull);
             if (allShipsFull) {
                 outputMessage = 'All ships at full fuel and hull!';
                 outputColor = COLORS.TEXT_ERROR;
-                render(gameState);
+                render(gameState, currentNewNews, currentExpiredNews);
             } else {
                 // Player has access
                 console.log(`[DockMenu] Player has access, opening menu`);

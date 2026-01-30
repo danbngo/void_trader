@@ -9,7 +9,7 @@ const EncounterGenerator = (() => {
      * @param {Object} encounterType
      * @returns {{ ships: Ship[], cargo: Object, totalCargoCapacity: number, totalCargoAmount: number, cargoRatio: number, retryCount: number }}
      */
-    function buildFleet(encounterType) {
+    function buildFleet(encounterType, options = {}) {
         if (!encounterType || !encounterType.shipTypes) {
             return { ships: [], cargo: {}, totalCargoCapacity: 0, totalCargoAmount: 0, cargoRatio: 0, retryCount: 0 };
         }
@@ -24,7 +24,9 @@ const EncounterGenerator = (() => {
 
         // For abandoned ships, generate exactly 1 ship. For others, use encounter type's min/max
         let numShips;
-        if (encounterType.id === 'ABANDONED_SHIP') {
+        if (Number.isInteger(options.numShips) && options.numShips > 0) {
+            numShips = options.numShips;
+        } else if (encounterType.id === 'ABANDONED_SHIP') {
             numShips = 1;
         } else {
             const minShips = encounterType.minShips || 1;
@@ -162,8 +164,19 @@ const EncounterGenerator = (() => {
      * @returns {{ leftFleet: Object, rightFleet: Object }}
      */
     function generateFactionConflict(gameState, leftEncounterType, rightEncounterType) {
-        const leftFleet = buildFleet(leftEncounterType);
-        const rightFleet = buildFleet(rightEncounterType);
+        const leftMin = leftEncounterType.minShips || 1;
+        const leftMax = leftEncounterType.maxShips || leftMin;
+        const rightMin = rightEncounterType.minShips || 1;
+        const rightMax = rightEncounterType.maxShips || rightMin;
+
+        const minRatio = Math.max(leftMax > 0 ? leftMin / leftMax : 1, rightMax > 0 ? rightMin / rightMax : 1);
+        const ratio = minRatio + Math.random() * (1 - minRatio);
+
+        const leftCount = Math.max(leftMin, Math.round(leftMax * ratio));
+        const rightCount = Math.max(rightMin, Math.round(rightMax * ratio));
+
+        const leftFleet = buildFleet(leftEncounterType, { numShips: leftCount });
+        const rightFleet = buildFleet(rightEncounterType, { numShips: rightCount });
 
         gameState.encounterShips = [...leftFleet.ships, ...rightFleet.ships];
         gameState.encounterCargo = {};

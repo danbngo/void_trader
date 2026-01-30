@@ -122,6 +122,9 @@ class CombatActionHandler {
                     // Random speed multiplier between 0.5 and 1.5
                     const speedMultiplier = 0.5 + Math.random();
                     this.remainingDistance = this.ship.engine * speedMultiplier;
+                    if (this.gameState && this.gameState.activeCombatEffect && this.gameState.activeCombatEffect.id === 'GRAVITY_BOMB') {
+                        this.remainingDistance *= 0.25;
+                    }
                     
                     // Calculate movement per tick (1 engine = 1 unit of movement)
                     if (distance > 0) {
@@ -180,7 +183,10 @@ class CombatActionHandler {
                         effectiveDistance = SkillEffects.getAccuracyDistance(distance, gunneryLevel);
                     }
                     
-                    const hitChance = Math.min(1, this.ship.radar / effectiveDistance);
+                    let hitChance = Math.min(1, this.ship.radar / effectiveDistance);
+                    if (this.gameState && this.gameState.activeCombatEffect && this.gameState.activeCombatEffect.id === 'SMOKE_BOMB') {
+                        hitChance *= 0.5;
+                    }
                     const hit = Math.random() < hitChance;
                     
                     // Store hit result in action

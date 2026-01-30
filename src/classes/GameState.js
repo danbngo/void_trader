@@ -47,6 +47,10 @@ class GameState {
         this.currentJob = null; // Currently active job (player can only have one at a time)
         this.completedJobReward = null; // Completed job waiting for reward collection
         this.jobsBoardSeenSignatures = {}; // Map of system index to last seen jobs signature
+
+        // Consumable items
+        this.consumables = {}; // Map of consumable id to count
+        this.activeCombatEffect = null; // { id, name, remainingTurns, source }
         
         // Perk system
         this.perks = new Set(); // Set of perk IDs the player has learned
@@ -191,5 +195,69 @@ class GameState {
         if (system && rankId === 'ELITE') {
             system.fees = 0; // Elite rank removes fees permanently
         }
+    }
+
+    /**
+     * Get consumable capacity per ship based on perks
+     * @returns {number}
+     */
+    getConsumableCapacityPerShip() {
+        if (this.perks && this.perks.has('CONSUMABLES_III')) return 4;
+        if (this.perks && this.perks.has('CONSUMABLES_II')) return 3;
+        if (this.perks && this.perks.has('CONSUMABLES_I')) return 2;
+        return 1;
+    }
+
+    /**
+     * Get total consumable capacity across fleet
+     * @returns {number}
+     */
+    getMaxConsumables() {
+        const shipsCount = Array.isArray(this.ships) ? this.ships.length : 0;
+        return shipsCount * this.getConsumableCapacityPerShip();
+    }
+
+    /**
+     * Get total consumables held
+     * @returns {number}
+     */
+    getTotalConsumables() {
+        if (!this.consumables) return 0;
+        return Object.values(this.consumables).reduce((sum, count) => sum + (count || 0), 0);
+    }
+
+    /**
+     * Add consumables to inventory
+     * @param {string} itemId
+     * @param {number} amount
+     * @returns {number} Amount actually added
+     */
+    addConsumable(itemId, amount = 1) {
+        if (!this.consumables) this.consumables = {};
+        const availableSpace = this.getMaxConsumables() - this.getTotalConsumables();
+        const amountToAdd = Math.max(0, Math.min(amount, availableSpace));
+        if (amountToAdd <= 0) return 0;
+        this.consumables[itemId] = (this.consumables[itemId] || 0) + amountToAdd;
+        return amountToAdd;
+    }
+
+    /**
+     * Remove consumables from inventory
+     * @param {string} itemId
+     * @param {number} amount
+     * @returns {number} Amount actually removed
+     */
+    removeConsumable(itemId, amount = 1) {
+        if (!this.consumables) this.consumables = {};
+        const current = this.consumables[itemId] || 0;
+        const amountToRemove = Math.max(0, Math.min(amount, current));
+        if (amountToRemove <= 0) return 0;
+        const remaining = current - amountToRemove;
+        if (remaining > 0) {
+            this.consumables[itemId] = remaining;
+        } else {
+            delete this.consumables[itemId];
+        }
+        return amountToRemove;
     }
 }

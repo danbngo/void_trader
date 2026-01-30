@@ -17,6 +17,8 @@ const EncounterMenu = (() => {
     let flashingEntities = new Map(); // Track entities that should flash orange (key: entity object, value: timestamp when flash ends)
     let explosions = []; // Track active explosion animations { x, y, startTime, duration }
     let aoeEffects = []; // Track AOE effect animations { x, y, startTime, duration, color }
+    let itemsMode = false; // Whether showing consumable items UI
+    let enemyItemUses = 0; // Count of enemy consumables used this combat
     
     /**
      * Calculate angle from one point to another (in radians)
@@ -130,6 +132,124 @@ const EncounterMenu = (() => {
      */
     function shipHasModule(ship, moduleId) {
         return ship.modules && ship.modules.includes(moduleId);
+    }
+
+    function getConsumableCount(gameState, itemId) {
+        if (!gameState.consumables) return 0;
+        return gameState.consumables[itemId] || 0;
+    }
+
+    function getEnemyPossibleItems(gameState) {
+        const possibleItems = new Set();
+        gameState.encounterShips.forEach(ship => {
+            const encounter = ENCOUNTER_TYPES[ship.faction];
+            if (encounter && Array.isArray(encounter.possibleItems)) {
+                encounter.possibleItems.forEach(itemId => possibleItems.add(itemId));
+            }
+        });
+        return Array.from(possibleItems);
+    }
+
+    function applyCombatEffect(gameState, itemId, source = 'PLAYER') {
+        const item = CONSUMABLES[itemId];
+        if (!item) return;
+
+        gameState.activeCombatEffect = {
+            id: item.id,
+            name: item.name,
+            remainingTurns: item.durationTurns,
+            source: source
+        };
+
+        if (item.id === 'EMP_BLASTER') {
+            gameState.ships.forEach(ship => {
+                ship.shields = 0;
+            });
+            gameState.encounterShips.forEach(ship => {
+                ship.shields = 0;
+            });
+        }
+    }
+
+    function useConsumable(itemId) {
+        const item = CONSUMABLES[itemId];
+        if (!item) return;
+        const activeShip = getActivePlayerShip();
+        if (!activeShip) return;
+
+        if (getConsumableCount(currentGameState, itemId) <= 0) {
+            outputMessage = `No ${item.name} remaining.`;
+            outputColor = COLORS.TEXT_ERROR;
+            render();
+            return;
+        }
+
+        currentGameState.removeConsumable(itemId, 1);
+        applyCombatEffect(currentGameState, itemId, 'PLAYER');
+        activeShip.acted = true;
+        waitingForContinue = true;
+        targetIndex = -1;
+        const enemies = currentGameState.encounterShips.filter(s => !s.fled && !s.disabled && !s.escaped);
+        if (enemies.length > 0) {
+            for (let i = 0; i < currentGameState.encounterShips.length; i++) {
+                const enemy = currentGameState.encounterShips[i];
+                if (!enemy.fled && !enemy.disabled && !enemy.escaped) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+        }
+        itemsMode = false;
+        outputMessage = `Used ${item.name}!`;
+        outputColor = COLORS.GREEN;
+        render();
+    }
+
+    function advanceCombatEffectTurn(gameState) {
+        if (!gameState.activeCombatEffect) return;
+        gameState.activeCombatEffect.remainingTurns -= 1;
+        if (gameState.activeCombatEffect.remainingTurns <= 0) {
+            gameState.activeCombatEffect = null;
+        }
+    }
+
+    function maybeUseEnemyConsumable(gameState) {
+        if (enemyItemUses >= ENEMY_MAX_ITEM_USE_DURING_COMBAT) return;
+        const possibleItems = getEnemyPossibleItems(gameState);
+        if (possibleItems.length === 0) return;
+        if (Math.random() >= ENEMY_USE_ITEM_PER_TURN_CHANCE) return;
+
+        const itemId = possibleItems[Math.floor(Math.random() * possibleItems.length)];
+        applyCombatEffect(gameState, itemId, 'ENEMY');
+        enemyItemUses += 1;
+        if (!outputMessage) {
+            outputMessage = `Enemy used ${CONSUMABLES[itemId].name}!`;
+            outputColor = COLORS.TEXT_ERROR;
+        }
+    }
+
+    function handleEnemyItemDrop(ship) {
+        if (!ship || ship.itemDropRolled) return;
+        ship.itemDropRolled = true;
+
+        const encounter = ENCOUNTER_TYPES[ship.faction];
+        const possibleItems = encounter && Array.isArray(encounter.possibleItems)
+            ? encounter.possibleItems
+            : [];
+        if (possibleItems.length === 0) return;
+        if (Math.random() >= ENEMY_DROP_ITEM_CHANCE) return;
+
+        const itemId = possibleItems[Math.floor(Math.random() * possibleItems.length)];
+        const added = currentGameState.addConsumable(itemId, 1);
+        if (!outputMessage) {
+            if (added > 0) {
+                outputMessage = `Recovered ${CONSUMABLES[itemId].name}!`;
+                outputColor = COLORS.GREEN;
+            } else {
+                outputMessage = `Found ${CONSUMABLES[itemId].name}, but storage is full.`;
+                outputColor = COLORS.TEXT_DIM;
+            }
+        }
     }
     
     /**
@@ -245,8 +365,12 @@ const EncounterMenu = (() => {
         outputMessage = '';
         targetIndex = 0;
         waitingForContinue = false;
+        itemsMode = false;
+        enemyItemUses = 0;
+        currentGameState.activeCombatEffect = null;
         flashingEntities.clear(); // Clear any previous flashing entities
         explosions = []; // Clear any previous explosions
+        aoeEffects = [];
         
         // Initialize combat if not already done
         if (!gameState.ships[0].hasOwnProperty('x')) {
@@ -394,6 +518,13 @@ const EncounterMenu = (() => {
                 }
             }
         }
+
+        const activeEffect = gameState.activeCombatEffect;
+        const effectText = activeEffect
+            ? `Effect: ${activeEffect.name} (${activeEffect.remainingTurns} turns)`
+            : 'Effect: None';
+        const effectColor = activeEffect ? COLORS.YELLOW : COLORS.TEXT_DIM;
+        UI.addText(2, 1, effectText, effectColor);
         
         // Get active player ship (first non-fled, non-disabled, non-escaped, non-acted)
         // But only if not waiting for player to press Continue
@@ -613,6 +744,8 @@ const EncounterMenu = (() => {
                         }
                     });
                 }
+
+                handleEnemyItemDrop(ship);
             }
             
             if (!ship.disabled) return; // Skip alive ships in this pass
@@ -998,6 +1131,23 @@ const EncounterMenu = (() => {
             const middleX = 28;
             const rightX = 51;
             
+            if (itemsMode) {
+                let itemsY = buttonY;
+                CONSUMABLES_ARRAY.forEach((item, index) => {
+                    const count = getConsumableCount(gameState, item.id);
+                    const hasItem = count > 0;
+                    const color = hasItem ? COLORS.BUTTON : COLORS.TEXT_DIM;
+                    const helpText = hasItem ? `Use ${item.name}` : `No ${item.name} remaining`;
+                    UI.addButton(leftX, itemsY++, String(index + 1), `${item.name} (${count})`, () => useConsumable(item.id), color, helpText);
+                });
+
+                UI.addButton(rightX, buttonY, '0', 'Back', () => {
+                    itemsMode = false;
+                    render();
+                }, COLORS.BUTTON, 'Return to combat actions');
+                return;
+            }
+
             // Column 1: Previous Target, Next Target, Fire Laser
             let col1Y = buttonY;
             
@@ -1029,7 +1179,10 @@ const EncounterMenu = (() => {
                 // Laser help text: hit chance and damage
                 const gunneryLevel = getMaxCrewSkill(currentGameState, 'gunnery');
                 const effectiveDistance = SkillEffects.getAccuracyDistance(distance, gunneryLevel);
-                const hitChance = Math.min(100, Math.floor((activeShip.radar / effectiveDistance) * 100));
+                let hitChance = Math.min(100, Math.floor((activeShip.radar / effectiveDistance) * 100));
+                if (currentGameState.activeCombatEffect && currentGameState.activeCombatEffect.id === 'SMOKE_BOMB') {
+                    hitChance = Math.floor(hitChance * 0.5);
+                }
                 const minDamage = SkillEffects.getLaserDamage(1, gunneryLevel);
                 const maxDamage = SkillEffects.getLaserDamage(activeShip.lasers, gunneryLevel);
                 const damageRange = `${minDamage}-${maxDamage}`;
@@ -1053,8 +1206,12 @@ const EncounterMenu = (() => {
                 }
                 
                 // Flee help text: distance and escape check (with variable speed)
-                const minFleeDistance = minSpeed;
-                const maxFleeDistance = maxSpeed;
+                let minFleeDistance = minSpeed;
+                let maxFleeDistance = maxSpeed;
+                if (currentGameState.activeCombatEffect && currentGameState.activeCombatEffect.id === 'GRAVITY_BOMB') {
+                    minFleeDistance *= 0.25;
+                    maxFleeDistance *= 0.25;
+                }
                 const currentDistanceFromCenter = Math.sqrt(activeShip.x * activeShip.x + activeShip.y * activeShip.y);
                 const willEscape = currentDistanceFromCenter + minFleeDistance > ENCOUNTER_MAX_RADIUS;
                 if (willEscape) {
@@ -1086,7 +1243,7 @@ const EncounterMenu = (() => {
                 }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
             }
             
-            // Column 3: Zoom In, Zoom Out
+            // Column 3: Zoom In, Zoom Out, Items
             let col3Y = buttonY;
             
             UI.addButton(rightX, col3Y++, '7', 'Zoom In', () => {
@@ -1098,6 +1255,11 @@ const EncounterMenu = (() => {
                 mapViewRange = Math.min(ENCOUNTER_MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
                 render();
             }, COLORS.BUTTON, 'Increase view range to see farther');
+
+            UI.addButton(rightX, col3Y++, '9', 'Items', () => {
+                itemsMode = true;
+                render();
+            }, COLORS.BUTTON, 'Use combat consumables');
         }
     }
     
@@ -1962,12 +2124,15 @@ const EncounterMenu = (() => {
             activeShip.acted = true;
             
             // Regenerate shields (1 per turn, or 4 if ship has SHIELD_RECHARGER module)
-            const baseRegen = 1;
-            const hasRecharger = activeShip.modules && activeShip.modules.includes('SHIELD_RECHARGER');
-            const regenAmount = hasRecharger ? baseRegen * 4 : baseRegen;
-            if (activeShip.shields < activeShip.maxShields) {
-                const actualRegen = Math.min(regenAmount, activeShip.maxShields - activeShip.shields);
-                activeShip.shields += actualRegen;
+            const empActive = currentGameState.activeCombatEffect && currentGameState.activeCombatEffect.id === 'EMP_BLASTER';
+            if (!empActive) {
+                const baseRegen = 1;
+                const hasRecharger = activeShip.modules && activeShip.modules.includes('SHIELD_RECHARGER');
+                const regenAmount = hasRecharger ? baseRegen * 4 : baseRegen;
+                if (activeShip.shields < activeShip.maxShields) {
+                    const actualRegen = Math.min(regenAmount, activeShip.maxShields - activeShip.shields);
+                    activeShip.shields += actualRegen;
+                }
             }
             
             waitingForContinue = true; // Wait for player to press Continue
@@ -2185,6 +2350,7 @@ const EncounterMenu = (() => {
      * Execute enemy turn (all enemy ships move)
      */
     function executeEnemyTurn() {
+        maybeUseEnemyConsumable(currentGameState);
         const enemyActions = [];
         
         // Generate actions for all enemy and neutral ships
@@ -2203,6 +2369,8 @@ const EncounterMenu = (() => {
             if (checkForVictory()) {
                 return;
             }
+
+            advanceCombatEffectTurn(currentGameState);
             
             // Reset acted flags for new turn
             currentGameState.ships.forEach(ship => ship.acted = false);
@@ -2273,12 +2441,15 @@ const EncounterMenu = (() => {
             action.ship.acted = true;
             
             // Regenerate shields (1 per turn, or 4 if ship has SHIELD_RECHARGER module)
-            const baseRegen = 1;
-            const hasRecharger = action.ship.modules && action.ship.modules.includes('SHIELD_RECHARGER');
-            const regenAmount = hasRecharger ? baseRegen * 4 : baseRegen;
-            if (action.ship.shields < action.ship.maxShields) {
-                const actualRegen = Math.min(regenAmount, action.ship.maxShields - action.ship.shields);
-                action.ship.shields += actualRegen;
+            const empActive = currentGameState.activeCombatEffect && currentGameState.activeCombatEffect.id === 'EMP_BLASTER';
+            if (!empActive) {
+                const baseRegen = 1;
+                const hasRecharger = action.ship.modules && action.ship.modules.includes('SHIELD_RECHARGER');
+                const regenAmount = hasRecharger ? baseRegen * 4 : baseRegen;
+                if (action.ship.shields < action.ship.maxShields) {
+                    const actualRegen = Math.min(regenAmount, action.ship.maxShields - action.ship.shields);
+                    action.ship.shields += actualRegen;
+                }
             }
             
             // Set message based on action type
@@ -2296,12 +2467,19 @@ const EncounterMenu = (() => {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
                         const obstructedShip = action.hitObstruction.ship;
-                        triggerFlash(obstructedShip); // Flash the hit ship
+                        if (!action.hitObstruction.blinkTriggered) {
+                            triggerFlash(obstructedShip); // Flash the hit ship
+                        }
                         // Get ship type name for obstruction
                         const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Ship' };
                         const obstructedName = obstructedType.name;
-                        outputMessage = `${enemyShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
-                        outputColor = COLORS.YELLOW;
+                        if (action.hitObstruction.blinkTriggered) {
+                            outputMessage = `${enemyShipType.name} fires laser but ${obstructedName} BLINKS away!`;
+                            outputColor = COLORS.YELLOW;
+                        } else {
+                            outputMessage = `${enemyShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                            outputColor = COLORS.YELLOW;
+                        }
                     } else if (action.hitObstruction.type === 'asteroid') {
                         // Flash the asteroid
                         if (action.hitObstruction.asteroid) {
@@ -2311,15 +2489,21 @@ const EncounterMenu = (() => {
                         outputColor = COLORS.YELLOW;
                     }
                 } else if (action.hit) {
-                    // Flash the target ship when hit
-                    if (action.targetShip) {
-                        triggerFlash(action.targetShip);
+                    const blinkAvoided = action.moduleEffects && action.moduleEffects.blinkTriggered && action.blinkAvoided;
+                    if (!blinkAvoided) {
+                        // Flash the target ship when hit
+                        if (action.targetShip) {
+                            triggerFlash(action.targetShip);
+                        }
+                        outputMessage = `${enemyShipType.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                        outputColor = COLORS.TEXT_ERROR;
+                    } else {
+                        outputMessage = `${enemyShipType.name} fires laser but ${targetShipType.name} BLINKS away! (${Math.floor(action.distance)} AU)`;
+                        outputColor = COLORS.YELLOW;
                     }
-                    outputMessage = `${enemyShipType.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
-                    outputColor = COLORS.TEXT_ERROR;
                     
                     // Handle module effects
-                    if (action.moduleEffects) {
+                    if (!blinkAvoided && action.moduleEffects) {
                         // DISRUPTER: Shields removed
                         if (action.moduleEffects.disrupterTriggered) {
                             outputMessage += ` DISRUPTER removes shields!`;
@@ -2450,29 +2634,34 @@ const EncounterMenu = (() => {
                 if (ramAction.rammer && ramAction.rammer.modules && ramAction.rammer.modules.includes('DRILL')) {
                     damage = Math.floor(damage * MODULE_DRILL_DAMAGE_MULTIPLIER);
                 }
-                
-                // Apply hull damage to rammed ship
-                ramAction.ship.hull -= damage;
-                
-                // Trigger flash for rammed ship
-                triggerFlash(ramAction.ship);
-                
-                // Check for BLINK module on rammed ship (25% chance to teleport)
+
+                // Check for BLINK module on rammed ship (avoids damage if triggered)
+                let blinkTriggered = false;
                 if (ramAction.ship.modules && ramAction.ship.modules.includes('BLINK')) {
                     if (Math.random() < MODULE_BLINK_CHANCE) {
-                        // Teleport to random position
                         const angle = Math.random() * Math.PI * 2;
                         const distance = MODULE_BLINK_DISTANCE;
                         ramAction.ship.x += Math.cos(angle) * distance;
                         ramAction.ship.y += Math.sin(angle) * distance;
+                        blinkTriggered = true;
                     }
                 }
-                
-                // Check if ship is disabled
-                if (ramAction.ship.hull <= 0) {
-                    ramAction.ship.hull = 0;
-                    // Don't disable immediately - will be disabled after flash
-                    // ramAction.ship.disabled = true;
+
+                ramAction.blinkAvoided = blinkTriggered;
+
+                if (!blinkTriggered) {
+                    // Apply hull damage to rammed ship
+                    ramAction.ship.hull -= damage;
+
+                    // Trigger flash for rammed ship
+                    triggerFlash(ramAction.ship);
+
+                    // Check if ship is disabled
+                    if (ramAction.ship.hull <= 0) {
+                        ramAction.ship.hull = 0;
+                        // Don't disable immediately - will be disabled after flash
+                        // ramAction.ship.disabled = true;
+                    }
                 }
                 
                 // Get ship names/types for message
@@ -2502,8 +2691,13 @@ const EncounterMenu = (() => {
                 executeActionWithTicks(ramAction, () => {
                     // Update message to show ramming
                     if (rammerName) {
-                        outputMessage = `${rammerName} RAMMED ${rammedName} for ${damage} damage!`;
-                        outputColor = COLORS.TEXT_ERROR;
+                        if (ramAction.blinkAvoided) {
+                            outputMessage = `${rammerName} RAMMED ${rammedName}, but it BLINKED away!`;
+                            outputColor = COLORS.YELLOW;
+                        } else {
+                            outputMessage = `${rammerName} RAMMED ${rammedName} for ${damage} damage!`;
+                            outputColor = COLORS.TEXT_ERROR;
+                        }
                     }
                     
                     // Call original completion callback

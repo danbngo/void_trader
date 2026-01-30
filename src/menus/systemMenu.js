@@ -283,42 +283,55 @@ const DockMenu = (() => {
         const rightX = 51;
         
         // Define all possible buildings (always shown)
-        // Column 1: Dock Services, Market, Courthouse
+        // Column 1: Dock Services, Market, Black Market, Courthouse
         // Column 2: Shipyard, Tavern, Guild
         const allBuildings = [
             {
                 id: 'DOCK',
                 name: 'Dock',
+                key: '1',
                 buildingType: BUILDING_TYPES.DOCK,
                 openMenu: () => DockServicesMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'MARKET',
                 name: 'Market',
+                key: '2',
                 buildingType: BUILDING_TYPES.MARKET,
                 openMenu: () => MarketMenu.show(gameState, () => show(gameState))
             },
             {
+                id: 'BLACK_MARKET',
+                name: 'Black Market',
+                key: 'b',
+                buildingType: BUILDING_TYPES.BLACK_MARKET,
+                openMenu: () => BlackMarketMenu.show(gameState, () => show(gameState))
+            },
+            {
                 id: 'COURTHOUSE',
                 name: 'Courthouse',
+                key: '3',
                 buildingType: BUILDING_TYPES.COURTHOUSE,
                 openMenu: () => CourthouseMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'SHIPYARD',
                 name: 'Shipyard',
+                key: '4',
                 buildingType: BUILDING_TYPES.SHIPYARD,
                 openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'TAVERN',
                 name: 'Tavern',
+                key: '5',
                 buildingType: BUILDING_TYPES.TAVERN,
                 openMenu: () => TavernMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'GUILD',
                 name: 'Guild',
+                key: '6',
                 buildingType: BUILDING_TYPES.GUILD,
                 openMenu: () => GuildMenu.show(gameState, () => show(gameState))
             }
@@ -339,7 +352,7 @@ const DockMenu = (() => {
             }
             
             const color = isAccessible ? COLORS.BUTTON : COLORS.TEXT_DIM;
-            const key = String(index + 1);
+            const key = building.key || String(index + 1);
             
             // Build help text
             let helpText = building.buildingType.description;
@@ -356,9 +369,10 @@ const DockMenu = (() => {
                 }
             }
             
-            // Determine column and row for 3-column layout (3 items per column)
-            const column = Math.floor(index / 3); // 0 or 1
-            const row = index % 3; // 0, 1, or 2
+            // Determine column and row for 2-column layout (4 items per column)
+            const rowsPerColumn = 4;
+            const column = Math.floor(index / rowsPerColumn); // 0 or 1
+            const row = index % rowsPerColumn; // 0..3
             const buttonX = column === 0 ? leftX : middleX;
             const btnY = buttonY + row;
             

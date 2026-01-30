@@ -74,7 +74,11 @@ const SaveLoadManager = (() => {
                 // Save perk system
                 perks: Array.from(gameState.perks),
                 enabledCargoTypes: gameState.enabledCargoTypes,
-                enabledShipTypes: gameState.enabledShipTypes
+                enabledShipTypes: gameState.enabledShipTypes,
+                // Save consumables and job board state
+                consumables: gameState.consumables || {},
+                jobsBoardSeenSignatures: gameState.jobsBoardSeenSignatures || {},
+                activeCombatEffect: gameState.activeCombatEffect || null
             },
             timestamp: new Date().toISOString()
         };
@@ -298,6 +302,9 @@ const SaveLoadManager = (() => {
         gameState.perks = new Set(data.perks || []);
         gameState.enabledCargoTypes = data.enabledCargoTypes || [...CARGO_TYPES_SAFE];
         gameState.enabledShipTypes = data.enabledShipTypes || [...SHIP_TYPES_BASIC];
+        gameState.consumables = data.consumables || {};
+        gameState.jobsBoardSeenSignatures = data.jobsBoardSeenSignatures || {};
+        gameState.activeCombatEffect = data.activeCombatEffect || null;
         
         return gameState;
     }

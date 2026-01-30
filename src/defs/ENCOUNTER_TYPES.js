@@ -11,6 +11,7 @@ const ENCOUNTER_TYPES = {
         description: 'Law enforcement patrol scanning for illegal cargo and fugitives',
         shipTypes: ['CORVETTE', 'DESTROYER', 'FIGHTER'],
         cargoTypes: [],
+        possibleItems: [],
         maxCredits: 500,
         minShips: 1,
         maxShips: 3,
@@ -45,6 +46,7 @@ const ENCOUNTER_TYPES = {
         description: 'Legitimate trader looking to exchange goods - prefers reputable captains',
         shipTypes: ['FREIGHTER', 'HAULER', 'TANKER'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(!ct.illegal))],
+        possibleItems: [],
         maxCredits: 2000,
         minShips: 1,
         maxShips: 3,
@@ -67,6 +69,7 @@ const ENCOUNTER_TYPES = {
         description: 'Black market dealers trading in illegal goods - only deal with criminals',
         shipTypes: ['SCOUT', 'STEALTH_SHIP', 'FREIGHTER'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(ct.illegal))],
+        possibleItems: CONSUMABLES_ARRAY.map(item => item.id),
         maxCredits: 3000,
         minShips: 1,
         maxShips: 3,
@@ -89,6 +92,7 @@ const ENCOUNTER_TYPES = {
         description: 'Military patrol defending human space - hostile to known criminals',
         shipTypes: ['CORVETTE', 'DESTROYER', 'FIGHTER', 'BATTLESHIP'],
         cargoTypes: [CARGO_TYPES.WEAPONS, CARGO_TYPES.ANTIMATTER],
+        possibleItems: [],
         maxCredits: 1000,
         minShips: 3,
         maxShips: 6,
@@ -123,6 +127,7 @@ const ENCOUNTER_TYPES = {
         description: 'Hostile vessel demanding cargo or credits',
         shipTypes: ['SCOUT', 'RAIDER', 'CORVETTE', 'STEALTH_SHIP'],
         cargoTypes: [...ALL_CARGO_TYPES.filter(ct=>(ct.illegal))],
+        possibleItems: CONSUMABLES_ARRAY.map(item => item.id),
         maxCredits: 1000,
         minShips: 1,
         maxShips: 3,
@@ -138,6 +143,7 @@ const ENCOUNTER_TYPES = {
         description: 'Derelict vessel floating in space with salvageable cargo',
         shipTypes: ['SHUTTLE', 'SCOUT', 'FREIGHTER', 'HAULER', 'TANKER', 'RAIDER', 'CORVETTE', 'DESTROYER', 'STEALTH_SHIP', 'FIGHTER'],
         cargoTypes: [...ALL_CARGO_TYPES],
+        possibleItems: [],
         maxCredits: 0,
         minShips: 1,
         maxShips: 3,
@@ -153,6 +159,7 @@ const ENCOUNTER_TYPES = {
         description: 'Hostile alien vessels attacking without warning',
         shipTypes: SHIP_TYPES_ALIEN,
         cargoTypes: [CARGO_TYPES.RELICS],
+        possibleItems: [],
         maxCredits: 0,
         minShips: 3,
         maxShips: 6,
@@ -169,6 +176,7 @@ const ENCOUNTER_TYPES = {
         shipTypes: SHIP_TYPES_ALIEN,
         cargoTypes: [CARGO_TYPES.RELICS],
         shipModules: [],
+        possibleItems: [],
         maxCredits: 0,
         minShips: 6,
         maxShips: 9,
@@ -184,6 +192,7 @@ const ENCOUNTER_TYPES = {
         description: 'Pirate raiders clash with merchant convoys',
         leftFactionId: 'PIRATE',
         rightFactionId: 'MERCHANT',
+        possibleItems: [],
         onGreet: function(gameState, encType) {
             FactionVsFactionEncounter.show(gameState, encType);
         }
@@ -195,6 +204,7 @@ const ENCOUNTER_TYPES = {
         description: 'Pirates move to seize smuggler cargo',
         leftFactionId: 'PIRATE',
         rightFactionId: 'SMUGGLERS',
+        possibleItems: [],
         onGreet: function(gameState, encType) {
             FactionVsFactionEncounter.show(gameState, encType);
         }
@@ -206,6 +216,7 @@ const ENCOUNTER_TYPES = {
         description: 'Military patrols engage pirate raiders',
         leftFactionId: 'SOLDIERS',
         rightFactionId: 'PIRATE',
+        possibleItems: [],
         onGreet: function(gameState, encType) {
             FactionVsFactionEncounter.show(gameState, encType);
         }
@@ -217,6 +228,7 @@ const ENCOUNTER_TYPES = {
         description: 'Police forces pursue pirate vessels',
         leftFactionId: 'POLICE',
         rightFactionId: 'PIRATE',
+        possibleItems: [],
         onGreet: function(gameState, encType) {
             FactionVsFactionEncounter.show(gameState, encType);
         }
@@ -228,6 +240,7 @@ const ENCOUNTER_TYPES = {
         description: 'Police intercept smugglers in flight',
         leftFactionId: 'POLICE',
         rightFactionId: 'SMUGGLERS',
+        possibleItems: [],
         onGreet: function(gameState, encType) {
             FactionVsFactionEncounter.show(gameState, encType);
         }

@@ -45,5 +45,12 @@ const BUILDING_TYPES = {
         description: 'Quest hub and trading organization',
         generationChance: 0.1, // 10% chance
         minRankLevel: 1
+    },
+    BLACK_MARKET: {
+        id: 'BLACK_MARKET',
+        name: 'Black Market',
+        description: 'Buy combat consumables',
+        generationChance: 0, // Only appears in Blackreach
+        minRankLevel: 0
     }
 };

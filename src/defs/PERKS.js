@@ -87,6 +87,27 @@ const PERKS = {
         baseCost: 60000,
         requiredPerks: ['ENGINEERING_II']
     },
+    CONSUMABLES_I: {
+        id: 'CONSUMABLES_I',
+        name: 'Consumables Capacity I',
+        description: 'Increase consumable capacity to 2 per ship',
+        baseCost: 12000,
+        requiredPerks: []
+    },
+    CONSUMABLES_II: {
+        id: 'CONSUMABLES_II',
+        name: 'Consumables Capacity II',
+        description: 'Increase consumable capacity to 3 per ship',
+        baseCost: 24000,
+        requiredPerks: ['CONSUMABLES_I']
+    },
+    CONSUMABLES_III: {
+        id: 'CONSUMABLES_III',
+        name: 'Consumables Capacity III',
+        description: 'Increase consumable capacity to 4 per ship',
+        baseCost: 48000,
+        requiredPerks: ['CONSUMABLES_II']
+    }
 };
 
 // Array of all perks for iteration

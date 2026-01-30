@@ -64,6 +64,9 @@ class GameState {
         this.combatAction = null; // Current combat action being executed
         this.combatHandler = null; // Current combat action handler
         this.activeShipCombatIndex = 0; // Index of current active ship in combat
+
+        // Assistant menu hints
+        this.captainInfoSeenThisSystem = false; // Whether captain info was opened in the current system
     }
     
     /**
@@ -92,6 +95,9 @@ class GameState {
             
             // Reset recommendation seen flag when arriving at new system
             this.recommendationSeen = false;
+
+            // Reset per-system assistant menu hints
+            this.captainInfoSeenThisSystem = false;
         }
     }
     

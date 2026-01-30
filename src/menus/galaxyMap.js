@@ -263,6 +263,11 @@ const GalaxyMap = (() => {
             UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
             UI.addText(startX + 10, y - 1, `${selected.distance.toFixed(1)} LY`, COLORS.TEXT_NORMAL);
             
+            const pilotingLevel = getMaxCrewSkill(gameState, 'piloting');
+            const durationDays = Ship.calculateFleetTravelDuration(selected.distance, gameState.ships, pilotingLevel);
+            UI.addText(startX, y++, 'Duration:', COLORS.TEXT_DIM);
+            UI.addText(startX + 10, y - 1, `${durationDays.toFixed(1)} days`, COLORS.TEXT_NORMAL);
+            
             UI.addText(startX, y++, 'Fuel Cost:', COLORS.TEXT_DIM);
             UI.addText(startX + 11, y - 1, `${fuelCost}`, COLORS.TEXT_NORMAL);
             
@@ -347,6 +352,27 @@ const GalaxyMap = (() => {
         UI.debugRegisteredTexts();
         
         UI.draw();
+    }
+
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {GameState} gameState
+     * @param {string} skillName
+     * @returns {number}
+     */
+    function getMaxCrewSkill(gameState, skillName) {
+        let maxSkill = 0;
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        return maxSkill;
     }
     
     /**

@@ -75,20 +75,11 @@ const TravelMenu = (() => {
             ships: gameState.ships.map(s => ({ type: s.type, fuel: s.fuel }))
         });
         
-        // Use first ship for engine calculation (fleet moves together)
-        const activeShip = gameState.ships[0];
-        
         // Get max piloting skill from all crew
         const pilotingLevel = getMaxCrewSkill(currentGameState, 'piloting');
         
-        // Calculate duration based on engine level
-        // Engine level of AVERAGE_SHIP_ENGINE_LEVEL means normal speed
-        // Higher engine = faster travel
-        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
-        const baseDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
-        
-        // Apply piloting skill to reduce travel time
-        totalDuration = SkillEffects.getTravelDuration(baseDuration, pilotingLevel);
+        // Calculate duration using shared helper
+        totalDuration = Ship.calculateFleetTravelDuration(distance, gameState.ships, pilotingLevel);
         elapsedDays = 0;
         
         // Start travel loop

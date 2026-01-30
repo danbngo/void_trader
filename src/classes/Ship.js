@@ -103,6 +103,20 @@ class Ship {
     static calculateFleetFuelCost(distance, numShips) {
         return Ship.calculateBaseFuelCost(distance) * numShips;
     }
+
+    /**
+     * Calculate fleet travel duration (days), factoring engine and piloting
+     * @param {number} distance - Distance to travel
+     * @param {Array<Ship>} ships - Fleet ships
+     * @param {number} pilotingLevel - Max piloting skill level
+     * @returns {number} Travel duration in days
+     */
+    static calculateFleetTravelDuration(distance, ships, pilotingLevel = 0) {
+        const activeShip = ships[0];
+        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        const baseDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
+        return SkillEffects.getTravelDuration(baseDuration, pilotingLevel);
+    }
     
     /**
      * Check if fleet can reach a destination based on total fuel

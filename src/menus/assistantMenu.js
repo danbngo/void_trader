@@ -108,7 +108,8 @@ const AssistantMenu = (() => {
         
         // Column 2: Captain Info, Quests, Messages, Trade Recs
         const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
-        const captainInfoColor = hasSkillPoints ? COLORS.YELLOW : COLORS.BUTTON;
+        const shouldHighlightCaptainInfo = hasSkillPoints && !gameState.captainInfoSeenThisSystem;
+        const captainInfoColor = shouldHighlightCaptainInfo ? COLORS.YELLOW : COLORS.BUTTON;
         const captainInfoHelp = hasSkillPoints ? 'Skill points available! View captain info and skills' : 'View captain info, skills, and perks';
         UI.addButton(middleX, buttonY, '4', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), captainInfoColor, captainInfoHelp);
         

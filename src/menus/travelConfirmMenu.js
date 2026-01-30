@@ -22,11 +22,12 @@ const TravelConfirmMenu = (() => {
         const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
         const fuelAfter = totalFuel - fuelCost;
-        const durationDays = Math.ceil(distance * AVERAGE_JOURNEY_DAYS_PER_LY);
+        const pilotingLevel = getMaxCrewSkill(gameState, 'piloting');
+        const durationDays = Ship.calculateFleetTravelDuration(distance, gameState.ships, pilotingLevel);
         
         // Calculate date after journey
         const dateAfter = new Date(gameState.date);
-        dateAfter.setDate(dateAfter.getDate() + durationDays);
+        dateAfter.setDate(dateAfter.getDate() + Math.ceil(durationDays));
         
         // Check if target system is visited
         const targetSystemIndex = gameState.systems.indexOf(targetSystem);
@@ -108,7 +109,7 @@ const TravelConfirmMenu = (() => {
             { label: 'Distance:', value: `${distance.toFixed(1)} LY`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Fuel Cost:', value: `${fuelCost} / ${totalFuel}`, valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Fuel After:', value: String(fuelAfter), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
-            { label: 'Duration:', value: `${durationDays} days`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Duration:', value: `${durationDays.toFixed(1)} days`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_NORMAL },
             { label: 'Arrival Date:', value: formatDate(dateAfter), valueColor: COLORS.TEXT_NORMAL }
         ]);
@@ -200,6 +201,27 @@ const TravelConfirmMenu = (() => {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    }
+
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {GameState} gameState
+     * @param {string} skillName
+     * @returns {number}
+     */
+    function getMaxCrewSkill(gameState, skillName) {
+        let maxSkill = 0;
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        return maxSkill;
     }
     
     return {

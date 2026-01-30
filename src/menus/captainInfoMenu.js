@@ -17,6 +17,10 @@ const CaptainInfoMenu = (() => {
         currentMode = 'info';
         selectedSkillIndex = 0;
         outputMessage = '';
+
+        if (window.gameState) {
+            window.gameState.captainInfoSeenThisSystem = true;
+        }
         
         UI.clear();
         UI.resetSelection();

@@ -35,7 +35,9 @@ const ScoreMenu = (() => {
             }, 0);
         }, 0);
         
-        const totalScore = credits + reputationScore + bountyScore + shipsValue + cargoValue;
+        const alienSystemCount = gameState.systems.filter(system => system.conqueredByAliens).length;
+        const alienSystemPenalty = alienSystemCount * SCORE_PENALTY_PER_ALIEN_SYSTEM;
+        const totalScore = credits + reputationScore + bountyScore + shipsValue + cargoValue - alienSystemPenalty;
         
         return {
             credits,
@@ -43,6 +45,7 @@ const ScoreMenu = (() => {
             bountyScore,
             shipsValue,
             cargoValue,
+            alienSystemPenalty,
             totalScore
         };
     }
@@ -79,7 +82,8 @@ const ScoreMenu = (() => {
             { label: 'Reputation (×10):', value: `${score.reputationScore.toLocaleString()}`, valueColor: repColor },
             { label: 'Bounty:', value: `${score.bountyScore.toLocaleString()}`, valueColor: bountyColor },
             { label: 'Ship Value:', value: `${score.shipsValue.toLocaleString()} CR`, valueColor: COLORS.CYAN },
-            { label: 'Cargo Value:', value: `${score.cargoValue.toLocaleString()} CR`, valueColor: COLORS.CYAN }
+            { label: 'Cargo Value:', value: `${score.cargoValue.toLocaleString()} CR`, valueColor: COLORS.CYAN },
+            { label: 'Alien Systems Penalty:', value: `-${score.alienSystemPenalty.toLocaleString()}`, valueColor: score.alienSystemPenalty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_DIM }
         ]);
         
         y++;

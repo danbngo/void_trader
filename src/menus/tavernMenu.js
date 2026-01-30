@@ -91,7 +91,8 @@ const TavernMenu = (() => {
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Officers:', value: `${gameState.subordinates.length}/${maxOfficers}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM },
+            { label: 'Fees after Barter:', value: `${(effectiveFees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         y++;
         

@@ -8,6 +8,24 @@ const GuildMenu = (() => {
     let selectedPerkIndex = 0;
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
+
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     */
+    function getMaxCrewSkill(skillName) {
+        let maxSkill = 0;
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        return maxSkill;
+    }
     
     /**
      * Show the guild menu
@@ -32,8 +50,14 @@ const GuildMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         
         // Title
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, getMaxCrewSkill('barter'));
+
         UI.addTitleLineCentered(0, `${currentSystem.name}: MERCHANT'S GUILD`);
-        UI.addText(5, 2, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
+        TableRenderer.renderKeyValueList(5, 2, [
+            { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM },
+            { label: 'Fees after Barter:', value: `${(effectiveFees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
+        ]);
         
         // Available perks table
         const startY = 5;
@@ -42,7 +66,7 @@ const GuildMenu = (() => {
         const rows = ALL_PERKS.map(perk => {
             const alreadyLearned = gameState.perks.has(perk.id);
             // Calculate total cost with system fees
-            const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+            const totalCost = Math.floor(perk.baseCost * (1 + effectiveFees));
             const canAfford = gameState.credits >= totalCost;
             
             // Check if player has all required perks
@@ -87,7 +111,7 @@ const GuildMenu = (() => {
         // Learn button - gray out if already learned, locked, or can't afford
         const selectedPerk = ALL_PERKS[selectedPerkIndex];
         const alreadyLearned = gameState.perks.has(selectedPerk.id);
-        const selectedPerkTotalCost = Math.floor(selectedPerk.baseCost * (1 + currentSystem.fees));
+        const selectedPerkTotalCost = Math.floor(selectedPerk.baseCost * (1 + effectiveFees));
         const canAfford = gameState.credits >= selectedPerkTotalCost;
         const hasRequiredPerks = selectedPerk.requiredPerks.every(reqPerkId => gameState.perks.has(reqPerkId));
         const canLearn = !alreadyLearned && canAfford && hasRequiredPerks;
@@ -128,7 +152,8 @@ const GuildMenu = (() => {
     function learnPerk(onReturn) {
         const perk = ALL_PERKS[selectedPerkIndex];
         const currentSystem = gameState.getCurrentSystem();
-        const totalCost = Math.floor(perk.baseCost * (1 + currentSystem.fees));
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, getMaxCrewSkill('barter'));
+        const totalCost = Math.floor(perk.baseCost * (1 + effectiveFees));
         
         if (gameState.perks.has(perk.id)) {
             outputMessage = 'You already know this perk!';

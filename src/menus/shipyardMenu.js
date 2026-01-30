@@ -83,9 +83,11 @@ const ShipyardMenu = (() => {
         
         // Title
         UI.addTitleLineCentered(1, `${currentSystem.name}: Shipyard`);
+        const effectiveFees = getEffectiveFees();
         TableRenderer.renderKeyValueList(5, 3, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM },
+            { label: 'Fees after Barter:', value: `${(effectiveFees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         
         if (mode === 'manage') {

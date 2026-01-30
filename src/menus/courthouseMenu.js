@@ -7,6 +7,24 @@ const CourthouseMenu = (() => {
     let gameState = null;
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
+
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     */
+    function getMaxCrewSkill(skillName) {
+        let maxSkill = 0;
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        return maxSkill;
+    }
     
     /**
      * Show the courthouse menu
@@ -33,12 +51,16 @@ const CourthouseMenu = (() => {
         // Title
         UI.addTitleLineCentered(0, `${currentSystem.name}: Courthouse`);
         
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, getMaxCrewSkill('barter'));
+
         // Player info using renderKeyValueList
         TableRenderer.renderKeyValueList(5, 2, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Reputation:', value: `${gameState.reputation}`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL },
-            { label: 'Current Rank:', value: currentRank.name, valueColor: currentRank.color }
+            { label: 'Current Rank:', value: currentRank.name, valueColor: currentRank.color },
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM },
+            { label: 'Fees after Barter:', value: `${(effectiveFees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         
         // Available ranks
@@ -59,7 +81,7 @@ const CourthouseMenu = (() => {
                 });
             } else if (rank.level === currentRank.level + 1) {
                 // Next rank - show in green if affordable, gray if not
-                const actualFee = Math.floor(rank.fee * currentSystem.fees);
+                const actualFee = Math.floor(rank.fee * effectiveFees);
                 const canAfford = gameState.credits >= actualFee;
                 const hasReputation = gameState.reputation >= rank.minReputation;
                 const hasBounty = gameState.bounty > 0;
@@ -98,8 +120,8 @@ const CourthouseMenu = (() => {
             upgradeHelpText = 'Already at highest rank';
         } else if (gameState.bounty > 0) {
             upgradeHelpText = 'Pay bounty first';
-        } else if (gameState.credits < Math.floor(nextRank.fee * currentSystem.fees)) {
-            upgradeHelpText = `Need ${Math.floor(nextRank.fee * currentSystem.fees)} CR to upgrade`;
+        } else if (gameState.credits < Math.floor(nextRank.fee * effectiveFees)) {
+            upgradeHelpText = `Need ${Math.floor(nextRank.fee * effectiveFees)} CR to upgrade`;
         } else if (gameState.reputation < nextRank.minReputation) {
             upgradeHelpText = `Need ${nextRank.minReputation} reputation`;
         } else {
@@ -167,7 +189,8 @@ const CourthouseMenu = (() => {
         
         // Check requirements
         const currentSystem = gameState.getCurrentSystem();
-        const actualFee = Math.floor(nextRank.fee * currentSystem.fees);
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, getMaxCrewSkill('barter'));
+        const actualFee = Math.floor(nextRank.fee * effectiveFees);
         
         if (gameState.credits < actualFee) {
             outputMessage = `Not enough credits! Need ${actualFee} CR, have ${gameState.credits} CR.`;

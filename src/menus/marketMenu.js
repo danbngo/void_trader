@@ -38,10 +38,17 @@ const MarketMenu = (() => {
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const totalCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const totalCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
+
+        // Apply barter skill to fees
+        const playerOfficer = gameState.captain;
+        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
+        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
+
         TableRenderer.renderKeyValueList(5, 2, [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Cargo:', value: `${totalCargo} / ${totalCapacity}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
+            { label: 'System Fees:', value: `${(currentSystem.fees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM },
+            { label: 'Fees after Barter:', value: `${(effectiveFees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM }
         ]);
         
         // Use ALL cargo types (not just enabled ones)
@@ -54,11 +61,6 @@ const MarketMenu = (() => {
         
         // Get total fleet cargo capacity for stock ratio calculation
         const totalCargoCapacity = Ship.getFleetCargoCapacity(gameState.ships);
-        
-        // Apply barter skill to fees
-        const playerOfficer = gameState.captain;
-        const barterLevel = playerOfficer ? (playerOfficer.skills.barter || 0) : 0;
-        const effectiveFees = SkillEffects.getModifiedFees(currentSystem.fees, barterLevel);
         
         // Market table
         let startY = 6;

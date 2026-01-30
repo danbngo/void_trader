@@ -162,7 +162,10 @@ const ShipyardMenu = (() => {
         const sellHelpText = isLastShip ? 'Cannot sell your last ship' : 'Sell selected ship for credits';
         UI.addButton(middleX, buttonY, '3', 'Sell Ship', () => initiateSell(onReturn), sellColor, sellHelpText);
         
-        UI.addButton(middleX, buttonY + 1, '4', 'Buy Ships', () => switchToBuyMode(onReturn), COLORS.BUTTON, 'Browse ships available for purchase');
+        const hasShipsForSale = currentSystem.ships && currentSystem.ships.length > 0;
+        const buyShipsColor = hasShipsForSale ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        const buyShipsHelpText = hasShipsForSale ? 'Browse ships available for purchase' : 'No ships available for purchase';
+        UI.addButton(middleX, buttonY + 1, '4', 'Buy Ships', () => switchToBuyMode(onReturn), buyShipsColor, buyShipsHelpText);
         
         // Install Modules - gray out if no modules or no engineering training
         const currentSystem = gameState.getCurrentSystem();

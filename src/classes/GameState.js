@@ -66,7 +66,8 @@ class GameState {
         this.activeShipCombatIndex = 0; // Index of current active ship in combat
 
         // Assistant menu hints
-        this.captainInfoSeenThisSystem = false; // Whether captain info was opened in the current system
+        this.captainInfoSeenAtLevel = null; // Player level when captain info was last opened
+        this.skillsMenuSeenAtLevel = null; // Player level when skills menu was last opened
     }
     
     /**
@@ -96,8 +97,6 @@ class GameState {
             // Reset recommendation seen flag when arriving at new system
             this.recommendationSeen = false;
 
-            // Reset per-system assistant menu hints
-            this.captainInfoSeenThisSystem = false;
         }
     }
     

@@ -12,6 +12,7 @@ const TravelMenu = (() => {
     let targetSystem = null;
     let totalDuration = 0;
     let elapsedDays = 0;
+    let repairDayAccumulator = 0;
     let encounterType = null;
     let travelTickInterval = null;
     let shipFuelCosts = []; // Pre-calculated fuel cost for each ship
@@ -34,6 +35,7 @@ const TravelMenu = (() => {
         encounterTriggered = false;
         arrivedAtDestination = false;
         encounterType = null;
+        repairDayAccumulator = 0;
         
         // Track where we departed from (for police surrender jail mechanic)
         gameState.previousSystemIndex = gameState.currentSystemIndex;
@@ -146,6 +148,9 @@ const TravelMenu = (() => {
         const progressLabel = `${(progress * 100).toFixed(1)}% complete`;
         y = ProgressBar.render(barCenterX, y, progress, barWidth, progressLabel);
         y += 2;
+
+        // Player fleet status
+        y = ShipTableRenderer.addPlayerFleet(5, y, 'Fleet Status', currentGameState.ships, false, currentGameState.activeShipIndex);
         
         // Encounter output row - positioned near bottom
         const buttonY = grid.height - 3;
@@ -197,6 +202,17 @@ const TravelMenu = (() => {
                 // Calculate elapsed days this tick
                 const daysThisTick = totalDuration * progressPerTick;
                 elapsedDays += daysThisTick;
+
+                // Apply engineering repairs incrementally as days pass
+                const engineeringLevel = getMaxCrewSkill(currentGameState, 'engineering');
+                if (engineeringLevel > 0) {
+                    repairDayAccumulator += daysThisTick;
+                    const fullDays = Math.floor(repairDayAccumulator);
+                    if (fullDays > 0) {
+                        SkillEffects.applyEngineeringRepairs(currentGameState.ships, engineeringLevel, fullDays);
+                        repairDayAccumulator -= fullDays;
+                    }
+                }
                 
                 // Check for encounter
                 if (!encounterTriggered) {
@@ -314,22 +330,6 @@ const TravelMenu = (() => {
             shipFuelCosts,
             shipsAfter: currentGameState.ships.map(s => ({ type: s.type, fuel: s.fuel }))
         });
-        
-        // Apply engineering skill repairs during travel (use max from all crew)
-        const engineeringLevel = getMaxCrewSkill(currentGameState, 'engineering');
-        
-        if (engineeringLevel > 0) {
-            const repairResults = SkillEffects.applyEngineeringRepairs(
-                currentGameState.ships, 
-                engineeringLevel, 
-                totalDuration
-            );
-            
-            if (repairResults.repairsApplied > 0) {
-                console.log('[TravelMenu] Engineering repairs applied:', repairResults);
-                // Could add a message about repairs if desired
-            }
-        }
         
         // Apply regenerative hull module effects during travel
         const daysElapsed = Math.ceil(totalDuration);

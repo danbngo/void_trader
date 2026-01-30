@@ -18,8 +18,8 @@ const CaptainInfoMenu = (() => {
         selectedSkillIndex = 0;
         outputMessage = '';
 
-        if (window.gameState) {
-            window.gameState.captainInfoSeenThisSystem = true;
+        if (window.gameState && window.gameState.captain) {
+            window.gameState.captainInfoSeenAtLevel = window.gameState.captain.level;
         }
         
         UI.clear();
@@ -79,8 +79,11 @@ const CaptainInfoMenu = (() => {
                 skillsColor = COLORS.TEXT_DIM;
                 skillsHelp = 'No skills learned yet (gain experience to unlock)';
             } else if (hasSkillPoints) {
-                skillsColor = COLORS.YELLOW;
-                skillsHelp = 'Skill points available! View and upgrade skills';
+                const hasSeenSkillsThisLevel = gameState.skillsMenuSeenAtLevel === playerOfficer.level;
+                if (!hasSeenSkillsThisLevel) {
+                    skillsColor = COLORS.YELLOW;
+                    skillsHelp = 'Skill points available! View and upgrade skills';
+                }
             }
             UI.addButton(leftX, buttonY + 1, '2', 'Skills', 
                 hasSkillsOrPoints ? () => switchMode('skills', onReturn) : () => {
@@ -266,6 +269,9 @@ const CaptainInfoMenu = (() => {
         currentMode = mode;
         selectedSkillIndex = 0;
         outputMessage = '';
+        if (mode === 'skills' && window.gameState && window.gameState.captain) {
+            window.gameState.skillsMenuSeenAtLevel = window.gameState.captain.level;
+        }
         window.gameState.__returnCallback = onReturn; // Store for table callback
         render(onReturn);
     }

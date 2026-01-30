@@ -14,6 +14,14 @@ const EncounterGenerator = (() => {
             return { ships: [], cargo: {}, totalCargoCapacity: 0, totalCargoAmount: 0, cargoRatio: 0, retryCount: 0 };
         }
 
+        const shipTypes = Array.isArray(encounterType.shipTypes)
+            ? encounterType.shipTypes.filter(Boolean)
+            : [];
+
+        if (shipTypes.length === 0) {
+            return { ships: [], cargo: {}, totalCargoCapacity: 0, totalCargoAmount: 0, cargoRatio: 0, retryCount: 0 };
+        }
+
         // For abandoned ships, generate exactly 1 ship. For others, use encounter type's min/max
         let numShips;
         if (encounterType.id === 'ABANDONED_SHIP') {
@@ -26,9 +34,13 @@ const EncounterGenerator = (() => {
 
         const ships = [];
         for (let i = 0; i < numShips; i++) {
-            const randomShipType = encounterType.shipTypes[
-                Math.floor(Math.random() * encounterType.shipTypes.length)
+            const randomShipType = shipTypes[
+                Math.floor(Math.random() * shipTypes.length)
             ];
+
+            if (!randomShipType) {
+                continue;
+            }
 
             // Handle both string IDs and ship type objects
             const shipTypeId = typeof randomShipType === 'string' ? randomShipType : randomShipType.id;

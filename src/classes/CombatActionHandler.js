@@ -293,35 +293,50 @@ class CombatActionHandler {
                 // hitObstruction.object.disabled = true;
                 this.action.hitObstruction = { type: 'asteroid', name: 'asteroid', x: hitX, y: hitY, asteroid: hitObstruction.object };
             } else if (hitObstruction.type === 'ship') {
-                // Apply damage to the obstructing ship
-                const damage = Math.floor(Math.random() * this.ship.lasers) + 1;
                 const hitShip = hitObstruction.object;
-                
-                // Apply damage to shields first, then hull
-                if (hitShip.shields > 0) {
-                    const shieldDamage = Math.min(damage, hitShip.shields);
-                    hitShip.shields -= shieldDamage;
-                    const remainingDamage = damage - shieldDamage;
-                    if (remainingDamage > 0) {
-                        hitShip.hull -= remainingDamage;
+                let damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                let blinkTriggered = false;
+
+                // BLINK: only triggers if the ship was going to be hit
+                if (hitShip.modules && hitShip.modules.includes('BLINK')) {
+                    if (Math.random() < MODULE_BLINK_CHANCE) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = MODULE_BLINK_DISTANCE;
+                        hitShip.x += Math.cos(angle) * distance;
+                        hitShip.y += Math.sin(angle) * distance;
+                        blinkTriggered = true;
+                        damage = 0;
                     }
-                } else {
-                    hitShip.hull -= damage;
                 }
 
-                this.recordFactionDamage(damage, hitShip);
-                
-                // Check if ship is disabled
-                if (hitShip.hull <= 0) {
-                    hitShip.hull = 0;
-                    // Don't disable immediately - will be disabled after flash
-                    // hitShip.disabled = true;
+                if (!blinkTriggered) {
+                    // Apply damage to shields first, then hull
+                    if (hitShip.shields > 0) {
+                        const shieldDamage = Math.min(damage, hitShip.shields);
+                        hitShip.shields -= shieldDamage;
+                        const remainingDamage = damage - shieldDamage;
+                        if (remainingDamage > 0) {
+                            hitShip.hull -= remainingDamage;
+                        }
+                    } else {
+                        hitShip.hull -= damage;
+                    }
+
+                    this.recordFactionDamage(damage, hitShip);
+
+                    // Check if ship is disabled
+                    if (hitShip.hull <= 0) {
+                        hitShip.hull = 0;
+                        // Don't disable immediately - will be disabled after flash
+                        // hitShip.disabled = true;
+                    }
                 }
                 
                 this.action.hitObstruction = { 
                     type: 'ship', 
                     ship: hitShip,
                     damage: damage,
+                    blinkTriggered: blinkTriggered,
                     x: hitX,
                     y: hitY
                 };
@@ -338,90 +353,94 @@ class CombatActionHandler {
             // Apply damage if hit
             if (this.action.hit && this.action.targetShip) {
                 const damage = this.action.damage;
-                
-                // Apply damage to shields first, then hull
-                if (this.action.targetShip.shields > 0) {
-                    const shieldDamage = Math.min(damage, this.action.targetShip.shields);
-                    this.action.targetShip.shields -= shieldDamage;
-                    const remainingDamage = damage - shieldDamage;
-                    if (remainingDamage > 0) {
-                        this.action.targetShip.hull -= remainingDamage;
-                    }
-                } else {
-                    this.action.targetShip.hull -= damage;
-                }
 
-                this.recordFactionDamage(damage, this.action.targetShip);
-                
                 // Store module effects for caller to handle
                 this.action.moduleEffects = this.action.moduleEffects || {};
-                
-                // Check attacker modules
-                if (this.ship.modules) {
-                    // DISRUPTER: 25% chance to remove all target shields
-                    if (this.ship.modules.includes('DISRUPTER')) {
-                        if (Math.random() < MODULE_DISRUPTER_CHANCE) {
-                            this.action.targetShip.shields = 0;
-                            this.action.moduleEffects.disrupterTriggered = true;
-                        }
-                    }
-                    
-                    // WARHEAD: Deal splash damage to nearby enemies
-                    if (this.ship.modules.includes('WARHEAD')) {
-                        this.action.moduleEffects.warheadTriggered = true;
-                        this.action.moduleEffects.warheadDamage = Math.floor(damage * MODULE_WARHEAD_DAMAGE_RATIO);
-                    }
-                    
-                    // TRACTOR_BEAM: Pull target toward attacker
-                    if (this.ship.modules.includes('TRACTOR_BEAM')) {
-                        const pullDistance = damage * MODULE_TRACTOR_BEAM_DISTANCE_RATIO;
-                        this.action.moduleEffects.tractorPull = {
-                            distance: pullDistance,
-                            angle: this.ship.angle
-                        };
-                    }
-                    
-                    // REPULSOR: Push target away from attacker
-                    if (this.ship.modules.includes('REPULSOR')) {
-                        const pushDistance = damage * MODULE_REPULSOR_DISTANCE_RATIO;
-                        this.action.moduleEffects.repulsorPush = {
-                            distance: pushDistance,
-                            angle: this.ship.angle
-                        };
+
+                // BLINK: only triggers if the ship was going to be hit
+                let blinkTriggered = false;
+                if (this.action.targetShip.modules && this.action.targetShip.modules.includes('BLINK')) {
+                    if (Math.random() < MODULE_BLINK_CHANCE) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = MODULE_BLINK_DISTANCE;
+                        this.action.targetShip.x += Math.cos(angle) * distance;
+                        this.action.targetShip.y += Math.sin(angle) * distance;
+                        this.action.moduleEffects.blinkTriggered = true;
+                        this.action.blinkAvoided = true;
+                        blinkTriggered = true;
                     }
                 }
-                
-                // Check target modules
-                if (this.action.targetShip.modules) {
-                    // REFLECTOR: Bounce laser back at attacker
-                    if (this.action.targetShip.modules.includes('REFLECTOR')) {
-                        if (Math.random() < MODULE_REFLECTOR_CHANCE) {
-                            const reflectedDamage = Math.floor(damage * MODULE_REFLECTOR_DAMAGE_MULTIPLIER);
-                            this.action.moduleEffects.reflectorBounce = {
-                                damage: reflectedDamage,
-                                fromShip: this.action.targetShip,
-                                toShip: this.ship
+
+                if (!blinkTriggered) {
+                    // Apply damage to shields first, then hull
+                    if (this.action.targetShip.shields > 0) {
+                        const shieldDamage = Math.min(damage, this.action.targetShip.shields);
+                        this.action.targetShip.shields -= shieldDamage;
+                        const remainingDamage = damage - shieldDamage;
+                        if (remainingDamage > 0) {
+                            this.action.targetShip.hull -= remainingDamage;
+                        }
+                    } else {
+                        this.action.targetShip.hull -= damage;
+                    }
+
+                    this.recordFactionDamage(damage, this.action.targetShip);
+
+                    // Check attacker modules
+                    if (this.ship.modules) {
+                        // DISRUPTER: 25% chance to remove all target shields
+                        if (this.ship.modules.includes('DISRUPTER')) {
+                            if (Math.random() < MODULE_DISRUPTER_CHANCE) {
+                                this.action.targetShip.shields = 0;
+                                this.action.moduleEffects.disrupterTriggered = true;
+                            }
+                        }
+
+                        // WARHEAD: Deal splash damage to nearby enemies
+                        if (this.ship.modules.includes('WARHEAD')) {
+                            this.action.moduleEffects.warheadTriggered = true;
+                            this.action.moduleEffects.warheadDamage = Math.floor(damage * MODULE_WARHEAD_DAMAGE_RATIO);
+                        }
+
+                        // TRACTOR_BEAM: Pull target toward attacker
+                        if (this.ship.modules.includes('TRACTOR_BEAM')) {
+                            const pullDistance = damage * MODULE_TRACTOR_BEAM_DISTANCE_RATIO;
+                            this.action.moduleEffects.tractorPull = {
+                                distance: pullDistance,
+                                angle: this.ship.angle
+                            };
+                        }
+
+                        // REPULSOR: Push target away from attacker
+                        if (this.ship.modules.includes('REPULSOR')) {
+                            const pushDistance = damage * MODULE_REPULSOR_DISTANCE_RATIO;
+                            this.action.moduleEffects.repulsorPush = {
+                                distance: pushDistance,
+                                angle: this.ship.angle
                             };
                         }
                     }
-                    
-                    // BLINK: 25% chance to teleport when hit
-                    if (this.action.targetShip.modules.includes('BLINK')) {
-                        if (Math.random() < MODULE_BLINK_CHANCE) {
-                            // Teleport to random position
-                            const angle = Math.random() * Math.PI * 2;
-                            const distance = MODULE_BLINK_DISTANCE;
-                            this.action.targetShip.x += Math.cos(angle) * distance;
-                            this.action.targetShip.y += Math.sin(angle) * distance;
-                            this.action.moduleEffects.blinkTriggered = true;
+
+                    // Check target modules
+                    if (this.action.targetShip.modules) {
+                        // REFLECTOR: Bounce laser back at attacker
+                        if (this.action.targetShip.modules.includes('REFLECTOR')) {
+                            if (Math.random() < MODULE_REFLECTOR_CHANCE) {
+                                const reflectedDamage = Math.floor(damage * MODULE_REFLECTOR_DAMAGE_MULTIPLIER);
+                                this.action.moduleEffects.reflectorBounce = {
+                                    damage: reflectedDamage,
+                                    fromShip: this.action.targetShip,
+                                    toShip: this.ship
+                                };
+                            }
                         }
                     }
-                }
-                
-                // Check if ship is disabled
-                if (this.action.targetShip.hull <= 0) {
-                    this.action.targetShip.hull = 0;
-                    this.action.targetShip.disabled = true;
+
+                    // Check if ship is disabled
+                    if (this.action.targetShip.hull <= 0) {
+                        this.action.targetShip.hull = 0;
+                        this.action.targetShip.disabled = true;
+                    }
                 }
             }
             

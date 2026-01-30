@@ -2001,13 +2001,20 @@ const EncounterMenu = (() => {
                     // Hit an obstruction
                     if (action.hitObstruction.type === 'ship') {
                         const obstructedShip = action.hitObstruction.ship;
-                        triggerFlash(obstructedShip); // Flash the hit ship
+                        if (!action.hitObstruction.blinkTriggered) {
+                            triggerFlash(obstructedShip); // Flash the hit ship
+                        }
                         let obstructedName = '';
                         // Get ship type name for obstruction
                         const obstructedType = SHIP_TYPES[obstructedShip.type] || ALIEN_SHIP_TYPES[obstructedShip.type] || { name: 'Ship' };
                         obstructedName = obstructedType.name;
-                        outputMessage = `${activeShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
-                        outputColor = COLORS.YELLOW;
+                        if (action.hitObstruction.blinkTriggered) {
+                            outputMessage = `${activeShipType.name} fires laser but ${obstructedName} BLINKS away!`;
+                            outputColor = COLORS.YELLOW;
+                        } else {
+                            outputMessage = `${activeShipType.name} hit ${obstructedName} (obstruction) for ${action.hitObstruction.damage} damage!`;
+                            outputColor = COLORS.YELLOW;
+                        }
                     } else if (action.hitObstruction.type === 'asteroid') {
                         // Flash the asteroid
                         if (action.hitObstruction.asteroid) {
@@ -2017,15 +2024,21 @@ const EncounterMenu = (() => {
                         outputColor = COLORS.YELLOW;
                     }
                 } else if (action.hit) {
-                    // Flash the target ship when hit
-                    if (action.targetShip) {
-                        triggerFlash(action.targetShip);
+                    const blinkAvoided = action.moduleEffects && action.moduleEffects.blinkTriggered && action.blinkAvoided;
+                    if (!blinkAvoided) {
+                        // Flash the target ship when hit
+                        if (action.targetShip) {
+                            triggerFlash(action.targetShip);
+                        }
+                        outputMessage = `${activeShipType.name} fires laser and hits ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                        outputColor = COLORS.GREEN;
+                    } else {
+                        outputMessage = `${activeShipType.name} fires laser but ${targetShipType.name} BLINKS away! (${Math.floor(action.distance)} AU)`;
+                        outputColor = COLORS.YELLOW;
                     }
-                    outputMessage = `${activeShipType.name} fires laser and hits ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
-                    outputColor = COLORS.GREEN;
                     
                     // Handle module effects
-                    if (action.moduleEffects) {
+                    if (!blinkAvoided && action.moduleEffects) {
                         // DISRUPTER: Shields removed
                         if (action.moduleEffects.disrupterTriggered) {
                             outputMessage += ` DISRUPTER removes shields!`;

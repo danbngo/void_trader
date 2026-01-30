@@ -298,13 +298,19 @@ const TitleMenu = (() => {
             playerOfficer.skillPoints = 0;
             gameState.captain = playerOfficer
             
-            // Generate player ships
-            gameState.ships.push(ShipGenerator.generateStartingShip());
-
-            // Debug: start with 50% hull for engineering testing
-            gameState.ships.forEach(ship => {
-                ship.hull = Math.max(1, Math.floor(ship.maxHull * 0.5));
+            // Generate player ships (debug: battleship with all modules)
+            const debugShip = ShipGenerator.generateShipOfType('BATTLESHIP');
+            debugShip.modules = [];
+            SHIP_MODULES_ARRAY.forEach(module => {
+                debugShip.modules.push(module.id);
+                if (module.onInstall) {
+                    module.onInstall(debugShip);
+                }
             });
+            debugShip.hull = debugShip.maxHull;
+            debugShip.shields = debugShip.maxShields;
+            debugShip.fuel = debugShip.maxFuel;
+            gameState.ships.push(debugShip);
             
             // === DEBUG MODE CHEATS ===
             // Give 1 million credits

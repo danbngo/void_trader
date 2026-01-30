@@ -39,6 +39,8 @@ const JobsMenu = (() => {
             const currentDate = gameState.date.getTime();
             const daysRemaining = job.getDaysRemaining(currentDate);
             const isExpired = daysRemaining < 0;
+            const startDateText = job.startDate ? formatDate(new Date(job.startDate)) : 'N/A';
+            const deadlineDateText = job.deadlineDate ? formatDate(new Date(job.deadlineDate)) : 'N/A';
             
             // Job header
             UI.addHeaderLine(5, y++, job.jobType.name);
@@ -51,7 +53,9 @@ const JobsMenu = (() => {
             // Job details
             const details = [
                 { label: 'Origin:', value: job.originSystem.name, valueColor: COLORS.TEXT_NORMAL },
-                { label: 'Destination:', value: job.targetSystem.name, valueColor: COLORS.TEXT_NORMAL }
+                { label: 'Destination:', value: job.targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Start Date:', value: startDateText, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Deadline Date:', value: deadlineDateText, valueColor: COLORS.TEXT_NORMAL }
             ];
             
             // Days remaining with color coding
@@ -101,3 +105,9 @@ const JobsMenu = (() => {
         show
     };
 })();
+
+function formatDate(date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}

@@ -46,6 +46,7 @@ class GameState {
         // Job system
         this.currentJob = null; // Currently active job (player can only have one at a time)
         this.completedJobReward = null; // Completed job waiting for reward collection
+        this.jobsBoardSeenSignatures = {}; // Map of system index to last seen jobs signature
         
         // Perk system
         this.perks = new Set(); // Set of perk IDs the player has learned
@@ -148,6 +149,27 @@ class GameState {
     getRankAtCurrentSystem() {
         const rankId = this.systemRanks[this.currentSystemIndex] || 'NONE';
         return RANKS[rankId] || RANKS.NONE;
+    }
+
+    /**
+     * Create a signature for the job board at a system
+     * @param {StarSystem} system
+     * @returns {string}
+     */
+    getJobsBoardSignature(system) {
+        if (!system || !Array.isArray(system.jobs) || system.jobs.length === 0) {
+            return '';
+        }
+
+        return system.jobs
+            .map(job => {
+                const jobTypeId = job.jobType ? job.jobType.id : 'UNKNOWN';
+                const targetIndex = job.targetSystem ? job.targetSystem.index : 'X';
+                const originIndex = job.originSystem ? job.originSystem.index : 'X';
+                return `${jobTypeId}|${targetIndex}|${originIndex}|${job.deadlineDate}|${job.awardCredits}|${job.awardExp}|${job.awardReputation}`;
+            })
+            .sort()
+            .join(';;');
     }
     
     /**

@@ -188,6 +188,13 @@ const TavernMenu = (() => {
         console.log('[TavernMenu] renderJobsMode - Start, outputMessage:', outputMessage);
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
+
+        if (!gameState.jobsBoardSeenSignatures) {
+            gameState.jobsBoardSeenSignatures = {};
+        }
+
+        const jobsSignature = gameState.getJobsBoardSignature(currentSystem);
+        gameState.jobsBoardSeenSignatures[currentSystem.index] = jobsSignature;
         
         let y = startY;
         
@@ -242,7 +249,7 @@ const TavernMenu = (() => {
                     { text: job.targetSystem.name, color: COLORS.TEXT_NORMAL },
                     { text: distance.toFixed(1), color: distanceColor },
                     { text: eta.toFixed(1), color: distanceColor },
-                    { text: String(deadlineDays), color: COLORS.TEXT_NORMAL },
+                    { text: `${deadlineDays} days`, color: COLORS.TEXT_NORMAL },
                     { text: String(job.awardCredits), color: creditsColor },
                     { text: String(job.awardExp), color: expColor },
                     { text: `+${job.awardReputation}`, color: repColor }
@@ -353,7 +360,7 @@ const TavernMenu = (() => {
         
         // Validate we can accept
         if (gameState.currentJob !== null) {
-            outputMessage = 'You already have an active job!';
+            outputMessage = 'Already have an active job';
             outputColor = COLORS.TEXT_ERROR;
             UI.setOutputRow(outputMessage, outputColor);
             render(onReturn);

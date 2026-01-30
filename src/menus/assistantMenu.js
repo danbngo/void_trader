@@ -24,6 +24,9 @@ const AssistantMenu = (() => {
         
         // Start flashing if there are unread messages
         const hasUnreadMessages = gameState.messages.some(m => !m.isRead);
+        if (!gameState.jobsBoardSeenSignatures) {
+            gameState.jobsBoardSeenSignatures = {};
+        }
         if (hasUnreadMessages) {
             UI.startFlashing(() => render(gameState, onReturn), 300, 2000, true); // Flash for 2 seconds
         } else {
@@ -119,10 +122,16 @@ const AssistantMenu = (() => {
         const questsColor = hasUnreadQuests ? COLORS.YELLOW : (hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM);
         UI.addButton(middleX, buttonY + 1, '5', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
-        // Jobs - gray out if no active job
+        // Jobs - yellow if new unviewed job is available
         const hasActiveJob = gameState.currentJob !== null;
-        const jobsHelpText = hasActiveJob ? 'View active job details' : 'No active jobs';
-        const jobsColor = hasActiveJob ? COLORS.BUTTON : COLORS.TEXT_DIM;
+        const hasJobsAtSystem = currentSystem.jobs && currentSystem.jobs.length > 0;
+        const jobsSignature = gameState.getJobsBoardSignature(currentSystem);
+        const lastSeenJobsSignature = gameState.jobsBoardSeenSignatures[currentSystem.index] || '';
+        const hasUnviewedJobs = hasJobsAtSystem && jobsSignature !== lastSeenJobsSignature;
+        const jobsHelpText = hasUnviewedJobs
+            ? 'New jobs available at the tavern'
+            : (hasActiveJob ? 'View active job details' : 'No active jobs');
+        const jobsColor = hasUnviewedJobs ? COLORS.YELLOW : (hasActiveJob ? COLORS.BUTTON : COLORS.TEXT_DIM);
         UI.addButton(middleX, buttonY + 2, '6', 'Jobs', () => tryOpenJobs(gameState, onReturn), jobsColor, jobsHelpText);
         
         // News - highlight if there are unread news events that player can see

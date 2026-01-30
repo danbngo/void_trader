@@ -109,6 +109,7 @@ const ShipyardMenu = (() => {
      * Render manage mode (player's ships)
      */
     function renderManageMode(onReturn, grid) {
+        const currentSystem = gameState.getCurrentSystem();
         // Player ships table (* marks the active ship)
         const startY = 7;
         const rows = gameState.ships.map((ship, index) => {
@@ -168,7 +169,6 @@ const ShipyardMenu = (() => {
         UI.addButton(middleX, buttonY + 1, '4', 'Buy Ships', () => switchToBuyMode(onReturn), buyShipsColor, buyShipsHelpText);
         
         // Install Modules - gray out if no modules or no engineering training
-        const currentSystem = gameState.getCurrentSystem();
         const hasModules = currentSystem.modules && currentSystem.modules.length > 0;
         const maxModulesAllowed = Math.min(SHIP_MAX_NUM_MODULES, getMaxModulesAllowed());
         const canInstallModules = hasModules && maxModulesAllowed > 0;

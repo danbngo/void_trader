@@ -176,6 +176,61 @@ const ENCOUNTER_TYPES = {
         onGreet: function(gameState, encType) {
             AlienDefenseEncounter.show(gameState, encType);
         }
+    },
+    PIRATES_VS_MERCHANTS: {
+        id: 'PIRATES_VS_MERCHANTS',
+        name: 'Pirates vs Merchants',
+        color: COLORS.TEXT_ERROR,
+        description: 'Pirate raiders clash with merchant convoys',
+        leftFactionId: 'PIRATE',
+        rightFactionId: 'MERCHANT',
+        onGreet: function(gameState, encType) {
+            FactionVsFactionEncounter.show(gameState, encType);
+        }
+    },
+    PIRATES_VS_SMUGGLERS: {
+        id: 'PIRATES_VS_SMUGGLERS',
+        name: 'Pirates vs Smugglers',
+        color: COLORS.TEXT_ERROR,
+        description: 'Pirates move to seize smuggler cargo',
+        leftFactionId: 'PIRATE',
+        rightFactionId: 'SMUGGLERS',
+        onGreet: function(gameState, encType) {
+            FactionVsFactionEncounter.show(gameState, encType);
+        }
+    },
+    SOLDIERS_VS_PIRATES: {
+        id: 'SOLDIERS_VS_PIRATES',
+        name: 'Soldiers vs Pirates',
+        color: COLORS.GREEN,
+        description: 'Military patrols engage pirate raiders',
+        leftFactionId: 'SOLDIERS',
+        rightFactionId: 'PIRATE',
+        onGreet: function(gameState, encType) {
+            FactionVsFactionEncounter.show(gameState, encType);
+        }
+    },
+    POLICE_VS_PIRATES: {
+        id: 'POLICE_VS_PIRATES',
+        name: 'Police vs Pirates',
+        color: COLORS.BLUE,
+        description: 'Police forces pursue pirate vessels',
+        leftFactionId: 'POLICE',
+        rightFactionId: 'PIRATE',
+        onGreet: function(gameState, encType) {
+            FactionVsFactionEncounter.show(gameState, encType);
+        }
+    },
+    POLICE_VS_SMUGGLERS: {
+        id: 'POLICE_VS_SMUGGLERS',
+        name: 'Police vs Smugglers',
+        color: COLORS.BLUE,
+        description: 'Police intercept smugglers in flight',
+        leftFactionId: 'POLICE',
+        rightFactionId: 'SMUGGLERS',
+        onGreet: function(gameState, encType) {
+            FactionVsFactionEncounter.show(gameState, encType);
+        }
     }
 };
 

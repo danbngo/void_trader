@@ -94,12 +94,26 @@ const LootMenu = (() => {
         if (creditReward > 0) {
             UI.addText(5, 5, `Credits found: +${creditReward} CR`, COLORS.GREEN);
         }
+
+        if (gameState.factionReward) {
+            if (gameState.factionReward.type === 'credits') {
+                UI.addText(5, 6, `Faction reward: +${gameState.factionReward.amount} CR`, COLORS.GREEN);
+            } else if (gameState.factionReward.type === 'loot') {
+                const rewardItems = Object.entries(gameState.factionReward.cargo)
+                    .filter(([, amount]) => amount > 0)
+                    .map(([cargoId, amount]) => `${amount} ${CARGO_TYPES[cargoId]?.name || cargoId}`);
+                if (rewardItems.length > 0) {
+                    UI.addText(5, 6, `Faction reward: ${rewardItems.join(', ')}`, COLORS.GREEN);
+                }
+            }
+            gameState.factionReward = null;
+        }
         
         // Player cargo info
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const totalPlayerCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const totalPlayerCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        UI.addText(5, 6, `Your Cargo: ${totalPlayerCargo} / ${totalPlayerCapacity}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, 7, `Your Cargo: ${totalPlayerCargo} / ${totalPlayerCapacity}`, COLORS.TEXT_NORMAL);
         
         // Check if there's any loot
         const hasLoot = Object.keys(lootCargo).length > 0;
@@ -119,7 +133,7 @@ const LootMenu = (() => {
         }
         
         // Loot table - show all enabled cargo types (don't filter by loot amount)
-        const startY = 9;
+        const startY = 10;
         const rows = ALL_CARGO_TYPES
             .filter(cargoType => gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id))
             .map((cargoType, index) => {

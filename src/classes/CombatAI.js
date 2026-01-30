@@ -7,23 +7,31 @@ class CombatAI {
      * Generate action for an enemy ship
      * @param {Object} enemyShip - The enemy ship
      * @param {Array} playerShips - Array of player ships
+     * @param {Array} encounterShips - Array of encounter ships (for faction conflicts)
      * @returns {CombatAction} The action to take
      */
-    static generateAction(enemyShip, playerShips) {
-        // Find nearest active player ship
+    static generateAction(enemyShip, playerShips, encounterShips = []) {
+        const isActiveTarget = (ship) => !ship.fled && !ship.disabled && !ship.escaped;
+
+        const neutralTargets = encounterShips.filter(ship => ship.isNeutralToPlayer && ship.faction !== enemyShip.faction && isActiveTarget(ship));
+        const enemyTargets = encounterShips.filter(ship => !ship.isNeutralToPlayer && ship.faction !== enemyShip.faction && isActiveTarget(ship));
+
+        const potentialTargets = enemyShip.isNeutralToPlayer
+            ? enemyTargets
+            : [...playerShips.filter(isActiveTarget), ...neutralTargets];
+
+        // Find nearest valid target
         let nearestShip = null;
         let nearestDistance = Infinity;
         
-        playerShips.forEach(ship => {
-            if (!ship.fled && !ship.disabled) {
-                const dx = ship.x - enemyShip.x;
-                const dy = ship.y - enemyShip.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearestShip = ship;
-                }
+        potentialTargets.forEach(ship => {
+            const dx = ship.x - enemyShip.x;
+            const dy = ship.y - enemyShip.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestShip = ship;
             }
         });
         

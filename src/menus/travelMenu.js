@@ -270,31 +270,85 @@ const TravelMenu = (() => {
             // Aliens already have weight
         }
         
+        const factionConflictOptions = [
+            { type: ENCOUNTER_TYPES.PIRATES_VS_MERCHANTS, weight: Math.min(avgPirateWeight, avgMerchantWeight) * FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER },
+            { type: ENCOUNTER_TYPES.PIRATES_VS_SMUGGLERS, weight: Math.min(avgPirateWeight, avgSmugglersWeight) * FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER },
+            { type: ENCOUNTER_TYPES.SOLDIERS_VS_PIRATES, weight: Math.min(avgSoldiersWeight, avgPirateWeight) * FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER },
+            { type: ENCOUNTER_TYPES.POLICE_VS_PIRATES, weight: Math.min(avgPoliceWeight, avgPirateWeight) * FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER },
+            { type: ENCOUNTER_TYPES.POLICE_VS_SMUGGLERS, weight: Math.min(avgPoliceWeight, avgSmugglersWeight) * FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER }
+        ].filter(option => option.weight > 0);
+
+        const factionConflictWeight = factionConflictOptions.reduce((sum, option) => sum + option.weight, 0);
+
         // Total weight
-        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight + avgAlienWeight;
+        const totalWeight = avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight + avgAlienWeight + factionConflictWeight;
         
         // Random selection based on weights
         const roll = Math.random() * totalWeight;
+        let cumulative = 0;
         
-        if (roll < avgPirateWeight) {
+        cumulative += avgPirateWeight;
+        if (roll < cumulative) {
             encounterType = ENCOUNTER_TYPES.PIRATE;
-        } else if (roll < avgPirateWeight + avgPoliceWeight) {
-            encounterType = ENCOUNTER_TYPES.POLICE;
-        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight) {
-            encounterType = ENCOUNTER_TYPES.MERCHANT;
-        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight) {
-            encounterType = ENCOUNTER_TYPES.SMUGGLERS;
-        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight) {
-            encounterType = ENCOUNTER_TYPES.SOLDIERS;
-        } else if (roll < avgPirateWeight + avgPoliceWeight + avgMerchantWeight + avgSmugglersWeight + avgSoldiersWeight + abandonedShipWeight) {
-            encounterType = ENCOUNTER_TYPES.ABANDONED_SHIP;
         } else {
-            // Alien encounter during travel - only skirmish (defense happens at destination)
-            encounterType = ENCOUNTER_TYPES.ALIEN_SKIRMISH;
+            cumulative += avgPoliceWeight;
+            if (roll < cumulative) {
+                encounterType = ENCOUNTER_TYPES.POLICE;
+            } else {
+                cumulative += avgMerchantWeight;
+                if (roll < cumulative) {
+                    encounterType = ENCOUNTER_TYPES.MERCHANT;
+                } else {
+                    cumulative += avgSmugglersWeight;
+                    if (roll < cumulative) {
+                        encounterType = ENCOUNTER_TYPES.SMUGGLERS;
+                    } else {
+                        cumulative += avgSoldiersWeight;
+                        if (roll < cumulative) {
+                            encounterType = ENCOUNTER_TYPES.SOLDIERS;
+                        } else {
+                            cumulative += abandonedShipWeight;
+                            if (roll < cumulative) {
+                                encounterType = ENCOUNTER_TYPES.ABANDONED_SHIP;
+                            } else {
+                                cumulative += factionConflictWeight;
+                                if (roll < cumulative) {
+                                    const conflictRoll = roll - (cumulative - factionConflictWeight);
+                                    let conflictCumulative = 0;
+                                    for (const option of factionConflictOptions) {
+                                        conflictCumulative += option.weight;
+                                        if (conflictRoll < conflictCumulative) {
+                                            encounterType = option.type;
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    // Alien encounter during travel - only skirmish (defense happens at destination)
+                                    encounterType = ENCOUNTER_TYPES.ALIEN_SKIRMISH;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Generate encounter ships/cargo/modules
-        const generationResults = EncounterGenerator.generateEncounter(currentGameState, encounterType);
+        if (encounterType && encounterType.leftFactionId && encounterType.rightFactionId) {
+            const leftType = ENCOUNTER_TYPES[encounterType.leftFactionId];
+            const rightType = ENCOUNTER_TYPES[encounterType.rightFactionId];
+            const conflictResult = EncounterGenerator.generateFactionConflict(currentGameState, leftType, rightType);
+            currentGameState.encounterContext = {
+                type: 'FACTION_CONFLICT',
+                leftEncounterType: leftType,
+                rightEncounterType: rightType,
+                leftShips: conflictResult.leftFleet.ships,
+                rightShips: conflictResult.rightFleet.ships
+            };
+        } else {
+            EncounterGenerator.generateEncounter(currentGameState, encounterType);
+            currentGameState.encounterContext = null;
+        }
         
         // Consume fuel for distance traveled so far
         consumeFuelForProgress();
@@ -412,6 +466,8 @@ const TravelMenu = (() => {
         currentGameState.encounterShips = [];
         currentGameState.encounterCargo = {};
         currentGameState.encounterShipModules = [];
+        currentGameState.encounterContext = null;
+        currentGameState.factionReward = null;
         encounterTriggered = false;
         encounterType = null;
         

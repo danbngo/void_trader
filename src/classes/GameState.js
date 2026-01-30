@@ -23,6 +23,8 @@ class GameState {
         this.asteroids = []; // Asteroids in current combat encounter
         this.encounterCargo = {}; // Cargo held by encounter ships
         this.encounterShipModules = []; // Ship modules recovered from encounters
+        this.encounterContext = null; // Extra encounter metadata (faction conflicts, etc.)
+        this.factionReward = null; // Reward from allied faction after victory
         
         // Quest and message system
         this.messages = []; // Array of Message objects

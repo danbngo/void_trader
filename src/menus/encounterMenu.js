@@ -175,17 +175,21 @@ const EncounterMenu = (() => {
         });
         
         // After positioning, set angles to point at random opponents
+        const enemyShipsForPlayer = getEnemyShipsFrom(gameState);
         gameState.ships.forEach(ship => {
-            if (gameState.encounterShips.length > 0) {
-                const randomEnemy = gameState.encounterShips[Math.floor(Math.random() * gameState.encounterShips.length)];
+            if (enemyShipsForPlayer.length > 0) {
+                const randomEnemy = enemyShipsForPlayer[Math.floor(Math.random() * enemyShipsForPlayer.length)];
                 ship.angle = calculateAngle(ship.x, ship.y, randomEnemy.x, randomEnemy.y);
             }
         });
         
         gameState.encounterShips.forEach(ship => {
-            if (gameState.ships.length > 0) {
-                const randomPlayer = gameState.ships[Math.floor(Math.random() * gameState.ships.length)];
-                ship.angle = calculateAngle(ship.x, ship.y, randomPlayer.x, randomPlayer.y);
+            const possibleTargets = ship.isNeutralToPlayer
+                ? gameState.encounterShips.filter(other => !other.isNeutralToPlayer && other.faction !== ship.faction && !other.fled && !other.disabled && !other.escaped)
+                : [...gameState.ships, ...gameState.encounterShips.filter(other => other.isNeutralToPlayer && other.faction !== ship.faction && !other.fled && !other.disabled && !other.escaped)];
+            if (possibleTargets.length > 0) {
+                const randomTarget = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+                ship.angle = calculateAngle(ship.x, ship.y, randomTarget.x, randomTarget.y);
             }
         });
         
@@ -199,6 +203,10 @@ const EncounterMenu = (() => {
             const y = Math.sin(angle) * distance;
             gameState.asteroids.push(new Asteroid(x, y));
         }
+    }
+
+    function getEnemyShipsFrom(gameState) {
+        return gameState.encounterShips.filter(ship => ship.isNeutralToPlayer !== true);
     }
     
     /**
@@ -275,13 +283,33 @@ const EncounterMenu = (() => {
      */
     function findNextValidTarget() {
         const enemies = currentGameState.encounterShips;
+        if (targetIndex < 0) {
+            targetIndex = 0;
+        }
         for (let i = 0; i < enemies.length; i++) {
             const idx = (targetIndex + i) % enemies.length;
-            if (!enemies[idx].fled && !enemies[idx].disabled && !enemies[idx].escaped) {
+            if (isEnemyShip(enemies[idx]) && !enemies[idx].fled && !enemies[idx].disabled && !enemies[idx].escaped) {
                 targetIndex = idx;
                 return;
             }
         }
+        targetIndex = -1;
+    }
+
+    function isEnemyShip(ship) {
+        return ship && ship.isNeutralToPlayer !== true;
+    }
+
+    function getTargetShip() {
+        const ship = currentGameState.encounterShips[targetIndex];
+        if (!ship || !isEnemyShip(ship) || ship.fled || ship.disabled || ship.escaped) {
+            return null;
+        }
+        return ship;
+    }
+
+    function getEnemyShips() {
+        return currentGameState.encounterShips.filter(ship => isEnemyShip(ship));
     }
     
     /**
@@ -370,7 +398,7 @@ const EncounterMenu = (() => {
         // Get active player ship (first non-fled, non-disabled, non-escaped, non-acted)
         // But only if not waiting for player to press Continue
         const activeShip = waitingForContinue ? null : gameState.ships.find(s => !s.fled && !s.disabled && !s.escaped && !s.acted);
-        const targetShip = gameState.encounterShips[targetIndex];
+        const targetShip = getTargetShip();
         
         let activeShipScreenX = null;
         let activeShipScreenY = null;
@@ -608,7 +636,7 @@ const EncounterMenu = (() => {
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
-                let color = COLORS.TEXT_ERROR;
+                let color = ship.isNeutralToPlayer ? COLORS.CYAN : COLORS.TEXT_ERROR;
                 
                 // Check if ship should flash orange (4 flashes over 1 second)
                 let shouldFlash = false;
@@ -624,7 +652,7 @@ const EncounterMenu = (() => {
                 
                 if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
-                } else if (index === targetIndex) {
+                } else if (index === targetIndex && isEnemyShip(ship)) {
                     // Yellow during player's turn, red during enemy's turn or when waiting
                     color = waitingForContinue ? COLORS.TEXT_ERROR : COLORS.YELLOW;
                     // Store position even if already stored
@@ -633,10 +661,12 @@ const EncounterMenu = (() => {
                 }
                 
                 // Make non-disabled enemy ships clickable
-                UI.addClickable(screenX, screenY, 1, () => {
-                    targetIndex = index;
-                    render();
-                });
+                if (isEnemyShip(ship)) {
+                    UI.addClickable(screenX, screenY, 1, () => {
+                        targetIndex = index;
+                        render();
+                    });
+                }
                 
                 UI.addText(screenX, screenY, symbol, color, 0.7);
             }
@@ -852,10 +882,10 @@ const EncounterMenu = (() => {
         }
         
         // Target Ship section
-        const targetShip = gameState.encounterShips[targetIndex];
+        const targetShip = getTargetShip();
         
-        UI.addText(startX, 10, `=== ${encounterType.name} Ship ===`, COLORS.YELLOW);
-        if (targetShip && !targetShip.fled && !targetShip.disabled && !targetShip.escaped) {
+        UI.addText(startX, 10, `=== Target Ship ===`, COLORS.YELLOW);
+        if (targetShip) {
             const shipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
             const distance = activeShip ? Math.sqrt(
                 Math.pow(activeShip.x - targetShip.x, 2) + 
@@ -960,7 +990,7 @@ const EncounterMenu = (() => {
         } else {
             // Count valid enemy targets
             const validEnemyCount = currentGameState.encounterShips.filter(
-                s => !s.fled && !s.disabled && !s.escaped
+                s => isEnemyShip(s) && !s.fled && !s.disabled && !s.escaped
             ).length;
             
             // 3-column layout
@@ -983,7 +1013,7 @@ const EncounterMenu = (() => {
             }
             
             // Calculate action details for help text
-            const targetShip = currentGameState.encounterShips[targetIndex];
+            const targetShip = getTargetShip();
             let laserHelpText = 'Fire laser at the enemy ship';
             let pursueHelpText = 'Move toward the enemy ship';
             let fleeHelpText = 'Move away from the enemy ship';
@@ -1080,7 +1110,10 @@ const EncounterMenu = (() => {
         do {
             targetIndex = (targetIndex - 1 + enemies.length) % enemies.length;
             attempts++;
-        } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
+        } while ((!isEnemyShip(enemies[targetIndex]) || enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
+        if (attempts >= enemies.length && !getTargetShip()) {
+            targetIndex = -1;
+        }
         
         render();
     }
@@ -1094,7 +1127,10 @@ const EncounterMenu = (() => {
         do {
             targetIndex = (targetIndex + 1) % enemies.length;
             attempts++;
-        } while ((enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
+        } while ((!isEnemyShip(enemies[targetIndex]) || enemies[targetIndex].fled || enemies[targetIndex].disabled || enemies[targetIndex].escaped) && attempts < enemies.length);
+        if (attempts >= enemies.length && !getTargetShip()) {
+            targetIndex = -1;
+        }
         
         render();
     }
@@ -1661,7 +1697,8 @@ const EncounterMenu = (() => {
      * Check if player has won (all enemies disabled or fled)
      */
     function checkForVictory() {
-        const allEnemiesDefeated = currentGameState.encounterShips.every(
+        const enemyShips = getEnemyShips();
+        const allEnemiesDefeated = enemyShips.length > 0 && enemyShips.every(
             ship => ship.disabled || ship.fled || ship.escaped
         );
         
@@ -1696,7 +1733,7 @@ const EncounterMenu = (() => {
             }
             
             // Get disabled enemy ships for looting
-            const defeatedShips = currentGameState.encounterShips.filter(ship => ship.disabled);
+            const defeatedShips = enemyShips.filter(ship => ship.disabled);
             
             // Restore shields for all non-disabled, non-escaped player ships
             currentGameState.ships.forEach(ship => {
@@ -1729,14 +1766,18 @@ const EncounterMenu = (() => {
             currentGameState.encounter = false;
             currentGameState.encounterShips = [];
             
+            const enemyEncounterType = currentGameState.encounterContext && currentGameState.encounterContext.enemyEncounterType
+                ? currentGameState.encounterContext.enemyEncounterType
+                : encounterType;
+
             // Grant reputation for defeating aliens
-            if (encounterType.id === 'ALIEN_SKIRMISH') {
+            if (enemyEncounterType.id === 'ALIEN_SKIRMISH') {
                 currentGameState.reputation += 5;
                 // Track alien ships defeated
                 const alienShipsDefeated = defeatedShips.length;
                 currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] = 
                     (currentGameState.playerRecord[PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED] || 0) + alienShipsDefeated;
-            } else if (encounterType.id === 'ALIEN_DEFENSE') {
+            } else if (enemyEncounterType.id === 'ALIEN_DEFENSE') {
                 currentGameState.reputation += 10;
                 // Track alien ships defeated
                 const alienShipsDefeated = defeatedShips.length;
@@ -1745,13 +1786,13 @@ const EncounterMenu = (() => {
             }
             
             // Track police ships destroyed
-            if (encounterType.id === 'POLICE') {
+            if (enemyEncounterType.id === 'POLICE') {
                 currentGameState.playerRecord[PLAYER_RECORD_TYPES.POLICE_SHIPS_DESTROYED] =
                     (currentGameState.playerRecord[PLAYER_RECORD_TYPES.POLICE_SHIPS_DESTROYED] || 0) + defeatedShips.length;
             }
             
             // Trigger Blackreach intro after defeating any non-pirate, non-smuggler fleet
-            if (defeatedShips.length > 0 && encounterType.id !== 'PIRATE' && encounterType.id !== 'SMUGGLERS') {
+            if (defeatedShips.length > 0 && enemyEncounterType.id !== 'PIRATE' && enemyEncounterType.id !== 'SMUGGLERS') {
                 currentGameState.playerRecord[PLAYER_RECORD_TYPES.BLACKREACH_INTRO_TRIGGERED] = true;
             }
             
@@ -1768,8 +1809,15 @@ const EncounterMenu = (() => {
             const victoryExp = Math.floor(EXP_POINTS_FROM_COMBAT_VICTORY_AVG * valueRatio);
             ExperienceUtils.getExperienceMessageComponents(currentGameState, victoryExp, 'Combat Victory');
             
+            // Faction reward (if applicable)
+            if (currentGameState.encounterContext && currentGameState.encounterContext.friendlyEncounterType) {
+                applyFactionReward(currentGameState);
+            }
+
+            currentGameState.encounterContext = null;
+
             // Show loot menu
-            LootMenu.show(currentGameState, defeatedShips, encounterType, () => {
+            LootMenu.show(currentGameState, defeatedShips, enemyEncounterType, () => {
                 // After looting, continue journey
                 TravelMenu.resume();
             });
@@ -1779,6 +1827,69 @@ const EncounterMenu = (() => {
         
         return false;
     }
+
+    function applyFactionReward(gameState) {
+        if (Math.random() >= FACTION_V_FACTION_REWARD_CHANCE) {
+            gameState.factionReward = null;
+            return;
+        }
+
+        const friendlyType = gameState.encounterContext.friendlyEncounterType;
+        const friendlyShips = Array.isArray(gameState.encounterContext.friendlyShips)
+            ? gameState.encounterContext.friendlyShips
+            : [];
+
+        const canGiveLoot = friendlyType.id === 'SMUGGLERS' || friendlyType.id === 'MERCHANT';
+        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
+
+        if (canGiveLoot && availableSpace > 0) {
+            const friendlyCargo = {};
+            friendlyShips.forEach(ship => {
+                for (const cargoId in ship.cargo) {
+                    const amount = ship.cargo[cargoId] || 0;
+                    if (amount > 0) {
+                        friendlyCargo[cargoId] = (friendlyCargo[cargoId] || 0) + amount;
+                    }
+                }
+            });
+
+            const rewardCargo = {};
+            let rewardTotal = 0;
+
+            Object.keys(friendlyCargo).forEach(cargoId => {
+                const maxReward = Math.floor(friendlyCargo[cargoId] * FACTION_V_FACTION_MAX_LOOT_REWARD);
+                if (maxReward > 0) {
+                    const amount = Math.max(1, Math.floor(maxReward * Math.random()));
+                    rewardCargo[cargoId] = amount;
+                }
+            });
+
+            for (const cargoId in rewardCargo) {
+                if (rewardTotal >= availableSpace) break;
+                const spaceLeft = availableSpace - rewardTotal;
+                const amountToAdd = Math.min(spaceLeft, rewardCargo[cargoId]);
+                if (amountToAdd > 0) {
+                    const added = Ship.addCargoToFleet(gameState.ships, cargoId, amountToAdd);
+                    rewardTotal += added;
+                    rewardCargo[cargoId] = added;
+                }
+            }
+
+            if (rewardTotal > 0) {
+                gameState.factionReward = { type: 'loot', cargo: rewardCargo };
+                return;
+            }
+        }
+
+        const maxCredits = Math.floor(friendlyType.maxCredits * FACTION_V_FACTION_MAX_CREDITS_REWARD);
+        const creditsReward = maxCredits > 0 ? Math.floor(Math.random() * maxCredits) + 1 : 0;
+        if (creditsReward > 0) {
+            gameState.credits += creditsReward;
+            gameState.factionReward = { type: 'credits', amount: creditsReward };
+        } else {
+            gameState.factionReward = null;
+        }
+    }
     
     /**
      * Execute a player action
@@ -1787,8 +1898,8 @@ const EncounterMenu = (() => {
         const activeShip = getActivePlayerShip();
         if (!activeShip) return;
         
-        const targetShip = currentGameState.encounterShips[targetIndex];
-        if (!targetShip || targetShip.fled || targetShip.disabled) return;
+        const targetShip = getTargetShip();
+        if (!targetShip) return;
         
         const targetShipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
         
@@ -2032,10 +2143,10 @@ const EncounterMenu = (() => {
     function executeEnemyTurn() {
         const enemyActions = [];
         
-        // Generate actions for all enemy ships
+        // Generate actions for all enemy and neutral ships
         currentGameState.encounterShips.forEach(ship => {
             if (!ship.fled && !ship.disabled) {
-                const action = CombatAI.generateAction(ship, currentGameState.ships);
+                const action = CombatAI.generateAction(ship, currentGameState.ships, currentGameState.encounterShips);
                 if (action) {
                     enemyActions.push(action);
                 }

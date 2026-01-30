@@ -41,6 +41,7 @@ const AssistantMenu = (() => {
         UI.clear();
         
         const grid = UI.getGridSize();
+        const currentSystem = gameState.getCurrentSystem();
         
         // Title
         UI.addTitleLineCentered(0, 'Assistant');
@@ -248,21 +249,6 @@ const AssistantMenu = (() => {
      * Try to open score menu
      */
     function tryOpenScore(gameState, onReturn) {
-        // Calculate current score
-        const currentScoreData = ScoreMenu.calculateScore(gameState);
-        const currentScore = currentScoreData.totalScore;
-        
-        // Compare against starting score (with 1000 CR threshold)
-        const startingScore = gameState.startingScore || 0;
-        const scoreDifference = currentScore - startingScore;
-        
-        if (Math.abs(scoreDifference) <= 1000) {
-            outputMessage = "Accomplish more to see your score.";
-            outputColor = COLORS.TEXT_ERROR;
-            render(gameState, onReturn);
-            return;
-        }
-        
         ScoreMenu.show(gameState, () => show(gameState, returnCallback));
     }
     

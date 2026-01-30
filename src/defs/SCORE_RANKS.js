@@ -6,37 +6,37 @@
 const SCORE_RANKS = [
     {
         name: 'Legendary Tycoon',
-        minScore: 1000000,
+        minScore: 10*1000*1000*1000,
         description: 'A titan of commerce whose name echoes across the galaxy'
     },
     {
         name: 'Master Merchant',
-        minScore: 500000,
+        minScore: 1000*1000*1000,
         description: 'A renowned trader with vast wealth and influence'
     },
     {
         name: 'Elite Trader',
-        minScore: 250000,
+        minScore: 100*1000*1000,
         description: 'An accomplished merchant with significant holdings'
     },
     {
         name: 'Successful Trader',
-        minScore: 100000,
+        minScore: 10*1000*1000,
         description: 'A profitable merchant with a solid reputation'
     },
     {
         name: 'Competent Trader',
-        minScore: 50000,
+        minScore: 1000*1000,
         description: 'A capable merchant making steady progress'
     },
     {
         name: 'Apprentice Trader',
-        minScore: 25000,
+        minScore: 100*1000,
         description: 'A novice merchant learning the trade routes'
     },
     {
         name: 'Struggling Merchant',
-        minScore: 10000,
+        minScore: 10*1000,
         description: 'A merchant barely making ends meet'
     },
     {
@@ -45,10 +45,30 @@ const SCORE_RANKS = [
         description: 'Perhaps trading was not your calling'
     },
     {
-        name: 'Notorious Criminal',
-        minScore: -999999,
-        description: 'A despised outlaw with a terrible reputation'
-    }
+        name: 'Destitute Drifter',
+        minScore: -25000,
+        description: 'A down-on-your-luck trader barely scraping by'
+    },
+    {
+        name: 'Broken Broker',
+        minScore: -75000,
+        description: 'A failed trader sinking deeper into debt'
+    },
+    {
+        name: 'Bankrupt Captain',
+        minScore: -150000,
+        description: 'A once-promising captain now out of options'
+    },
+    {
+        name: 'Ruined Merchant',
+        minScore: -300000,
+        description: 'A cautionary tale whispered among traders'
+    },
+    {
+        name: 'Wrecked Outcast',
+        minScore: -600000,
+        description: 'A shattered career with no way back'
+    },
 ];
 
 /**

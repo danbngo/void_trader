@@ -5,6 +5,7 @@
 
 const ScoreMenu = (() => {
     let returnCallback = null;
+    let showRecord = false;
     
     /**
      * Calculate player's total score
@@ -66,43 +67,53 @@ const ScoreMenu = (() => {
         
         // Title
         let y = 2;
-        y = UI.addHeaderLineCentered(y, 'Your Score');
+        y = UI.addHeaderLineCentered(y, showRecord ? 'Player Record' : 'Your Score');
         y += 2;
-        
-        // Score breakdown
+
+        // Score breakdown or record view
         const leftX = 15;
-        y = UI.addHeaderLine(leftX, y, 'Score Breakdown');
-        
-        const repColor = score.reputationScore >= 0 ? COLORS.GREEN : COLORS.TEXT_ERROR;
-        const bountyColor = score.bountyScore === 0 ? COLORS.TEXT_DIM : COLORS.TEXT_ERROR;
-        const totalColor = score.totalScore >= 0 ? COLORS.YELLOW : COLORS.TEXT_ERROR;
-        
-        y = TableRenderer.renderKeyValueList(leftX, y, [
-            { label: 'Credits:', value: `${score.credits.toLocaleString()} CR`, valueColor: COLORS.GREEN },
-            { label: 'Reputation (×10):', value: `${score.reputationScore.toLocaleString()}`, valueColor: repColor },
-            { label: 'Bounty:', value: `${score.bountyScore.toLocaleString()}`, valueColor: bountyColor },
-            { label: 'Ship Value:', value: `${score.shipsValue.toLocaleString()} CR`, valueColor: COLORS.CYAN },
-            { label: 'Cargo Value:', value: `${score.cargoValue.toLocaleString()} CR`, valueColor: COLORS.CYAN },
-            { label: 'Alien Systems Penalty:', value: `-${score.alienSystemPenalty.toLocaleString()}`, valueColor: score.alienSystemPenalty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_DIM }
-        ]);
-        
-        y++;
-        UI.addText(leftX, y++, '─'.repeat(35), COLORS.TEXT_DIM);
-        
-        y = TableRenderer.renderKeyValueList(leftX, y, [
-            { label: 'Total Score:', value: `${score.totalScore.toLocaleString()}`, valueColor: totalColor }
-        ]);
-        
-        y += 2;
-        
-        // Show what rank the player would get if they retired
-        const retirementRank = getScoreRank(score.totalScore);
-        UI.addText(leftX, y, 'Retirement Rank:', COLORS.CYAN);
-        UI.addText(leftX + 25, y++, retirementRank.name, COLORS.YELLOW);
+        if (showRecord) {
+            y = UI.addHeaderLine(leftX, y, 'Record');
+            const recordItems = buildRecordItems(gameState);
+            if (recordItems.length === 0) {
+                UI.addText(leftX, y + 1, 'Accomplish more to see record entries', COLORS.TEXT_DIM);
+            } else {
+                y = TableRenderer.renderKeyValueList(leftX, y, recordItems);
+            }
+        } else {
+            y = UI.addHeaderLine(leftX, y, 'Score Breakdown');
+
+            y = TableRenderer.renderKeyValueList(leftX, y, [
+                { label: 'Credits:', value: `${score.credits.toLocaleString()} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Reputation (×10):', value: `${score.reputationScore.toLocaleString()}`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Bounty:', value: `${score.bountyScore.toLocaleString()}`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Ship Value:', value: `${score.shipsValue.toLocaleString()} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Cargo Value:', value: `${score.cargoValue.toLocaleString()} CR`, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Alien Systems Penalty:', value: `-${score.alienSystemPenalty.toLocaleString()}`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
+            
+            y++;
+            UI.addText(leftX, y++, '─'.repeat(35), COLORS.TEXT_DIM);
+            
+            y = TableRenderer.renderKeyValueList(leftX, y, [
+                { label: 'Total Score:', value: `${score.totalScore.toLocaleString()}`, valueColor: COLORS.TEXT_NORMAL }
+            ]);
+            
+            y += 2;
+            
+            // Show what rank the player would get if they retired
+            const retirementRank = getScoreRank(score.totalScore);
+            UI.addText(leftX, y, 'Retirement Rank:', COLORS.CYAN);
+            UI.addText(leftX + 25, y++, retirementRank.name, getRetirementRankColor(score.totalScore));
+        }
         
         // Buttons
         const buttonY = grid.height - 4;
         UI.addCenteredButtons(buttonY, [
+            { key: '1', label: showRecord ? 'Show Score' : 'Show Record', callback: () => {
+                showRecord = !showRecord;
+                show(gameState, returnCallback);
+            }, color: COLORS.BUTTON },
             { key: 'R', label: 'Retire Early', callback: () => {
                 RetirementConfirmMenu.show(
                     gameState, 
@@ -168,3 +179,49 @@ const ScoreMenu = (() => {
         calculateScore
     };
 })();
+
+function getRetirementRankColor(totalScore) {
+    if (totalScore >= 1000000) return COLORS.TITLE;
+    if (totalScore >= 500000) return COLORS.GREEN;
+    if (totalScore >= 250000) return COLORS.YELLOW;
+    if (totalScore >= 100000) return COLORS.TEXT_NORMAL;
+    if (totalScore >= 50000) return COLORS.TEXT_NORMAL;
+    if (totalScore >= 25000) return COLORS.TEXT_DIM;
+    if (totalScore >= 10000) return COLORS.TEXT_DIM;
+    if (totalScore >= 0) return COLORS.TEXT_ERROR;
+    return COLORS.TEXT_ERROR;
+}
+
+function buildRecordItems(gameState) {
+    const record = gameState.playerRecord || {};
+    const items = [
+        { label: 'Systems Visited:', key: PLAYER_RECORD_TYPES.SYSTEMS_VISITED },
+        { label: 'Jumps Made:', key: PLAYER_RECORD_TYPES.JUMPS_MADE },
+        { label: 'Combat Wins:', key: PLAYER_RECORD_TYPES.COMBAT_ENCOUNTERS_WON },
+        { label: 'Combat Fled:', key: PLAYER_RECORD_TYPES.COMBAT_ENCOUNTERS_FLED },
+        { label: 'Ships Destroyed:', key: PLAYER_RECORD_TYPES.SHIPS_DESTROYED },
+        { label: 'Alien Ships Defeated:', key: PLAYER_RECORD_TYPES.ALIEN_SHIPS_DEFEATED },
+        { label: 'Alien Defense Fleets:', key: PLAYER_RECORD_TYPES.ALIEN_DEFENSE_FLEETS_DEFEATED },
+        { label: 'Alien Modules Delivered:', key: PLAYER_RECORD_TYPES.ALIEN_MODULES_DELIVERED },
+        { label: 'Police Ships Destroyed:', key: PLAYER_RECORD_TYPES.POLICE_SHIPS_DESTROYED },
+        { label: 'Systems Liberated:', key: PLAYER_RECORD_TYPES.SYSTEMS_LIBERATED },
+        { label: 'Times Died:', key: PLAYER_RECORD_TYPES.TIMES_DIED },
+        { label: 'Cargo Bought:', key: PLAYER_RECORD_TYPES.TOTAL_CARGO_BOUGHT },
+        { label: 'Cargo Sold:', key: PLAYER_RECORD_TYPES.TOTAL_CARGO_SOLD },
+        { label: 'Credits Spent:', key: PLAYER_RECORD_TYPES.TOTAL_VALUE_BOUGHT },
+        { label: 'Credits Earned:', key: PLAYER_RECORD_TYPES.TOTAL_VALUE_SOLD },
+        { label: 'Drugs Sold:', key: PLAYER_RECORD_TYPES.DRUGS_SOLD_TOTAL },
+        { label: 'Blackreach Weapons Sold:', key: PLAYER_RECORD_TYPES.BLACKREACH_WEAPONS_SOLD },
+        { label: 'Blackreach Antimatter Delivered:', key: PLAYER_RECORD_TYPES.BLACKREACH_ANTIMATTER_DELIVERED },
+        { label: 'Blackreach Intro Seen:', key: PLAYER_RECORD_TYPES.BLACKREACH_INTRO_TRIGGERED, isBoolean: true }
+    ];
+
+    return items
+        .map(item => {
+            const value = record[item.key];
+            const displayValue = item.isBoolean ? (value ? 'Yes' : 'No') : String(value || 0);
+            return { label: item.label, value: displayValue, valueColor: COLORS.TEXT_NORMAL, rawValue: value, isBoolean: item.isBoolean };
+        })
+        .filter(item => item.isBoolean ? item.rawValue : (item.rawValue || 0) > 0)
+        .map(item => ({ label: item.label, value: item.value, valueColor: item.valueColor }));
+}

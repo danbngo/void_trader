@@ -119,9 +119,9 @@ const ShipyardMenu = (() => {
             const fuelRatio = ship.fuel / ship.maxFuel;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.shields / ship.maxShields;
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
-            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
-            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
+            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             const numModules = ship.modules ? ship.modules.length : 0;
             return [
                 //{ text: marker, color: COLORS.TEXT_NORMAL },
@@ -215,9 +215,9 @@ const ShipyardMenu = (() => {
             // Check if player has license for this ship type
             const hasLicense = gameState.enabledShipTypes.some(st => st.id === ship.type);
             
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
-            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
-            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
+            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             
             // If no license, make entire row grey
             const textColor = hasLicense ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;

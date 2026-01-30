@@ -200,7 +200,7 @@ const TradeRecommendationsMenu = (() => {
         
         // Get first ship for engine calculation
         const activeShip = currentGameState.ships[0];
-        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        const engineMultiplier = AVERAGE_SHIP_ENGINE / activeShip.engine;
         
         // Check all systems
         for (let i = 0; i < currentGameState.systems.length; i++) {
@@ -311,7 +311,7 @@ const TradeRecommendationsMenu = (() => {
         
         // Second priority: Find best buy-and-sell opportunity (only among visited systems)
         const activeShip = currentGameState.ships[0];
-        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        const engineMultiplier = AVERAGE_SHIP_ENGINE / activeShip.engine;
         const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
         
         // Check each enabled cargo type

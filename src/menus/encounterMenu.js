@@ -241,14 +241,12 @@ const EncounterMenu = (() => {
 
         const itemId = possibleItems[Math.floor(Math.random() * possibleItems.length)];
         const added = currentGameState.addConsumable(itemId, 1);
-        if (!outputMessage) {
-            if (added > 0) {
-                outputMessage = `Recovered ${CONSUMABLES[itemId].name}!`;
-                outputColor = COLORS.GREEN;
-            } else {
-                outputMessage = `Found ${CONSUMABLES[itemId].name}, but storage is full.`;
-                outputColor = COLORS.TEXT_DIM;
-            }
+        if (added > 0) {
+            outputMessage = `Recovered ${CONSUMABLES[itemId].name}!`;
+            outputColor = COLORS.GREEN;
+        } else {
+            outputMessage = `Found ${CONSUMABLES[itemId].name}, but storage is full.`;
+            outputColor = COLORS.TEXT_DIM;
         }
     }
     
@@ -680,6 +678,8 @@ const EncounterMenu = (() => {
                 
                 if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
+                } else if (ship.rechargeFlashUntil && now < ship.rechargeFlashUntil) {
+                    color = COLORS.LIGHT_BLUE;
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
                 } else if (ship === activeShip) {
@@ -785,6 +785,8 @@ const EncounterMenu = (() => {
                 
                 if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
+                } else if (ship.rechargeFlashUntil && now < ship.rechargeFlashUntil) {
+                    color = COLORS.LIGHT_BLUE;
                 } else if (index === targetIndex && isEnemyShip(ship)) {
                     // Yellow during player's turn, red during enemy's turn or when waiting
                     color = waitingForContinue ? COLORS.TEXT_ERROR : COLORS.YELLOW;
@@ -1002,13 +1004,13 @@ const EncounterMenu = (() => {
             const shieldRatio = activeShip.shields / activeShip.maxShields;
             UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, UI.calcStatColor(shieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            const laserRatio = activeShip.lasers / AVERAGE_SHIP_LASER_LEVEL;
+            const laserRatio = activeShip.lasers / AVERAGE_SHIP_LASER;
             UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, UI.calcStatColor(laserRatio));
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
-            const engineRatio = activeShip.engine / AVERAGE_SHIP_ENGINE_LEVEL;
+            const engineRatio = activeShip.engine / AVERAGE_SHIP_ENGINE;
             UI.addText(startX + 8, y - 1, `${activeShip.engine}`, UI.calcStatColor(engineRatio));
             UI.addText(startX, y++, 'Radar:', COLORS.TEXT_DIM);
-            const radarRatio = activeShip.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const radarRatio = activeShip.radar / AVERAGE_SHIP_RADAR;
             UI.addText(startX + 7, y - 1, `${activeShip.radar}`, UI.calcStatColor(radarRatio));
         } else {
             UI.addText(startX, 1, 'No active ships', COLORS.TEXT_ERROR);
@@ -1037,13 +1039,13 @@ const EncounterMenu = (() => {
             const targetShieldRatio = targetShip.shields / targetShip.maxShields;
             UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, UI.calcStatColor(targetShieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            const targetLaserRatio = targetShip.lasers / AVERAGE_SHIP_LASER_LEVEL;
+            const targetLaserRatio = targetShip.lasers / AVERAGE_SHIP_LASER;
             UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, UI.calcStatColor(targetLaserRatio));
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
-            const targetEngineRatio = targetShip.engine / AVERAGE_SHIP_ENGINE_LEVEL;
+            const targetEngineRatio = targetShip.engine / AVERAGE_SHIP_ENGINE;
             UI.addText(startX + 8, y - 1, `${targetShip.engine}`, UI.calcStatColor(targetEngineRatio));
             UI.addText(startX, y++, 'Radar:', COLORS.TEXT_DIM);
-            const targetRadarRatio = targetShip.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const targetRadarRatio = targetShip.radar / AVERAGE_SHIP_RADAR;
             UI.addText(startX + 7, y - 1, `${targetShip.radar}`, UI.calcStatColor(targetRadarRatio));
             UI.addText(startX, y++, 'Distance:', COLORS.TEXT_DIM);
             UI.addText(startX + 10, y - 1, `${distance} AU`, COLORS.TEXT_NORMAL);
@@ -1225,7 +1227,7 @@ const EncounterMenu = (() => {
                 executePlayerAction(COMBAT_ACTIONS.FIRE_LASER);
             }, COLORS.TEXT_ERROR, laserHelpText);
 
-            // Column 2: Pursue, Flee, Surrender
+            // Column 2: Pursue, Flee, Recharge, Surrender
             let col2Y = buttonY;
             
             UI.addButton(middleX, col2Y++, '4', 'Pursue', () => {
@@ -1235,6 +1237,16 @@ const EncounterMenu = (() => {
             UI.addButton(middleX, col2Y++, '5', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, fleeHelpText);
+
+            const rechargeAmount = Math.max(0, Math.floor(activeShip.engine * 0.5));
+            const canRecharge = activeShip.shields < activeShip.maxShields && rechargeAmount > 0;
+            const rechargeColor = canRecharge ? COLORS.LIGHT_BLUE : COLORS.TEXT_DIM;
+            const rechargeHelp = canRecharge
+                ? `Recharge up to ${rechargeAmount} shields`
+                : 'Shields already at maximum';
+            UI.addButton(middleX, col2Y++, 'r', 'Recharge Shields', () => {
+                executePlayerAction(COMBAT_ACTIONS.RECHARGE_SHIELDS);
+            }, rechargeColor, rechargeHelp);
             
             // Only show surrender option if encounter type permits it
             if (encounterType.surrenderPermitted !== false) {
@@ -2091,7 +2103,9 @@ const EncounterMenu = (() => {
         const activeShip = getActivePlayerShip();
         if (!activeShip) return;
         
-        const targetShip = getTargetShip();
+        const targetShip = actionType === COMBAT_ACTIONS.RECHARGE_SHIELDS
+            ? activeShip
+            : getTargetShip();
         if (!targetShip) return;
         
         const targetShipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
@@ -2112,6 +2126,8 @@ const EncounterMenu = (() => {
             outputMessage = `${activeShipType.name} fleeing from ${targetShipType.name}...`;
         } else if (actionType === COMBAT_ACTIONS.FIRE_LASER) {
             outputMessage = `${activeShipType.name} firing laser at ${targetShipType.name}...`;
+        } else if (actionType === COMBAT_ACTIONS.RECHARGE_SHIELDS) {
+            outputMessage = `${activeShipType.name} recharging shields...`;
         }
         outputColor = COLORS.TEXT_NORMAL;
         
@@ -2270,6 +2286,15 @@ const EncounterMenu = (() => {
                     }
                 } else {
                     outputMessage = `${activeShipType.name} fires laser and misses ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
+                    outputColor = COLORS.TEXT_DIM;
+                }
+            } else if (actionType === COMBAT_ACTIONS.RECHARGE_SHIELDS) {
+                const applied = action.rechargeApplied || 0;
+                if (applied > 0) {
+                    outputMessage = `${activeShipType.name} recharged ${applied} shields.`;
+                    outputColor = COLORS.LIGHT_BLUE;
+                } else {
+                    outputMessage = `${activeShipType.name} shields already at maximum.`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {
@@ -2433,6 +2458,8 @@ const EncounterMenu = (() => {
             outputMessage = `${enemyShipType.name} fleeing from ${targetShipType.name}...`;
         } else if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
             outputMessage = `${enemyShipType.name} firing laser at ${targetShipType.name}...`;
+        } else if (action.actionType === COMBAT_ACTIONS.RECHARGE_SHIELDS) {
+            outputMessage = `${enemyShipType.name} recharging shields...`;
         }
         outputColor = COLORS.TEXT_ERROR;
         
@@ -2570,6 +2597,15 @@ const EncounterMenu = (() => {
                     }
                 } else {
                     outputMessage = `${enemyShipType.name} missed ${targetShipType.name}! (${Math.floor(action.distance)} AU)`;
+                    outputColor = COLORS.TEXT_DIM;
+                }
+            } else if (action.actionType === COMBAT_ACTIONS.RECHARGE_SHIELDS) {
+                const applied = action.rechargeApplied || 0;
+                if (applied > 0) {
+                    outputMessage = `${enemyShipType.name} recharged ${applied} shields.`;
+                    outputColor = COLORS.LIGHT_BLUE;
+                } else {
+                    outputMessage = `${enemyShipType.name} shields already at maximum.`;
                     outputColor = COLORS.TEXT_DIM;
                 }
             } else {

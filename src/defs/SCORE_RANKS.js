@@ -46,27 +46,27 @@ const SCORE_RANKS = [
     },
     {
         name: 'Destitute Drifter',
-        minScore: -25000,
+        minScore: -10*1000,
         description: 'A down-on-your-luck trader barely scraping by'
     },
     {
         name: 'Broken Broker',
-        minScore: -75000,
+        minScore: -100*1000,
         description: 'A failed trader sinking deeper into debt'
     },
     {
         name: 'Bankrupt Captain',
-        minScore: -150000,
+        minScore: -1000*1000,
         description: 'A once-promising captain now out of options'
     },
     {
         name: 'Ruined Merchant',
-        minScore: -300000,
+        minScore: -10*1000*1000,
         description: 'A cautionary tale whispered among traders'
     },
     {
         name: 'Wrecked Outcast',
-        minScore: -600000,
+        minScore: -100*1000*1000,
         description: 'A shattered career with no way back'
     },
 ];

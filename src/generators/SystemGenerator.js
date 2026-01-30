@@ -389,6 +389,11 @@ const SystemGenerator = (() => {
         for (let i = 0; i < numShips; i++) {
             terraSystem.ships.push(ShipGenerator.generateRandomShip());
         }
+
+        // Add prestige ships to Terra's shipyard only
+        PRESTIGE_SHIP_TYPES.forEach(shipType => {
+            terraSystem.ships.push(ShipGenerator.generateShipOfType(shipType.id));
+        });
         
         console.log(`[Galaxy Generation] Terra created at distance ${distance(nexus.x, nexus.y, terraSystem.x, terraSystem.y).toFixed(1)} LY from Nexus`);
         
@@ -562,7 +567,7 @@ const SystemGenerator = (() => {
                     enabledCargoTypes: ALL_CARGO_TYPES.slice(0, 3), // Basic cargo types only
                     ships: [{
                         maxFuel: 20, // Starting ship fuel
-                        engine: AVERAGE_SHIP_ENGINE_LEVEL
+                        engine: AVERAGE_SHIP_ENGINE
                     }],
                     getCurrentSystem: function() { return this.systems[this.currentSystemIndex]; }
                 };

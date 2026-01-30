@@ -230,6 +230,12 @@ class CombatActionHandler {
                     };
                 }
                 break;
+
+            case COMBAT_ACTIONS.RECHARGE_SHIELDS:
+                this.action.rechargeAmount = Math.max(0, Math.floor(this.ship.engine * 0.5));
+                this.remainingTicks = 3;
+                this.tickCount = 0;
+                break;
         }
         
         this.initialized = true;
@@ -252,6 +258,10 @@ class CombatActionHandler {
         if (this.action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
             return this.tickLaser();
         }
+
+        if (this.action.actionType === COMBAT_ACTIONS.RECHARGE_SHIELDS) {
+            return this.tickRecharge();
+        }
         
         // Handle GET_RAMMED differently - can spin and move concurrently
         if (this.action.actionType === COMBAT_ACTIONS.GET_RAMMED) {
@@ -260,6 +270,26 @@ class CombatActionHandler {
         
         // For PURSUE and FLEE, turn first, then move
         return this.tickMoveAction();
+    }
+
+    /**
+     * Tick for RECHARGE_SHIELDS action
+     */
+    tickRecharge() {
+        this.tickCount++;
+
+        this.ship.rechargeFlashUntil = Date.now() + 200;
+
+        if (this.tickCount >= this.remainingTicks) {
+            const missingShields = Math.max(0, this.ship.maxShields - this.ship.shields);
+            const actualRecharge = Math.min(this.action.rechargeAmount, missingShields);
+            this.ship.shields += actualRecharge;
+            this.action.rechargeApplied = actualRecharge;
+            this.action.complete();
+            return true;
+        }
+
+        return false;
     }
     
     /**

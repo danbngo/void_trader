@@ -36,6 +36,12 @@ class CombatAI {
         });
         
         if (nearestShip) {
+            // Recharge shields if low and not fleeing
+            const shieldRatio = enemyShip.maxShields > 0 ? enemyShip.shields / enemyShip.maxShields : 1;
+            if (enemyShip.maxShields > 0 && shieldRatio < 0.25) {
+                return new CombatAction(enemyShip, COMBAT_ACTIONS.RECHARGE_SHIELDS, nearestShip);
+            }
+
             // Check if we should flee (low hull) - aliens never flee
             const shipType = SHIP_TYPES[enemyShip.type] || ALIEN_SHIP_TYPES[enemyShip.type];
             const hullRatio = enemyShip.hull / enemyShip.maxHull;

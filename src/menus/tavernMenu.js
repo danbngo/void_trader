@@ -219,7 +219,7 @@ const TavernMenu = (() => {
             
             // Get first ship for engine calculation
             const activeShip = gameState.ships[0];
-            const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+            const engineMultiplier = AVERAGE_SHIP_ENGINE / activeShip.engine;
             
             const rows = currentSystem.jobs.map((job, index) => {
                 const deadlineDays = job.deadlineDate; // This is duration until accepted

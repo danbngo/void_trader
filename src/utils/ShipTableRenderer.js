@@ -39,9 +39,9 @@ const ShipTableRenderer = (() => {
             const nameColor = isActive ? COLORS.GREEN : COLORS.TEXT_NORMAL;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.maxShields > 0 ? ship.shields / ship.maxShields : 0;
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
-            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
-            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
+            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             const fuelRatio = ship.maxFuel > 0 ? ship.fuel / ship.maxFuel : 0;
             
             const row = [
@@ -102,9 +102,9 @@ const ShipTableRenderer = (() => {
             const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.maxShields > 0 ? ship.shields / ship.maxShields : 0;
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER_LEVEL;
-            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE_LEVEL;
-            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR_LEVEL;
+            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
+            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             
             // Display symbol + name for alien ships, just name for humans
             const displayName = shipType.symbol ? `${shipType.symbol} ${shipType.name}` : shipType.name;

@@ -58,16 +58,16 @@ class Ship {
      * @returns {number}
      */
     getValue() {
-        // Base value calculation: fuel * 10 + cargo * 50 + hull * 5 + shields * 15 + lasers * 500
-        const fuelValue = this.maxFuel * 10;
-        const cargoValue = this.cargoCapacity * 50;
-        const hullValue = this.maxHull * 5;
-        const shieldValue = this.maxShields * 15;
-        const laserValue = this.lasers * 500;
-        const conditionMultiplier = (this.hull / this.maxHull); // Degraded value based on current hull
+        // Base value calculation: fuel * 10 + cargo * 50 + hull * 5 + shields * 15 + lasers * 500 + radar * 100
+        const fuelValue = this.maxFuel / AVERAGE_SHIP_FUEL;
+        const cargoValue = this.cargoCapacity / AVERAGE_SHIP_CARGO;
+        const hullValue = this.maxHull / AVERAGE_SHIP_HULL;
+        const shieldValue = this.maxShields / AVERAGE_SHIP_SHIELDS;
+        const laserValue = this.lasers / AVERAGE_SHIP_LASERS;
+        const radarValue = this.radar / AVERAGE_SHIP_RADAR;
         
-        const baseValue = (fuelValue + cargoValue + hullValue + shieldValue + laserValue) * conditionMultiplier;
-        return Math.floor(Math.pow(baseValue, 1.5) / 10);
+        const baseValue = (fuelValue + cargoValue + hullValue + shieldValue + laserValue + radarValue) / 6 * AVERAGE_SHIP_VALUE;
+        return Math.ceil(Math.pow(baseValue, 1.5));
     }
     
     /**
@@ -113,7 +113,7 @@ class Ship {
      */
     static calculateFleetTravelDuration(distance, ships, pilotingLevel = 0) {
         const activeShip = ships[0];
-        const engineMultiplier = AVERAGE_SHIP_ENGINE_LEVEL / activeShip.engine;
+        const engineMultiplier = AVERAGE_SHIP_ENGINE / activeShip.engine;
         const baseDuration = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
         return SkillEffects.getTravelDuration(baseDuration, pilotingLevel);
     }

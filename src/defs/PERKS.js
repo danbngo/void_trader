@@ -7,21 +7,21 @@ const PERKS = {
     CARGO_FRAGILE: {
         id: 'CARGO_FRAGILE',
         name: 'Cargo Handling: Fragile',
-        description: 'Learn to handle fragile cargo types (Holocubes, Medicine, Nanites)',
+        description: 'Handle fragile cargo types (Holocubes, Medicine, Nanites)',
         baseCost: 5000,
         requiredPerks: [] // First cargo perk - no requirements
     },
     CARGO_DANGEROUS: {
         id: 'CARGO_DANGEROUS',
         name: 'Cargo Handling: Dangerous',
-        description: 'Learn to handle dangerous cargo types (Plasma, Fuel, Isotopes)',
+        description: 'Handle dangerous cargo types (Plasma, Fuel, Isotopes)',
         baseCost: 10000,
         requiredPerks: ['CARGO_FRAGILE'] // Requires fragile handling first
     },
     CARGO_ILLEGAL: {
         id: 'CARGO_ILLEGAL',
         name: 'Cargo Handling: Illegal',
-        description: 'Learn to handle illegal cargo types (Weapons, Drugs, Antimatter)',
+        description: 'Handle illegal cargo types (Weapons, Drugs, Antimatter)',
         baseCost: 20000,
         requiredPerks: ['CARGO_DANGEROUS'] // Requires dangerous handling first
     },

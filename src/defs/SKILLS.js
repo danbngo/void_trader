@@ -30,8 +30,8 @@ const SKILLS = {
     },
     SMUGGLING: {
         id: 'smuggling',
-        shortName: 'Smuggle',
-        name: 'Smuggling',
+        shortName: 'Stealth',
+        name: 'Stealth',
         description: 'Increases chance to be undetected by other fleets.',
         color: COLORS.DARK_GRAY,
         maxLevel: 20

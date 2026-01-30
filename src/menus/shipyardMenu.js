@@ -110,7 +110,7 @@ const ShipyardMenu = (() => {
      */
     function renderManageMode(onReturn, grid) {
         // Player ships table (* marks the active ship)
-        const startY = 6;
+        const startY = 7;
         const rows = gameState.ships.map((ship, index) => {
             //const isActive = (index === gameState.activeShipIndex);
             //const marker = isActive ? '*' : '';
@@ -202,7 +202,7 @@ const ShipyardMenu = (() => {
         }
         
         // Available ships table
-        const startY = 6;
+        const startY = 7;
         
         const rows = currentSystem.ships.map((ship, index) => {
             const basePrice = ship.getValue();
@@ -294,8 +294,8 @@ const ShipyardMenu = (() => {
      */
     function renderSellMode(onReturn, grid) {
         // Player ships table (for selling)
-        const startY = 6;
-        UI.addText(5, 5, 'Select a ship to sell:', COLORS.YELLOW);
+        const startY = 7;
+        UI.addText(5, 6, 'Select a ship to sell:', COLORS.YELLOW);
         
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
@@ -332,11 +332,11 @@ const ShipyardMenu = (() => {
      * Render select trade-in ship mode (choose which ship to trade in)
      */
     function renderSelectTradeInShipMode(onReturn, grid) {
-        const startY = 6;
+        const startY = 7;
         const newShipType = SHIP_TYPES[buyShipForTradeIn.type] || { name: 'Unknown' };
         
-        UI.addText(5, 5, `Trading for: ${newShipType.name}`, COLORS.YELLOW);
-        UI.addText(5, 6, 'Select a ship to trade in:', COLORS.TEXT_NORMAL);
+        UI.addText(5, 6, `Trading for: ${newShipType.name}`, COLORS.YELLOW);
+        UI.addText(5, 7, 'Select a ship to trade in:', COLORS.TEXT_NORMAL);
         
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
@@ -364,7 +364,9 @@ const ShipyardMenu = (() => {
         const netCost = cost - tradeInValue;
         
         const calcY = startY + 2 + rows.length + 3;
+        const effectiveFees = getEffectiveFees();
         TableRenderer.renderKeyValueList(5, calcY, [
+            { label: 'Fees after Barter:', value: `${(effectiveFees * 100).toFixed(1)}%`, valueColor: COLORS.TEXT_DIM },
             { label: 'New Ship Cost:', value: `${cost} CR`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Trade-In Value:', value: `${tradeInValue} CR`, valueColor: COLORS.GREEN },
             { label: 'Net Cost:', value: `${netCost} CR`, valueColor: netCost > 0 ? COLORS.TEXT_ERROR : COLORS.GREEN },

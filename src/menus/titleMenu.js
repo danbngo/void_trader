@@ -300,6 +300,11 @@ const TitleMenu = (() => {
             
             // Generate player ships
             gameState.ships.push(ShipGenerator.generateStartingShip());
+
+            // Debug: start with 50% hull for engineering testing
+            gameState.ships.forEach(ship => {
+                ship.hull = Math.max(1, Math.floor(ship.maxHull * 0.5));
+            });
             
             // === DEBUG MODE CHEATS ===
             // Give 1 million credits

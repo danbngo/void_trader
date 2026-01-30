@@ -24,6 +24,27 @@ const EncounterMenu = (() => {
     function calculateAngle(x1, y1, x2, y2) {
         return Math.atan2(y2 - y1, x2 - x1);
     }
+
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {GameState} gameState
+     * @param {string} skillName
+     * @returns {number}
+     */
+    function getMaxCrewSkill(gameState, skillName) {
+        let maxSkill = 0;
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        return maxSkill;
+    }
     
     /**
      * Get ship symbol - triangle for normal ships, fixed symbol for aliens
@@ -976,8 +997,12 @@ const EncounterMenu = (() => {
                 const obstructionCount = countObstructions(activeShip, targetShip);
                 
                 // Laser help text: hit chance and damage
-                const hitChance = Math.min(100, Math.floor((activeShip.radar / distance) * 100));
-                const damageRange = `1-${activeShip.lasers}`;
+                const gunneryLevel = getMaxCrewSkill(currentGameState, 'gunnery');
+                const effectiveDistance = SkillEffects.getAccuracyDistance(distance, gunneryLevel);
+                const hitChance = Math.min(100, Math.floor((activeShip.radar / effectiveDistance) * 100));
+                const minDamage = SkillEffects.getLaserDamage(1, gunneryLevel);
+                const maxDamage = SkillEffects.getLaserDamage(activeShip.lasers, gunneryLevel);
+                const damageRange = `${minDamage}-${maxDamage}`;
                 if (obstructionCount > 0) {
                     laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg, ${obstructionCount} obstructions)`;
                 } else {

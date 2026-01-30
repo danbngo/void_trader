@@ -64,7 +64,7 @@ const CourthouseMenu = (() => {
         ]);
         
         // Available ranks
-        let y = 11;
+        let y = 9;
         y = UI.addHeaderLine(5, y, 'Citizenship Ranks');
         y++;
         

@@ -63,7 +63,7 @@ const MarketMenu = (() => {
         const totalCargoCapacity = Ship.getFleetCargoCapacity(gameState.ships);
         
         // Market table
-        let startY = 6;
+        let startY = 7;
         const rows = allCargoTypes.map((cargoType, index) => {
             const stock = currentSystem.cargoStock[cargoType.id] || 0;
             const basePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];

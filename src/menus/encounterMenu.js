@@ -1770,6 +1770,8 @@ const EncounterMenu = (() => {
                 ? currentGameState.encounterContext.enemyEncounterType
                 : encounterType;
 
+            const contributionScale = getFactionContributionScale(currentGameState);
+
             // Grant reputation for defeating aliens
             if (enemyEncounterType.id === 'ALIEN_SKIRMISH') {
                 currentGameState.reputation += 5;
@@ -1806,18 +1808,26 @@ const EncounterMenu = (() => {
                 return sum + (shipType ? shipType.value : 0);
             }, 0);
             const valueRatio = playerFleetValue > 0 ? enemyFleetValue / playerFleetValue : 1;
-            const victoryExp = Math.floor(EXP_POINTS_FROM_COMBAT_VICTORY_AVG * valueRatio);
+            const victoryExp = Math.floor(EXP_POINTS_FROM_COMBAT_VICTORY_AVG * valueRatio * contributionScale);
             ExperienceUtils.getExperienceMessageComponents(currentGameState, victoryExp, 'Combat Victory');
             
             // Faction reward (if applicable)
+            const isFactionConflict = currentGameState.encounterContext
+                && currentGameState.encounterContext.type === 'FACTION_CONFLICT';
+
             if (currentGameState.encounterContext && currentGameState.encounterContext.friendlyEncounterType) {
                 applyFactionReward(currentGameState);
             }
 
             currentGameState.encounterContext = null;
 
+            const lootShips = isFactionConflict ? [] : defeatedShips;
+            const lootEncounterType = isFactionConflict
+                ? { maxCredits: 0 }
+                : enemyEncounterType;
+
             // Show loot menu
-            LootMenu.show(currentGameState, defeatedShips, enemyEncounterType, () => {
+            LootMenu.show(currentGameState, lootShips, lootEncounterType, () => {
                 // After looting, continue journey
                 TravelMenu.resume();
             });
@@ -1828,6 +1838,18 @@ const EncounterMenu = (() => {
         return false;
     }
 
+    function getFactionContributionScale(gameState) {
+        if (!gameState.encounterContext || gameState.encounterContext.type !== 'FACTION_CONFLICT') {
+            return 1;
+        }
+        const playerDamage = gameState.encounterContext.playerDamage || 0;
+        const friendlyDamage = gameState.encounterContext.friendlyDamage || 0;
+        if (friendlyDamage <= 0) {
+            return 0;
+        }
+        return Math.max(0, Math.min(1, playerDamage / friendlyDamage));
+    }
+
     function applyFactionReward(gameState) {
         if (Math.random() >= FACTION_V_FACTION_REWARD_CHANCE) {
             gameState.factionReward = null;
@@ -1835,14 +1857,22 @@ const EncounterMenu = (() => {
         }
 
         const friendlyType = gameState.encounterContext.friendlyEncounterType;
+        const contributionScale = getFactionContributionScale(gameState);
+        if (contributionScale <= 0) {
+            gameState.factionReward = null;
+            return;
+        }
         const friendlyShips = Array.isArray(gameState.encounterContext.friendlyShips)
             ? gameState.encounterContext.friendlyShips
             : [];
 
         const canGiveLoot = friendlyType.id === 'SMUGGLERS' || friendlyType.id === 'MERCHANT';
+        const canGiveCargo = friendlyType.id === 'MERCHANT'
+            ? Math.random() < FACTION_V_FACTION_MERCHANTS_REWARD_CARGO_CHANCE
+            : true;
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
 
-        if (canGiveLoot && availableSpace > 0) {
+        if (canGiveLoot && canGiveCargo && availableSpace > 0) {
             const friendlyCargo = {};
             friendlyShips.forEach(ship => {
                 for (const cargoId in ship.cargo) {
@@ -1859,7 +1889,8 @@ const EncounterMenu = (() => {
             Object.keys(friendlyCargo).forEach(cargoId => {
                 const maxReward = Math.floor(friendlyCargo[cargoId] * FACTION_V_FACTION_MAX_LOOT_REWARD);
                 if (maxReward > 0) {
-                    const amount = Math.max(1, Math.floor(maxReward * Math.random()));
+                    const scaledMax = Math.floor(maxReward * contributionScale);
+                    const amount = scaledMax > 0 ? Math.floor(Math.random() * scaledMax) + 1 : 0;
                     rewardCargo[cargoId] = amount;
                 }
             });
@@ -1881,7 +1912,7 @@ const EncounterMenu = (() => {
             }
         }
 
-        const maxCredits = Math.floor(friendlyType.maxCredits * FACTION_V_FACTION_MAX_CREDITS_REWARD);
+        const maxCredits = Math.floor(friendlyType.maxCredits * FACTION_V_FACTION_MAX_CREDITS_REWARD * contributionScale);
         const creditsReward = maxCredits > 0 ? Math.floor(Math.random() * maxCredits) + 1 : 0;
         if (creditsReward > 0) {
             gameState.credits += creditsReward;

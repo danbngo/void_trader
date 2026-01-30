@@ -308,6 +308,8 @@ class CombatActionHandler {
                 } else {
                     hitShip.hull -= damage;
                 }
+
+                this.recordFactionDamage(damage, hitShip);
                 
                 // Check if ship is disabled
                 if (hitShip.hull <= 0) {
@@ -348,6 +350,8 @@ class CombatActionHandler {
                 } else {
                     this.action.targetShip.hull -= damage;
                 }
+
+                this.recordFactionDamage(damage, this.action.targetShip);
                 
                 // Store module effects for caller to handle
                 this.action.moduleEffects = this.action.moduleEffects || {};
@@ -428,6 +432,26 @@ class CombatActionHandler {
         }
         
         return false;
+    }
+
+    recordFactionDamage(damage, targetShip) {
+        if (!this.gameState || !this.gameState.encounterContext || this.gameState.encounterContext.type !== 'FACTION_CONFLICT') {
+            return;
+        }
+
+        const context = this.gameState.encounterContext;
+        const attackerIsPlayer = this.gameState.ships.includes(this.ship);
+        const attackerIsFriendly = this.ship.isNeutralToPlayer && this.ship.faction === context.friendlyFactionId;
+        const targetIsEnemy = targetShip && !targetShip.isNeutralToPlayer && targetShip.faction === context.enemyFactionId;
+
+        if (!targetIsEnemy || (!attackerIsPlayer && !attackerIsFriendly)) {
+            return;
+        }
+
+        context.friendlyDamage = (context.friendlyDamage || 0) + damage;
+        if (attackerIsPlayer) {
+            context.playerDamage = (context.playerDamage || 0) + damage;
+        }
     }
     
     /**

@@ -132,20 +132,20 @@ const LootMenu = (() => {
             return;
         }
         
-        // Loot table - show all enabled cargo types (don't filter by loot amount)
+        // Loot table - show all cargo types (disable selection for untrained)
         const startY = 10;
-        const rows = ALL_CARGO_TYPES
-            .filter(cargoType => gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id))
-            .map((cargoType, index) => {
-                const lootQuantity = lootCargo[cargoType.id] || 0;
-                const playerQuantity = fleetCargo[cargoType.id] || 0;
-                
-                return [
-                    { text: cargoType.name, color: COLORS.TEXT_NORMAL },
-                    { text: String(playerQuantity), color: COLORS.TEXT_NORMAL },
-                    { text: String(lootQuantity), color: COLORS.TEXT_NORMAL }
-                ];
-            });
+        const rows = ALL_CARGO_TYPES.map((cargoType) => {
+            const lootQuantity = lootCargo[cargoType.id] || 0;
+            const playerQuantity = fleetCargo[cargoType.id] || 0;
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            const rowColor = hasTraining ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
+
+            return [
+                { text: cargoType.name, color: rowColor },
+                { text: String(playerQuantity), color: rowColor },
+                { text: String(lootQuantity), color: rowColor }
+            ];
+        });
         
         // Ensure selectedCargoIndex is valid
         if (selectedCargoIndex >= rows.length) {
@@ -153,20 +153,20 @@ const LootMenu = (() => {
         }
         
         TableRenderer.renderTable(5, startY, ['Cargo Type', 'Your Cargo', 'Available'], rows, selectedCargoIndex, 2, (rowIndex) => {
-            // When a row is clicked, select that cargo
-            selectedCargoIndex = rowIndex;
-            outputMessage = '';
-            render(onContinue);
+            const cargoType = ALL_CARGO_TYPES[rowIndex];
+            const hasTraining = gameState.enabledCargoTypes.some(ct => ct.id === cargoType.id);
+            if (hasTraining) {
+                selectedCargoIndex = rowIndex;
+                outputMessage = '';
+                render(onContinue);
+            }
         });
         
         // Buttons
         const buttonY = grid.height - 4;
         
         // Get selected cargo type and check training
-        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
-            gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
-        );
-        const selectedCargoType = availableCargoTypes[selectedCargoIndex];
+        const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const lootQuantity = selectedCargoType ? (lootCargo[selectedCargoType.id] || 0) : 0;
         const playerQuantity = selectedCargoType ? (fleetCargo[selectedCargoType.id] || 0) : 0;
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
@@ -177,7 +177,10 @@ const LootMenu = (() => {
         // Build help text for Take buttons
         let take1HelpText = 'Take 1 unit of selected cargo';
         let take10HelpText = 'Take 10 units of selected cargo';
-        if (lootQuantity === 0) {
+        if (!hasTraining) {
+            take1HelpText = 'Requires cargo handling training';
+            take10HelpText = 'Requires cargo handling training';
+        } else if (lootQuantity === 0) {
             take1HelpText = 'No cargo available';
             take10HelpText = 'No cargo available';
         } else if (availableSpace === 0) {
@@ -498,14 +501,16 @@ const LootMenu = (() => {
      * Select next cargo type (skip untrained cargo types)
      */
     function nextCargo(onContinue) {
-        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
-            gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
-        );
-        
+        const trainedIds = new Set(gameState.enabledCargoTypes.map(ct => ct.id));
         const startIndex = selectedCargoIndex;
+        let attempts = 0;
         do {
-            selectedCargoIndex = (selectedCargoIndex + 1) % availableCargoTypes.length;
-        } while (selectedCargoIndex !== startIndex && availableCargoTypes.length > 1);
+            selectedCargoIndex = (selectedCargoIndex + 1) % ALL_CARGO_TYPES.length;
+            attempts++;
+        } while (attempts < ALL_CARGO_TYPES.length && !trainedIds.has(ALL_CARGO_TYPES[selectedCargoIndex].id));
+        if (attempts >= ALL_CARGO_TYPES.length) {
+            selectedCargoIndex = startIndex;
+        }
         
         outputMessage = '';
         render(onContinue);
@@ -515,14 +520,16 @@ const LootMenu = (() => {
      * Select previous cargo type (skip untrained cargo types)
      */
     function prevCargo(onContinue) {
-        const availableCargoTypes = ALL_CARGO_TYPES.filter(ct => 
-            gameState.enabledCargoTypes.some(ect => ect.id === ct.id)
-        );
-        
+        const trainedIds = new Set(gameState.enabledCargoTypes.map(ct => ct.id));
         const startIndex = selectedCargoIndex;
+        let attempts = 0;
         do {
-            selectedCargoIndex = (selectedCargoIndex - 1 + availableCargoTypes.length) % availableCargoTypes.length;
-        } while (selectedCargoIndex !== startIndex && availableCargoTypes.length > 1);
+            selectedCargoIndex = (selectedCargoIndex - 1 + ALL_CARGO_TYPES.length) % ALL_CARGO_TYPES.length;
+            attempts++;
+        } while (attempts < ALL_CARGO_TYPES.length && !trainedIds.has(ALL_CARGO_TYPES[selectedCargoIndex].id));
+        if (attempts >= ALL_CARGO_TYPES.length) {
+            selectedCargoIndex = startIndex;
+        }
         
         outputMessage = '';
         render(onContinue);

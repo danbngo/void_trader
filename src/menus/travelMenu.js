@@ -166,7 +166,12 @@ const TravelMenu = (() => {
                 encounterTypeColor: encounterType.color,
                 flashColor: flashColor
             });
-            const alertMessage = `Alert: ${encounterType.name} Detected!`;
+            let alertMessage = `Alert: ${encounterType.name} Detected!`;
+            if (encounterType.leftFactionId && encounterType.rightFactionId) {
+                const leftName = ENCOUNTER_TYPES[encounterType.leftFactionId]?.name || encounterType.leftFactionId;
+                const rightName = ENCOUNTER_TYPES[encounterType.rightFactionId]?.name || encounterType.rightFactionId;
+                alertMessage = `Alert: ${leftName} Engaged vs ${rightName}!`;
+            }
             UI.setOutputRow(alertMessage, flashColor);
             
             UI.addCenteredButton(buttonY, '1', 'Continue', () => {

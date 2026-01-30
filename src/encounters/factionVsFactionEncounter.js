@@ -10,14 +10,16 @@ const FactionVsFactionEncounter = {
 
         const leftType = ENCOUNTER_TYPES[encType.leftFactionId];
         const rightType = ENCOUNTER_TYPES[encType.rightFactionId];
+        const leftLabel = getPluralFactionName(leftType.name);
+        const rightLabel = getPluralFactionName(rightType.name);
 
         const grid = UI.getGridSize();
 
         UI.addTitleLineCentered(0, 'Faction Conflict');
         let y = 2;
 
-        UI.addText(10, y++, `${leftType.name} ships are exchanging fire with ${rightType.name} ships.`, COLORS.TEXT_NORMAL);
-        UI.addText(10, y++, `You can ignore the fight or side with one faction.`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `${leftLabel} ships are exchanging fire with ${rightLabel} ships.`, COLORS.TEXT_NORMAL);
+        UI.addText(10, y++, `Should we intervene?`, COLORS.TEXT_NORMAL);
         y += 2;
 
         // Show player ships
@@ -28,9 +30,9 @@ const FactionVsFactionEncounter = {
         const leftShips = gameState.encounterShips.filter(ship => ship.faction === leftType.id);
         const rightShips = gameState.encounterShips.filter(ship => ship.faction === rightType.id);
 
-        y = ShipTableRenderer.addNPCFleet(10, y, `${leftType.name} Ships:`, leftShips);
+        y = ShipTableRenderer.addNPCFleet(10, y, `${leftLabel} Ships:`, leftShips);
         y++;
-        y = ShipTableRenderer.addNPCFleet(10, y, `${rightType.name} Ships:`, rightShips);
+        y = ShipTableRenderer.addNPCFleet(10, y, `${rightLabel} Ships:`, rightShips);
 
         const buttonY = grid.height - 4;
 
@@ -38,12 +40,12 @@ const FactionVsFactionEncounter = {
             { key: '1', label: 'Ignore', callback: () => {
                 TravelMenu.resume();
             }, color: COLORS.GREEN, helpText: 'Avoid the conflict and continue your journey' },
-            { key: '2', label: `Side with ${leftType.name}`, callback: () => {
+            { key: '2', label: `Side with ${leftLabel}`, callback: () => {
                 this.handleSideWith(gameState, leftType, rightType, encType);
-            }, color: leftType.color || COLORS.BUTTON, helpText: `Aid ${leftType.name} against ${rightType.name}` },
-            { key: '3', label: `Side with ${rightType.name}`, callback: () => {
+            }, color: leftType.color || COLORS.BUTTON, helpText: `Aid ${leftLabel} against ${rightLabel}` },
+            { key: '3', label: `Side with ${rightLabel}`, callback: () => {
                 this.handleSideWith(gameState, rightType, leftType, encType);
-            }, color: rightType.color || COLORS.BUTTON, helpText: `Aid ${rightType.name} against ${leftType.name}` }
+            }, color: rightType.color || COLORS.BUTTON, helpText: `Aid ${rightLabel} against ${leftLabel}` }
         ]);
 
         UI.draw();
@@ -71,10 +73,12 @@ const FactionVsFactionEncounter = {
             enemyFactionId: enemyType.id,
             friendlyEncounterType: friendlyType,
             enemyEncounterType: enemyType,
-            friendlyShips: gameState.encounterShips.filter(ship => ship.faction === friendlyType.id)
+            friendlyShips: gameState.encounterShips.filter(ship => ship.faction === friendlyType.id),
+            playerDamage: 0,
+            friendlyDamage: 0
         };
 
-        UI.addTitleLineCentered(0, `You Side with ${friendlyType.name}`);
+        UI.addTitleLineCentered(0, `You Side with ${getPluralFactionName(friendlyType.name)}`);
         let y = 2;
         UI.addText(10, y++, `You move to assist ${friendlyType.name} forces.`, COLORS.TEXT_NORMAL);
         y++;
@@ -130,4 +134,10 @@ const FactionVsFactionEncounter = {
                 };
         }
     }
+};
+
+function getPluralFactionName(name) {
+    if (!name) return '';
+    if (name.endsWith('s')) return name;
+    return `${name}s`;
 };

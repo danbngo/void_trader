@@ -119,6 +119,7 @@ const EXP_POINTS_FROM_TRADING_1000CR = 5 //per 1000cr traded. apply this fractio
 const EXP_POINTS_FROM_SMUGGLING = 5 //if player had illegal cargo and police overlook it, award this
 
 const SCORE_PENALTY_PER_ALIEN_SYSTEM = 500
+const SCORE_PER_SYSTEM_RANK = 1000
 
 const FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER = 0.5
 const FACTION_V_FACTION_REWARD_CHANCE = 0.5

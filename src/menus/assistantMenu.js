@@ -128,7 +128,8 @@ const AssistantMenu = (() => {
         const hasJobsAtSystem = currentSystem.jobs && currentSystem.jobs.length > 0;
         const jobsSignature = gameState.getJobsBoardSignature(currentSystem);
         const lastSeenJobsSignature = gameState.jobsBoardSeenSignatures[currentSystem.index] || '';
-        const hasUnviewedJobs = hasJobsAtSystem && jobsSignature !== lastSeenJobsSignature;
+        const hasSeenJobsBoard = lastSeenJobsSignature !== '';
+        const hasUnviewedJobs = hasJobsAtSystem && hasSeenJobsBoard && jobsSignature !== lastSeenJobsSignature;
         const jobsHelpText = hasUnviewedJobs
             ? 'New jobs available at the tavern'
             : (hasActiveJob ? 'View active job details' : 'No active jobs');

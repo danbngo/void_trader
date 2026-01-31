@@ -63,7 +63,7 @@ class Ship {
         const cargoValue = this.cargoCapacity / AVERAGE_SHIP_CARGO;
         const hullValue = this.maxHull / AVERAGE_SHIP_HULL;
         const shieldValue = this.maxShields / AVERAGE_SHIP_SHIELDS;
-        const laserValue = this.lasers / AVERAGE_SHIP_LASERS;
+        const laserValue = this.lasers / AVERAGE_SHIP_LASER;
         const radarValue = this.radar / AVERAGE_SHIP_RADAR;
         
         const baseValue = (fuelValue + cargoValue + hullValue + shieldValue + laserValue + radarValue) / 6 * AVERAGE_SHIP_VALUE;

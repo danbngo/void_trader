@@ -109,6 +109,58 @@ const TitleMenu = (() => {
         // Draw everything
         UI.draw();
     }
+
+    function setupStartingFleet(gameState) {
+        const battleship = ShipGenerator.generateShipOfType('BATTLESHIP');
+        const scout = ShipGenerator.generateShipOfType('SCOUT');
+
+        battleship.modules = [];
+        scout.modules = [];
+
+        const modules = Array.isArray(SHIP_MODULES_ARRAY) ? SHIP_MODULES_ARRAY : [];
+        modules.forEach((module, index) => {
+            const targetShip = (index % 2 === 0) ? battleship : scout;
+            targetShip.modules.push(module.id);
+            if (module.onInstall) {
+                module.onInstall(targetShip);
+            }
+        });
+
+        [battleship, scout].forEach(ship => {
+            ship.hull = ship.maxHull;
+            ship.shields = ship.maxShields;
+            ship.fuel = ship.maxFuel;
+        });
+
+        const cargoTypes = Array.isArray(ALL_CARGO_TYPES)
+            ? ALL_CARGO_TYPES.filter(type => type && type.id)
+            : [];
+        [battleship, scout].forEach((ship, index) => {
+            if (cargoTypes.length === 0) return;
+            const first = cargoTypes[index % cargoTypes.length];
+            const second = cargoTypes[(index + 1) % cargoTypes.length];
+            if (ship.getAvailableCargoSpace() > 0 && first) {
+                ship.cargo[first.id] = (ship.cargo[first.id] || 0) + 1;
+            }
+            if (ship.getAvailableCargoSpace() > 0 && second && second.id !== first.id) {
+                ship.cargo[second.id] = (ship.cargo[second.id] || 0) + 1;
+            }
+        });
+
+        gameState.ships.push(battleship, scout);
+
+        const maxConsumables = gameState.getMaxConsumables();
+        if (maxConsumables > 0 && Array.isArray(CONSUMABLES_ARRAY) && CONSUMABLES_ARRAY.length > 0) {
+            const targetConsumables = Math.min(maxConsumables, gameState.ships.length * 2);
+            let added = 0;
+            let safety = 0;
+            while (added < targetConsumables && safety < 50) {
+                const item = CONSUMABLES_ARRAY[safety % CONSUMABLES_ARRAY.length];
+                added += gameState.addConsumable(item.id, 1);
+                safety++;
+            }
+        }
+    }
     
     /**
      * Start a new game
@@ -197,8 +249,7 @@ const TitleMenu = (() => {
             gameState.captain = playerOfficer
             
             // Generate player ships (no initial crew - will be hired at tavern)
-            gameState.ships.push(ShipGenerator.generateStartingShip());
-            //gameState.ships.push(ShipGenerator.generateStartingShip());
+            setupStartingFleet(gameState);
             
             // Record starting score for later comparison
             const startingScoreData = ScoreMenu.calculateScore(gameState);
@@ -298,19 +349,8 @@ const TitleMenu = (() => {
             playerOfficer.skillPoints = 0;
             gameState.captain = playerOfficer
             
-            // Generate player ships (debug: battleship with all modules)
-            const debugShip = ShipGenerator.generateShipOfType('BATTLESHIP');
-            debugShip.modules = [];
-            SHIP_MODULES_ARRAY.forEach(module => {
-                debugShip.modules.push(module.id);
-                if (module.onInstall) {
-                    module.onInstall(debugShip);
-                }
-            });
-            debugShip.hull = debugShip.maxHull;
-            debugShip.shields = debugShip.maxShields;
-            debugShip.fuel = debugShip.maxFuel;
-            gameState.ships.push(debugShip);
+            // Generate player ships (debug start)
+            setupStartingFleet(gameState);
             
             // === DEBUG MODE CHEATS ===
             // Give 1 million credits
@@ -345,6 +385,8 @@ const TitleMenu = (() => {
             if (gameState.perks.has('SHIP_MILITARY')) {
                 gameState.enabledShipTypes = [...gameState.enabledShipTypes, ...SHIP_TYPES_MILITARY];
             }
+
+            // Starter consumables handled in setupStartingFleet
             
             // Give elite status at every system
             gameState.systems.forEach((system, index) => {

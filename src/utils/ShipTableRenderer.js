@@ -12,12 +12,22 @@ const ShipTableRenderer = (() => {
      * @param {Array<Ship>} ships - Array of ships to display
      * @param {boolean} showCargo - Whether to show cargo column (default: true)
      * @param {number} activeShipIndex - Index of active ship to highlight (-1 for none)
+     * @param {Object} options - Optional settings
+     * @param {number} options.selectedRowIndex - Selected row index for highlight (-1 for none)
+     * @param {Function} options.onRowClick - Callback when a row is clicked
+     * @param {boolean} options.showMaxStats - Show max stats instead of current (uses current ratios for colors)
+     * @param {boolean} options.includeValue - Include ship value column
      * @returns {number} - Y position after the table
      */
-    function addPlayerFleet(x, y, label, ships, showCargo = true, activeShipIndex = -1) {
+    function addPlayerFleet(x, y, label, ships, showCargo = true, activeShipIndex = -1, options = {}) {
         if (!ships || ships.length === 0) {
             return y;
         }
+
+        const selectedRowIndex = Number.isInteger(options.selectedRowIndex) ? options.selectedRowIndex : activeShipIndex;
+        const onRowClick = typeof options.onRowClick === 'function' ? options.onRowClick : null;
+        const showMaxStats = options.showMaxStats === true;
+        const includeValue = options.includeValue === true;
         
         // Add label
         if (label) {
@@ -30,6 +40,11 @@ const ShipTableRenderer = (() => {
         if (showCargo) {
             headers.push('Fuel')
             headers.push('Cargo');
+            headers.push('Mods');
+            headers.push('Items');
+        }
+        if (includeValue) {
+            headers.push('Value');
         }
         
         // Build table rows
@@ -43,11 +58,16 @@ const ShipTableRenderer = (() => {
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             const fuelRatio = ship.maxFuel > 0 ? ship.fuel / ship.maxFuel : 0;
+
+            const hullText = showMaxStats ? `${ship.maxHull}` : `${ship.hull}/${ship.maxHull}`;
+            const shieldText = showMaxStats ? `${ship.maxShields}` : `${ship.shields}/${ship.maxShields}`;
+            const fuelText = showMaxStats ? `${Math.floor(ship.maxFuel)}` : `${Math.floor(ship.fuel)}/${ship.maxFuel}`;
+            const cargoText = showMaxStats ? `${ship.cargoCapacity}` : `${ship.getTotalCargo()}/${ship.cargoCapacity}`;
             
             const row = [
                 { text: shipType.name, color: nameColor },
-                { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
-                { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
+                { text: hullText, color: UI.calcStatColor(hullRatio, true) },
+                { text: shieldText, color: UI.calcStatColor(shieldRatio, true) },
                 { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
@@ -60,16 +80,25 @@ const ShipTableRenderer = (() => {
                 const cargoRatio = totalCargoCapacity > 0 
                     ? 1.0 + (currentCargo / totalCargoCapacity) * 3.0 
                     : 1.0;
+                const numModules = ship.modules ? ship.modules.length : 0;
+                const consumables = (window && window.gameState && window.gameState.consumables) ? window.gameState.consumables : {};
+                const itemsCount = Object.values(consumables).reduce((sum, count) => sum + (count || 0), 0);
                 
-                row.push({ text: `${Math.floor(ship.fuel)}/${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) });
-                row.push({ text: `${currentCargo}/${ship.cargoCapacity}`, color: UI.calcStatColor(cargoRatio) });
+                row.push({ text: fuelText, color: UI.calcStatColor(fuelRatio, true) });
+                row.push({ text: cargoText, color: UI.calcStatColor(cargoRatio) });
+                row.push({ text: String(numModules), color: COLORS.TEXT_NORMAL });
+                row.push({ text: String(itemsCount), color: COLORS.TEXT_NORMAL });
+            }
+
+            if (includeValue) {
+                row.push({ text: String(ship.getValue()), color: COLORS.TEXT_NORMAL });
             }
             
             return row;
         });
         
         // Render the table
-        const endY = TableRenderer.renderTable(x, y, headers, rows, -1, 2, null);
+        const endY = TableRenderer.renderTable(x, y, headers, rows, selectedRowIndex, 2, onRowClick);
         
         return endY + 1; // Add spacing after table
     }

@@ -4,6 +4,26 @@
  */
 
 const ShipInfoMenu = (() => {
+    let selectedShipIndex = 0;
+
+    function wrapText(text, maxWidth) {
+        if (!text) return [''];
+        const words = text.split(' ');
+        const lines = [];
+        let current = '';
+        words.forEach(word => {
+            const testLine = current ? `${current} ${word}` : word;
+            if (testLine.length > maxWidth) {
+                if (current) lines.push(current);
+                current = word;
+            } else {
+                current = testLine;
+            }
+        });
+        if (current) lines.push(current);
+        return lines.length ? lines : [''];
+    }
+
     /**
      * Show ship information
      * @param {Function} onReturn - Callback to return to previous screen
@@ -14,6 +34,17 @@ const ShipInfoMenu = (() => {
         
         const grid = UI.getGridSize();
         const gameState = window.gameState;
+        const ships = gameState.ships || [];
+        if (ships.length === 0) {
+            UI.addTitleLineCentered(0, 'Fleet Status');
+            UI.addTextCentered(5, 'No ships available', COLORS.TEXT_DIM);
+            UI.addCenteredButton(grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
+            UI.draw();
+            return;
+        }
+        if (selectedShipIndex >= ships.length) {
+            selectedShipIndex = 0;
+        }
         
         // Title
         UI.addTitleLineCentered(0, 'Fleet Status');
@@ -41,12 +72,69 @@ const ShipInfoMenu = (() => {
             { label: 'Fuel:', value: `${totalFuel} / ${maxFuel}`, valueColor: COLORS.TEXT_NORMAL }
         ]);
         y++;
+
+        // Player fleet table (selectable)
+        const tableEndY = ShipTableRenderer.addPlayerFleet(5, y, null, ships, true, -1, {
+            selectedRowIndex: selectedShipIndex,
+            onRowClick: (rowIndex) => {
+                selectedShipIndex = rowIndex;
+                show(onReturn);
+            }
+        });
+        y = tableEndY + 1;
+
+        // Selected ship info (below table)
+        const selectedShip = ships[selectedShipIndex];
+        const selectedShipType = SHIP_TYPES[selectedShip.type] || { name: 'Unknown' };
+        const moduleLines = (selectedShip.modules || [])
+            .map(moduleId => {
+                const module = SHIP_MODULES[moduleId];
+                if (!module) return moduleId;
+                return `${module.name}: ${module.description}`;
+            });
+        const consumableItems = Object.keys(gameState.consumables || {})
+            .filter(itemId => (gameState.consumables[itemId] || 0) > 0)
+            .map(itemId => {
+                const item = CONSUMABLES[itemId];
+                const name = item ? item.name : itemId;
+                return `${name} x${gameState.consumables[itemId]}`;
+            });
+
+        const maxWidth = grid.width - 10;
+        UI.addText(5, y++, 'Currently Selected Ship:', COLORS.CYAN);
+        UI.addText(5, y++, `${selectedShipType.name}`, COLORS.TEXT_NORMAL);
+
+        const moduleWrappedLines = moduleLines.length > 0
+            ? moduleLines.flatMap(line => wrapText(line, maxWidth))
+            : ['None'];
+        const moduleItems = moduleWrappedLines.map((line, index) => ({
+            label: index === 0 ? 'Modules:' : '',
+            value: line,
+            valueColor: COLORS.TEXT_DIM
+        }));
+        y = TableRenderer.renderKeyValueList(5, y, moduleItems);
+
+        const itemsText = consumableItems.length > 0 ? consumableItems.join(', ') : 'None';
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Items:', value: itemsText, valueColor: COLORS.TEXT_NORMAL }
+        ]);
+        y++;
         
-        // Use ship table utility (no active ship highlighting)
-        const endY = ShipTableRenderer.addPlayerFleet(5, y, null, gameState.ships, true, -1);
-        
+        // Prev/Next ship buttons (only if more than 1 ship)
+        const backY = grid.height - 4;
+        if (ships.length > 1) {
+            UI.addButton(5, backY - 2, '1', 'Next Ship', () => {
+                selectedShipIndex = (selectedShipIndex + 1) % ships.length;
+                show(onReturn);
+            }, COLORS.BUTTON, 'Select next ship in your fleet');
+            UI.addButton(5, backY - 1, '2', 'Previous Ship', () => {
+                selectedShipIndex = (selectedShipIndex - 1 + ships.length) % ships.length;
+                show(onReturn);
+            }, COLORS.BUTTON, 'Select previous ship in your fleet');
+        }
+
         // Back button
-        UI.addCenteredButton(grid.height - 4, '0', 'Back', onReturn, COLORS.BUTTON);
+        UI.addCenteredButton(backY, '0', 'Back', onReturn, COLORS.BUTTON);
         
         UI.draw();
     }

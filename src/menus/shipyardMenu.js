@@ -112,37 +112,15 @@ const ShipyardMenu = (() => {
         const currentSystem = gameState.getCurrentSystem();
         // Player ships table (* marks the active ship)
         const startY = 7;
-        const rows = gameState.ships.map((ship, index) => {
-            //const isActive = (index === gameState.activeShipIndex);
-            //const marker = isActive ? '*' : '';
-            const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
-            const fuelRatio = ship.fuel / ship.maxFuel;
-            const hullRatio = ship.hull / ship.maxHull;
-            const shieldRatio = ship.shields / ship.maxShields;
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
-            const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
-            const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
-            const numModules = ship.modules ? ship.modules.length : 0;
-            return [
-                //{ text: marker, color: COLORS.TEXT_NORMAL },
-                { text: shipType.name, color: COLORS.TEXT_NORMAL },
-                { text: `${ship.maxFuel}`, color: UI.calcStatColor(fuelRatio, true) },
-                { text: `${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
-                { text: `${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
-                { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
-                { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
-                { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
-                { text: String(ship.cargoCapacity), color: COLORS.TEXT_NORMAL },
-                { text: String(numModules), color: COLORS.TEXT_NORMAL },
-                { text: `${ship.getValue()}`, color: COLORS.TEXT_NORMAL }
-            ];
-        });
-        
-        TableRenderer.renderTable(5, startY, ['Type', 'Fuel', 'Hull', 'Shld', 'Lsr', 'Eng', 'Rdr', 'Cgo', 'Mod', 'Value'], rows, selectedShipIndex, 2, (rowIndex) => {
-            // When a row is clicked, select that ship
-            selectedShipIndex = rowIndex;
-            outputMessage = '';
-            render(onReturn);
+        ShipTableRenderer.addPlayerFleet(5, startY, null, gameState.ships, true, -1, {
+            selectedRowIndex: selectedShipIndex,
+            onRowClick: (rowIndex) => {
+                selectedShipIndex = rowIndex;
+                outputMessage = '';
+                render(onReturn);
+            },
+            showMaxStats: true,
+            includeValue: true
         });
         
         // Buttons

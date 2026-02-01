@@ -83,11 +83,13 @@ const SystemGenerator = (() => {
         const economy = economies[Math.floor(Math.random() * economies.length)];
         
         const system = new StarSystem(name, x, y, population, economy);
+        assignSystemBodies(system);
+        system.features = [SYSTEM_FEATURES.HABITED.id];
         
         // Generate fees (random value between min and max)
         system.fees = STAR_SYSTEM_MIN_FEES + Math.random() * (STAR_SYSTEM_MAX_FEES - STAR_SYSTEM_MIN_FEES);
         
-        // Generate market data for each cargo type (excludes RELICS)
+        // Generate market data for each cargo type (excludes ALIEN_ARTIFACTS)
         CARGO_TYPES_TRADEABLE.forEach(cargoType => {
             // Stock: random amount based on constants
             const stockRange = MAX_CARGO_AMOUNT_IN_MARKET - MIN_CARGO_AMOUNT_IN_MARKET + 1;
@@ -98,8 +100,8 @@ const SystemGenerator = (() => {
             system.cargoPriceModifier[cargoType.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
         });
         
-        // Also add RELICS even though they're not tradeable (for news system)
-        system.cargoPriceModifier[CARGO_TYPES.RELICS.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
+        // Also add ALIEN_ARTIFACTS even though they're not tradeable (for news system)
+        system.cargoPriceModifier[CARGO_TYPES.ALIEN_ARTIFACTS.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
         
         // Generate ships for shipyard
         const shipCount = Math.floor(Math.random() * (MAX_NUM_SHIPS_IN_SHIPYARD - MIN_NUM_SHIPS_IN_SHIPYARD + 1)) + MIN_NUM_SHIPS_IN_SHIPYARD;
@@ -149,6 +151,27 @@ const SystemGenerator = (() => {
         });
         
         return system;
+    }
+
+    function randomInt(min, max) {
+        return min + Math.floor(Math.random() * (max - min + 1));
+    }
+
+    function randomBodyEntry(bodyList) {
+        const bodyType = bodyList[Math.floor(Math.random() * bodyList.length)];
+        return bodyType ? { type: bodyType.id } : null;
+    }
+
+    function assignSystemBodies(system) {
+        const starCount = randomInt(MIN_SYSTEM_STARS, MAX_SYSTEM_STARS);
+        const planetCount = randomInt(MIN_SYSTEM_PLANETS, MAX_SYSTEM_PLANETS);
+        const beltCount = randomInt(MIN_SYSTEM_BELTS, MAX_SYSTEM_BELTS);
+        const moonCount = randomInt(MIN_SYSTEM_MOONS, MAX_SYSTEM_MOONS);
+
+        system.stars = Array.from({ length: starCount }, () => randomBodyEntry(STAR_BODY_TYPES)).filter(Boolean);
+        system.planets = Array.from({ length: planetCount }, () => randomBodyEntry(PLANETARY_BODY_TYPES)).filter(Boolean);
+        system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
+        system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);
     }
     
     /**
@@ -344,6 +367,31 @@ const SystemGenerator = (() => {
         terraSystem.name = 'Terra';
         usedNames.delete(oldName);
         usedNames.add('Terra');
+
+        terraSystem.stars = [{ type: BODY_TYPES.STAR_YELLOW_DWARF.id }];
+        terraSystem.planets = [
+            { type: BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id },
+            { type: BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id },
+            { type: BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id },
+            { type: BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id },
+            { type: BODY_TYPES.PLANET_ICE_GIANT.id },
+            { type: BODY_TYPES.PLANET_ICE_GIANT.id },
+            { type: BODY_TYPES.PLANET_ICE_DWARF.id },
+            { type: BODY_TYPES.PLANET_ICE_DWARF.id }
+        ];
+        terraSystem.belts = [
+            { type: BODY_TYPES.BELT_ASTEROID.id },
+            { type: BODY_TYPES.BELT_ICY.id }
+        ];
+        terraSystem.moons = [
+            { type: BODY_TYPES.MOON_ROCKY.id },
+            { type: BODY_TYPES.MOON_ROCKY.id },
+            { type: BODY_TYPES.MOON_ICE.id },
+            { type: BODY_TYPES.MOON_ICE.id },
+            { type: BODY_TYPES.MOON_VOLCANIC.id },
+            { type: BODY_TYPES.MOON_ROCKY.id }
+        ];
+        terraSystem.features = [SYSTEM_FEATURES.HABITED.id];
         
         // Set minimum fees
         terraSystem.fees = STAR_SYSTEM_MIN_FEES;

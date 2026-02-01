@@ -20,6 +20,15 @@ class StarSystem {
         
         // Buildings available in this system
         this.buildings = []; // Array of building IDs (e.g., 'MARKET', 'SHIPYARD', 'GUILD')
+
+        // Celestial bodies
+        this.stars = [];
+        this.planets = [];
+        this.moons = [];
+        this.belts = [];
+
+        // System features
+        this.features = [];
         
         // Market data
         this.cargoStock = {}; // Amount of each cargo type available

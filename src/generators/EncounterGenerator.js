@@ -68,10 +68,10 @@ const EncounterGenerator = (() => {
         let retryCount = 0;
         let cargo = {};
 
-        // Special handling for alien encounters - they only carry RELICS
+        // Special handling for alien encounters - they only carry ALIEN_ARTIFACTS
         if (encounterType.id === 'ALIEN_SKIRMISH' || encounterType.id === 'ALIEN_DEFENSE') {
             if (totalCargoAmount > 0) {
-                cargo['RELICS'] = totalCargoAmount;
+                cargo['ALIEN_ARTIFACTS'] = totalCargoAmount;
             }
         } else {
             const maxRetries = (encounterType.id === 'MERCHANT' || encounterType.id === 'ABANDONED_SHIP') ? 100 : 1;

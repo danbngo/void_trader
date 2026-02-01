@@ -122,7 +122,7 @@ const AlienLiberationBattle = (() => {
         news.endDescription = `${currentSystem.name} liberated by player forces!`;
         gameState.newsEvents.push(news);
         
-        UI.addText(10, y++, `You may now loot the alien wreckage for relics...`, COLORS.YELLOW);
+        UI.addText(10, y++, `You may now loot the alien wreckage for artifacts...`, COLORS.YELLOW);
         y++;
         
         const buttonY = grid.height - 3;

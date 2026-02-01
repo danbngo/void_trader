@@ -15,11 +15,11 @@ const MESSAGES_TERRA = {
             'gone unnoticed. These xeno vessels represent an existential',
             'threat to all of humanity.',
             '',
-            'Terra Command requires alien relics for analysis. We must',
+            'Terra Command requires alien artifacts for analysis. We must',
             'understand their technology if we are to mount an effective',
             'defense against future incursions.',
             '',
-            'Deliver 10 alien relics to Terra. You will be compensated',
+            'Deliver 10 alien artifacts to Terra. You will be compensated',
             'generously for your service. These artifacts can only be',
             'recovered from defeated alien vessels.',
             '',
@@ -31,7 +31,7 @@ const MESSAGES_TERRA = {
             '- Commander Voss, Terra Defense Bureau'
         ],
         (gameState) => {
-            const quest = QUESTS.DELIVER_RELICS_TO_TERRA;
+            const quest = QUESTS.DELIVER_ARTIFACTS_TO_TERRA;
             if (!gameState.activeQuests.includes(quest.id)) {
                 gameState.activeQuests.push(quest.id);
                 updateSystemsWithQuests(gameState);
@@ -44,13 +44,13 @@ const MESSAGES_TERRA = {
         }
     ),
 
-    RELICS_DELIVERED: new Message(
-        'RELICS_DELIVERED',
+    ARTIFACTS_DELIVERED: new Message(
+        'ARTIFACTS_DELIVERED',
         'Terra Defense Bureau - Payment Confirmed',
         [
             'Commander Voss here.',
             '',
-            'The relics have been received and our analysis teams are',
+            'The artifacts have been received and our analysis teams are',
             'already at work. What we\'re discovering... it\'s unprecedented.',
             '',
             'These alien vessels utilize technology far beyond our current',
@@ -74,7 +74,7 @@ const MESSAGES_TERRA = {
                 updateSystemsWithQuests(gameState);
             }
         },
-        'DELIVER_RELICS_TO_TERRA'
+        'DELIVER_ARTIFACTS_TO_TERRA'
     ),
 
     FIRST_PLANET_LIBERATED: new Message(

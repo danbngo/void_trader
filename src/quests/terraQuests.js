@@ -3,10 +3,10 @@
  */
 
 const QUESTS_TERRA = {
-    DELIVER_RELICS_TO_TERRA: new Quest(
-        'DELIVER_RELICS_TO_TERRA',
+    DELIVER_ARTIFACTS_TO_TERRA: new Quest(
+        'DELIVER_ARTIFACTS_TO_TERRA',
         'Alien Investigation',
-        'Deliver 10 Relics to Terra',
+        'Deliver 10 Alien Artifacts to Terra',
         50000,
         10000,
         (gameState) => {
@@ -16,25 +16,25 @@ const QUESTS_TERRA = {
             }
             let totalRelics = 0;
             for (const ship of gameState.ships) {
-                totalRelics += ship.cargo['RELICS'] || 0;
+                totalRelics += ship.cargo['ALIEN_ARTIFACTS'] || 0;
             }
             return totalRelics >= 10;
         },
-        'RELICS_DELIVERED',
+        'ARTIFACTS_DELIVERED',
         ['Terra'],
         (gameState) => {
             let totalRelics = 0;
             for (const ship of gameState.ships) {
-                totalRelics += ship.cargo['RELICS'] || 0;
+                totalRelics += ship.cargo['ALIEN_ARTIFACTS'] || 0;
             }
             return Math.min(1.0, totalRelics / 10);
         },
         (gameState) => {
             let totalRelics = 0;
             for (const ship of gameState.ships) {
-                totalRelics += ship.cargo['RELICS'] || 0;
+                totalRelics += ship.cargo['ALIEN_ARTIFACTS'] || 0;
             }
-            return `Relics: ${totalRelics}/10`;
+            return `Alien Artifacts: ${totalRelics}/10`;
         }
     ),
     

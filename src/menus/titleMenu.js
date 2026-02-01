@@ -110,7 +110,7 @@ const TitleMenu = (() => {
         UI.draw();
     }
 
-    function setupStartingFleet(gameState) {
+    function setupStartingFleet(gameState, options = {}) {
         const battleship = ShipGenerator.generateShipOfType('BATTLESHIP');
         const scout = ShipGenerator.generateShipOfType('SCOUT');
 
@@ -118,13 +118,43 @@ const TitleMenu = (() => {
         scout.modules = [];
 
         const modules = Array.isArray(SHIP_MODULES_ARRAY) ? SHIP_MODULES_ARRAY : [];
-        modules.forEach((module, index) => {
-            const targetShip = (index % 2 === 0) ? battleship : scout;
-            targetShip.modules.push(module.id);
-            if (module.onInstall) {
-                module.onInstall(targetShip);
-            }
+        const modulesBySlot = {};
+        modules.forEach(module => {
+            if (!module.slot) return;
+            if (!modulesBySlot[module.slot]) modulesBySlot[module.slot] = [];
+            modulesBySlot[module.slot].push(module);
         });
+
+        const installModuleOnShip = (ship, module) => {
+            if (!module) return false;
+            const hasSlot = ship.modules.some(id => {
+                const existing = SHIP_MODULES[id];
+                return existing && existing.slot === module.slot;
+            });
+            if (hasSlot) return false;
+            ship.modules.push(module.id);
+            if (module.onInstall) module.onInstall(ship);
+            return true;
+        };
+
+        if (options.debug) {
+            [battleship, scout].forEach(ship => {
+                SHIP_MODULE_SLOTS.forEach(slot => {
+                    const slotModules = modulesBySlot[slot] || [];
+                    if (slotModules.length === 0) return;
+                    const module = slotModules[Math.floor(Math.random() * slotModules.length)];
+                    installModuleOnShip(ship, module);
+                });
+            });
+        } else {
+            SHIP_MODULE_SLOTS.forEach((slot, index) => {
+                const slotModules = modulesBySlot[slot] || [];
+                if (slotModules.length === 0) return;
+                const module = slotModules[Math.floor(Math.random() * slotModules.length)];
+                const targetShip = (index % 2 === 0) ? battleship : scout;
+                installModuleOnShip(targetShip, module);
+            });
+        }
 
         [battleship, scout].forEach(ship => {
             ship.hull = ship.maxHull;
@@ -350,7 +380,7 @@ const TitleMenu = (() => {
             gameState.captain = playerOfficer
             
             // Generate player ships (debug start)
-            setupStartingFleet(gameState);
+            setupStartingFleet(gameState, { debug: true });
             
             // === DEBUG MODE CHEATS ===
             // Give 1 million credits

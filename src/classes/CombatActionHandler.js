@@ -278,7 +278,11 @@ class CombatActionHandler {
     tickRecharge() {
         this.tickCount++;
 
-        this.ship.rechargeFlashUntil = Date.now() + 200;
+        const now = Date.now();
+        if (!this.ship.rechargeFlashStart || now > this.ship.rechargeFlashUntil) {
+            this.ship.rechargeFlashStart = now;
+        }
+        this.ship.rechargeFlashUntil = this.ship.rechargeFlashStart + 2000;
 
         if (this.tickCount >= this.remainingTicks) {
             const missingShields = Math.max(0, this.ship.maxShields - this.ship.shields);

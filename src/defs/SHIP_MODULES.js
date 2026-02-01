@@ -8,6 +8,7 @@ const SHIP_MODULES = {
         id: 'ARMOR_PLATING',
         name: 'Armor Plating',
         description: '+5 max hull',
+        slot: SHIP_MODULE_SLOT.ARMOR,
         value: 5000,
         onInstall: (ship) => {
             ship.maxHull += 5;
@@ -19,6 +20,7 @@ const SHIP_MODULES = {
         id: 'HARDENED_SHIELDS',
         name: 'Hardened Shields',
         description: '+5 max shields',
+        slot: SHIP_MODULE_SLOT.ARMOR,
         value: 5000,
         onInstall: (ship) => {
             ship.maxShields += 5;
@@ -30,6 +32,7 @@ const SHIP_MODULES = {
         id: 'FUEL_TANK',
         name: 'Expanded Fuel Tank',
         description: '+5 max fuel',
+        slot: SHIP_MODULE_SLOT.ENGINE,
         value: 3000,
         onInstall: (ship) => {
             ship.maxFuel += 5;
@@ -41,6 +44,7 @@ const SHIP_MODULES = {
         id: 'LASER_UPGRADE',
         name: 'Laser Upgrade',
         description: '+5 laser level',
+        slot: SHIP_MODULE_SLOT.WEAPON,
         value: 6000,
         onInstall: (ship) => {
             ship.lasers += 5;
@@ -51,6 +55,7 @@ const SHIP_MODULES = {
         id: 'ENGINE_UPGRADE',
         name: 'Engine Upgrade',
         description: '+5 engine level',
+        slot: SHIP_MODULE_SLOT.ENGINE,
         value: 6000,
         onInstall: (ship) => {
             ship.engine += 5;
@@ -61,6 +66,7 @@ const SHIP_MODULES = {
         id: 'RADAR_UPGRADE',
         name: 'Radar Upgrade',
         description: '+5 radar level',
+        slot: SHIP_MODULE_SLOT.COMPUTER,
         value: 4000,
         onInstall: (ship) => {
             ship.radar += 5;
@@ -71,6 +77,7 @@ const SHIP_MODULES = {
         id: 'CARGO_EXPANSION',
         name: 'Cargo Expansion',
         description: '+5 cargo space',
+        slot: SHIP_MODULE_SLOT.CHASSIS,
         value: 4000,
         onInstall: (ship) => {
             ship.cargoCapacity += 5;
@@ -81,6 +88,7 @@ const SHIP_MODULES = {
         id: 'REFLECTOR',
         name: 'Reflector',
         description: '25% chance to reflect lasers',
+        slot: SHIP_MODULE_SLOT.ARMOR,
         value: 8000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -91,6 +99,7 @@ const SHIP_MODULES = {
         id: 'DISRUPTER',
         name: 'Disrupter',
         description: '25% chance to strip shields',
+        slot: SHIP_MODULE_SLOT.WEAPON,
         value: 7000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -101,6 +110,7 @@ const SHIP_MODULES = {
         id: 'DRILL',
         name: 'Drill',
         description: '2x ramming damage',
+        slot: SHIP_MODULE_SLOT.CHASSIS,
         value: 6000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -110,10 +120,11 @@ const SHIP_MODULES = {
     REGENERATIVE_HULL: {
         id: 'REGENERATIVE_HULL',
         name: 'Regenerative Hull',
-        description: '+1 hull per day travel',
+        description: '+1 hull per combat turn',
+        slot: SHIP_MODULE_SLOT.ARMOR,
         value: 10000,
         onInstall: (ship) => {
-            // Passive effect, handled in travel
+            // Passive effect, handled in combat
         }
     },
     
@@ -122,6 +133,7 @@ const SHIP_MODULES = {
         name: 'Tractor Beam',
         description: 'Pulls enemies on laser hit',
         alienTechnology: true,
+        slot: SHIP_MODULE_SLOT.WEAPON,
         value: 9000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -133,6 +145,7 @@ const SHIP_MODULES = {
         name: 'Repulsor',
         description: 'Pushes enemies on laser hit',
         alienTechnology: true,
+        slot: SHIP_MODULE_SLOT.WEAPON,
         value: 9000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -144,6 +157,7 @@ const SHIP_MODULES = {
         name: 'Blink',
         description: '25% chance to teleport when hit',
         alienTechnology: true,
+        slot: SHIP_MODULE_SLOT.COMPUTER,
         value: 12000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -154,6 +168,7 @@ const SHIP_MODULES = {
         id: 'SELF_DESTRUCT',
         name: 'Self Destruct',
         description: 'Damages nearby on death',
+        slot: SHIP_MODULE_SLOT.COMPUTER,
         value: 8000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -164,6 +179,7 @@ const SHIP_MODULES = {
         id: 'WARHEAD',
         name: 'Warhead',
         description: 'Splash damage on laser hit',
+        slot: SHIP_MODULE_SLOT.WEAPON,
         value: 11000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
@@ -174,6 +190,7 @@ const SHIP_MODULES = {
         id: 'SOLAR_COLLECTORS',
         name: 'Solar Collectors',
         description: 'Regain all fuel at destination',
+        slot: SHIP_MODULE_SLOT.ENGINE,
         value: 7000,
         onInstall: (ship) => {
             // Passive effect, handled in travel
@@ -184,6 +201,7 @@ const SHIP_MODULES = {
         id: 'ENHANCED_SCANNER',
         name: 'Enhanced Scanner',
         description: '-20% undetected enemy chance',
+        slot: SHIP_MODULE_SLOT.COMPUTER,
         value: 8000,
         onInstall: (ship) => {
             // Passive effect, handled in encounters
@@ -194,6 +212,7 @@ const SHIP_MODULES = {
         id: 'CLOAK',
         name: 'Cloak',
         description: '+20% undetected fleet chance',
+        slot: SHIP_MODULE_SLOT.COMPUTER,
         value: 10000,
         onInstall: (ship) => {
             // Passive effect, handled in encounters
@@ -205,6 +224,7 @@ const SHIP_MODULES = {
         name: 'Shield Recharger',
         description: '4x shield regen in combat',
         alienTechnology: true,
+        slot: SHIP_MODULE_SLOT.ENGINE,
         value: 9000,
         onInstall: (ship) => {
             // Passive effect, handled in combat

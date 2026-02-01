@@ -390,18 +390,8 @@ const TravelMenu = (() => {
             shipsAfter: currentGameState.ships.map(s => ({ type: s.type, fuel: s.fuel }))
         });
         
-        // Apply regenerative hull module effects during travel
         const daysElapsed = Math.ceil(totalDuration);
         currentGameState.ships.forEach(ship => {
-            if (ship.modules && ship.modules.includes('REGENERATIVE_HULL')) {
-                const hullToRestore = daysElapsed * MODULE_REGENERATIVE_HULL_PER_DAY;
-                const actualRestored = Math.min(hullToRestore, ship.maxHull - ship.hull);
-                if (actualRestored > 0) {
-                    ship.hull += actualRestored;
-                    console.log(`[TravelMenu] Regenerative Hull restored ${actualRestored} hull to ship`);
-                }
-            }
-            
             // Apply solar collectors module - regain all fuel at destination
             if (ship.modules && ship.modules.includes('SOLAR_COLLECTORS')) {
                 ship.fuel = ship.maxFuel;

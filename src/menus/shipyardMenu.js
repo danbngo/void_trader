@@ -43,6 +43,19 @@ const ShipyardMenu = (() => {
         if (gameState.perks && gameState.perks.has('ENGINEERING_I')) return 1;
         return 0;
     }
+
+    function getModuleSlot(moduleId) {
+        const module = SHIP_MODULES[moduleId];
+        return module ? module.slot : null;
+    }
+
+    function shipHasSlotModule(ship, slot) {
+        if (!slot || !ship || !ship.modules) return false;
+        return ship.modules.some(moduleId => {
+            const module = SHIP_MODULES[moduleId];
+            return module && module.slot === slot;
+        });
+    }
     
     /**
      * Get effective fees after barter skill (uses max from all crew)
@@ -735,15 +748,17 @@ const ShipyardMenu = (() => {
             const module = SHIP_MODULES[moduleId];
             const cost = Math.round(module.value * (1 + getEffectiveFees()));
             const canAfford = cost <= gameState.credits;
+            const slotLabel = module.slot || '—';
             
             return [
                 { text: module.name, color: canAfford ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM },
+                { text: slotLabel, color: COLORS.TEXT_DIM },
                 { text: module.description, color: COLORS.TEXT_NORMAL },
                 { text: `${cost} CR`, color: canAfford ? COLORS.GREEN : COLORS.TEXT_ERROR }
             ];
         });
         
-        TableRenderer.renderTable(5, startY, ['Module', 'Effect', 'Price'], rows, selectedModuleIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Module', 'Slot', 'Effect', 'Price'], rows, selectedModuleIndex, 2, (rowIndex) => {
             selectedModuleIndex = rowIndex;
             outputMessage = '';
             render(onReturn);
@@ -771,12 +786,14 @@ const ShipyardMenu = (() => {
     function renderSelectModuleShipMode(onReturn, grid) {
         UI.addText(5, 5, `Select ship to install ${selectedModule.name}:`, COLORS.YELLOW);
         const maxModulesAllowed = Math.min(SHIP_MAX_NUM_MODULES, getMaxModulesAllowed());
+        const selectedSlot = selectedModule.slot;
         
         const startY = 7;
         const rows = gameState.ships.map((ship, index) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
-            const canInstall = numInstalledModules < maxModulesAllowed;
+            const hasSlotModule = shipHasSlotModule(ship, selectedSlot);
+            const canInstall = numInstalledModules < maxModulesAllowed && !hasSlotModule;
             const statusText = canInstall ? `${numInstalledModules}/${maxModulesAllowed}` : 'FULL';
             const statusColor = canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR;
             
@@ -868,9 +885,17 @@ const ShipyardMenu = (() => {
         
         // Count non-default modules
         const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
+        const selectedSlot = selectedModule.slot;
         
         if (numInstalledModules >= maxModulesAllowed) {
             outputMessage = `Ship already has maximum modules (${maxModulesAllowed})!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onReturn);
+            return;
+        }
+
+        if (shipHasSlotModule(ship, selectedSlot)) {
+            outputMessage = `Ship already has a ${selectedSlot} module installed!`;
             outputColor = COLORS.TEXT_ERROR;
             render(onReturn);
             return;

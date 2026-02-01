@@ -714,7 +714,9 @@ const EncounterMenu = (() => {
                 if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (ship.rechargeFlashUntil && now < ship.rechargeFlashUntil) {
-                    color = COLORS.LIGHT_BLUE;
+                    const elapsed = now - (ship.rechargeFlashStart || now);
+                    const cycle = Math.floor(elapsed / 200) % 2;
+                    color = cycle === 0 ? COLORS.LIGHT_BLUE : COLORS.WHITE;
                 } else if (ship.acted) {
                     color = COLORS.TEXT_DIM; // Dimmed if already moved
                 } else if (ship === activeShip) {
@@ -821,7 +823,9 @@ const EncounterMenu = (() => {
                 if (shouldFlash) {
                     color = COLORS.ORANGE; // Flash orange when taking damage
                 } else if (ship.rechargeFlashUntil && now < ship.rechargeFlashUntil) {
-                    color = COLORS.LIGHT_BLUE;
+                    const elapsed = now - (ship.rechargeFlashStart || now);
+                    const cycle = Math.floor(elapsed / 200) % 2;
+                    color = cycle === 0 ? COLORS.LIGHT_BLUE : COLORS.WHITE;
                 } else if (index === targetIndex && isEnemyShip(ship)) {
                     // Yellow during player's turn, red during enemy's turn or when waiting
                     color = waitingForContinue ? COLORS.TEXT_ERROR : COLORS.YELLOW;
@@ -1944,6 +1948,16 @@ const EncounterMenu = (() => {
             // Get disabled enemy ships for looting
             const defeatedShips = enemyShips.filter(ship => ship.disabled);
             
+            // Determine faction conflict status before cleanup
+            const isFactionConflict = currentGameState.encounterContext
+                && currentGameState.encounterContext.type === 'FACTION_CONFLICT';
+            const friendlyShips = currentGameState.encounterContext && Array.isArray(currentGameState.encounterContext.friendlyShips)
+                ? currentGameState.encounterContext.friendlyShips
+                : [];
+            const friendlySurvivors = isFactionConflict
+                ? friendlyShips.some(ship => !ship.disabled && !ship.escaped)
+                : false;
+
             // Restore shields for all non-disabled, non-escaped player ships
             currentGameState.ships.forEach(ship => {
                 if (!ship.disabled && !ship.escaped) {
@@ -1980,6 +1994,7 @@ const EncounterMenu = (() => {
                 : encounterType;
 
             const contributionScale = getFactionContributionScale(currentGameState);
+            const playerDamage = currentGameState.encounterContext ? (currentGameState.encounterContext.playerDamage || 0) : 0;
 
             // Grant reputation for defeating aliens
             if (enemyEncounterType.id === 'ALIEN_SKIRMISH') {
@@ -2021,16 +2036,23 @@ const EncounterMenu = (() => {
             ExperienceUtils.getExperienceMessageComponents(currentGameState, victoryExp, 'Combat Victory');
             
             // Faction reward (if applicable)
-            const isFactionConflict = currentGameState.encounterContext
-                && currentGameState.encounterContext.type === 'FACTION_CONFLICT';
-
-            if (currentGameState.encounterContext && currentGameState.encounterContext.friendlyEncounterType) {
-                applyFactionReward(currentGameState);
+            if (isFactionConflict && currentGameState.encounterContext && currentGameState.encounterContext.friendlyEncounterType) {
+                if (!friendlySurvivors) {
+                    currentGameState.factionReward = null;
+                    currentGameState.factionRewardMessage = 'No allied ships survived to pay you.';
+                    currentGameState.factionRewardMessageColor = COLORS.TEXT_DIM;
+                } else if (playerDamage <= 0 || contributionScale <= 0) {
+                    currentGameState.factionReward = null;
+                    currentGameState.factionRewardMessage = 'You could have helped more.';
+                    currentGameState.factionRewardMessageColor = COLORS.TEXT_ERROR;
+                } else {
+                    applyFactionReward(currentGameState);
+                }
             }
 
             currentGameState.encounterContext = null;
 
-            const lootShips = isFactionConflict ? [] : defeatedShips;
+            const lootShips = isFactionConflict && friendlySurvivors ? [] : defeatedShips;
             const lootEncounterType = isFactionConflict
                 ? { maxCredits: 0 }
                 : enemyEncounterType;
@@ -2061,14 +2083,21 @@ const EncounterMenu = (() => {
 
     function applyFactionReward(gameState) {
         if (Math.random() >= FACTION_V_FACTION_REWARD_CHANCE) {
+            const friendlyType = gameState.encounterContext.friendlyEncounterType;
+            const friendlyName = friendlyType ? friendlyType.name : 'Allies';
             gameState.factionReward = null;
+            gameState.factionRewardMessage = `${friendlyName} thank you for the assist, but have nothing to spare.`;
+            gameState.factionRewardMessageColor = COLORS.TEXT_DIM;
             return;
         }
 
         const friendlyType = gameState.encounterContext.friendlyEncounterType;
         const contributionScale = getFactionContributionScale(gameState);
         if (contributionScale <= 0) {
+            const friendlyName = friendlyType ? friendlyType.name : 'Allies';
             gameState.factionReward = null;
+            gameState.factionRewardMessage = `${friendlyName} acknowledge your presence, but you did little to help.`;
+            gameState.factionRewardMessageColor = COLORS.TEXT_DIM;
             return;
         }
         const friendlyShips = Array.isArray(gameState.encounterContext.friendlyShips)
@@ -2117,6 +2146,9 @@ const EncounterMenu = (() => {
 
             if (rewardTotal > 0) {
                 gameState.factionReward = { type: 'loot', cargo: rewardCargo };
+                const friendlyName = friendlyType ? friendlyType.name : 'Allies';
+                gameState.factionRewardMessage = `${friendlyName} share captured cargo in thanks.`;
+                gameState.factionRewardMessageColor = COLORS.TEXT_NORMAL;
                 return;
             }
         }
@@ -2126,8 +2158,14 @@ const EncounterMenu = (() => {
         if (creditsReward > 0) {
             gameState.credits += creditsReward;
             gameState.factionReward = { type: 'credits', amount: creditsReward };
+            const friendlyName = friendlyType ? friendlyType.name : 'Allies';
+            gameState.factionRewardMessage = `${friendlyName} transfer credits for your aid.`;
+            gameState.factionRewardMessageColor = COLORS.TEXT_NORMAL;
         } else {
+            const friendlyName = friendlyType ? friendlyType.name : 'Allies';
             gameState.factionReward = null;
+            gameState.factionRewardMessage = `${friendlyName} thank you for the assist.`;
+            gameState.factionRewardMessageColor = COLORS.TEXT_DIM;
         }
     }
     
@@ -2183,6 +2221,12 @@ const EncounterMenu = (() => {
                 if (activeShip.shields < activeShip.maxShields) {
                     const actualRegen = Math.min(regenAmount, activeShip.maxShields - activeShip.shields);
                     activeShip.shields += actualRegen;
+                }
+            }
+
+            if (activeShip.modules && activeShip.modules.includes('REGENERATIVE_HULL')) {
+                if (activeShip.hull < activeShip.maxHull) {
+                    activeShip.hull = Math.min(activeShip.maxHull, activeShip.hull + 1);
                 }
             }
             
@@ -2246,7 +2290,8 @@ const EncounterMenu = (() => {
                         if (action.targetShip) {
                             triggerFlash(action.targetShip);
                         }
-                        outputMessage = `${activeShipType.name} fires laser and hits ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                        const hitMessage = buildHitMessage(activeShipType.name, targetShipType.name, action.damage, action.distance, action.moduleEffects);
+                        outputMessage = hitMessage.message;
                         outputColor = COLORS.GREEN;
                     } else {
                         outputMessage = `${activeShipType.name} fires laser but ${targetShipType.name} BLINKS away! (${Math.floor(action.distance)} AU)`;
@@ -2255,9 +2300,12 @@ const EncounterMenu = (() => {
                     
                     // Handle module effects
                     if (!blinkAvoided && action.moduleEffects) {
+                        const hitMessage = buildHitMessage(activeShipType.name, targetShipType.name, action.damage, action.distance, action.moduleEffects);
                         // DISRUPTER: Shields removed
                         if (action.moduleEffects.disrupterTriggered) {
-                            outputMessage += ` DISRUPTER removes shields!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` DISRUPTER removes shields!`;
+                            }
                         }
                         
                         // WARHEAD: Splash damage to nearby enemies
@@ -2276,12 +2324,16 @@ const EncounterMenu = (() => {
                                     triggerFlash(enemy);
                                 }
                             });
-                            outputMessage += ` WARHEAD splash damage!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` WARHEAD splash damage!`;
+                            }
                         }
                         
                         // BLINK: Target teleported
                         if (action.moduleEffects.blinkTriggered) {
-                            outputMessage += ` BLINK teleports away!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` BLINK teleports away!`;
+                            }
                         }
                         
                         // REFLECTOR: Laser bounced back
@@ -2298,7 +2350,9 @@ const EncounterMenu = (() => {
                                 activeShip.hull -= reflectDamage;
                             }
                             triggerFlash(activeShip);
-                            outputMessage += ` REFLECTOR bounces laser back for ${reflectDamage} damage!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` REFLECTOR bounces laser back for ${reflectDamage} damage!`;
+                            }
                         }
                         
                         // TRACTOR_BEAM: Pull target closer
@@ -2307,7 +2361,9 @@ const EncounterMenu = (() => {
                             const pullAngle = action.moduleEffects.tractorPull.angle;
                             action.targetShip.x += Math.cos(pullAngle) * pullDistance;
                             action.targetShip.y += Math.sin(pullAngle) * pullDistance;
-                            outputMessage += ` TRACTOR BEAM pulls target!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` TRACTOR BEAM pulls target!`;
+                            }
                         }
                         
                         // REPULSOR: Push target away
@@ -2316,7 +2372,9 @@ const EncounterMenu = (() => {
                             const pushAngle = action.moduleEffects.repulsorPush.angle + Math.PI; // Opposite direction
                             action.targetShip.x += Math.cos(pushAngle) * pushDistance;
                             action.targetShip.y += Math.sin(pushAngle) * pushDistance;
-                            outputMessage += ` REPULSOR pushes target!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` REPULSOR pushes target!`;
+                            }
                         }
                     }
                 } else {
@@ -2514,6 +2572,12 @@ const EncounterMenu = (() => {
                     action.ship.shields += actualRegen;
                 }
             }
+
+            if (action.ship.modules && action.ship.modules.includes('REGENERATIVE_HULL')) {
+                if (action.ship.hull < action.ship.maxHull) {
+                    action.ship.hull = Math.min(action.ship.maxHull, action.ship.hull + 1);
+                }
+            }
             
             // Set message based on action type
             if (action.actionType === COMBAT_ACTIONS.FIRE_LASER) {
@@ -2558,7 +2622,8 @@ const EncounterMenu = (() => {
                         if (action.targetShip) {
                             triggerFlash(action.targetShip);
                         }
-                        outputMessage = `${enemyShipType.name} hit ${targetShipType.name} for ${action.damage} damage! (${Math.floor(action.distance)} AU)`;
+                        const hitMessage = buildHitMessage(enemyShipType.name, targetShipType.name, action.damage, action.distance, action.moduleEffects);
+                        outputMessage = hitMessage.message;
                         outputColor = COLORS.TEXT_ERROR;
                     } else {
                         outputMessage = `${enemyShipType.name} fires laser but ${targetShipType.name} BLINKS away! (${Math.floor(action.distance)} AU)`;
@@ -2567,9 +2632,12 @@ const EncounterMenu = (() => {
                     
                     // Handle module effects
                     if (!blinkAvoided && action.moduleEffects) {
+                        const hitMessage = buildHitMessage(enemyShipType.name, targetShipType.name, action.damage, action.distance, action.moduleEffects);
                         // DISRUPTER: Shields removed
                         if (action.moduleEffects.disrupterTriggered) {
-                            outputMessage += ` DISRUPTER removes shields!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` DISRUPTER removes shields!`;
+                            }
                         }
                         
                         // WARHEAD: Splash damage to nearby enemies
@@ -2588,12 +2656,16 @@ const EncounterMenu = (() => {
                                     triggerFlash(playerShip);
                                 }
                             });
-                            outputMessage += ` WARHEAD splash damage!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` WARHEAD splash damage!`;
+                            }
                         }
                         
                         // BLINK: Target teleported
                         if (action.moduleEffects.blinkTriggered) {
-                            outputMessage += ` BLINK teleports away!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` BLINK teleports away!`;
+                            }
                         }
                         
                         // REFLECTOR: Laser bounced back
@@ -2610,7 +2682,9 @@ const EncounterMenu = (() => {
                                 action.ship.hull -= reflectDamage;
                             }
                             triggerFlash(action.ship);
-                            outputMessage += ` REFLECTOR bounces laser back for ${reflectDamage} damage!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` REFLECTOR bounces laser back for ${reflectDamage} damage!`;
+                            }
                         }
                         
                         // TRACTOR_BEAM: Pull target closer
@@ -2619,7 +2693,9 @@ const EncounterMenu = (() => {
                             const pullAngle = action.moduleEffects.tractorPull.angle;
                             action.targetShip.x += Math.cos(pullAngle) * pullDistance;
                             action.targetShip.y += Math.sin(pullAngle) * pullDistance;
-                            outputMessage += ` TRACTOR BEAM pulls target!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` TRACTOR BEAM pulls target!`;
+                            }
                         }
                         
                         // REPULSOR: Push target away
@@ -2628,7 +2704,9 @@ const EncounterMenu = (() => {
                             const pushAngle = action.moduleEffects.repulsorPush.angle + Math.PI; // Opposite direction
                             action.targetShip.x += Math.cos(pushAngle) * pushDistance;
                             action.targetShip.y += Math.sin(pushAngle) * pushDistance;
-                            outputMessage += ` REPULSOR pushes target!`;
+                            if (!hitMessage.skipModuleAppend) {
+                                outputMessage += ` REPULSOR pushes target!`;
+                            }
                         }
                     }
                 } else {

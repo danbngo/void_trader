@@ -69,6 +69,14 @@ const LootMenu = (() => {
         if (gameState.perks && gameState.perks.has('ENGINEERING_I')) return 1;
         return 0;
     }
+
+    function shipHasSlotModule(ship, slot) {
+        if (!slot || !ship || !ship.modules) return false;
+        return ship.modules.some(moduleId => {
+            const module = SHIP_MODULES[moduleId];
+            return module && module.slot === slot;
+        });
+    }
     
     /**
      * Render the loot screen
@@ -89,21 +97,29 @@ const LootMenu = (() => {
         
         // Title
         UI.addTitleLineCentered(0, 'Victory: Salvage Operations');
+
+        let y = 4;
+        if (gameState.factionRewardMessage) {
+            UI.addText(5, y++, gameState.factionRewardMessage, gameState.factionRewardMessageColor || COLORS.TEXT_NORMAL);
+            gameState.factionRewardMessage = null;
+            gameState.factionRewardMessageColor = null;
+            y++;
+        }
         
         // Credits awarded (only show if credits were actually found)
         if (creditReward > 0) {
-            UI.addText(5, 5, `Credits found: +${creditReward} CR`, COLORS.GREEN);
+            UI.addText(5, y++, `Credits found: +${creditReward} CR`, COLORS.GREEN);
         }
 
         if (gameState.factionReward) {
             if (gameState.factionReward.type === 'credits') {
-                UI.addText(5, 6, `Faction reward: +${gameState.factionReward.amount} CR`, COLORS.GREEN);
+                UI.addText(5, y++, `Faction reward: +${gameState.factionReward.amount} CR`, COLORS.GREEN);
             } else if (gameState.factionReward.type === 'loot') {
                 const rewardItems = Object.entries(gameState.factionReward.cargo)
                     .filter(([, amount]) => amount > 0)
                     .map(([cargoId, amount]) => `${amount} ${CARGO_TYPES[cargoId]?.name || cargoId}`);
                 if (rewardItems.length > 0) {
-                    UI.addText(5, 6, `Faction reward: ${rewardItems.join(', ')}`, COLORS.GREEN);
+                    UI.addText(5, y++, `Faction reward: ${rewardItems.join(', ')}`, COLORS.GREEN);
                 }
             }
             gameState.factionReward = null;
@@ -113,13 +129,13 @@ const LootMenu = (() => {
         const fleetCargo = Ship.getFleetCargo(gameState.ships);
         const totalPlayerCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
         const totalPlayerCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
-        UI.addText(5, 7, `Your Cargo: ${totalPlayerCargo} / ${totalPlayerCapacity}`, COLORS.TEXT_NORMAL);
+        UI.addText(5, y++, `Your Cargo: ${totalPlayerCargo} / ${totalPlayerCapacity}`, COLORS.TEXT_NORMAL);
         
         // Check if there's any loot
         const hasLoot = Object.keys(lootCargo).length > 0;
         
         if (!hasLoot) {
-            UI.addText(5, 9, 'No cargo found on enemy ships.', COLORS.TEXT_DIM);
+            UI.addText(5, y + 1, 'No cargo found on enemy ships.', COLORS.TEXT_DIM);
             
             const buttonY = grid.height - 4;
             UI.addButton(5, buttonY, '0', 'Continue Journey', onContinue, COLORS.GREEN);
@@ -133,7 +149,7 @@ const LootMenu = (() => {
         }
         
         // Loot table - show all cargo types (disable selection for untrained)
-        const startY = 10;
+        const startY = y + 2;
         const rows = ALL_CARGO_TYPES.map((cargoType) => {
             const lootQuantity = lootCargo[cargoType.id] || 0;
             const playerQuantity = fleetCargo[cargoType.id] || 0;
@@ -232,8 +248,10 @@ const LootMenu = (() => {
         const startY = 6;
         const rows = pendingModules.map((moduleId) => {
             const module = SHIP_MODULES[moduleId];
+            const slotLabel = module.slot || '—';
             return [
                 { text: module.name, color: COLORS.TEXT_NORMAL },
+                { text: slotLabel, color: COLORS.TEXT_DIM },
                 { text: module.description, color: COLORS.TEXT_DIM }
             ];
         });
@@ -243,7 +261,7 @@ const LootMenu = (() => {
             selectedModuleIndex = Math.max(0, rows.length - 1);
         }
 
-        TableRenderer.renderTable(5, startY, ['Module', 'Effect'], rows, selectedModuleIndex, 2, (rowIndex) => {
+        TableRenderer.renderTable(5, startY, ['Module', 'Slot', 'Effect'], rows, selectedModuleIndex, 2, (rowIndex) => {
             selectedModuleIndex = rowIndex;
             outputMessage = '';
             render(onContinue);
@@ -286,7 +304,9 @@ const LootMenu = (() => {
         const rows = gameState.ships.map((ship) => {
             const shipType = SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const numInstalledModules = ship.modules ? ship.modules.filter(m => m !== ship.defaultModule).length : 0;
-            const canInstall = numInstalledModules < maxModulesAllowed;
+            const selectedSlot = selectedModule.slot;
+            const hasSlotModule = shipHasSlotModule(ship, selectedSlot);
+            const canInstall = numInstalledModules < maxModulesAllowed && !hasSlotModule;
             const statusText = canInstall ? `${numInstalledModules}/${maxModulesAllowed}` : 'FULL';
             const statusColor = canInstall ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR;
 
@@ -351,6 +371,14 @@ const LootMenu = (() => {
  
         if (numInstalledModules >= maxModulesAllowed) {
             outputMessage = `Ship already has maximum modules (${maxModulesAllowed})!`;
+            outputColor = COLORS.TEXT_ERROR;
+            render(onContinue);
+            return;
+        }
+
+        const selectedSlot = selectedModule.slot;
+        if (shipHasSlotModule(ship, selectedSlot)) {
+            outputMessage = `Ship already has a ${selectedSlot} module installed!`;
             outputColor = COLORS.TEXT_ERROR;
             render(onContinue);
             return;

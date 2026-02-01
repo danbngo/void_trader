@@ -138,6 +138,7 @@ const FactionVsFactionEncounter = {
 
 function getPluralFactionName(name) {
     if (!name) return '';
+    if (name === 'Police') return 'Police';
     if (name.endsWith('s')) return name;
     return `${name}s`;
 };

@@ -97,7 +97,20 @@ const UndetectedEncounter = {
         y++;
         
         // Show detected encounter ships
-        y = ShipTableRenderer.addNPCFleet(10, y, `Detected ${encType.name}:`, gameState.encounterShips);
+        if (encType.leftFactionId && encType.rightFactionId) {
+            const leftType = ENCOUNTER_TYPES[encType.leftFactionId];
+            const rightType = ENCOUNTER_TYPES[encType.rightFactionId];
+            const leftLabel = getPluralFactionName(leftType ? leftType.name : encType.leftFactionId);
+            const rightLabel = getPluralFactionName(rightType ? rightType.name : encType.rightFactionId);
+            const leftShips = gameState.encounterShips.filter(ship => ship.faction === encType.leftFactionId);
+            const rightShips = gameState.encounterShips.filter(ship => ship.faction === encType.rightFactionId);
+
+            y = ShipTableRenderer.addNPCFleet(10, y, `${leftLabel} Ships:`, leftShips);
+            y++;
+            y = ShipTableRenderer.addNPCFleet(10, y, `${rightLabel} Ships:`, rightShips);
+        } else {
+            y = ShipTableRenderer.addNPCFleet(10, y, `Detected ${encType.name}:`, gameState.encounterShips);
+        }
         
         const buttonY = grid.height - 4;
         const approachHelpText = encType.name === 'Police' 
@@ -138,3 +151,10 @@ const UndetectedEncounter = {
         UI.draw();
     }
 };
+
+function getPluralFactionName(name) {
+    if (!name) return '';
+    if (name === 'Police') return 'Police';
+    if (name.endsWith('s')) return name;
+    return `${name}s`;
+}

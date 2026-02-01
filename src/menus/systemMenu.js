@@ -335,11 +335,14 @@ const DockMenu = (() => {
                 buildingType: BUILDING_TYPES.GUILD,
                 openMenu: () => GuildMenu.show(gameState, () => show(gameState))
             }
-        ];
+        ].filter(building => building.id !== 'BLACK_MARKET' || currentSystem.name === 'Blackreach');
         
         // Add building buttons in 3 columns (3 per column)
         allBuildings.forEach((building, index) => {
-            const hasBuilding = currentSystem.buildings.includes(building.id);
+            let hasBuilding = currentSystem.buildings.includes(building.id);
+            if (building.id === 'BLACK_MARKET') {
+                hasBuilding = hasBuilding && currentSystem.name === 'Blackreach';
+            }
             const hasRank = currentRank.level >= building.buildingType.minRankLevel;
             let isAccessible = hasBuilding && hasRank;
             

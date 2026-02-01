@@ -518,11 +518,16 @@ const EncounterMenu = (() => {
         }
 
         const activeEffect = gameState.activeCombatEffect;
-        const effectText = activeEffect
-            ? `Effect: ${activeEffect.name} (${activeEffect.remainingTurns} turns)`
-            : 'Effect: None';
-        const effectColor = activeEffect ? COLORS.YELLOW : COLORS.TEXT_DIM;
-        UI.addText(2, 1, effectText, effectColor);
+        if (activeEffect) {
+            const effectDef = CONSUMABLES[activeEffect.id];
+            const description = effectDef ? effectDef.description : '';
+            const rawText = description
+                ? `${activeEffect.name} (${activeEffect.remainingTurns} turns) - ${description}`
+                : `${activeEffect.name} (${activeEffect.remainingTurns} turns)`;
+            const maxWidth = mapWidth - 4;
+            const effectText = rawText.length > maxWidth ? rawText.substring(0, maxWidth) : rawText;
+            UI.addText(2, mapHeight - 1, effectText, COLORS.YELLOW);
+        }
         
         // Get active player ship (first non-fled, non-disabled, non-escaped, non-acted)
         // But only if not waiting for player to press Continue
@@ -2365,6 +2370,7 @@ const EncounterMenu = (() => {
             // Center camera on new active ship
             cameraOffsetX = nextShip.x;
             cameraOffsetY = nextShip.y;
+            findNextValidTarget();
             render(); // Render with new active ship
             return true;
         }

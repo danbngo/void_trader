@@ -227,6 +227,7 @@ const TradeRecommendationsMenu = (() => {
         // Check all systems
         for (let i = 0; i < currentGameState.systems.length; i++) {
             const system = currentGameState.systems[i];
+            if (!SystemUtils.isHabitedSystem(system)) continue;
             
             // Skip conquered systems
             if (system.conqueredByAliens) continue;
@@ -352,6 +353,7 @@ const TradeRecommendationsMenu = (() => {
             // Check all VISITED reachable systems for best sell price
             for (let i = 0; i < currentGameState.systems.length; i++) {
                 if (i === currentSystemIndex) continue; // Skip current system
+                if (!SystemUtils.isHabitedSystem(currentGameState.systems[i])) continue;
                 
                 // Only consider visited systems
                 if (!currentGameState.visitedSystems.includes(i)) continue;

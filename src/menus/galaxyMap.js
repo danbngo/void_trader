@@ -121,7 +121,9 @@ const GalaxyMap = (() => {
                 const systemIndex = gameState.systems.indexOf(item.system);
                 const isVisited = gameState.visitedSystems.includes(systemIndex);
                 const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
-                const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y, navigationLevel);
+                const requiredFuel = SystemUtils.getRequiredFuelCost(gameState, currentSystem, item.system, navigationLevel);
+                const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+                const canReach = totalFuel >= requiredFuel;
                 const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
                 const isJobTarget = gameState.currentJob && gameState.currentJob.targetSystem === item.system;
                 const hasQuestOrJob = hasQuest || isJobTarget;
@@ -251,8 +253,9 @@ const GalaxyMap = (() => {
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
             const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
-            const fuelCost = Ship.calculateFleetFuelCost(selected.distance, gameState.ships.length, navigationLevel);
-            const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, selected.system.x, selected.system.y, navigationLevel);
+            const fuelCost = SystemUtils.getRequiredFuelCost(gameState, currentSystem, selected.system, navigationLevel);
+            const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
+            const canReach = totalFuel >= fuelCost;
             
             y = UI.addHeaderLine(startX, y, 'Target System');
             y++; // Empty row
@@ -398,9 +401,10 @@ const GalaxyMap = (() => {
             if (i === gameState.currentSystemIndex) continue;
             
             const targetSystem = gameState.systems[i];
+            if (!SystemUtils.isHabitedSystem(targetSystem)) continue;
             const distance = currentSystem.distanceTo(targetSystem);
             const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
-            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
+            const fuelCost = SystemUtils.getRequiredFuelCost(gameState, currentSystem, targetSystem, navigationLevel);
             const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
             
             // Only consider reachable systems
@@ -557,9 +561,11 @@ const GalaxyMap = (() => {
             const currentSystem = gameState.getCurrentSystem();
             const distance = currentSystem.distanceTo(targetSystem);
             const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
-            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
+            const fuelCost = SystemUtils.getRequiredFuelCost(gameState, currentSystem, targetSystem, navigationLevel);
             const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
-            
+            if (!SystemUtils.isHabitedSystem(targetSystem)) {
+                travelHelpText = 'Uninhabited system: must have fuel for return journey';
+            }
             canTravel = totalFuel >= fuelCost;
             if (!canTravel) {
                 travelHelpText = `Insufficient fuel (need ${fuelCost}, have ${totalFuel})`;
@@ -584,7 +590,7 @@ const GalaxyMap = (() => {
                 const currentSystem = gameState.getCurrentSystem();
                 const distance = currentSystem.distanceTo(targetSystem);
                 const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
-                const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
+                const fuelCost = SystemUtils.getRequiredFuelCost(gameState, currentSystem, targetSystem, navigationLevel);
                 const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
                 
                 if (totalFuel < fuelCost) {
@@ -609,7 +615,16 @@ const GalaxyMap = (() => {
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
         
         // Third column: Dock
-        UI.addButton(rightX, buttonY, '0', 'Dock', () => DockMenu.show(gameState), COLORS.BUTTON, 'Return to the docking menu');
+        const currentIsHabited = SystemUtils.isHabitedSystem(gameState.getCurrentSystem());
+        const dockLabel = currentIsHabited ? 'Dock' : 'Survey';
+        const dockHelp = currentIsHabited ? 'Return to the docking menu' : 'Return to the system survey menu';
+        UI.addButton(rightX, buttonY, '0', dockLabel, () => {
+            if (currentIsHabited) {
+                DockMenu.show(gameState);
+            } else {
+                UninhabitedSystemMenu.show(gameState, () => show(gameState));
+            }
+        }, COLORS.BUTTON, dockHelp);
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {

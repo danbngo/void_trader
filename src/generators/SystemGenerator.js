@@ -261,7 +261,8 @@ const SystemGenerator = (() => {
                 priceModifier = lerp(MAX_CARGO_PRICE_MODIFIER, 1 / MAX_CARGO_PRICE_MODIFIER, abundance);
             }
 
-            system.cargoStock[cargoType.id] = clamp(stock, 0, MAX_CARGO_AMOUNT_IN_MARKET);
+            const finalStock = isHabitedSystem(system) ? stock : 0;
+            system.cargoStock[cargoType.id] = clamp(finalStock, 0, MAX_CARGO_AMOUNT_IN_MARKET);
             system.cargoPriceModifier[cargoType.id] = clamp(priceModifier, 1 / MAX_CARGO_PRICE_MODIFIER, MAX_CARGO_PRICE_MODIFIER);
         });
 
@@ -300,6 +301,55 @@ const SystemGenerator = (() => {
         // Ensure ALIEN_ARTIFACTS exists but remains untradeable
         system.cargoStock[CARGO_TYPES.ALIEN_ARTIFACTS.id] = 0;
         system.cargoPriceModifier[CARGO_TYPES.ALIEN_ARTIFACTS.id] = 1.0;
+    }
+
+    function isHabitedSystem(system) {
+        return Array.isArray(system.features) && system.features.includes(SYSTEM_FEATURES.HABITED.id);
+    }
+
+    function generateUninhabitedSystems(habitedSystems, count) {
+        const uninhabited = [];
+        let attempts = 0;
+        while (uninhabited.length < count && attempts < count * 50) {
+            attempts++;
+            const anchor = habitedSystems[Math.floor(Math.random() * habitedSystems.length)];
+            const distanceFromHabited = randomInt(UNINHABITED_SYSTEM_MIN_DISTANCE_FROM_HABITED, UNINHABITED_SYSTEM_MAX_DISTANCE_FROM_HABITED);
+            const angle = Math.random() * Math.PI * 2;
+            const x = Math.round(anchor.x + Math.cos(angle) * distanceFromHabited);
+            const y = Math.round(anchor.y + Math.sin(angle) * distanceFromHabited);
+
+            let nearestHabitedDistance = Infinity;
+            const tooCloseToHabited = habitedSystems.some(system => {
+                const dist = distance(x, y, system.x, system.y);
+                nearestHabitedDistance = Math.min(nearestHabitedDistance, dist);
+                return dist < UNINHABITED_SYSTEM_MIN_DISTANCE_FROM_HABITED;
+            });
+            if (tooCloseToHabited) continue;
+            if (nearestHabitedDistance > UNINHABITED_SYSTEM_MAX_DISTANCE_FROM_HABITED) continue;
+
+            const tooCloseToUninhabited = uninhabited.some(system => {
+                const dist = distance(x, y, system.x, system.y);
+                return dist < STAR_SYSTEM_MIN_DISTANCE_FROM_NEIGHBORS;
+            });
+            if (tooCloseToUninhabited) continue;
+
+            const name = generateName();
+            const system = new StarSystem(name, x, y, 0);
+            system.features = [];
+            system.fees = 0;
+            system.buildings = [];
+            assignSystemBodies(system);
+            assignSystemLevels(system);
+            system.governmentType = null;
+            generateMarketFromBodies(system);
+            system.ships = [];
+            system.modules = [];
+            system.officers = [];
+            system.jobs = [];
+
+            uninhabited.push(system);
+        }
+        return uninhabited;
     }
     
     /**
@@ -365,6 +415,10 @@ const SystemGenerator = (() => {
             const nearestDistance = findNearestNeighborDistance(system, systems);
             return nearestDistance <= STAR_SYSTEM_MAX_DISTANCE_FROM_NEIGHBORS;
         });
+
+        const uninhabitedCount = randomInt(UNINHABITED_SYSTEMS_MIN_NUM, UNINHABITED_SYSTEMS_MAX_NUM);
+        const uninhabitedSystems = generateUninhabitedSystems(connectedSystems, uninhabitedCount);
+        connectedSystems.push(...uninhabitedSystems);
         
         // Assign index to each system
         connectedSystems.forEach((system, index) => {
@@ -396,7 +450,7 @@ const SystemGenerator = (() => {
             // Check all other systems
             for (let i = 0; i < systems.length; i++) {
                 if (visited.has(i)) continue;
-                
+                if (i !== targetIndex && !isHabitedSystem(systems[i])) continue;
                 const otherSystem = systems[i];
                 const dist = distance(currentSystem.x, currentSystem.y, otherSystem.x, otherSystem.y);
                 
@@ -778,6 +832,7 @@ const SystemGenerator = (() => {
      */
     function generateJobsForAllSystems(systems) {
         systems.forEach((system, systemIndex) => {
+            if (!isHabitedSystem(system)) return;
             const jobCount = Math.floor(Math.random() * (TAVERN_MAX_NUM_JOBS - TAVERN_MIN_NUM_JOBS + 1)) + TAVERN_MIN_NUM_JOBS;
             
             for (let i = 0; i < jobCount; i++) {
@@ -789,6 +844,7 @@ const SystemGenerator = (() => {
                 const maxDistance = jobType.maxJumps * 10;
                 
                 const validTargets = systems.filter((target, targetIndex) => {
+                    if (!isHabitedSystem(target)) return false;
                     if (targetIndex === systemIndex) return false; // Don't target self
                     const dist = system.distanceTo(target);
                     return dist >= minDistance && dist <= maxDistance;
@@ -849,12 +905,13 @@ const SystemGenerator = (() => {
     function generateInitialNews(systems, currentYear, startingSystemIndex) {
         const newsEvents = [];
         const nexusSystem = systems[startingSystemIndex];
+        const habitedSystems = systems.filter(system => isHabitedSystem(system));
         let nexusHasNews = false;
         
         for (let i = 0; i < NEWS_NUM_ON_START; i++) {
             // For first news event, always use Nexus as origin
             // For remaining events, pick random systems
-            const originSystem = (i === 0) ? nexusSystem : systems[Math.floor(Math.random() * systems.length)];
+            const originSystem = (i === 0) ? nexusSystem : habitedSystems[Math.floor(Math.random() * habitedSystems.length)];
             
             // Check if this system already has a news event
             const hasActiveNews = newsEvents.some(n => 
@@ -873,7 +930,7 @@ const SystemGenerator = (() => {
             // Pick a different random system as target
             let targetSystem;
             do {
-                targetSystem = systems[Math.floor(Math.random() * systems.length)];
+                targetSystem = habitedSystems[Math.floor(Math.random() * habitedSystems.length)];
             } while (targetSystem === originSystem);
             
             // Random duration within the news type's range

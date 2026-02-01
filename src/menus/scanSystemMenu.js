@@ -24,11 +24,29 @@ const ScanSystemMenu = (() => {
         y = UI.addHeaderLine(5, y, 'Overview');
         const flavorText = getFlavorText(system);
         const isVisited = gameState.visitedSystems.includes(gameState.systems.indexOf(system));
+        const starsCount = (system.stars || []).length;
+        const planetsCount = (system.planets || []).length;
+        const moonsCount = (system.moons || []).length;
+        const beltsCount = (system.belts || []).length;
+
+        const cultureName = SYSTEM_CULTURE_LEVELS_ALL.find(l => l.id === system.cultureLevel)?.name || 'Unknown';
+        const techName = SYSTEM_TECHNOLOGY_LEVELS_ALL.find(l => l.id === system.technologyLevel)?.name || 'Unknown';
+        const industryName = SYSTEM_INDUSTRY_LEVELS_ALL.find(l => l.id === system.industryLevel)?.name || 'Unknown';
+        const popLevelName = SYSTEM_POPULATION_LEVELS_ALL.find(l => l.id === system.populationLevel)?.name || 'Unknown';
+
         const overviewData = [
             { label: 'System Name:', value: system.name, valueColor: COLORS.CYAN },
             { label: 'Coordinates:', value: `(${system.x}, ${system.y})`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Population:', value: `${system.population} million`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[system.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[system.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Culture:', value: cultureName, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Technology:', value: techName, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Industry:', value: industryName, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Pop Level:', value: popLevelName, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Stars:', value: String(starsCount), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Planets:', value: String(planetsCount), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Moons:', value: String(moonsCount), valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Belts:', value: String(beltsCount), valueColor: COLORS.TEXT_NORMAL }
         ];
         
         // Add conquest status if conquered

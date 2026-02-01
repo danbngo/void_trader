@@ -421,8 +421,11 @@ const TravelMenu = (() => {
             ship.shields = ship.maxShields;
         });
         
-        // Go to dock menu at destination
-        DockMenu.show(currentGameState);
+        if (SystemUtils.isHabitedSystem(targetSystem)) {
+            DockMenu.show(currentGameState);
+        } else {
+            UninhabitedSystemMenu.show(currentGameState, () => GalaxyMap.show(currentGameState));
+        }
     }
     
     /**

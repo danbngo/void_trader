@@ -20,7 +20,7 @@ const TravelConfirmMenu = (() => {
         // Calculate journey details
         const distance = currentSystem.distanceTo(targetSystem);
         const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
-        const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
+        const fuelCost = SystemUtils.getRequiredFuelCost(gameState, currentSystem, targetSystem, navigationLevel);
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
         const fuelAfter = totalFuel - fuelCost;
         const pilotingLevel = getMaxCrewSkill(gameState, 'piloting');
@@ -104,11 +104,13 @@ const TravelConfirmMenu = (() => {
         
         // Left column: Journey details
         let leftY = UI.addHeaderLine(leftColumnX, startY, 'Journey Details');
+        const isTargetHabited = SystemUtils.isHabitedSystem(targetSystem);
+        const fuelLabel = isTargetHabited ? 'Fuel Cost:' : 'Fuel Required:';
         leftY = TableRenderer.renderKeyValueList(leftColumnX, leftY, [
             { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Distance:', value: `${distance.toFixed(1)} LY`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Fuel Cost:', value: `${fuelCost} / ${totalFuel}`, valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
+            { label: fuelLabel, value: `${fuelCost} / ${totalFuel}`, valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Fuel After:', value: String(fuelAfter), valueColor: fuelAfter >= 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_ERROR },
             { label: 'Duration:', value: `${durationDays.toFixed(1)} days`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Current Date:', value: formatDate(gameState.date), valueColor: COLORS.TEXT_NORMAL },
@@ -170,6 +172,13 @@ const TravelConfirmMenu = (() => {
             currentWarningY++;
         }
         
+        // Uninhabited system note
+        if (!isTargetHabited) {
+            const centerX = 5;
+            UI.addText(centerX, currentWarningY++, 'Uninhabited system: must have fuel for return journey.', COLORS.YELLOW);
+            currentWarningY++;
+        }
+
         // Insufficient fuel warning
         if (fuelAfter < 0) {
             const centerX = 5;

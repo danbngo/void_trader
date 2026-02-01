@@ -217,7 +217,11 @@ const SaveLoadManager = (() => {
             system.planets = s.planets || [];
             system.moons = s.moons || [];
             system.belts = s.belts || [];
-            system.features = s.features || [];
+            if (s.features) {
+                system.features = s.features;
+            } else {
+                system.features = [SYSTEM_FEATURES.HABITED.id];
+            }
             system.cargoStock = s.cargoStock || {};
             system.cargoPriceModifier = s.cargoPriceModifier || {};
             

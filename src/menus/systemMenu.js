@@ -15,6 +15,10 @@ const DockMenu = (() => {
      * @param {GameState} gameState - Current game state
      */
     function show(gameState) {
+        if (!SystemUtils.isHabitedSystem(gameState.getCurrentSystem())) {
+            UninhabitedSystemMenu.show(gameState, () => GalaxyMap.show(gameState));
+            return;
+        }
         // If we changed systems, reset the news arrays
         if (gameState.currentSystemIndex !== lastSystemIndex) {
             currentNewNews = [];

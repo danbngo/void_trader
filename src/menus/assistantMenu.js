@@ -110,13 +110,13 @@ const AssistantMenu = (() => {
         const crewColor = hasCrew ? COLORS.BUTTON : COLORS.TEXT_DIM;
         UI.addButton(leftX, buttonY + 2, '3', 'Crew', () => tryOpenCrew(gameState, onReturn), crewColor, crewHelpText);
         
-        // Column 2: Captain Info, Quests, Messages, Trade Recs
         const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
         const shouldHighlightCaptainInfo = hasSkillPoints && gameState.captainInfoSeenAtLevel !== gameState.captain.level;
         const captainInfoColor = shouldHighlightCaptainInfo ? COLORS.YELLOW : COLORS.BUTTON;
         const captainInfoHelp = hasSkillPoints ? 'Skill points available! View captain info and skills' : 'View captain info, skills, and perks';
-        UI.addButton(middleX, buttonY, '4', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), captainInfoColor, captainInfoHelp);
-        
+        UI.addButton(leftX, buttonY + 3, '4', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), captainInfoColor, captainInfoHelp);
+
+        // Column 2: Quests, Messages, Trade Recs
         // Quests - yellow if unread, gray out if no quests
         const hasUnreadQuests = gameState.activeQuests && gameState.activeQuests.some(qid => !gameState.readQuests.includes(qid));
         const questsHelpText = hasQuests ? (hasUnreadQuests ? 'View quests (new quests available)' : 'View active and completed quests') : 'No active or completed quests';

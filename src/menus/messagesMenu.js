@@ -57,7 +57,7 @@ const MessagesMenu = (() => {
             // Show messages in table format
             const rows = filteredMessages.map((message, displayIndex) => {
                 const status = showingUnread ? '[NEW] ' : '';
-                const color = showingUnread ? COLORS.YELLOW : COLORS.TEXT_DIM;
+                const color = showingUnread ? COLORS.YELLOW : COLORS.WHITE;
                 
                 return [
                     { text: `${status}${message.title}`, color: color }

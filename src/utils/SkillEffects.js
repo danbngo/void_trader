@@ -81,6 +81,17 @@ const SkillEffects = (() => {
         const multiplier = 1 + (smugglingLevel * 0.05);
         return baseRadar * multiplier;
     }
+
+    /**
+     * Get fuel cost multiplier based on navigation skill
+     * @param {number} navigationLevel - Navigation skill level (0-20)
+     * @returns {number} Fuel cost multiplier
+     */
+    function getFuelCostMultiplier(navigationLevel) {
+        const clamped = Math.max(0, Math.min(20, navigationLevel || 0));
+        const reduction = 0.5 * (clamped / 20); // up to 50% reduction at level 20
+        return 1 - reduction;
+    }
     
     /**
      * Check if police find illegal cargo based on smuggling skill
@@ -137,6 +148,7 @@ const SkillEffects = (() => {
         getLaserDamage,
         getModifiedFees,
         getStealthRadar,
+        getFuelCostMultiplier,
         policeFoundIllegalCargo,
         applyEngineeringRepairs
     };

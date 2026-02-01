@@ -35,13 +35,22 @@ const ShipTableRenderer = (() => {
             y += 2;
         }
         
+        const hasAnyModules = ships.some(ship => (ship.modules || []).length > 0);
+        const consumables = (window && window.gameState && window.gameState.consumables) ? window.gameState.consumables : {};
+        const itemsCount = Object.values(consumables).reduce((sum, count) => sum + (count || 0), 0);
+        const hasAnyItems = itemsCount > 0;
+
         // Build table headers
         const headers = ['Type', 'Hull', 'Shield', 'Lsr', 'Eng', 'Rdr'];
         if (showCargo) {
             headers.push('Fuel')
             headers.push('Cargo');
-            headers.push('Mods');
-            headers.push('Items');
+            if (hasAnyModules) {
+                headers.push('Mods');
+            }
+            if (hasAnyItems) {
+                headers.push('Items');
+            }
         }
         if (includeValue) {
             headers.push('Value');
@@ -80,14 +89,15 @@ const ShipTableRenderer = (() => {
                 const cargoRatio = totalCargoCapacity > 0 
                     ? 1.0 + (currentCargo / totalCargoCapacity) * 3.0 
                     : 1.0;
-                const numModules = ship.modules ? ship.modules.length : 0;
-                const consumables = (window && window.gameState && window.gameState.consumables) ? window.gameState.consumables : {};
-                const itemsCount = Object.values(consumables).reduce((sum, count) => sum + (count || 0), 0);
-                
                 row.push({ text: fuelText, color: UI.calcStatColor(fuelRatio, true) });
                 row.push({ text: cargoText, color: UI.calcStatColor(cargoRatio) });
-                row.push({ text: String(numModules), color: COLORS.TEXT_NORMAL });
-                row.push({ text: String(itemsCount), color: COLORS.TEXT_NORMAL });
+                if (hasAnyModules) {
+                    const numModules = ship.modules ? ship.modules.length : 0;
+                    row.push({ text: String(numModules), color: COLORS.TEXT_NORMAL });
+                }
+                if (hasAnyItems) {
+                    row.push({ text: String(itemsCount), color: COLORS.TEXT_NORMAL });
+                }
             }
 
             if (includeValue) {

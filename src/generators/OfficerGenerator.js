@@ -36,7 +36,7 @@ const OfficerGenerator = (() => {
     
     const usedNames = new Set();
     
-    const skillNames = ['piloting', 'barter', 'gunnery', 'smuggling', 'engineering'];
+    const skillNames = ['piloting', 'navigation', 'barter', 'gunnery', 'smuggling', 'engineering'];
     
     /**
      * Generate a unique officer name

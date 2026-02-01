@@ -12,6 +12,14 @@ const SKILLS = {
         color: COLORS.BLUE,
         maxLevel: 20
     },
+    NAVIGATION: {
+        id: 'navigation',
+        shortName: 'Nav',
+        name: 'Navigation',
+        description: 'Reduces fuel cost for travel.',
+        color: COLORS.CYAN,
+        maxLevel: 20
+    },
     BARTER: {
         id: 'barter',
         shortName: 'Barter',

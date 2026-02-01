@@ -20,6 +20,7 @@ class Officer {
         // Skill levels (corresponds to SKILLS.js)
         this.skills = {
             piloting: 0,
+            navigation: 0,
             barter: 0,
             gunnery: 0,
             smuggling: 0,

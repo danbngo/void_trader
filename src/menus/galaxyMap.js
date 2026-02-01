@@ -120,7 +120,8 @@ const GalaxyMap = (() => {
                 // Check if reachable and visited
                 const systemIndex = gameState.systems.indexOf(item.system);
                 const isVisited = gameState.visitedSystems.includes(systemIndex);
-                const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y);
+                const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
+                const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, item.system.x, item.system.y, navigationLevel);
                 const hasQuest = gameState.systemsWithQuests.includes(systemIndex);
                 const isJobTarget = gameState.currentJob && gameState.currentJob.targetSystem === item.system;
                 const hasQuestOrJob = hasQuest || isJobTarget;
@@ -249,8 +250,9 @@ const GalaxyMap = (() => {
         // Selected nearby system info
         if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
             const selected = nearbySystems[selectedIndex];
-            const fuelCost = Ship.calculateFleetFuelCost(selected.distance, gameState.ships.length);
-            const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, selected.system.x, selected.system.y);
+            const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
+            const fuelCost = Ship.calculateFleetFuelCost(selected.distance, gameState.ships.length, navigationLevel);
+            const canReach = Ship.canFleetReach(gameState.ships, currentSystem.x, currentSystem.y, selected.system.x, selected.system.y, navigationLevel);
             
             y = UI.addHeaderLine(startX, y, 'Target System');
             y++; // Empty row
@@ -397,7 +399,8 @@ const GalaxyMap = (() => {
             
             const targetSystem = gameState.systems[i];
             const distance = currentSystem.distanceTo(targetSystem);
-            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+            const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
+            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
             const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
             
             // Only consider reachable systems
@@ -553,7 +556,8 @@ const GalaxyMap = (() => {
             const targetSystem = nearbySystems[selectedIndex].system;
             const currentSystem = gameState.getCurrentSystem();
             const distance = currentSystem.distanceTo(targetSystem);
-            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+            const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
+            const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
             const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
             
             canTravel = totalFuel >= fuelCost;
@@ -579,7 +583,8 @@ const GalaxyMap = (() => {
                 const targetSystem = nearbySystems[selectedIndex].system;
                 const currentSystem = gameState.getCurrentSystem();
                 const distance = currentSystem.distanceTo(targetSystem);
-                const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+                const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
+                const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
                 const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
                 
                 if (totalFuel < fuelCost) {

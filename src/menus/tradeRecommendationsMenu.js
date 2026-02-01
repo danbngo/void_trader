@@ -43,9 +43,31 @@ const TradeRecommendationsMenu = (() => {
         const grid = UI.getGridSize();
         const currentSystem = currentGameState.getCurrentSystem();
         const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
+        const hasEnoughVisits = (currentGameState.visitedSystems || []).length > 1;
         
         // Title
         UI.addTitleLineCentered(0, 'Trade Recommendations');
+
+        if (!selectedCargoType) {
+            UI.addTextCentered(4, 'No cargo types available.', COLORS.TEXT_DIM);
+            UI.addTextCentered(6, 'Unlock cargo perks to view trade recommendations.', COLORS.TEXT_DIM);
+            UI.addButton(5, grid.height - 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+            UI.draw();
+            return;
+        }
+
+        if (!hasEnoughVisits) {
+            UI.addTextCentered(4, 'Visit more systems to receive trade recommendations.', COLORS.TEXT_ERROR);
+            UI.addTextCentered(6, 'Explore at least two systems to unlock this page.', COLORS.TEXT_DIM);
+
+            const buttonY = grid.height - 6;
+            const disabledHelp = 'Visit more systems to receive trade recommendations';
+            UI.addButton(5, buttonY, '1', 'Next Cargo', () => {}, COLORS.TEXT_DIM, disabledHelp);
+            UI.addButton(5, buttonY + 1, '2', 'Prev Cargo', () => {}, COLORS.TEXT_DIM, disabledHelp);
+            UI.addButton(5, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+            UI.draw();
+            return;
+        }
         
         // Cargo type info
         let y = 2;
@@ -210,7 +232,8 @@ const TradeRecommendationsMenu = (() => {
             if (system.conqueredByAliens) continue;
             
             const distance = currentSystem.distanceTo(system);
-            const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
+            const navigationLevel = getMaxCrewSkill(currentGameState, 'navigation');
+            const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length, navigationLevel);
             const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
             
             // Include current system (distance 0) or reachable systems (based on max fuel)
@@ -335,7 +358,8 @@ const TradeRecommendationsMenu = (() => {
                 
                 const targetSystem = currentGameState.systems[i];
                 const distance = currentSystem.distanceTo(targetSystem);
-                const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length);
+                const navigationLevel = getMaxCrewSkill(currentGameState, 'navigation');
+                const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length, navigationLevel);
                 
                 // Only consider reachable systems
                 if (maxFuel < fuelCost) continue;
@@ -423,6 +447,27 @@ const TradeRecommendationsMenu = (() => {
             currentPage--;
             render();
         }
+    }
+
+    /**
+     * Get maximum skill level from all crew members (captain + subordinates)
+     * @param {GameState} gameState
+     * @param {string} skillName
+     * @returns {number}
+     */
+    function getMaxCrewSkill(gameState, skillName) {
+        let maxSkill = 0;
+        if (gameState.captain && gameState.captain.skills[skillName]) {
+            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
+        }
+        if (gameState.subordinates) {
+            gameState.subordinates.forEach(officer => {
+                if (officer.skills[skillName]) {
+                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
+                }
+            });
+        }
+        return maxSkill;
     }
     
     return {

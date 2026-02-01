@@ -19,7 +19,8 @@ const TravelConfirmMenu = (() => {
         
         // Calculate journey details
         const distance = currentSystem.distanceTo(targetSystem);
-        const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+        const navigationLevel = getMaxCrewSkill(gameState, 'navigation');
+        const fuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
         const fuelAfter = totalFuel - fuelCost;
         const pilotingLevel = getMaxCrewSkill(gameState, 'piloting');

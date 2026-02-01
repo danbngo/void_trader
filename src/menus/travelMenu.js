@@ -49,7 +49,8 @@ const TravelMenu = (() => {
         const distance = currentSystem.distanceTo(destination);
         
         // Calculate fuel cost for the entire journey
-        const totalFuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length);
+        const navigationLevel = getMaxCrewSkill(currentGameState, 'navigation');
+        const totalFuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
         
         // Pre-calculate how much fuel each ship will contribute
@@ -105,7 +106,8 @@ const TravelMenu = (() => {
         
         // Calculate journey details
         const distance = currentSystem.distanceTo(targetSystem);
-        const fuelConsumed = Ship.calculateFleetFuelCost(distance * progress, currentGameState.ships.length);
+        const navigationLevel = getMaxCrewSkill(currentGameState, 'navigation');
+        const fuelConsumed = Ship.calculateFleetFuelCost(distance * progress, currentGameState.ships.length, navigationLevel);
         const totalFuelAvailable = currentGameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
         const fuelRemaining = totalFuelAvailable - fuelConsumed;
         
@@ -115,7 +117,7 @@ const TravelMenu = (() => {
         eta.setDate(eta.getDate() + Math.ceil(totalDuration));
         
         // Journey info using renderKeyValueList
-        const totalFuel = Ship.calculateFleetFuelCost(currentSystem.distanceTo(targetSystem), currentGameState.ships.length);
+        const totalFuel = Ship.calculateFleetFuelCost(currentSystem.distanceTo(targetSystem), currentGameState.ships.length, navigationLevel);
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'From:', value: currentSystem.name, valueColor: COLORS.TEXT_NORMAL },
             { label: 'To:', value: targetSystem.name, valueColor: COLORS.TEXT_NORMAL },

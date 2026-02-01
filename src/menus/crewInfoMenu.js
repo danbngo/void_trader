@@ -58,6 +58,7 @@ const CrewInfoMenu = (() => {
                     { text: officer.name, color: COLORS.TEXT_NORMAL },
                     { text: String(officer.level), color: COLORS.YELLOW },
                     { text: String(officer.skills.piloting), color: UI.calcStatColor(1.0 + (officer.skills.piloting / 20) * 3.0) },
+                    { text: String(officer.skills.navigation), color: UI.calcStatColor(1.0 + (officer.skills.navigation / 20) * 3.0) },
                     { text: String(officer.skills.barter), color: UI.calcStatColor(1.0 + (officer.skills.barter / 20) * 3.0) },
                     { text: String(officer.skills.gunnery), color: UI.calcStatColor(1.0 + (officer.skills.gunnery / 20) * 3.0) },
                     { text: String(officer.skills.smuggling), color: UI.calcStatColor(1.0 + (officer.skills.smuggling / 20) * 3.0) },

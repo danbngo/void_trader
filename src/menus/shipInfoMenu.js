@@ -65,12 +65,17 @@ const ShipInfoMenu = (() => {
         const totalFuel = gameState.ships.reduce((sum, ship) => sum + ship.fuel, 0);
         const maxFuel = gameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
         
-        let y = TableRenderer.renderKeyValueList(5, 2, [
+        const fleetSummaryItems = [
             { label: 'Ships:', value: `${totalShips} / ${maxShips}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Officers:', value: `${totalOfficers} / ${maxOfficers}`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Cargo:', value: `${totalCargo} / ${maxCargo}`, valueColor: COLORS.TEXT_NORMAL },
+            ...(totalOfficers > 0
+                ? [{ label: 'Officers:', value: `${totalOfficers} / ${maxOfficers}`, valueColor: COLORS.TEXT_NORMAL }]
+                : []),
+            ...(totalCargo > 0
+                ? [{ label: 'Cargo:', value: `${totalCargo} / ${maxCargo}`, valueColor: COLORS.TEXT_NORMAL }]
+                : []),
             { label: 'Fuel:', value: `${totalFuel} / ${maxFuel}`, valueColor: COLORS.TEXT_NORMAL }
-        ]);
+        ];
+        let y = TableRenderer.renderKeyValueList(5, 2, fleetSummaryItems);
         y++;
 
         // Player fleet table (selectable)
@@ -109,6 +114,8 @@ const ShipInfoMenu = (() => {
                 const name = item ? item.name : itemId;
                 return `${name} x${gameState.consumables[itemId]}`;
             });
+        const hasModules = moduleEntries.length > 0;
+        const hasItems = consumableItems.length > 0;
 
         const maxWidth = grid.width - 10;
         y = TableRenderer.renderKeyValueList(5, y, [
@@ -116,11 +123,9 @@ const ShipInfoMenu = (() => {
         ]);
         y++;
 
-        UI.addText(5, y++, 'Modules:', COLORS.CYAN);
-        const moduleItems = [];
-        if (moduleEntries.length === 0) {
-            moduleItems.push({ label: '', value: 'None', valueColor: COLORS.TEXT_NORMAL });
-        } else {
+        if (hasModules) {
+            UI.addText(5, y++, 'Modules:', COLORS.CYAN);
+            const moduleItems = [];
             moduleEntries.forEach(entry => {
                 const label = `${entry.slot}:`;
                 const valueText = entry.description
@@ -136,15 +141,17 @@ const ShipInfoMenu = (() => {
                     });
                 });
             });
+            y = TableRenderer.renderKeyValueList(5, y, moduleItems);
+            y++;
         }
-        y = TableRenderer.renderKeyValueList(5, y, moduleItems);
-        y++;
 
-        const itemsText = consumableItems.length > 0 ? consumableItems.join(', ') : 'None';
-        y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Items:', value: itemsText, valueColor: COLORS.TEXT_NORMAL }
-        ]);
-        y++;
+        if (hasItems) {
+            const itemsText = consumableItems.join(', ');
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Items:', value: itemsText, valueColor: COLORS.TEXT_NORMAL }
+            ]);
+            y++;
+        }
         
         // Prev/Next ship buttons (only if more than 1 ship)
         const backY = grid.height - 4;

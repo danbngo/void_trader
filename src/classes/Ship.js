@@ -100,8 +100,10 @@ class Ship {
      * @param {number} numShips - Number of ships in fleet
      * @returns {number} Total fuel cost for fleet
      */
-    static calculateFleetFuelCost(distance, numShips) {
-        return Ship.calculateBaseFuelCost(distance) * numShips;
+    static calculateFleetFuelCost(distance, numShips, navigationLevel = 0) {
+        const baseCost = Ship.calculateBaseFuelCost(distance) * numShips;
+        const multiplier = SkillEffects.getFuelCostMultiplier(navigationLevel);
+        return Math.ceil(baseCost * multiplier);
     }
 
     /**
@@ -127,11 +129,11 @@ class Ship {
      * @param {number} toY - Destination Y coordinate
      * @returns {boolean}
      */
-    static canFleetReach(ships, fromX, fromY, toX, toY) {
+    static canFleetReach(ships, fromX, fromY, toX, toY, navigationLevel = 0) {
         const dx = toX - fromX;
         const dy = toY - fromY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const fleetFuelCost = Ship.calculateFleetFuelCost(distance, ships.length);
+        const fleetFuelCost = Ship.calculateFleetFuelCost(distance, ships.length, navigationLevel);
         const totalFuel = ships.reduce((sum, ship) => sum + ship.fuel, 0);
         return totalFuel >= fleetFuelCost;
     }

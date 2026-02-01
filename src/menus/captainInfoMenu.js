@@ -160,12 +160,17 @@ const CaptainInfoMenu = (() => {
         
         y = UI.addHeaderLine(5, y, 'Captain Info');
         
-        y = TableRenderer.renderKeyValueList(5, y, [
+        const infoItems = [
             { label: 'Credits:', value: `${gameState.credits} CR`, valueColor: COLORS.YELLOW },
             { label: 'Location:', value: currentSystem.name, valueColor: COLORS.CYAN },
-            { label: 'Reputation:', value: String(gameState.reputation), valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: gameState.bounty > 0 ? COLORS.TEXT_ERROR : COLORS.TEXT_NORMAL }
-        ]);
+            ...(gameState.reputation !== 0
+                ? [{ label: 'Reputation:', value: String(gameState.reputation), valueColor: COLORS.TEXT_NORMAL }]
+                : []),
+            ...(gameState.bounty !== 0
+                ? [{ label: 'Bounty:', value: `${gameState.bounty} CR`, valueColor: COLORS.TEXT_ERROR }]
+                : [])
+        ];
+        y = TableRenderer.renderKeyValueList(5, y, infoItems);
         y++;
         
         // Level and Experience section

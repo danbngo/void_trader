@@ -433,6 +433,36 @@ const EncounterMenu = (() => {
     function getEnemyShips() {
         return currentGameState.encounterShips.filter(ship => isEnemyShip(ship));
     }
+
+    function buildHitMessage(attackerName, targetName, damage, distance, moduleEffects) {
+        const rangeText = ` (${Math.floor(distance)} AU)`;
+        if (moduleEffects) {
+            if (moduleEffects.reflectorBounce) {
+                const reflectDamage = moduleEffects.reflectorBounce.damage;
+                return {
+                    message: `${targetName} reflects ${attackerName} for ${reflectDamage} damage!${rangeText}`,
+                    skipModuleAppend: true
+                };
+            }
+            if (moduleEffects.repulsorPush) {
+                return { message: `${attackerName} repulses ${targetName} for ${damage} damage!${rangeText}`, skipModuleAppend: true };
+            }
+            if (moduleEffects.tractorPull) {
+                return { message: `${attackerName} tractors ${targetName} for ${damage} damage!${rangeText}`, skipModuleAppend: true };
+            }
+            if (moduleEffects.warheadTriggered) {
+                return { message: `${attackerName} blasts ${targetName} for ${damage} damage!${rangeText}`, skipModuleAppend: true };
+            }
+            if (moduleEffects.disrupterTriggered) {
+                return { message: `${attackerName} disrupts ${targetName} for ${damage} damage!${rangeText}`, skipModuleAppend: true };
+            }
+        }
+
+        return {
+            message: `${attackerName} hits ${targetName} for ${damage} damage!${rangeText}`,
+            skipModuleAppend: false
+        };
+    }
     
     /**
      * Render the combat map

@@ -14,6 +14,9 @@ const BODY_TYPES = {
 
     PLANET_TERRESTRIAL_GIANT: { id: 'PLANET_TERRESTRIAL_GIANT', name: 'Terrestrial Giant', category: 'PLANET' },
     PLANET_TERRESTRIAL_DWARF: { id: 'PLANET_TERRESTRIAL_DWARF', name: 'Terrestrial Dwarf', category: 'PLANET' },
+    PLANET_EARTHLIKE: { id: 'PLANET_EARTHLIKE', name: 'Earthlike', category: 'PLANET' },
+    PLANET_GAS_GIANT: { id: 'PLANET_GAS_GIANT', name: 'Gas Giant', category: 'PLANET' },
+    PLANET_GAS_DWARF: { id: 'PLANET_GAS_DWARF', name: 'Gas Dwarf', category: 'PLANET' },
     PLANET_ICE_GIANT: { id: 'PLANET_ICE_GIANT', name: 'Ice Giant', category: 'PLANET' },
     PLANET_ICE_DWARF: { id: 'PLANET_ICE_DWARF', name: 'Ice Dwarf', category: 'PLANET' },
 
@@ -22,6 +25,7 @@ const BODY_TYPES = {
 
     BELT_ASTEROID: { id: 'BELT_ASTEROID', name: 'Asteroid Belt', category: 'BELT' },
     BELT_ICY: { id: 'BELT_ICY', name: 'Icy Belt', category: 'BELT' },
+    BELT_GAS: { id: 'BELT_GAS', name: 'Gas Belt', category: 'BELT' },
 
     MOON_ROCKY: { id: 'MOON_ROCKY', name: 'Rocky Major Moon', category: 'MOON' },
     MOON_ICE: { id: 'MOON_ICE', name: 'Icy Major Moon', category: 'MOON' },
@@ -41,6 +45,9 @@ const STAR_BODY_TYPES = [
 const PLANET_BODY_TYPES = [
     BODY_TYPES.PLANET_TERRESTRIAL_GIANT,
     BODY_TYPES.PLANET_TERRESTRIAL_DWARF,
+    BODY_TYPES.PLANET_EARTHLIKE,
+    BODY_TYPES.PLANET_GAS_GIANT,
+    BODY_TYPES.PLANET_GAS_DWARF,
     BODY_TYPES.PLANET_ICE_GIANT,
     BODY_TYPES.PLANET_ICE_DWARF
 ];
@@ -58,7 +65,8 @@ const MOON_BODY_TYPES = [
 
 const BELT_BODY_TYPES = [
     BODY_TYPES.BELT_ASTEROID,
-    BODY_TYPES.BELT_ICY
+    BODY_TYPES.BELT_ICY,
+    BODY_TYPES.BELT_GAS
 ];
 
 const PLANETARY_BODY_TYPES = [...PLANET_BODY_TYPES, ...DWARF_PLANET_BODY_TYPES];

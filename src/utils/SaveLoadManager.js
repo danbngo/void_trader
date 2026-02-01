@@ -192,18 +192,32 @@ const SaveLoadManager = (() => {
             officer.skillPoints = o.skillPoints || 0;
             officer.skills = o.skills || {
                 piloting: 0,
+                navigation: 0,
                 barter: 0,
                 gunnery: 0,
                 smuggling: 0,
                 engineering: 0
             };
+            if (officer.skills.navigation === undefined) {
+                officer.skills.navigation = 0;
+            }
             return officer;
         });
         
         // Reconstruct systems
         gameState.systems = data.systems.map((s, index) => {
-            const system = new StarSystem(s.name, s.x, s.y, s.population, s.economy);
+            const system = new StarSystem(s.name, s.x, s.y, s.population);
             system.index = index; // Restore index
+            system.governmentType = s.governmentType || null;
+            system.cultureLevel = s.cultureLevel || null;
+            system.technologyLevel = s.technologyLevel || null;
+            system.industryLevel = s.industryLevel || null;
+            system.populationLevel = s.populationLevel || null;
+            system.stars = s.stars || [];
+            system.planets = s.planets || [];
+            system.moons = s.moons || [];
+            system.belts = s.belts || [];
+            system.features = s.features || [];
             system.cargoStock = s.cargoStock || {};
             system.cargoPriceModifier = s.cargoPriceModifier || {};
             

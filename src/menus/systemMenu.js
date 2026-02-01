@@ -162,7 +162,7 @@ const DockMenu = (() => {
         // Left column: System info
         TableRenderer.renderKeyValueList(leftColumnX, startY + 1, [
             { label: 'Population:', value: `${currentSystem.population}M`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Economy:', value: currentSystem.economy, valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[currentSystem.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
         ]);
         
         // Right column title

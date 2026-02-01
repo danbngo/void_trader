@@ -292,8 +292,8 @@ const GalaxyMap = (() => {
             UI.addText(startX, y++, 'Pop:', COLORS.TEXT_DIM);
             UI.addText(startX + 5, y - 1, `${selected.system.population}M`, COLORS.TEXT_NORMAL);
             
-            UI.addText(startX, y++, 'Economy:', COLORS.TEXT_DIM);
-            UI.addText(startX + 9, y - 1, selected.system.economy, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Government:', COLORS.TEXT_DIM);
+            UI.addText(startX + 12, y - 1, SYSTEM_GOVERNMENT_TYPES[selected.system.governmentType]?.name || 'Unknown', COLORS.TEXT_NORMAL);
         } else {
             UI.addText(startX, y, 'No nearby systems', COLORS.TEXT_DIM);
         }

@@ -9,14 +9,17 @@ class StarSystem {
      * @param {number} x - X coordinate in galaxy
      * @param {number} y - Y coordinate in galaxy
      * @param {number} population - Population in millions
-     * @param {string} economy - Economy type (Agricultural, Industrial, High-Tech, etc.)
      */
-    constructor(name, x, y, population, economy) {
+    constructor(name, x, y, population) {
         this.name = name;
         this.x = x;
         this.y = y;
         this.population = population;
-        this.economy = economy;
+        this.governmentType = null;
+        this.cultureLevel = null;
+        this.technologyLevel = null;
+        this.industryLevel = null;
+        this.populationLevel = null;
         
         // Buildings available in this system
         this.buildings = []; // Array of building IDs (e.g., 'MARKET', 'SHIPYARD', 'GUILD')

@@ -28,7 +28,7 @@ const ScanSystemMenu = (() => {
             { label: 'System Name:', value: system.name, valueColor: COLORS.CYAN },
             { label: 'Coordinates:', value: `(${system.x}, ${system.y})`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Population:', value: `${system.population} million`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Economy Type:', value: system.economy, valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[system.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
         ];
         
         // Add conquest status if conquered
@@ -184,22 +184,20 @@ const ScanSystemMenu = (() => {
     }
     
     /**
-     * Get flavor text based on system economy
+     * Get flavor text based on system government
      */
     function getFlavorText(system) {
         const texts = {
-            'Agricultural': 'Farmlands provide food for the sector',
-            'Industrial': 'Manufacturing hubs produce goods',
-            'High-Tech': 'Advanced research drives innovation',
-            'Mining': 'Mineral extraction operations',
-            'Trading': 'Bustling commercial hub',
-            'Military': 'Heavy military presence',
-            'Research': 'Scientific outposts',
-            'Colonial': 'Frontier world being settled',
-            'Tourism': 'Natural wonders attract visitors',
-            'Frontier': 'Remote outpost at civilization\'s edge'
+            DEMOCRACY: 'A thriving society shaped by civic consensus',
+            CORPORATE: 'Megacorporations steer every major decision',
+            MILITARY: 'Martial order governs daily life',
+            THEOCRACY: 'Faith and doctrine define the system\'s character',
+            AUTOCRACY: 'Power is centralized under a single authority',
+            OLIGARCHY: 'A small elite controls the system\'s future',
+            COMMUNAL: 'Collective governance guides the populace',
+            ANARCHY: 'Loose factions contest control of local space'
         };
-        return texts[system.economy] || 'A typical star system';
+        return texts[system.governmentType] || 'A typical star system';
     }
     
     return {

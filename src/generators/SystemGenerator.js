@@ -29,11 +29,6 @@ const SystemGenerator = (() => {
         'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'
     ];
     
-    const economies = [
-        'Agricultural', 'Industrial', 'High-Tech', 'Mining', 'Trading',
-        'Military', 'Research', 'Colonial', 'Tourism', 'Frontier'
-    ];
-    
     const usedNames = new Set();
     
     /**
@@ -80,28 +75,19 @@ const SystemGenerator = (() => {
         const x = Math.floor(Math.random() * (MAX_SYSTEM_X - MIN_SYSTEM_X + 1)) + MIN_SYSTEM_X;
         const y = Math.floor(Math.random() * (MAX_SYSTEM_Y - MIN_SYSTEM_Y + 1)) + MIN_SYSTEM_Y;
         const population = Math.floor(Math.random() * (MAX_SYSTEM_POPULATION + 1));
-        const economy = economies[Math.floor(Math.random() * economies.length)];
         
-        const system = new StarSystem(name, x, y, population, economy);
+        const system = new StarSystem(name, x, y, population);
         assignSystemBodies(system);
         system.features = [SYSTEM_FEATURES.HABITED.id];
+
+        assignSystemLevels(system);
+        assignGovernmentType(system);
         
         // Generate fees (random value between min and max)
         system.fees = STAR_SYSTEM_MIN_FEES + Math.random() * (STAR_SYSTEM_MAX_FEES - STAR_SYSTEM_MIN_FEES);
         
-        // Generate market data for each cargo type (excludes ALIEN_ARTIFACTS)
-        CARGO_TYPES_TRADEABLE.forEach(cargoType => {
-            // Stock: random amount based on constants
-            const stockRange = MAX_CARGO_AMOUNT_IN_MARKET - MIN_CARGO_AMOUNT_IN_MARKET + 1;
-            system.cargoStock[cargoType.id] = Math.floor(Math.random() * stockRange) + MIN_CARGO_AMOUNT_IN_MARKET;
-            
-            // Price modifier: logarithmic distribution for equal chance above/below 1.0
-            // Range is [0.25, 4.0] which is symmetric around 1.0 in log space
-            system.cargoPriceModifier[cargoType.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
-        });
-        
-        // Also add ALIEN_ARTIFACTS even though they're not tradeable (for news system)
-        system.cargoPriceModifier[CARGO_TYPES.ALIEN_ARTIFACTS.id] = Math.pow(MAX_CARGO_PRICE_MODIFIER, Math.random() * 2 - 1);
+        // Generate market data from bodies and system levels
+        generateMarketFromBodies(system);
         
         // Generate ships for shipyard
         const shipCount = Math.floor(Math.random() * (MAX_NUM_SHIPS_IN_SHIPYARD - MIN_NUM_SHIPS_IN_SHIPYARD + 1)) + MIN_NUM_SHIPS_IN_SHIPYARD;
@@ -172,6 +158,148 @@ const SystemGenerator = (() => {
         system.planets = Array.from({ length: planetCount }, () => randomBodyEntry(PLANETARY_BODY_TYPES)).filter(Boolean);
         system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
         system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);
+    }
+
+    function assignSystemLevels(system) {
+        system.cultureLevel = SYSTEM_CULTURE_LEVELS_ALL[Math.floor(Math.random() * SYSTEM_CULTURE_LEVELS_ALL.length)].id;
+        system.technologyLevel = SYSTEM_TECHNOLOGY_LEVELS_ALL[Math.floor(Math.random() * SYSTEM_TECHNOLOGY_LEVELS_ALL.length)].id;
+        system.industryLevel = SYSTEM_INDUSTRY_LEVELS_ALL[Math.floor(Math.random() * SYSTEM_INDUSTRY_LEVELS_ALL.length)].id;
+
+        const popRatio = system.population / Math.max(1, MAX_SYSTEM_POPULATION);
+        if (popRatio < 0.25) system.populationLevel = SYSTEM_POPULATION_LEVELS.LOW.id;
+        else if (popRatio < 0.5) system.populationLevel = SYSTEM_POPULATION_LEVELS.MODERATE.id;
+        else if (popRatio < 0.8) system.populationLevel = SYSTEM_POPULATION_LEVELS.HIGH.id;
+        else system.populationLevel = SYSTEM_POPULATION_LEVELS.MEGA.id;
+    }
+
+    function assignGovernmentType(system) {
+        const randomGov = SYSTEM_GOVERNMENT_TYPES_ALL[Math.floor(Math.random() * SYSTEM_GOVERNMENT_TYPES_ALL.length)];
+        system.governmentType = randomGov ? randomGov.id : null;
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    function lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    function countBodies(list, typeIds) {
+        if (!Array.isArray(list) || list.length === 0) return 0;
+        return list.reduce((sum, body) => sum + (typeIds.includes(body.type) ? 1 : 0), 0);
+    }
+
+    function getLevelById(levels, id) {
+        return levels.find(level => level.id === id) || levels[0];
+    }
+
+    function applyLevelEffect(system, cargoId, level, stock, price) {
+        const adjustedStock = Math.round(stock * level.stockMultiplier);
+        const adjustedPrice = price * level.priceMultiplier;
+        return {
+            stock: clamp(adjustedStock, 0, MAX_CARGO_AMOUNT_IN_MARKET),
+            price: clamp(adjustedPrice, 1 / MAX_CARGO_PRICE_MODIFIER, MAX_CARGO_PRICE_MODIFIER)
+        };
+    }
+
+    function generateMarketFromBodies(system) {
+        const baseStock = Math.round(MAX_CARGO_AMOUNT_IN_MARKET * 0.2);
+
+        const resourceCounts = {
+            AIR: countBodies(system.planets, [BODY_TYPES.PLANET_GAS_GIANT.id]),
+            WATER: countBodies(system.planets, [BODY_TYPES.PLANET_ICE_GIANT.id]),
+            FOOD: countBodies(system.planets, [BODY_TYPES.PLANET_EARTHLIKE.id]),
+            NANITES: countBodies(system.planets, [BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id]),
+            ISOTOPES: countBodies(system.planets, [BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id])
+                + countBodies(system.belts, [BODY_TYPES.BELT_ASTEROID.id])
+                + countBodies(system.stars, [BODY_TYPES.STAR_NEUTRON.id]),
+            FUEL: countBodies(system.planets, [BODY_TYPES.PLANET_ICE_DWARF.id])
+                + countBodies(system.belts, [BODY_TYPES.BELT_ICY.id]),
+            PLASMA: countBodies(system.planets, [BODY_TYPES.PLANET_GAS_DWARF.id])
+                + countBodies(system.belts, [BODY_TYPES.BELT_GAS.id])
+                + countBodies(system.stars, [BODY_TYPES.STAR_RED_GIANT.id, BODY_TYPES.STAR_BLUE_GIANT.id]),
+            ANTIMATTER: countBodies(system.stars, [BODY_TYPES.STAR_BLACK_HOLE.id])
+        };
+
+        const resourceMax = {
+            AIR: MAX_SYSTEM_PLANETS,
+            WATER: MAX_SYSTEM_PLANETS,
+            FOOD: MAX_SYSTEM_PLANETS,
+            NANITES: MAX_SYSTEM_PLANETS,
+            ISOTOPES: MAX_SYSTEM_PLANETS + MAX_SYSTEM_BELTS + MAX_SYSTEM_STARS,
+            FUEL: MAX_SYSTEM_PLANETS + MAX_SYSTEM_BELTS,
+            PLASMA: MAX_SYSTEM_PLANETS + MAX_SYSTEM_BELTS + MAX_SYSTEM_STARS,
+            ANTIMATTER: MAX_SYSTEM_STARS
+        };
+
+        const resourceToCargo = {
+            AIR: CARGO_TYPES.AIR.id,
+            WATER: CARGO_TYPES.WATER.id,
+            FOOD: CARGO_TYPES.FOOD.id,
+            NANITES: CARGO_TYPES.NANITES.id,
+            ISOTOPES: CARGO_TYPES.ISOTOPES.id,
+            FUEL: CARGO_TYPES.FUEL.id,
+            PLASMA: CARGO_TYPES.PLASMA.id,
+            ANTIMATTER: CARGO_TYPES.ANTIMATTER.id
+        };
+
+        const cultureLevel = getLevelById(SYSTEM_CULTURE_LEVELS_ALL, system.cultureLevel);
+        const techLevel = getLevelById(SYSTEM_TECHNOLOGY_LEVELS_ALL, system.technologyLevel);
+        const industryLevel = getLevelById(SYSTEM_INDUSTRY_LEVELS_ALL, system.industryLevel);
+        const populationLevel = getLevelById(SYSTEM_POPULATION_LEVELS_ALL, system.populationLevel);
+
+        CARGO_TYPES_TRADEABLE.forEach(cargoType => {
+            let stock = baseStock;
+            let priceModifier = 1.0;
+
+            const resourceKey = Object.keys(resourceToCargo).find(key => resourceToCargo[key] === cargoType.id);
+            if (resourceKey) {
+                const maxCount = Math.max(1, resourceMax[resourceKey]);
+                const abundance = clamp(resourceCounts[resourceKey] / maxCount, 0, 1);
+                stock = Math.round(abundance * MAX_CARGO_AMOUNT_IN_MARKET);
+                priceModifier = lerp(MAX_CARGO_PRICE_MODIFIER, 1 / MAX_CARGO_PRICE_MODIFIER, abundance);
+            }
+
+            system.cargoStock[cargoType.id] = clamp(stock, 0, MAX_CARGO_AMOUNT_IN_MARKET);
+            system.cargoPriceModifier[cargoType.id] = clamp(priceModifier, 1 / MAX_CARGO_PRICE_MODIFIER, MAX_CARGO_PRICE_MODIFIER);
+        });
+
+        // Apply culture effects
+        [CARGO_TYPES.HOLOCUBES.id, CARGO_TYPES.DRUGS.id].forEach(cargoId => {
+            if (system.cargoStock[cargoId] === undefined) return;
+            const adjusted = applyLevelEffect(system, cargoId, cultureLevel, system.cargoStock[cargoId], system.cargoPriceModifier[cargoId]);
+            system.cargoStock[cargoId] = adjusted.stock;
+            system.cargoPriceModifier[cargoId] = adjusted.price;
+        });
+
+        // Apply technology effects
+        [CARGO_TYPES.MEDICINE.id, CARGO_TYPES.ANTIMATTER.id].forEach(cargoId => {
+            if (system.cargoStock[cargoId] === undefined) return;
+            const adjusted = applyLevelEffect(system, cargoId, techLevel, system.cargoStock[cargoId], system.cargoPriceModifier[cargoId]);
+            system.cargoStock[cargoId] = adjusted.stock;
+            system.cargoPriceModifier[cargoId] = adjusted.price;
+        });
+
+        // Apply industry effects
+        [CARGO_TYPES.NANITES.id, CARGO_TYPES.WEAPONS.id].forEach(cargoId => {
+            if (system.cargoStock[cargoId] === undefined) return;
+            const adjusted = applyLevelEffect(system, cargoId, industryLevel, system.cargoStock[cargoId], system.cargoPriceModifier[cargoId]);
+            system.cargoStock[cargoId] = adjusted.stock;
+            system.cargoPriceModifier[cargoId] = adjusted.price;
+        });
+
+        // Apply population effects (scarcity) to air, food, water
+        [CARGO_TYPES.AIR.id, CARGO_TYPES.FOOD.id, CARGO_TYPES.WATER.id].forEach(cargoId => {
+            if (system.cargoStock[cargoId] === undefined) return;
+            const adjusted = applyLevelEffect(system, cargoId, populationLevel, system.cargoStock[cargoId], system.cargoPriceModifier[cargoId]);
+            system.cargoStock[cargoId] = adjusted.stock;
+            system.cargoPriceModifier[cargoId] = adjusted.price;
+        });
+
+        // Ensure ALIEN_ARTIFACTS exists but remains untradeable
+        system.cargoStock[CARGO_TYPES.ALIEN_ARTIFACTS.id] = 0;
+        system.cargoPriceModifier[CARGO_TYPES.ALIEN_ARTIFACTS.id] = 1.0;
     }
     
     /**
@@ -370,10 +498,13 @@ const SystemGenerator = (() => {
 
         terraSystem.stars = [{ type: BODY_TYPES.STAR_YELLOW_DWARF.id }];
         terraSystem.planets = [
+            { type: BODY_TYPES.PLANET_EARTHLIKE.id },
             { type: BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id },
             { type: BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id },
             { type: BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id },
             { type: BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id },
+            { type: BODY_TYPES.PLANET_GAS_GIANT.id },
+            { type: BODY_TYPES.PLANET_GAS_GIANT.id },
             { type: BODY_TYPES.PLANET_ICE_GIANT.id },
             { type: BODY_TYPES.PLANET_ICE_GIANT.id },
             { type: BODY_TYPES.PLANET_ICE_DWARF.id },

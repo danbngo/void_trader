@@ -86,11 +86,21 @@ const ShipInfoMenu = (() => {
         // Selected ship info (below table)
         const selectedShip = ships[selectedShipIndex];
         const selectedShipType = SHIP_TYPES[selectedShip.type] || { name: 'Unknown' };
-        const moduleLines = (selectedShip.modules || [])
+        const moduleEntries = (selectedShip.modules || [])
             .map(moduleId => {
                 const module = SHIP_MODULES[moduleId];
-                if (!module) return moduleId;
-                return `${module.name}: ${module.description}`;
+                if (!module) {
+                    return {
+                        slot: 'MODULE',
+                        name: moduleId,
+                        description: ''
+                    };
+                }
+                return {
+                    slot: module.slot || 'MODULE',
+                    name: module.name,
+                    description: module.description || ''
+                };
             });
         const consumableItems = Object.keys(gameState.consumables || {})
             .filter(itemId => (gameState.consumables[itemId] || 0) > 0)
@@ -101,18 +111,34 @@ const ShipInfoMenu = (() => {
             });
 
         const maxWidth = grid.width - 10;
-        UI.addText(5, y++, 'Currently Selected Ship:', COLORS.CYAN);
-        UI.addText(5, y++, `${selectedShipType.name}`, COLORS.TEXT_NORMAL);
+        y = TableRenderer.renderKeyValueList(5, y, [
+            { label: 'Currently selected ship:', value: `${selectedShipType.name}`, valueColor: COLORS.TEXT_NORMAL }
+        ]);
+        y++;
 
-        const moduleWrappedLines = moduleLines.length > 0
-            ? moduleLines.flatMap(line => wrapText(line, maxWidth))
-            : ['None'];
-        const moduleItems = moduleWrappedLines.map((line, index) => ({
-            label: index === 0 ? 'Modules:' : '',
-            value: line,
-            valueColor: COLORS.TEXT_DIM
-        }));
+        UI.addText(5, y++, 'Modules:', COLORS.CYAN);
+        const moduleItems = [];
+        if (moduleEntries.length === 0) {
+            moduleItems.push({ label: '', value: 'None', valueColor: COLORS.TEXT_NORMAL });
+        } else {
+            moduleEntries.forEach(entry => {
+                const label = `${entry.slot}:`;
+                const valueText = entry.description
+                    ? `${entry.name}: ${entry.description}`
+                    : entry.name;
+                const maxValueLength = Math.max(1, grid.width - (5 + label.length + 1));
+                const wrapped = wrapText(valueText, maxValueLength);
+                wrapped.forEach((line, index) => {
+                    moduleItems.push({
+                        label: index === 0 ? label : '',
+                        value: line,
+                        valueColor: COLORS.TEXT_NORMAL
+                    });
+                });
+            });
+        }
         y = TableRenderer.renderKeyValueList(5, y, moduleItems);
+        y++;
 
         const itemsText = consumableItems.length > 0 ? consumableItems.join(', ') : 'None';
         y = TableRenderer.renderKeyValueList(5, y, [

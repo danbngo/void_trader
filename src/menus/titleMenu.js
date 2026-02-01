@@ -111,6 +111,17 @@ const TitleMenu = (() => {
     }
 
     function setupStartingFleet(gameState, options = {}) {
+        if (!options.debug) {
+            const shuttle = ShipGenerator.generateShipOfType('SHUTTLE');
+            shuttle.modules = [];
+            shuttle.cargo = {};
+            shuttle.hull = shuttle.maxHull;
+            shuttle.shields = shuttle.maxShields;
+            shuttle.fuel = shuttle.maxFuel;
+            gameState.ships.push(shuttle);
+            return;
+        }
+
         const battleship = ShipGenerator.generateShipOfType('BATTLESHIP');
         const scout = ShipGenerator.generateShipOfType('SCOUT');
 

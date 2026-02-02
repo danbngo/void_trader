@@ -1040,7 +1040,11 @@ const EncounterMenu = (() => {
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `(${activeShip.x.toFixed(0)}, ${activeShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
+            const activeHasCoords = Number.isFinite(activeShip.x) && Number.isFinite(activeShip.y);
+            const activeCoordsText = activeHasCoords
+                ? `(${activeShip.x.toFixed(0)}, ${activeShip.y.toFixed(0)})`
+                : '(?, ?)';
+            UI.addText(startX + 8, y - 1, activeCoordsText, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
             const hullRatio = activeShip.hull / activeShip.maxHull;
             UI.addText(startX + 6, y - 1, `${activeShip.hull}/${activeShip.maxHull}`, UI.calcStatColor(hullRatio, true));
@@ -1066,16 +1070,27 @@ const EncounterMenu = (() => {
         UI.addText(startX, 10, `=== Target Ship ===`, COLORS.YELLOW);
         if (targetShip) {
             const shipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
-            const distance = activeShip ? Math.sqrt(
-                Math.pow(activeShip.x - targetShip.x, 2) + 
-                Math.pow(activeShip.y - targetShip.y, 2)
-            ).toFixed(1) : '?';
+            const canMeasureDistance = activeShip &&
+                Number.isFinite(activeShip.x) &&
+                Number.isFinite(activeShip.y) &&
+                Number.isFinite(targetShip.x) &&
+                Number.isFinite(targetShip.y);
+            const distance = canMeasureDistance
+                ? Math.sqrt(
+                    Math.pow(activeShip.x - targetShip.x, 2) + 
+                    Math.pow(activeShip.y - targetShip.y, 2)
+                ).toFixed(1)
+                : '?';
             
             let y = 11;
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
-            UI.addText(startX + 8, y - 1, `(${targetShip.x.toFixed(0)}, ${targetShip.y.toFixed(0)})`, COLORS.TEXT_NORMAL);
+            const targetHasCoords = Number.isFinite(targetShip.x) && Number.isFinite(targetShip.y);
+            const targetCoordsText = targetHasCoords
+                ? `(${targetShip.x.toFixed(0)}, ${targetShip.y.toFixed(0)})`
+                : '(?, ?)';
+            UI.addText(startX + 8, y - 1, targetCoordsText, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Hull:', COLORS.TEXT_DIM);
             const targetHullRatio = targetShip.hull / targetShip.maxHull;
             UI.addText(startX + 6, y - 1, `${targetShip.hull}/${targetShip.maxHull}`, UI.calcStatColor(targetHullRatio, true));

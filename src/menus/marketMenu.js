@@ -80,9 +80,7 @@ const MarketMenu = (() => {
             
             // Calculate market stock ratio: stock * 4 / MAX_CARGO_AMOUNT_IN_MARKET
             let marketStockColor;
-            if (stock === 0) {
-                marketStockColor = COLORS.GRAY;
-            } else if (hasTraining) {
+            if (hasTraining) {
                 const marketStockRatio = (stock * 4) / MAX_CARGO_AMOUNT_IN_MARKET;
                 marketStockColor = UI.calcStatColor(marketStockRatio);
             } else {

@@ -1070,6 +1070,9 @@ const EncounterMenu = (() => {
         UI.addText(startX, 10, `=== Target Ship ===`, COLORS.YELLOW);
         if (targetShip) {
             const shipType = SHIP_TYPES[targetShip.type] || ALIEN_SHIP_TYPES[targetShip.type] || { name: 'Unknown' };
+            const targetFactionName = currentGameState.ships.includes(targetShip)
+                ? 'Player'
+                : (ENCOUNTER_TYPES[targetShip.faction]?.name || 'Unknown');
             const canMeasureDistance = activeShip &&
                 Number.isFinite(activeShip.x) &&
                 Number.isFinite(activeShip.y) &&
@@ -1085,6 +1088,8 @@ const EncounterMenu = (() => {
             let y = 11;
             UI.addText(startX, y++, 'Type:', COLORS.TEXT_DIM);
             UI.addText(startX + 6, y - 1, shipType.name, COLORS.TEXT_NORMAL);
+            UI.addText(startX, y++, 'Faction:', COLORS.TEXT_DIM);
+            UI.addText(startX + 9, y - 1, targetFactionName, COLORS.TEXT_NORMAL);
             UI.addText(startX, y++, 'Coords:', COLORS.TEXT_DIM);
             const targetHasCoords = Number.isFinite(targetShip.x) && Number.isFinite(targetShip.y);
             const targetCoordsText = targetHasCoords
@@ -1987,6 +1992,33 @@ const EncounterMenu = (() => {
             const friendlySurvivors = isFactionConflict
                 ? friendlyShips.some(ship => !ship.disabled && !ship.escaped)
                 : false;
+            const friendlyFactionId = currentGameState.encounterContext
+                ? currentGameState.encounterContext.friendlyFactionId
+                : null;
+            const pirateBetrayal = isFactionConflict
+                && friendlyFactionId === 'PIRATE'
+                && friendlySurvivors
+                && Math.random() < FACTION_VS_FACTION_PIRATE_BETRAYAL_CHANCE;
+
+            if (pirateBetrayal) {
+                friendlyShips.forEach(ship => {
+                    if (!ship.disabled && !ship.escaped) {
+                        ship.isNeutralToPlayer = false;
+                    }
+                });
+
+                currentGameState.encounterContext = {
+                    type: 'PIRATE_BETRAYAL',
+                    enemyEncounterType: ENCOUNTER_TYPES.PIRATE,
+                    enemyFactionId: 'PIRATE'
+                };
+
+                outputMessage = 'The pirates betray you!';
+                outputColor = COLORS.TEXT_ERROR;
+                findNextValidTarget();
+                render();
+                return false;
+            }
 
             // Restore shields for all non-disabled, non-escaped player ships
             currentGameState.ships.forEach(ship => {

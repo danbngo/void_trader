@@ -129,20 +129,17 @@ const NewsMenu = (() => {
                     y++;
                 }
                 
-                // Only show expiration for non-instant news (duration > 0)
+                // Show start date and elapsed days for non-instant news (duration > 0)
                 if (news.duration > 0) {
-                    // Calculate expiration date
                     const startDate = new Date(3000, 0, 1);
-                    const daysFromStart = news.endYear * 365.25;
-                    const expirationDate = new Date(startDate.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
+                    const daysFromStart = news.startYear * 365.25;
+                    const startedDate = new Date(startDate.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
                     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    const expirationStr = `${months[expirationDate.getMonth()]} ${expirationDate.getDate()}, ${expirationDate.getFullYear()}`;
-                    
-                    // Duration info with date - label in gray, value in white
-                    const yearsRemaining = news.endYear - gameState.currentYear;
-                    const daysRemaining = Math.ceil(yearsRemaining * 365.25);
-                    UI.addText(7, y, 'Expires: ', COLORS.TEXT_DIM);
-                    UI.addText(16, y, `${expirationStr} (${daysRemaining} days)`, COLORS.TEXT_NORMAL);
+                    const startedStr = `${months[startedDate.getMonth()]} ${startedDate.getDate()}, ${startedDate.getFullYear()}`;
+                    const yearsElapsed = gameState.currentYear - news.startYear;
+                    const daysElapsed = Math.max(0, Math.ceil(yearsElapsed * 365.25));
+                    UI.addText(7, y, 'Started: ', COLORS.TEXT_DIM);
+                    UI.addText(16, y, `${startedStr} (${daysElapsed} days)`, COLORS.TEXT_NORMAL);
                     y++;
                 }
                 

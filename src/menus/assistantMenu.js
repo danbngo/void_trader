@@ -112,16 +112,25 @@ const AssistantMenu = (() => {
         
         const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
         const shouldHighlightCaptainInfo = hasSkillPoints && gameState.captainInfoSeenAtLevel !== gameState.captain.level;
-        const captainInfoColor = shouldHighlightCaptainInfo ? COLORS.YELLOW : COLORS.BUTTON;
-        const captainInfoHelp = hasSkillPoints ? 'Skill points available! View captain info and skills' : 'View captain info, skills, and perks';
-        UI.addButton(leftX, buttonY + 3, '4', 'Captain Info', () => CaptainInfoMenu.show(() => show(gameState, returnCallback)), captainInfoColor, captainInfoHelp);
+        const isCaptainInfoLocked = gameState.captain.level === 1 && gameState.captain.experience === 0;
+        const captainInfoColor = isCaptainInfoLocked ? COLORS.TEXT_DIM : (shouldHighlightCaptainInfo ? COLORS.YELLOW : COLORS.BUTTON);
+        const captainInfoHelp = isCaptainInfoLocked
+            ? 'Gain experience to view your stats'
+            : (hasSkillPoints ? 'Skill points available! View captain info and skills' : 'View captain info, skills, and perks');
+        UI.addButton(leftX, buttonY + 3, '4', 'Captain Info',
+            isCaptainInfoLocked ? () => {
+                outputMessage = 'Gain experience to view your stats.';
+                outputColor = COLORS.TEXT_ERROR;
+                render(gameState, onReturn);
+            } : () => CaptainInfoMenu.show(() => show(gameState, returnCallback)),
+            captainInfoColor, captainInfoHelp);
 
         // Column 2: Quests, Messages, Trade Recs
         // Quests - yellow if unread, gray out if no quests
         const hasUnreadQuests = gameState.activeQuests && gameState.activeQuests.some(qid => !gameState.readQuests.includes(qid));
         const questsHelpText = hasQuests ? (hasUnreadQuests ? 'View quests (new quests available)' : 'View active and completed quests') : 'No active or completed quests';
         const questsColor = hasUnreadQuests ? COLORS.YELLOW : (hasQuests ? COLORS.BUTTON : COLORS.TEXT_DIM);
-        UI.addButton(middleX, buttonY + 1, '5', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
+        UI.addButton(middleX, buttonY, '5', 'Quests', () => tryOpenQuests(gameState, onReturn), questsColor, questsHelpText);
         
         // Jobs - yellow if new unviewed job is available
         const hasActiveJob = gameState.currentJob !== null;
@@ -134,7 +143,7 @@ const AssistantMenu = (() => {
             ? 'New jobs available at the tavern'
             : (hasActiveJob ? 'View active job details' : 'No active jobs');
         const jobsColor = hasUnviewedJobs ? COLORS.YELLOW : (hasActiveJob ? COLORS.BUTTON : COLORS.TEXT_DIM);
-        UI.addButton(middleX, buttonY + 2, '6', 'Jobs', () => tryOpenJobs(gameState, onReturn), jobsColor, jobsHelpText);
+        UI.addButton(middleX, buttonY + 1, '6', 'Jobs', () => tryOpenJobs(gameState, onReturn), jobsColor, jobsHelpText);
         
         // News - highlight if there are unread news events that player can see
         const hasUnreadNews = gameState.newsEvents.some(news => {
@@ -147,10 +156,10 @@ const AssistantMenu = (() => {
         });
         const newsHelpText = hasUnreadNews ? 'View news (new events available)' : 'View active news events';
         const newsColor = hasUnreadNews ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(middleX, buttonY + 3, '7', 'News', () => NewsMenu.show(gameState, () => show(gameState, returnCallback)), newsColor, newsHelpText);
+        UI.addButton(middleX, buttonY + 2, '7', 'News', () => NewsMenu.show(gameState, () => show(gameState, returnCallback)), newsColor, newsHelpText);
         
         const messagesColor = hasUnreadMessages ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(middleX, buttonY + 4, '8', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
+        UI.addButton(middleX, buttonY + 3, '8', 'Messages', () => MessagesMenu.show(gameState, () => show(gameState, returnCallback)), messagesColor, 'View messages and communications');
         
         // Column 3: Trade Recs, Score, Back
         // Trade recs - never highlight (removed recommendation highlight behavior)

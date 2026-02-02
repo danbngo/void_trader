@@ -51,7 +51,7 @@ const TradeRecommendationsMenu = (() => {
         if (!selectedCargoType) {
             UI.addTextCentered(4, 'No cargo types available.', COLORS.TEXT_DIM);
             UI.addTextCentered(6, 'Unlock cargo perks to view trade recommendations.', COLORS.TEXT_DIM);
-            UI.addButton(5, grid.height - 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+            UI.addButton(25, grid.height - 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
             UI.draw();
             return;
         }
@@ -64,7 +64,7 @@ const TradeRecommendationsMenu = (() => {
             const disabledHelp = 'Visit more systems to receive trade recommendations';
             UI.addButton(5, buttonY, '1', 'Next Cargo', () => {}, COLORS.TEXT_DIM, disabledHelp);
             UI.addButton(5, buttonY + 1, '2', 'Prev Cargo', () => {}, COLORS.TEXT_DIM, disabledHelp);
-            UI.addButton(5, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+            UI.addButton(25, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
             UI.draw();
             return;
         }
@@ -206,7 +206,7 @@ const TradeRecommendationsMenu = (() => {
             UI.addButton(25, buttonY + 1, '9', 'Prev Page', prevPage, prevPageColor, canPrevPage ? 'View previous page of systems' : 'Already on first page');
         }
         
-        UI.addButton(5, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
+        UI.addButton(25, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
         
         UI.draw();
     }

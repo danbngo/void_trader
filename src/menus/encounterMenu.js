@@ -697,7 +697,7 @@ const EncounterMenu = (() => {
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
-                let color = COLORS.CYAN;
+                let color = COLORS.BLUE;
                 
                 // Check if ship should flash orange (4 flashes over 1 second)
                 let shouldFlash = false;
@@ -806,7 +806,7 @@ const EncounterMenu = (() => {
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                 let symbol = getShipSymbol(ship);
-                let color = ship.isNeutralToPlayer ? COLORS.CYAN : COLORS.TEXT_ERROR;
+                let color = ship.isNeutralToPlayer ? COLORS.BLUE : COLORS.TEXT_ERROR;
                 
                 // Check if ship should flash orange (4 flashes over 1 second)
                 let shouldFlash = false;
@@ -1284,6 +1284,12 @@ const EncounterMenu = (() => {
                 ? `Recharge up to ${rechargeAmount} shields`
                 : 'Shields already at maximum';
             UI.addButton(middleX, col2Y++, 'r', 'Recharge Shields', () => {
+                if (!canRecharge) {
+                    outputMessage = 'Shields already at maximum.';
+                    outputColor = COLORS.TEXT_ERROR;
+                    render();
+                    return;
+                }
                 executePlayerAction(COMBAT_ACTIONS.RECHARGE_SHIELDS);
             }, rechargeColor, rechargeHelp);
             

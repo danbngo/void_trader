@@ -310,10 +310,13 @@ const ShipyardMenu = (() => {
         
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(5, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON);
-        UI.addButton(5, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON);
-        UI.addButton(25, buttonY, '3', 'Confirm Sell', () => confirmSellFromSellMode(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship');
-        UI.addButton(5, buttonY + 2, '0', 'Cancel', () => switchToManageMode(onReturn), COLORS.BUTTON);
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
+        UI.addButton(leftX, buttonY, '1', 'Next Ship', () => nextShip(onReturn), COLORS.BUTTON);
+        UI.addButton(leftX, buttonY + 1, '2', 'Previous Ship', () => prevShip(onReturn), COLORS.BUTTON);
+        UI.addButton(middleX, buttonY, '3', 'Confirm Sell', () => confirmSellFromSellMode(onReturn), COLORS.TEXT_ERROR, 'Sell selected ship');
+        UI.addButton(rightX, buttonY, '0', 'Cancel', () => switchToManageMode(onReturn), COLORS.BUTTON);
         
         if (outputMessage) {
             UI.setOutputRow(outputMessage, outputColor);

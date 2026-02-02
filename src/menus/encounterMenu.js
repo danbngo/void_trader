@@ -1189,8 +1189,9 @@ const EncounterMenu = (() => {
             
             // 3-column layout
             const leftX = 5;
-            const middleX = 28;
-            const rightX = 51;
+            const col2X = 26;
+            const col3X = 47;
+            const col4X = 63;
             
             if (itemsMode) {
                 let itemsY = buttonY;
@@ -1202,7 +1203,7 @@ const EncounterMenu = (() => {
                     UI.addButton(leftX, itemsY++, String(index + 1), `${item.name} (${count})`, () => useConsumable(item.id), color, helpText);
                 });
 
-                UI.addButton(rightX, buttonY, '0', 'Back', () => {
+                UI.addButton(col4X, buttonY, '0', 'Back', () => {
                     itemsMode = false;
                     render();
                 }, COLORS.BUTTON, 'Return to combat actions');
@@ -1286,14 +1287,14 @@ const EncounterMenu = (() => {
                 executePlayerAction(COMBAT_ACTIONS.FIRE_LASER);
             }, COLORS.TEXT_ERROR, laserHelpText);
 
-            // Column 2: Pursue, Flee, Recharge, Surrender
+            // Column 2: Pursue, Flee, Recharge
             let col2Y = buttonY;
             
-            UI.addButton(middleX, col2Y++, '4', 'Pursue', () => {
+            UI.addButton(col2X, col2Y++, '4', 'Pursue', () => {
                 executePlayerAction(COMBAT_ACTIONS.PURSUE);
             }, COLORS.GREEN, pursueHelpText);
             
-            UI.addButton(middleX, col2Y++, '5', 'Flee', () => {
+            UI.addButton(col2X, col2Y++, '5', 'Flee', () => {
                 executePlayerAction(COMBAT_ACTIONS.FLEE);
             }, COLORS.BUTTON, fleeHelpText);
 
@@ -1303,7 +1304,7 @@ const EncounterMenu = (() => {
             const rechargeHelp = canRecharge
                 ? `Recharge up to ${rechargeAmount} shields`
                 : 'Shields already at maximum';
-            UI.addButton(middleX, col2Y++, 'r', 'Recharge Shields', () => {
+            UI.addButton(col2X, col2Y++, '6', 'Recharge Shields', () => {
                 if (!canRecharge) {
                     outputMessage = 'Shields already at maximum.';
                     outputColor = COLORS.TEXT_ERROR;
@@ -1313,30 +1314,33 @@ const EncounterMenu = (() => {
                 executePlayerAction(COMBAT_ACTIONS.RECHARGE_SHIELDS);
             }, rechargeColor, rechargeHelp);
             
-            // Only show surrender option if encounter type permits it
-            if (encounterType.surrenderPermitted !== false) {
-                UI.addButton(middleX, col2Y++, '6', 'Surrender', () => {
-                    handleSurrender(gameState);
-                }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
-            }
-            
-            // Column 3: Zoom In, Zoom Out, Items
+            // Column 3: Zoom In, Zoom Out
             let col3Y = buttonY;
             
-            UI.addButton(rightX, col3Y++, '7', 'Zoom In', () => {
+            UI.addButton(col3X, col3Y++, '7', 'Zoom In', () => {
                 mapViewRange = Math.max(ENCOUNTER_MIN_MAP_VIEW_RANGE, mapViewRange / 1.5);
                 render();
             }, COLORS.BUTTON, 'Decrease view range to see closer');
             
-            UI.addButton(rightX, col3Y++, '8', 'Zoom Out', () => {
+            UI.addButton(col3X, col3Y++, '8', 'Zoom Out', () => {
                 mapViewRange = Math.min(ENCOUNTER_MAX_MAP_VIEW_RANGE, mapViewRange * 1.5);
                 render();
             }, COLORS.BUTTON, 'Increase view range to see farther');
 
-            UI.addButton(rightX, col3Y++, '9', 'Items', () => {
+            // Column 4: Items, Surrender
+            let col4Y = buttonY;
+            
+            UI.addButton(col4X, col4Y++, 'i', 'Items', () => {
                 itemsMode = true;
                 render();
             }, COLORS.BUTTON, 'Use combat consumables');
+
+            // Only show surrender option if encounter type permits it
+            if (encounterType.surrenderPermitted !== false) {
+                UI.addButton(col4X, col4Y++, '0', 'Surrender', () => {
+                    handleSurrender(gameState);
+                }, COLORS.TEXT_DIM, 'Give up and let enemies take cargo/credits');
+            }
         }
     }
     

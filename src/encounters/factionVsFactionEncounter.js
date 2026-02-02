@@ -36,16 +36,34 @@ const FactionVsFactionEncounter = {
 
         const buttonY = grid.height - 4;
 
+        const leftButton = {
+            key: '2',
+            label: `Side with ${leftLabel}`,
+            callback: () => {
+                this.handleSideWith(gameState, leftType, rightType, encType);
+            },
+            color: leftType.id === 'MERCHANT' ? COLORS.TEXT_NORMAL : (leftType.color || COLORS.BUTTON),
+            keyColor: leftType.id === 'MERCHANT' ? COLORS.GREEN : null,
+            helpText: `Aid ${leftLabel} against ${rightLabel}`
+        };
+
+        const rightButton = {
+            key: '3',
+            label: `Side with ${rightLabel}`,
+            callback: () => {
+                this.handleSideWith(gameState, rightType, leftType, encType);
+            },
+            color: rightType.id === 'MERCHANT' ? COLORS.TEXT_NORMAL : (rightType.color || COLORS.BUTTON),
+            keyColor: rightType.id === 'MERCHANT' ? COLORS.GREEN : null,
+            helpText: `Aid ${rightLabel} against ${leftLabel}`
+        };
+
         UI.addCenteredButtons(buttonY, [
             { key: '1', label: 'Ignore', callback: () => {
                 TravelMenu.resume();
             }, color: COLORS.GREEN, helpText: 'Avoid the conflict and continue your journey' },
-            { key: '2', label: `Side with ${leftLabel}`, callback: () => {
-                this.handleSideWith(gameState, leftType, rightType, encType);
-            }, color: leftType.color || COLORS.BUTTON, helpText: `Aid ${leftLabel} against ${rightLabel}` },
-            { key: '3', label: `Side with ${rightLabel}`, callback: () => {
-                this.handleSideWith(gameState, rightType, leftType, encType);
-            }, color: rightType.color || COLORS.BUTTON, helpText: `Aid ${rightLabel} against ${leftLabel}` }
+            leftButton,
+            rightButton
         ]);
 
         UI.draw();

@@ -34,15 +34,27 @@ const ScanSystemMenu = (() => {
         const industryName = SYSTEM_INDUSTRY_LEVELS_ALL.find(l => l.id === system.industryLevel)?.name || 'Unknown';
         const popLevelName = SYSTEM_POPULATION_LEVELS_ALL.find(l => l.id === system.populationLevel)?.name || 'Unknown';
 
+        const getLevelRatio = (levels, levelId) => {
+            if (!Array.isArray(levels) || levels.length <= 1) return 0;
+            const index = levels.findIndex(l => l.id === levelId);
+            if (index < 0) return 0;
+            return (index / (levels.length - 1)) * 4.0;
+        };
+
+        const cultureColor = UI.calcStatColor(getLevelRatio(SYSTEM_CULTURE_LEVELS_ALL, system.cultureLevel));
+        const techColor = UI.calcStatColor(getLevelRatio(SYSTEM_TECHNOLOGY_LEVELS_ALL, system.technologyLevel));
+        const industryColor = UI.calcStatColor(getLevelRatio(SYSTEM_INDUSTRY_LEVELS_ALL, system.industryLevel));
+        const popLevelColor = UI.calcStatColor(getLevelRatio(SYSTEM_POPULATION_LEVELS_ALL, system.populationLevel));
+
         const overviewData = [
             { label: 'System Name:', value: system.name, valueColor: COLORS.CYAN },
             { label: 'Coordinates:', value: `(${system.x}, ${system.y})`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Population:', value: `${system.population} million`, valueColor: COLORS.TEXT_NORMAL },
             { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[system.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Culture:', value: cultureName, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Technology:', value: techName, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Industry:', value: industryName, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Pop Level:', value: popLevelName, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Culture:', value: cultureName, valueColor: cultureColor },
+            { label: 'Technology:', value: techName, valueColor: techColor },
+            { label: 'Industry:', value: industryName, valueColor: industryColor },
+            { label: 'Pop Level:', value: popLevelName, valueColor: popLevelColor },
             { label: 'Stars:', value: String(starsCount), valueColor: COLORS.TEXT_NORMAL },
             { label: 'Planets:', value: String(planetsCount), valueColor: COLORS.TEXT_NORMAL },
             { label: 'Moons:', value: String(moonsCount), valueColor: COLORS.TEXT_NORMAL },

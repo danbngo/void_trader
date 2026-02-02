@@ -524,8 +524,13 @@ const EncounterMenu = (() => {
         const mapCenterX = Math.floor(mapWidth / 2);
         const mapCenterY = Math.floor(mapHeight / 2);
         
-        // Calculate scale based on view range
-        const scale = Math.min((mapWidth - 4) / (mapViewRange * 2), (mapHeight - 4) / (mapViewRange * 2));
+        // Calculate scale based on view range and character aspect ratio
+        const charDims = UI.getCharDimensions();
+        const pixelScaleX = ((mapWidth - 4) / (mapViewRange * 2)) * charDims.width;
+        const pixelScaleY = ((mapHeight - 4) / (mapViewRange * 2)) * charDims.height;
+        const pixelScale = Math.min(pixelScaleX, pixelScaleY);
+        const scaleX = pixelScale / charDims.width;
+        const scaleY = pixelScale / charDims.height;
         
         // Draw center marker
         // UI.addText(mapCenterX, mapCenterY, '+', COLORS.TEXT_DIM); // Removed center marker
@@ -534,8 +539,8 @@ const EncounterMenu = (() => {
         for (let screenY = 1; screenY < mapHeight - 1; screenY++) {
             for (let screenX = 1; screenX < mapWidth - 1; screenX++) {
                 // Convert screen coordinates to world coordinates
-                const worldX = (screenX - mapCenterX) / scale + cameraOffsetX;
-                const worldY = -((screenY - mapCenterY) / scale) + cameraOffsetY;
+                const worldX = (screenX - mapCenterX) / scaleX + cameraOffsetX;
+                const worldY = -((screenY - mapCenterY) / scaleY) + cameraOffsetY;
                 
                 // Calculate distance from center (0, 0) in world space
                 const distanceFromCenter = Math.sqrt(worldX * worldX + worldY * worldY);
@@ -571,8 +576,8 @@ const EncounterMenu = (() => {
         
         // Calculate target ship screen position (even if off-screen) for line drawing
         if (targetShip && !targetShip.fled && !targetShip.escaped) {
-            targetShipScreenX = Math.floor(mapCenterX + (targetShip.x - cameraOffsetX) * scale);
-            targetShipScreenY = Math.floor(mapCenterY - (targetShip.y - cameraOffsetY) * scale);
+            targetShipScreenX = Math.floor(mapCenterX + (targetShip.x - cameraOffsetX) * scaleX);
+            targetShipScreenY = Math.floor(mapCenterY - (targetShip.y - cameraOffsetY) * scaleY);
         }
         
         // Draw asteroids (render before projectiles and ships)
@@ -589,8 +594,8 @@ const EncounterMenu = (() => {
             
             if (asteroid.disabled) return;
             
-            const screenX = Math.floor(mapCenterX + (asteroid.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (asteroid.y - cameraOffsetY) * scale);
+            const screenX = Math.floor(mapCenterX + (asteroid.x - cameraOffsetX) * scaleX);
+            const screenY = Math.floor(mapCenterY - (asteroid.y - cameraOffsetY) * scaleY);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -613,8 +618,8 @@ const EncounterMenu = (() => {
         // Draw projectile (render before ships so ships overlap it)
         if (gameState.combatAction && gameState.combatAction.projectile) {
             const proj = gameState.combatAction.projectile;
-            const screenX = Math.floor(mapCenterX + (proj.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (proj.y - cameraOffsetY) * scale);
+            const screenX = Math.floor(mapCenterX + (proj.x - cameraOffsetX) * scaleX);
+            const screenY = Math.floor(mapCenterY - (proj.y - cameraOffsetY) * scaleY);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -678,8 +683,8 @@ const EncounterMenu = (() => {
             
             if (!ship.disabled) return; // Skip alive ships in this pass
             
-            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scaleX);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scaleY);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -691,8 +696,8 @@ const EncounterMenu = (() => {
         gameState.ships.forEach((ship, index) => {
             if (ship.fled || ship.escaped || ship.disabled) return;
             
-            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scaleX);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scaleY);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -787,8 +792,8 @@ const EncounterMenu = (() => {
             
             if (!ship.disabled) return; // Skip alive ships in this pass
             
-            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scaleX);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scaleY);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -800,8 +805,8 @@ const EncounterMenu = (() => {
         gameState.encounterShips.forEach((ship, index) => {
             if (ship.fled || ship.escaped || ship.disabled) return;
             
-            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+            const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scaleX);
+            const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scaleY);
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -866,8 +871,8 @@ const EncounterMenu = (() => {
             }
             
             // Draw 3x3 grid of explosion particles centered on ship (in screen space)
-            const centerScreenX = Math.floor(mapCenterX + (explosion.x - cameraOffsetX) * scale);
-            const centerScreenY = Math.floor(mapCenterY - (explosion.y - cameraOffsetY) * scale);
+            const centerScreenX = Math.floor(mapCenterX + (explosion.x - cameraOffsetX) * scaleX);
+            const centerScreenY = Math.floor(mapCenterY - (explosion.y - cameraOffsetY) * scaleY);
             for (let dx = -1; dx <= 1; dx++) {
                 for (let dy = -1; dy <= 1; dy++) {
                     const screenX = centerScreenX + dx;
@@ -916,8 +921,8 @@ const EncounterMenu = (() => {
                 const x = effect.x + Math.cos(angle) * currentRadius;
                 const y = effect.y + Math.sin(angle) * currentRadius;
                 
-                const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scale);
-                const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scale);
+                const screenX = Math.floor(mapCenterX + (x - cameraOffsetX) * scaleX);
+                const screenY = Math.floor(mapCenterY - (y - cameraOffsetY) * scaleY);
                 
                 // Check if in bounds
                 if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
@@ -957,8 +962,8 @@ const EncounterMenu = (() => {
                 shouldDrawLine = true;
                 const obstX = gameState.combatAction.hitObstruction.x;
                 const obstY = gameState.combatAction.hitObstruction.y;
-                lineEndX = Math.floor(mapCenterX + (obstX - cameraOffsetX) * scale);
-                lineEndY = Math.floor(mapCenterY - (obstY - cameraOffsetY) * scale);
+                lineEndX = Math.floor(mapCenterX + (obstX - cameraOffsetX) * scaleX);
+                lineEndY = Math.floor(mapCenterY - (obstY - cameraOffsetY) * scaleY);
             }
         }
         
@@ -968,8 +973,8 @@ const EncounterMenu = (() => {
             
             gameState.ships.forEach(ship => {
                 if (ship.fled || ship.escaped) return;
-                const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-                const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+                const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scaleX);
+                const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scaleY);
                 if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                     shipPositions.add(`${screenX},${screenY}`);
                 }
@@ -977,8 +982,8 @@ const EncounterMenu = (() => {
             
             gameState.encounterShips.forEach(ship => {
                 if (ship.fled || ship.escaped) return;
-                const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scale);
-                const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scale);
+                const screenX = Math.floor(mapCenterX + (ship.x - cameraOffsetX) * scaleX);
+                const screenY = Math.floor(mapCenterY - (ship.y - cameraOffsetY) * scaleY);
                 if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {
                     shipPositions.add(`${screenX},${screenY}`);
                 }
@@ -2428,6 +2433,7 @@ const EncounterMenu = (() => {
      */
     function continueAfterAction() {
         outputMessage = '';
+        UI.clearOutputRow();
         waitingForContinue = false; // Allow next ship to become active
         
         // Check for victory before proceeding
@@ -2508,8 +2514,9 @@ const EncounterMenu = (() => {
                 cameraOffsetY = firstShip.y;
             }
             
-            outputMessage = 'New turn';
+            outputMessage = '';
             outputColor = COLORS.TEXT_NORMAL;
+            UI.clearOutputRow();
             render();
         });
     }

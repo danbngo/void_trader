@@ -445,9 +445,13 @@ class CombatActionHandler {
                         // TRACTOR_BEAM: Pull target toward attacker
                         if (this.ship.modules.includes('TRACTOR_BEAM')) {
                             const pullDistance = damage * MODULE_TRACTOR_BEAM_DISTANCE_RATIO;
+                            const pullAngle = Math.atan2(
+                                this.ship.y - this.action.targetShip.y,
+                                this.ship.x - this.action.targetShip.x
+                            );
                             this.action.moduleEffects.tractorPull = {
                                 distance: pullDistance,
-                                angle: this.ship.angle
+                                angle: pullAngle
                             };
                         }
 

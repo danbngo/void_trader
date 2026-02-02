@@ -91,7 +91,12 @@ const GalaxyMap = (() => {
         // Calculate scale to fit systems in map
         const mapCenterX = Math.floor(mapWidth / 2);
         const mapCenterY = Math.floor(mapHeight / 2);
-        const scale = Math.min((mapWidth - 4) / (mapViewRange * 2), (mapHeight - 4) / (mapViewRange * 2));
+        const charDims = UI.getCharDimensions();
+        const pixelScaleX = ((mapWidth - 4) / (mapViewRange * 2)) * charDims.width;
+        const pixelScaleY = ((mapHeight - 4) / (mapViewRange * 2)) * charDims.height;
+        const pixelScale = Math.min(pixelScaleX, pixelScaleY);
+        const scaleX = pixelScale / charDims.width;
+        const scaleY = pixelScale / charDims.height;
         
         // Draw current system (center)
         UI.addText(mapCenterX, mapCenterY, '@', COLORS.GREEN);
@@ -110,8 +115,8 @@ const GalaxyMap = (() => {
             const dx = item.system.x - currentSystem.x;
             const dy = item.system.y - currentSystem.y;
             
-            const screenX = Math.floor(mapCenterX + dx * scale);
-            const screenY = Math.floor(mapCenterY - dy * scale); // Negate Y because screen Y increases downward
+            const screenX = Math.floor(mapCenterX + dx * scaleX);
+            const screenY = Math.floor(mapCenterY - dy * scaleY); // Negate Y because screen Y increases downward
             
             // Check if in bounds
             if (screenX > 0 && screenX < mapWidth - 1 && screenY > 0 && screenY < mapHeight - 1) {

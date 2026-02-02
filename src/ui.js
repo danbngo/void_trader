@@ -558,6 +558,16 @@ const UI = (() => {
     function getGridSize() {
         return { width: GRID_WIDTH, height: GRID_HEIGHT };
     }
+
+    /**
+     * Get character dimensions in pixels
+     */
+    function getCharDimensions() {
+        if (!canvasWrapper) {
+            return { width: 1, height: 1 };
+        }
+        return canvasWrapper.getCharDimensions();
+    }
     
     /**
      * Reset button selection to first button (for entering new menus)
@@ -759,6 +769,7 @@ const UI = (() => {
         debugRegisteredTexts,
         draw,
         getGridSize,
+        getCharDimensions,
         resetSelection,
         setOutputRow,
         clearOutputRow,

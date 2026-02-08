@@ -31,6 +31,13 @@ const UI = (() => {
     let flashStartTime = null;
     let flashState = false; // Toggles between true/false each flash
     let isInFlashCallback = false; // Prevents clear() from stopping flash during callback
+
+    const DEBUG_UI = false;
+    function uiLog(...args) {
+        if (DEBUG_UI) {
+            console.log(...args);
+        }
+    }
     
     /**
      * Initialize the UI system
@@ -171,7 +178,7 @@ const UI = (() => {
      * Clear all registered UI elements (selection preserved if possible)
      */
     function clear() {
-        console.log('[UI] clear() called, preserving outputRow:', { outputRowText, outputRowColor, outputRowIsHelpText });
+        uiLog('[UI] clear() called, preserving outputRow:', { outputRowText, outputRowColor, outputRowIsHelpText });
         // Preserve current selected button key
         if (registeredButtons.length > 0 && selectedButtonIndex < registeredButtons.length) {
             preservedButtonKey = registeredButtons[selectedButtonIndex].key;
@@ -434,7 +441,7 @@ const UI = (() => {
             // But only if not flashing (preserve output during flash)
             // Safe to clear all output because combat actions don't show buttons
             if (!isCurrentlyFlashing) {
-                console.log('[UI] Selection changed, clearing output row');
+                uiLog('[UI] Selection changed, clearing output row');
                 outputRowText = '';
                 outputRowColor = 'white';
                 outputRowIsHelpText = false;
@@ -485,7 +492,7 @@ const UI = (() => {
         
         // Draw output row (generalized)
         if (outputRowText) {
-            console.log('[UI] Drawing output row:', { outputRowText, outputRowColor, outputRowIsHelpText });
+            uiLog('[UI] Drawing output row:', { outputRowText, outputRowColor, outputRowIsHelpText });
             const grid = getGridSize();
             // Find the minimum button Y position (topmost button)
             let minButtonY = grid.height - 3; // default if no buttons
@@ -498,17 +505,22 @@ const UI = (() => {
             canvasWrapper.drawRect(x, y, outputRowText.length, 1, 'black');
             canvasWrapper.drawText(x, y, outputRowText, outputRowColor);
         } else {
-            console.log('[UI] No output row text to draw');
+            uiLog('[UI] No output row text to draw');
         }
         
         // Debug output
-        debugToConsole();
+        if (DEBUG_UI) {
+            debugToConsole();
+        }
     }
     
     /**
      * Debug function to print current screen content to console
      */
     function debugToConsole() {
+        if (!DEBUG_UI) {
+            return;
+        }
         // Create a 2D array to represent the screen
         const screen = [];
         for (let y = 0; y < GRID_HEIGHT; y++) {
@@ -549,7 +561,7 @@ const UI = (() => {
         output += '└' + '─'.repeat(GRID_WIDTH) + '┘\n';
         output += `Texts: ${registeredTexts.length}, Buttons: ${registeredButtons.length}, Selected: ${selectedButtonIndex}`;
         
-        console.log(output);
+        uiLog(output);
     }
     
     /**
@@ -573,13 +585,13 @@ const UI = (() => {
      * Reset button selection to first button (for entering new menus)
      */
     function resetSelection() {
-        console.log('[UI] resetSelection called, current outputRow:', { outputRowText, outputRowColor, outputRowIsHelpText });
+        uiLog('[UI] resetSelection called, current outputRow:', { outputRowText, outputRowColor, outputRowIsHelpText });
         selectedButtonIndex = 0;
         lastSelectedButtonIndex = -1;
         preservedButtonKey = null; // Clear preserved key to prevent carryover
         // Clear output row when transitioning to new menu
         // This ensures previous menu's messages don't carry over
-        console.log('[UI] Clearing output row on menu transition');
+        uiLog('[UI] Clearing output row on menu transition');
         outputRowText = '';
         outputRowColor = 'white';
         outputRowIsHelpText = false;
@@ -591,7 +603,7 @@ const UI = (() => {
      * @param {string} color - Color of the text
      */
     function setOutputRow(text, color = 'white') {
-        console.log('[UI] setOutputRow called:', { text, color, isHelpText: false });
+        uiLog('[UI] setOutputRow called:', { text, color, isHelpText: false });
         outputRowText = text;
         outputRowColor = color;
         outputRowIsHelpText = false;
@@ -646,8 +658,8 @@ const UI = (() => {
      * Debug function to log all registered texts
      */
     function debugRegisteredTexts() {
-        console.log('=== All Registered Texts ===');
-        console.log(`Total: ${registeredTexts.length} texts`);
+        uiLog('=== All Registered Texts ===');
+        uiLog(`Total: ${registeredTexts.length} texts`);
         
         // Group by Y coordinate for easier reading
         const byY = {};
@@ -658,10 +670,10 @@ const UI = (() => {
         
         // Print sorted by Y
         Object.keys(byY).sort((a, b) => Number(a) - Number(b)).forEach(y => {
-            console.log(`\nRow ${y}:`);
+            uiLog(`\nRow ${y}:`);
             byY[y].forEach(item => {
                 const preview = item.text.length > 40 ? item.text.substring(0, 40) + '...' : item.text;
-                console.log(`  [${item.index}] x=${item.x}, color=${item.color}, text="${preview}"`);
+                uiLog(`  [${item.index}] x=${item.x}, color=${item.color}, text="${preview}"`);
             });
         });
     }
@@ -679,14 +691,14 @@ const UI = (() => {
         // Stop any existing flash
         stopFlashing();
         
-        console.log('[UI] startFlashing called:', { interval, duration, callImmediately });
+        uiLog('[UI] startFlashing called:', { interval, duration, callImmediately });
         
         flashCallback = callback;
         flashStartTime = Date.now();
         
         // Call immediately if requested (within flash callback context)
         if (callImmediately && flashCallback) {
-            console.log('[UI] Calling flash callback immediately');
+            uiLog('[UI] Calling flash callback immediately');
             isInFlashCallback = true;
             flashCallback();
             // Don't set isInFlashCallback back to false yet - keep it true
@@ -696,14 +708,14 @@ const UI = (() => {
         flashInterval = setInterval(() => {
             // Check if duration has elapsed (if duration is set)
             if (duration > 0 && Date.now() - flashStartTime >= duration) {
-                console.log('[UI] Flash duration expired, stopping flash');
+                uiLog('[UI] Flash duration expired, stopping flash');
                 stopFlashing();
                 return;
             }
             
             // Toggle flash state
             flashState = !flashState;
-            console.log('[UI] Flash state toggled to:', flashState);
+            uiLog('[UI] Flash state toggled to:', flashState);
             
             // Call the callback (should re-register and re-draw UI)
             if (flashCallback) {
@@ -713,13 +725,13 @@ const UI = (() => {
             }
         }, interval);
         
-        console.log('[UI] Flash interval started with ID:', flashInterval);
+        uiLog('[UI] Flash interval started with ID:', flashInterval);
         
         // Reset isInFlashCallback after a short delay to allow function to return
         // and prevent any immediate render() calls from stopping the flash
         setTimeout(() => {
             isInFlashCallback = false;
-            console.log('[UI] isInFlashCallback reset to false');
+            uiLog('[UI] isInFlashCallback reset to false');
         }, 50);
     }
     
@@ -728,7 +740,7 @@ const UI = (() => {
      */
     function stopFlashing() {
         if (flashInterval) {
-            console.log('[UI] stopFlashing called, clearing interval:', flashInterval);
+            uiLog('[UI] stopFlashing called, clearing interval:', flashInterval);
             clearInterval(flashInterval);
             flashInterval = null;
         }

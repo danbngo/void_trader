@@ -17,7 +17,7 @@ class Ship {
      * @param {number} engine - Engine level (affects travel speed)
      * @param {number} radar - Radar level (affects targeting accuracy)
      */
-    constructor(fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5) {
+    constructor(fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5, size = 1) {
         this.type = type;
         this.fuel = fuel;
         this.maxFuel = maxFuel;
@@ -29,6 +29,10 @@ class Ship {
         this.lasers = lasers;
         this.engine = engine;
         this.radar = radar;
+        this.size = size;
+        this.position = { x: 0, y: 0, z: 0 };
+        this.velocity = { x: 0, y: 0, z: 0 };
+        this.rotation = { x: 0, y: 0, z: 0, w: 1 };
         this.modules = []; // Installed modules
         // Initialize cargo for all types
         this.cargo = {};

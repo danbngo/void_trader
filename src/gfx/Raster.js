@@ -18,10 +18,22 @@ const RasterUtils = (() => {
             return;
         }
         const index = y * buffer.width + x;
-        if (z < buffer.depth[index]) {
+        const existingDepth = buffer.depth[index];
+        const existingChar = buffer.chars[index];
+        if (z < existingDepth) {
             buffer.depth[index] = z;
             buffer.chars[index] = symbol;
             buffer.colors[index] = color;
+            return;
+        }
+
+        if (existingChar === '░' && symbol !== '░') {
+            const epsilon = 0.001;
+            if (z < existingDepth + epsilon) {
+                buffer.depth[index] = z;
+                buffer.chars[index] = symbol;
+                buffer.colors[index] = color;
+            }
         }
     }
 
@@ -133,20 +145,53 @@ const RasterUtils = (() => {
         const minY = Math.max(0, Math.floor(Math.min(...projected.map(p => p.y))));
         const maxY = Math.min(viewHeight - 1, Math.ceil(Math.max(...projected.map(p => p.y))));
 
+        const bboxWidth = Math.max(0, maxX - minX + 1);
+        const bboxHeight = Math.max(0, maxY - minY + 1);
+        const bboxArea = bboxWidth * bboxHeight;
+        if (bboxArea === 0) {
+            return;
+        }
+
         const polygon2D = orderedVertices.map(v => ({
             x: ThreeDUtils.dotVec(v, basis.u),
             y: ThreeDUtils.dotVec(v, basis.v)
         }));
 
-        const cornerOffsets = [
+        let step = 1;
+        let cornerOffsets = [
             { x: 0.1, y: 0.1 },
             { x: 0.9, y: 0.1 },
             { x: 0.1, y: 0.9 },
             { x: 0.9, y: 0.9 }
         ];
 
-        for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
+        if (bboxArea > 6000) {
+            step = 2;
+            cornerOffsets = [
+                { x: 0.2, y: 0.2 },
+                { x: 0.8, y: 0.8 }
+            ];
+        }
+
+        const maxSamples = bboxArea > 8000 ? 12000 : Infinity;
+        let sampleCount = 0;
+
+        const plotBlock = (x, y, z) => {
+            plotDepthText(buffer, x, y, z, fillSymbol, fillColor);
+            if (step > 1) {
+                plotDepthText(buffer, x + 1, y, z, fillSymbol, fillColor);
+                plotDepthText(buffer, x, y + 1, z, fillSymbol, fillColor);
+                plotDepthText(buffer, x + 1, y + 1, z, fillSymbol, fillColor);
+            }
+        };
+
+        rasterLoop:
+        for (let y = minY; y <= maxY; y += step) {
+            for (let x = minX; x <= maxX; x += step) {
+                sampleCount++;
+                if (sampleCount > maxSamples) {
+                    break rasterLoop;
+                }
                 let closestZ = null;
                 let centerInside = false;
 
@@ -165,7 +210,7 @@ const RasterUtils = (() => {
                 }
 
                 if (centerInside) {
-                    plotDepthText(buffer, x, y, closestZ + bias, fillSymbol, fillColor);
+                    plotBlock(x, y, closestZ + bias);
                     continue;
                 }
 
@@ -195,7 +240,7 @@ const RasterUtils = (() => {
                 }
 
                 if (partialInside && closestZ !== null) {
-                    plotDepthText(buffer, x, y, closestZ + bias, '─', COLORS.TEXT_NORMAL);
+                    plotBlock(x, y, closestZ + bias);
                 }
             }
         }

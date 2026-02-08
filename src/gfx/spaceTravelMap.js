@@ -97,6 +97,7 @@ const SpaceTravelMap = (() => {
     let lastTimestamp = 0;
     let lastAsciiLogTimestamp = 0;
     let animationId = null;
+    let isActive = false;
 
     const keyState = new Set();
     let keyDownHandler = null;
@@ -175,10 +176,12 @@ const SpaceTravelMap = (() => {
         updateStationVisibility();
 
         setupInput();
+        isActive = true;
         startLoop();
     }
 
     function stop() {
+        isActive = false;
         if (animationId !== null) {
             cancelAnimationFrame(animationId);
             animationId = null;
@@ -207,6 +210,9 @@ const SpaceTravelMap = (() => {
 
     function startLoop() {
         const loop = (timestamp) => {
+            if (!isActive) {
+                return;
+            }
             if (!lastTimestamp) {
                 lastTimestamp = timestamp;
             }
@@ -214,6 +220,9 @@ const SpaceTravelMap = (() => {
             lastTimestamp = timestamp;
 
             update(dt);
+            if (!isActive) {
+                return;
+            }
             render();
 
             animationId = requestAnimationFrame(loop);
@@ -282,6 +291,10 @@ const SpaceTravelMap = (() => {
         // Update position
         playerShip.position = addVec(playerShip.position, scaleVec(playerShip.velocity, dt));
 
+        if (currentStation && checkStationDocking(currentStation)) {
+            return;
+        }
+
         updateDustParticles();
 
         if (DEBUG_STATION_LOG) {
@@ -290,6 +303,9 @@ const SpaceTravelMap = (() => {
     }
 
     function render() {
+        if (!isActive) {
+            return;
+        }
         UI.clear();
         UI.clearOutputRow();
 
@@ -302,8 +318,8 @@ const SpaceTravelMap = (() => {
         SpaceStationGfx.renderStationOccluders(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, NEAR_PLANE, STATION_FACE_DEPTH_BIAS);
         renderStars(viewWidth, viewHeight, depthBuffer);
         SpaceStationGfx.renderStationEdges(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, STATION_EDGE_DEPTH_BIAS);
+        renderDust(viewWidth, viewHeight, depthBuffer);
         flushDepthBuffer(depthBuffer);
-        renderDust(viewWidth, viewHeight);
         renderHud(viewWidth, viewHeight);
 
         UI.draw();
@@ -347,7 +363,7 @@ const SpaceTravelMap = (() => {
         }
     }
 
-    function renderDust(viewWidth, viewHeight) {
+    function renderDust(viewWidth, viewHeight, depthBuffer) {
         if (!playerShip || dustParticles.length === 0) {
             return;
         }
@@ -368,6 +384,12 @@ const SpaceTravelMap = (() => {
             const y = Math.floor(projected.y);
 
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
+                const bufferIndex = y * depthBuffer.width + x;
+                const existingChar = depthBuffer.chars[bufferIndex];
+                if (existingChar && existingChar !== '.') {
+                    return;
+                }
+
                 let symbol = DUST_PARTICLE_SYMBOL;
                 if (DUST_PARTICLE_LINE_SYMBOLS && speed >= DUST_PARTICLE_LINE_SPEED_THRESHOLD) {
                     const denom = cameraSpacePos.z * cameraSpacePos.z;
@@ -378,7 +400,7 @@ const SpaceTravelMap = (() => {
                         symbol = getLineSymbolFromDirection(vx, vy);
                     }
                 }
-                UI.addText(x, y, symbol, COLORS.TEXT_DIM, 1.0);
+                plotDepthText(depthBuffer, x, y, cameraSpacePos.z, symbol, COLORS.TEXT_DIM);
             }
         });
     }
@@ -484,6 +506,33 @@ const SpaceTravelMap = (() => {
             });
         }
 
+    }
+
+    function checkStationDocking(station) {
+        if (!station || !playerShip) {
+            return false;
+        }
+
+        const dockRadius = station.size * 0.6;
+        const dist = distance(playerShip.position, station.position);
+        if (dist > dockRadius) {
+            return false;
+        }
+
+        stop();
+        const dockGameState = currentGameState;
+        const dockTarget = targetSystem;
+        DockingAnimation.show(dockGameState, () => {
+            if (dockGameState && dockTarget) {
+                const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
+                if (systemIndex >= 0) {
+                    dockGameState.setCurrentSystem(systemIndex);
+                }
+                dockGameState.destination = null;
+            }
+            DockMenu.show(dockGameState);
+        });
+        return true;
     }
 
     function getNearestSystem(gameState) {

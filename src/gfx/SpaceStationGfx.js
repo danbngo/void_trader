@@ -156,7 +156,7 @@ const SpaceStationGfx = (() => {
                         if (ThreeDUtils.vecLength(insetNormal) > 0) {
                             const insetBasis = PolygonUtils.buildPlaneBasis(insetNormal);
                             const insetOrdered = PolygonUtils.orderPolygonVertices(insetClipped, insetBasis);
-                            RasterUtils.rasterizeFaceDepth(depthBuffer, insetOrdered, viewWidth, viewHeight, '░', COLORS.DARK_GRAY, faceBias - 0.0002, nearPlane, 75);
+                            RasterUtils.rasterizeFaceDepth(depthBuffer, insetOrdered, viewWidth, viewHeight, '░', COLORS.BLACK, faceBias - 0.0002, nearPlane, 75);
                         }
                     }
                 }

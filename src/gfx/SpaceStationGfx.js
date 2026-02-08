@@ -118,9 +118,7 @@ const SpaceStationGfx = (() => {
             });
 
             geometry.faces.forEach(face => {
-                if (geometry.entranceFace && isSameFace(face, geometry.entranceFace)) {
-                    return;
-                }
+                const isEntrance = geometry.entranceFace && isSameFace(face, geometry.entranceFace);
                 const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
                 const clipped = PolygonUtils.clipPolygonToNearPlane(cameraFace, nearPlane);
                 if (clipped.length < 3) {
@@ -136,6 +134,32 @@ const SpaceStationGfx = (() => {
                 const basis = PolygonUtils.buildPlaneBasis(normal);
                 const ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
                 RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '░', COLORS.TEXT_DIM, faceBias, nearPlane, 75);
+
+                if (isEntrance) {
+                    const center = cameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
+                    center.x /= cameraFace.length;
+                    center.y /= cameraFace.length;
+                    center.z /= cameraFace.length;
+
+                    const inset = 0.45;
+                    const insetVerts = cameraFace.map(v => {
+                        const offset = ThreeDUtils.subVec(v, center);
+                        return ThreeDUtils.addVec(center, ThreeDUtils.scaleVec(offset, inset));
+                    });
+
+                    const insetClipped = PolygonUtils.clipPolygonToNearPlane(insetVerts, nearPlane);
+                    if (insetClipped.length >= 3) {
+                        const insetNormal = ThreeDUtils.crossVec(
+                            ThreeDUtils.subVec(insetClipped[1], insetClipped[0]),
+                            ThreeDUtils.subVec(insetClipped[2], insetClipped[0])
+                        );
+                        if (ThreeDUtils.vecLength(insetNormal) > 0) {
+                            const insetBasis = PolygonUtils.buildPlaneBasis(insetNormal);
+                            const insetOrdered = PolygonUtils.orderPolygonVertices(insetClipped, insetBasis);
+                            RasterUtils.rasterizeFaceDepth(depthBuffer, insetOrdered, viewWidth, viewHeight, '░', COLORS.DARK_GRAY, faceBias - 0.0002, nearPlane, 75);
+                        }
+                    }
+                }
             });
         });
     }
@@ -176,52 +200,8 @@ const SpaceStationGfx = (() => {
                 });
             });
 
-            if (geometry.entranceFace) {
-                renderStationEntrance(geometry, projectedVertices, depthBuffer, viewWidth, viewHeight, edgeBias);
-            }
+            // Entrance is rendered as a textured face, no outline/hole.
         });
-    }
-
-    function renderStationEntrance(geometry, projectedVertices, depthBuffer, viewWidth, viewHeight, edgeBias) {
-        const face = geometry.entranceFace;
-        const cameraVerts = face.map(idx => projectedVertices[idx]);
-        if (cameraVerts.some(v => !v.projected)) {
-            return;
-        }
-
-        const center = cameraVerts.reduce((acc, v) => ThreeDUtils.addVec(acc, v.cameraSpace), { x: 0, y: 0, z: 0 });
-        center.x /= cameraVerts.length;
-        center.y /= cameraVerts.length;
-        center.z /= cameraVerts.length;
-
-        const inset = 0.45;
-        const innerVerts = cameraVerts.map(v => {
-            const offset = ThreeDUtils.subVec(v.cameraSpace, center);
-            return ThreeDUtils.addVec(center, ThreeDUtils.scaleVec(offset, inset));
-        });
-
-        const projected = innerVerts
-            .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, 75))
-            .filter(p => p !== null);
-        if (projected.length < 4) {
-            return;
-        }
-
-        for (let i = 0; i < projected.length; i++) {
-            const next = (i + 1) % projected.length;
-            const p1 = projected[i];
-            const p2 = projected[next];
-            const linePoints = LineDrawer.drawLine(Math.round(p1.x), Math.round(p1.y), Math.round(p2.x), Math.round(p2.y), true, COLORS.CYAN);
-            linePoints.forEach(point => {
-                if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                    const total = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
-                    const current = Math.hypot(point.x - p1.x, point.y - p1.y);
-                    const t = current / total;
-                    const z = (innerVerts[i].z + (innerVerts[next].z - innerVerts[i].z) * t) - edgeBias;
-                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, z, point.symbol, COLORS.CYAN);
-                }
-            });
-        }
     }
 
     return {

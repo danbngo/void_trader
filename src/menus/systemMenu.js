@@ -442,12 +442,46 @@ const DockMenu = (() => {
             ResupplyMenu.show(
                 gameState,
                 () => show(gameState), // onReturn
-                () => GalaxyMap.show(gameState) // onDepart
+                () => beginSpaceTravel(gameState) // onDepart
             );
         } else {
-            // All good, go straight to galaxy map
+            // All good, go straight to space travel
+            beginSpaceTravel(gameState);
+        }
+    }
+
+    function beginSpaceTravel(gameState) {
+        const destination = gameState.destination || getNearestSystem(gameState);
+        if (destination) {
+            gameState.previousSystemIndex = gameState.currentSystemIndex;
+            gameState.destination = destination;
+            SpaceTravelMap.show(gameState, destination);
+        } else {
             GalaxyMap.show(gameState);
         }
+    }
+
+    function getNearestSystem(gameState) {
+        if (!gameState || !gameState.systems || gameState.systems.length === 0) {
+            return null;
+        }
+        const current = gameState.getCurrentSystem();
+        if (!current) {
+            return gameState.systems[0];
+        }
+        let nearest = null;
+        let nearestDist = Infinity;
+        gameState.systems.forEach(system => {
+            if (system === current) {
+                return;
+            }
+            const dist = current.distanceTo(system);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = system;
+            }
+        });
+        return nearest;
     }
     
     /**

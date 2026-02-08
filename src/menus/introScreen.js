@@ -40,7 +40,15 @@ const IntroScreen = (() => {
         UI.addTextCentered(25, 'Or perish among the stars?', COLORS.TEXT_DIM);
         
         // Continue button
-        UI.addCenteredButton(grid.height - 4, '1', 'Begin Your Journey', () => DockMenu.show(gameState), COLORS.BUTTON);
+        UI.addCenteredButton(grid.height - 4, '1', 'Begin Your Journey', () => {
+            const destination = getNearestSystem(gameState);
+            if (destination) {
+                gameState.destination = destination;
+                SpaceTravelMap.show(gameState, destination);
+            } else {
+                DockMenu.show(gameState);
+            }
+        }, COLORS.BUTTON);
         
         UI.draw();
     }
@@ -49,3 +57,26 @@ const IntroScreen = (() => {
         show
     };
 })();
+
+function getNearestSystem(gameState) {
+    if (!gameState || !gameState.systems || gameState.systems.length === 0) {
+        return null;
+    }
+    const current = gameState.getCurrentSystem();
+    if (!current) {
+        return gameState.systems[0];
+    }
+    let nearest = null;
+    let nearestDist = Infinity;
+    gameState.systems.forEach(system => {
+        if (system === current) {
+            return;
+        }
+        const dist = current.distanceTo(system);
+        if (dist < nearestDist) {
+            nearestDist = dist;
+            nearest = system;
+        }
+    });
+    return nearest;
+}

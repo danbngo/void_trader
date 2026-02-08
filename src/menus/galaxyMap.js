@@ -604,7 +604,9 @@ const GalaxyMap = (() => {
                     render(gameState);
                 } else {
                     outputMessage = '';
-                    TravelConfirmMenu.show(gameState, targetSystem);
+                    gameState.previousSystemIndex = gameState.currentSystemIndex;
+                    gameState.destination = targetSystem;
+                    SpaceTravelMap.show(gameState, targetSystem);
                 }
             }
         }, travelColor, travelHelpText);

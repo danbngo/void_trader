@@ -191,6 +191,8 @@ const TravelConfirmMenu = (() => {
         
         if (fuelAfter >= 0) {
             UI.addCenteredButton(buttonY, '1', 'Launch', () => {
+                gameState.previousSystemIndex = gameState.currentSystemIndex;
+                gameState.destination = targetSystem;
                 SpaceTravelMap.show(gameState, targetSystem);
             }, COLORS.GREEN);
         }

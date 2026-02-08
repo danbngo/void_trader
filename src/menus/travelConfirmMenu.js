@@ -193,7 +193,7 @@ const TravelConfirmMenu = (() => {
             UI.addCenteredButton(buttonY, '1', 'Launch', () => {
                 gameState.previousSystemIndex = gameState.currentSystemIndex;
                 gameState.destination = targetSystem;
-                SpaceTravelMap.show(gameState, targetSystem);
+                SpaceTravelMap.show(gameState, targetSystem, { resetPosition: false });
             }, COLORS.GREEN);
         }
         

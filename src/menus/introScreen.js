@@ -44,7 +44,7 @@ const IntroScreen = (() => {
             const destination = getNearestSystem(gameState);
             if (destination) {
                 gameState.destination = destination;
-                SpaceTravelMap.show(gameState, destination);
+                SpaceTravelMap.show(gameState, destination, { resetPosition: true });
             } else {
                 DockMenu.show(gameState);
             }

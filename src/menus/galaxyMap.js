@@ -606,7 +606,7 @@ const GalaxyMap = (() => {
                     outputMessage = '';
                     gameState.previousSystemIndex = gameState.currentSystemIndex;
                     gameState.destination = targetSystem;
-                    SpaceTravelMap.show(gameState, targetSystem);
+                    SpaceTravelMap.show(gameState, targetSystem, { resetPosition: false });
                 }
             }
         }, travelColor, travelHelpText);
@@ -621,17 +621,13 @@ const GalaxyMap = (() => {
             render(gameState);
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
         
-        // Third column: Dock
-        const currentIsHabited = SystemUtils.isHabitedSystem(gameState.getCurrentSystem());
-        const dockLabel = currentIsHabited ? 'Dock' : 'Survey';
-        const dockHelp = currentIsHabited ? 'Return to the docking menu' : 'Return to the system survey menu';
-        UI.addButton(rightX, buttonY, '0', dockLabel, () => {
-            if (currentIsHabited) {
-                DockMenu.show(gameState);
-            } else {
-                UninhabitedSystemMenu.show(gameState, () => show(gameState));
+        // Third column: Return to travel
+        UI.addButton(rightX, buttonY, '0', 'Travel', () => {
+            const destination = gameState.destination || getNearestSystem(gameState);
+            if (destination) {
+                SpaceTravelMap.show(gameState, destination, { resetPosition: false });
             }
-        }, COLORS.BUTTON, dockHelp);
+        }, COLORS.BUTTON, 'Return to space travel');
         
         // Set output message in UI output row system if there's a message
         if (outputMessage) {
@@ -648,6 +644,29 @@ const GalaxyMap = (() => {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    }
+
+    function getNearestSystem(gameState) {
+        if (!gameState || !gameState.systems || gameState.systems.length === 0) {
+            return null;
+        }
+        const current = gameState.getCurrentSystem();
+        if (!current) {
+            return gameState.systems[0];
+        }
+        let nearest = null;
+        let nearestDist = Infinity;
+        gameState.systems.forEach(system => {
+            if (system === current) {
+                return;
+            }
+            const dist = current.distanceTo(system);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = system;
+            }
+        });
+        return nearest;
     }
     
     return {

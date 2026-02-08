@@ -4,6 +4,37 @@
  */
 
 const SpaceTravelMap = (() => {
+    const {
+        addVec,
+        subVec,
+        scaleVec,
+        vecLength,
+        normalizeVec,
+        distance,
+        quatFromAxisAngle,
+        quatMultiply,
+        quatConjugate,
+        quatNormalize,
+        rotateVecByQuat,
+        getLocalAxes,
+        faceToward,
+        buildStarfield,
+        randomPointInSphereShellBiased,
+        degToRad
+    } = ThreeDUtils;
+
+    const {
+        applyAcceleration,
+        applyBrake,
+        clampSpeed
+    } = PhysicsUtils;
+
+    const {
+        createDepthBuffer,
+        plotDepthText,
+        flushDepthBuffer,
+        projectCameraSpacePointRaw
+    } = RasterUtils;
     // === Tunable constants ===
     const VIEW_FOV = 75; // degrees
     const NEAR_PLANE = 0.0001;
@@ -34,15 +65,18 @@ const SpaceTravelMap = (() => {
     const DUST_PARTICLE_MAX_DISTANCE_SHIP_LENGTHS = 80;
     const DUST_PARTICLE_EDGE_BAND_SHIP_LENGTHS = 15;
     const DUST_SCREEN_SPEED_EPSILON = 0.00005;
-    const DUST_DEPTH_THRESHOLD = 0.0002;
-    const DUST_RADIAL_DEPTH_SCALE = 3.5;
+    //const DUST_DEPTH_THRESHOLD = 0.0002;
+    //const DUST_RADIAL_DEPTH_SCALE = 3.5;
     const STATION_POSSIBLE_RANGE_AU = 5_000_000;
     const STATION_VISIBLE_RANGE_AU = 1_500_000;
 
     const DEBUG_STATION_LOG = false;
-    const DEBUG_STATION_VISIBILITY = true;
+    const DEBUG_STATION_VISIBILITY = false;
     const STATION_FACE_DEPTH_BIAS = 0.0005;
     const STATION_EDGE_DEPTH_BIAS = 0.0005;
+    const STATION_ENTRANCE_DIR = { x: 0, y: 0, z: 1 };
+
+    const ASCII_LOG_INTERVAL_MS = 2000;
 
     const POSSIBLE_STATION_CHECK_FRAMES = 300;
     const VISIBLE_STATION_CHECK_FRAMES = 30;
@@ -61,17 +95,20 @@ const SpaceTravelMap = (() => {
 
     let frameCount = 0;
     let lastTimestamp = 0;
+    let lastAsciiLogTimestamp = 0;
     let animationId = null;
 
     const keyState = new Set();
     let keyDownHandler = null;
     let keyUpHandler = null;
 
-    function show(gameState, destination) {
+    function show(gameState, destination, options = {}) {
         stop();
         UI.clear();
         UI.resetSelection();
         UI.clearOutputRow();
+
+        const resetPosition = options.resetPosition !== false;
 
         currentGameState = gameState;
         targetSystem = destination || gameState.destination || getNearestSystem(gameState);
@@ -81,16 +118,18 @@ const SpaceTravelMap = (() => {
             playerShip.size = SHIP_SIZE_AU;
         }
 
-        // Initialize ship position and velocity
         const currentSystem = gameState.getCurrentSystem();
         const currentSystemPos = {
             x: currentSystem.x * LY_TO_AU,
             y: currentSystem.y * LY_TO_AU,
             z: 0
         };
-        playerShip.velocity = { x: 0, y: 0, z: 0 };
 
-        // Create station at destination system
+        const hasPosition = playerShip.position && typeof playerShip.position.x === 'number';
+        if (resetPosition || !hasPosition) {
+            playerShip.velocity = { x: 0, y: 0, z: 0 };
+        }
+
         currentStation = null;
         if (targetSystem) {
             currentStation = new SpaceStation('DESTINATION', STATION_SIZE_AU);
@@ -101,21 +140,20 @@ const SpaceTravelMap = (() => {
             };
         }
 
-        if (currentStation) {
-            const towardCurrent = subVec(currentSystemPos, currentStation.position);
-            const offsetDir = vecLength(towardCurrent) > 0 ? normalizeVec(towardCurrent) : { x: 1, y: 0, z: 0 };
-            const startOffset = scaleVec(offsetDir, 0.05);
-            playerShip.position = addVec(currentStation.position, startOffset);
-        } else {
-            playerShip.position = currentSystemPos;
+        if (resetPosition || !hasPosition) {
+            if (currentStation) {
+                const offsetDir = normalizeVec(STATION_ENTRANCE_DIR);
+                const startOffset = scaleVec(offsetDir, 0.05);
+                playerShip.position = addVec(currentStation.position, startOffset);
+            } else {
+                playerShip.position = currentSystemPos;
+            }
+
+            if (currentStation) {
+                faceToward(playerShip, currentStation.position);
+            }
         }
 
-        // Face the station on entry
-        if (currentStation) {
-            faceToward(playerShip, currentStation.position);
-        }
-
-        // Cache star system positions in AU
         starSystems = gameState.systems.map(system => ({
             id: system.name,
             position: {
@@ -125,7 +163,6 @@ const SpaceTravelMap = (() => {
             }
         }));
 
-        // Build starfield sphere (background stars)
         starfield = buildStarfield(STARFIELD_COUNT);
         dustParticles = [];
 
@@ -133,6 +170,7 @@ const SpaceTravelMap = (() => {
         visibleStations = [];
         frameCount = 0;
         lastTimestamp = 0;
+        lastAsciiLogTimestamp = 0;
 
         updateStationVisibility();
 
@@ -232,26 +270,14 @@ const SpaceTravelMap = (() => {
         const forward = getLocalAxes(playerShip.rotation).forward;
 
         if (accelerate) {
-            playerShip.velocity = addVec(playerShip.velocity, scaleVec(forward, accel * dt));
+            playerShip.velocity = applyAcceleration(playerShip.velocity, forward, accel, dt);
         }
         if (brake) {
-            const currentSpeed = vecLength(playerShip.velocity);
-            if (currentSpeed > 0) {
-                const decel = accel * dt;
-                if (currentSpeed <= decel) {
-                    playerShip.velocity = { x: 0, y: 0, z: 0 };
-                } else {
-                    const brakeDir = normalizeVec(playerShip.velocity);
-                    playerShip.velocity = subVec(playerShip.velocity, scaleVec(brakeDir, decel));
-                }
-            }
+            playerShip.velocity = applyBrake(playerShip.velocity, accel, dt);
         }
 
         // Clamp speed
-        const speed = vecLength(playerShip.velocity);
-        if (speed > maxSpeed) {
-            playerShip.velocity = scaleVec(playerShip.velocity, maxSpeed / speed);
-        }
+        playerShip.velocity = clampSpeed(playerShip.velocity, maxSpeed);
 
         // Update position
         playerShip.position = addVec(playerShip.position, scaleVec(playerShip.velocity, dt));
@@ -273,13 +299,20 @@ const SpaceTravelMap = (() => {
 
         const depthBuffer = createDepthBuffer(viewWidth, viewHeight);
 
+        SpaceStationGfx.renderStationOccluders(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, NEAR_PLANE, STATION_FACE_DEPTH_BIAS);
         renderStars(viewWidth, viewHeight, depthBuffer);
-        renderStations(viewWidth, viewHeight, depthBuffer);
+        SpaceStationGfx.renderStationEdges(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, STATION_EDGE_DEPTH_BIAS);
         flushDepthBuffer(depthBuffer);
         renderDust(viewWidth, viewHeight);
         renderHud(viewWidth, viewHeight);
 
         UI.draw();
+
+        const now = Date.now();
+        if (!lastAsciiLogTimestamp || (now - lastAsciiLogTimestamp) >= ASCII_LOG_INTERVAL_MS) {
+            lastAsciiLogTimestamp = now;
+            UI.logScreenToConsole();
+        }
     }
 
     function renderStars(viewWidth, viewHeight, depthBuffer) {
@@ -314,98 +347,6 @@ const SpaceTravelMap = (() => {
         }
     }
 
-    function renderStations(viewWidth, viewHeight, depthBuffer) {
-        if (visibleStations.length === 0) {
-            return;
-        }
-
-        visibleStations.forEach(station => {
-            const size = station.size;
-            const half = size / 2;
-
-            const cameraPos = playerShip.position;
-            const cameraRot = playerShip.rotation;
-
-            const vertices = [
-                { x: -half, y: -half, z: -half },
-                { x: half, y: -half, z: -half },
-                { x: half, y: half, z: -half },
-                { x: -half, y: half, z: -half },
-                { x: -half, y: -half, z: half },
-                { x: half, y: -half, z: half },
-                { x: half, y: half, z: half },
-                { x: -half, y: half, z: half }
-            ].map(v => addVec(station.position, v));
-
-            const projectedVertices = vertices.map(v => {
-                const cameraSpace = rotateVecByQuat(subVec(v, cameraPos), quatConjugate(cameraRot));
-                const projected = projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight);
-                return { cameraSpace, projected };
-            });
-
-            const faces = [
-                [0, 1, 2, 3],
-                [4, 5, 6, 7],
-                [0, 1, 5, 4],
-                [1, 2, 6, 5],
-                [2, 3, 7, 6],
-                [3, 0, 4, 7]
-            ];
-
-            faces.forEach(face => {
-                const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
-                const clipped = clipPolygonToNearPlane(cameraFace, NEAR_PLANE);
-                if (clipped.length < 3) {
-                    return;
-                }
-
-                const projected = clipped
-                    .map(v => projectCameraSpacePointRaw(v, viewWidth, viewHeight))
-                    .filter(p => p !== null);
-                if (projected.length < 3) {
-                    return;
-                }
-
-                for (let i = 1; i < projected.length - 1; i++) {
-                    fillDepthTriangle(
-                        depthBuffer,
-                        { x: projected[0].x, y: projected[0].y, z: clipped[0].z },
-                        { x: projected[i].x, y: projected[i].y, z: clipped[i].z },
-                        { x: projected[i + 1].x, y: projected[i + 1].y, z: clipped[i + 1].z },
-                        '░',
-                        COLORS.TEXT_DIM,
-                        STATION_FACE_DEPTH_BIAS
-                    );
-                }
-            });
-
-            const edges = [
-                [0, 1], [1, 2], [2, 3], [3, 0],
-                [4, 5], [5, 6], [6, 7], [7, 4],
-                [0, 4], [1, 5], [2, 6], [3, 7]
-            ];
-
-            edges.forEach(([a, b]) => {
-                const p1 = projectedVertices[a].projected;
-                const p2 = projectedVertices[b].projected;
-                if (!p1 || !p2) {
-                    return;
-                }
-
-                const linePoints = LineDrawer.drawLine(Math.round(p1.x), Math.round(p1.y), Math.round(p2.x), Math.round(p2.y), true, COLORS.TEXT_NORMAL);
-                linePoints.forEach(point => {
-                    if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                        const total = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
-                        const current = Math.hypot(point.x - p1.x, point.y - p1.y);
-                        const t = current / total;
-                        const z = (p1.z + (p2.z - p1.z) * t) - STATION_EDGE_DEPTH_BIAS;
-                        plotDepthText(depthBuffer, point.x, point.y, z, point.symbol, point.color);
-                    }
-                });
-            });
-        });
-    }
-
     function renderDust(viewWidth, viewHeight) {
         if (!playerShip || dustParticles.length === 0) {
             return;
@@ -415,27 +356,16 @@ const SpaceTravelMap = (() => {
         const velocityView = getVelocityCameraSpace();
         const cameraPos = playerShip.position;
         const cameraRot = playerShip.rotation;
-        const charDims = UI.getCharDimensions();
-        const fovRad = degToRad(VIEW_FOV);
-        const fovScale = Math.tan(fovRad / 2);
-        const viewPixelWidth = viewWidth * charDims.width;
-        const viewPixelHeight = viewHeight * charDims.height;
-        const centerPxX = viewPixelWidth / 2;
-        const centerPxY = viewPixelHeight / 2;
-
         dustParticles.forEach(particle => {
             const relative = subVec(particle.position, cameraPos);
             const cameraSpacePos = rotateVecByQuat(relative, quatConjugate(cameraRot));
-            if (cameraSpacePos.z <= NEAR_PLANE) {
+            const projected = projectCameraSpacePointRaw(cameraSpacePos, viewWidth, viewHeight, VIEW_FOV);
+            if (!projected) {
                 return;
             }
 
-            const normX = (cameraSpacePos.x / cameraSpacePos.z) / fovScale;
-            const normY = (cameraSpacePos.y / cameraSpacePos.z) / fovScale;
-            const screenPxX = normX * (viewPixelWidth / 2);
-            const screenPxY = normY * (viewPixelHeight / 2);
-            const x = Math.floor((centerPxX + screenPxX) / charDims.width);
-            const y = Math.floor((centerPxY - screenPxY) / charDims.height);
+            const x = Math.floor(projected.x);
+            const y = Math.floor(projected.y);
 
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
                 let symbol = DUST_PARTICLE_SYMBOL;
@@ -510,7 +440,7 @@ const SpaceTravelMap = (() => {
     }
 
     function projectCameraSpacePoint(cameraSpace, viewWidth, viewHeight) {
-        const raw = projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight);
+        const raw = projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, VIEW_FOV);
         if (!raw) {
             return null;
         }
@@ -519,292 +449,6 @@ const SpaceTravelMap = (() => {
             y: Math.floor(raw.y),
             z: raw.z
         };
-    }
-
-    function projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight) {
-        if (cameraSpace.z <= NEAR_PLANE) {
-            return null;
-        }
-
-        const charDims = UI.getCharDimensions();
-
-        const fovRad = degToRad(VIEW_FOV);
-        const fovScale = Math.tan(fovRad / 2);
-
-        const viewPixelWidth = viewWidth * charDims.width;
-        const viewPixelHeight = viewHeight * charDims.height;
-
-        const normX = (cameraSpace.x / cameraSpace.z) / fovScale;
-        const normY = (cameraSpace.y / cameraSpace.z) / fovScale;
-
-        const centerPxX = viewPixelWidth / 2;
-        const centerPxY = viewPixelHeight / 2;
-
-        const screenPxX = normX * (viewPixelWidth / 2);
-        const screenPxY = normY * (viewPixelHeight / 2);
-
-        const gridX = (centerPxX + screenPxX) / charDims.width;
-        const gridY = (centerPxY - screenPxY) / charDims.height;
-
-        return {
-            x: gridX,
-            y: gridY,
-            z: cameraSpace.z
-        };
-    }
-
-    function createDepthBuffer(width, height) {
-        return {
-            width,
-            height,
-            depth: new Float32Array(width * height).fill(Infinity),
-            chars: new Array(width * height).fill(null),
-            colors: new Array(width * height).fill(null)
-        };
-    }
-
-    function plotDepthText(buffer, x, y, z, symbol, color) {
-        if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
-            return;
-        }
-        const index = y * buffer.width + x;
-        if (z < buffer.depth[index]) {
-            buffer.depth[index] = z;
-            buffer.chars[index] = symbol;
-            buffer.colors[index] = color;
-        }
-    }
-
-    function flushDepthBuffer(buffer) {
-        for (let y = 0; y < buffer.height; y++) {
-            for (let x = 0; x < buffer.width; x++) {
-                const index = y * buffer.width + x;
-                const symbol = buffer.chars[index];
-                if (symbol) {
-                    UI.addText(x, y, symbol, buffer.colors[index]);
-                }
-            }
-        }
-    }
-
-    function fillDepthQuad(buffer, quad, symbol, color, bias = 0) {
-        if (quad.length !== 4) {
-            return;
-        }
-        fillDepthTriangle(buffer, quad[0], quad[1], quad[2], symbol, color, bias);
-        fillDepthTriangle(buffer, quad[0], quad[2], quad[3], symbol, color, bias);
-    }
-
-    function fillDepthTriangle(buffer, v0, v1, v2, symbol, color, bias = 0) {
-        const minX = Math.max(0, Math.floor(Math.min(v0.x, v1.x, v2.x)));
-        const maxX = Math.min(buffer.width - 1, Math.ceil(Math.max(v0.x, v1.x, v2.x)));
-        const minY = Math.max(0, Math.floor(Math.min(v0.y, v1.y, v2.y)));
-        const maxY = Math.min(buffer.height - 1, Math.ceil(Math.max(v0.y, v1.y, v2.y)));
-
-        const denom = ((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y));
-        if (denom === 0) {
-            return;
-        }
-
-        for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
-                const px = x + 0.5;
-                const py = y + 0.5;
-                const w1 = ((v1.y - v2.y) * (px - v2.x) + (v2.x - v1.x) * (py - v2.y)) / denom;
-                const w2 = ((v2.y - v0.y) * (px - v2.x) + (v0.x - v2.x) * (py - v2.y)) / denom;
-                const w3 = 1 - w1 - w2;
-                if ((w1 >= 0 && w2 >= 0 && w3 >= 0) || (w1 <= 0 && w2 <= 0 && w3 <= 0)) {
-                    const z = (w1 * v0.z + w2 * v1.z + w3 * v2.z) + bias;
-                    plotDepthText(buffer, x, y, z, symbol, color);
-                }
-            }
-        }
-    }
-
-    function clipPolygonToNearPlane(vertices, nearPlane) {
-        const clipped = [];
-        for (let i = 0; i < vertices.length; i++) {
-            const current = vertices[i];
-            const next = vertices[(i + 1) % vertices.length];
-            const currentInside = current.z > nearPlane;
-            const nextInside = next.z > nearPlane;
-
-            if (currentInside && nextInside) {
-                clipped.push(next);
-            } else if (currentInside && !nextInside) {
-                const t = (nearPlane - current.z) / (next.z - current.z);
-                clipped.push({
-                    x: current.x + (next.x - current.x) * t,
-                    y: current.y + (next.y - current.y) * t,
-                    z: nearPlane
-                });
-            } else if (!currentInside && nextInside) {
-                const t = (nearPlane - current.z) / (next.z - current.z);
-                clipped.push({
-                    x: current.x + (next.x - current.x) * t,
-                    y: current.y + (next.y - current.y) * t,
-                    z: nearPlane
-                });
-                clipped.push(next);
-            }
-        }
-        return clipped;
-    }
-
-    // === Quaternion & Vector helpers ===
-    function faceToward(ship, targetPos) {
-        const forward = normalizeVec(subVec(targetPos, ship.position));
-        if (vecLength(forward) === 0) {
-            return;
-        }
-        const up = { x: 0, y: 1, z: 0 };
-        ship.rotation = quatNormalize(quatFromForwardUp(forward, up));
-    }
-
-    function getLocalAxes(rotation) {
-        const forward = rotateVecByQuat({ x: 0, y: 0, z: 1 }, rotation);
-        const right = rotateVecByQuat({ x: 1, y: 0, z: 0 }, rotation);
-        const up = rotateVecByQuat({ x: 0, y: 1, z: 0 }, rotation);
-        return { forward, right, up };
-    }
-
-    function quatFromForwardUp(forward, up) {
-        const f = normalizeVec(forward);
-        let r = normalizeVec(crossVec(up, f));
-        if (vecLength(r) === 0) {
-            r = { x: 1, y: 0, z: 0 };
-        }
-        const u = crossVec(f, r);
-
-        const m00 = r.x, m01 = u.x, m02 = f.x;
-        const m10 = r.y, m11 = u.y, m12 = f.y;
-        const m20 = r.z, m21 = u.z, m22 = f.z;
-
-        const trace = m00 + m11 + m22;
-        let q = { x: 0, y: 0, z: 0, w: 1 };
-
-        if (trace > 0) {
-            const s = Math.sqrt(trace + 1.0) * 2;
-            q.w = 0.25 * s;
-            q.x = (m21 - m12) / s;
-            q.y = (m02 - m20) / s;
-            q.z = (m10 - m01) / s;
-        } else if (m00 > m11 && m00 > m22) {
-            const s = Math.sqrt(1.0 + m00 - m11 - m22) * 2;
-            q.w = (m21 - m12) / s;
-            q.x = 0.25 * s;
-            q.y = (m01 + m10) / s;
-            q.z = (m02 + m20) / s;
-        } else if (m11 > m22) {
-            const s = Math.sqrt(1.0 + m11 - m00 - m22) * 2;
-            q.w = (m02 - m20) / s;
-            q.x = (m01 + m10) / s;
-            q.y = 0.25 * s;
-            q.z = (m12 + m21) / s;
-        } else {
-            const s = Math.sqrt(1.0 + m22 - m00 - m11) * 2;
-            q.w = (m10 - m01) / s;
-            q.x = (m02 + m20) / s;
-            q.y = (m12 + m21) / s;
-            q.z = 0.25 * s;
-        }
-
-        return q;
-    }
-
-    function quatFromAxisAngle(axis, angle) {
-        const half = angle / 2;
-        const s = Math.sin(half);
-        const n = normalizeVec(axis);
-        return quatNormalize({
-            x: n.x * s,
-            y: n.y * s,
-            z: n.z * s,
-            w: Math.cos(half)
-        });
-    }
-
-    function quatMultiply(a, b) {
-        return {
-            w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
-            x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
-            y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
-            z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w
-        };
-    }
-
-    function quatConjugate(q) {
-        return { x: -q.x, y: -q.y, z: -q.z, w: q.w };
-    }
-
-    function quatNormalize(q) {
-        const len = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
-        if (len === 0) {
-            return { x: 0, y: 0, z: 0, w: 1 };
-        }
-        return { x: q.x / len, y: q.y / len, z: q.z / len, w: q.w / len };
-    }
-
-    function rotateVecByQuat(v, q) {
-        const qv = { x: v.x, y: v.y, z: v.z, w: 0 };
-        const qConj = quatConjugate(q);
-        const result = quatMultiply(quatMultiply(q, qv), qConj);
-        return { x: result.x, y: result.y, z: result.z };
-    }
-
-    function addVec(a, b) {
-        return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
-    }
-
-    function subVec(a, b) {
-        return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-    }
-
-    function scaleVec(v, s) {
-        return { x: v.x * s, y: v.y * s, z: v.z * s };
-    }
-
-    function vecLength(v) {
-        return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    }
-
-    function normalizeVec(v) {
-        const len = vecLength(v);
-        if (len === 0) {
-            return { x: 0, y: 0, z: 0 };
-        }
-        return { x: v.x / len, y: v.y / len, z: v.z / len };
-    }
-
-    function crossVec(a, b) {
-        return {
-            x: a.y * b.z - a.z * b.y,
-            y: a.z * b.x - a.x * b.z,
-            z: a.x * b.y - a.y * b.x
-        };
-    }
-
-    function dotVec(a, b) {
-        return a.x * b.x + a.y * b.y + a.z * b.z;
-    }
-
-    function distance(a, b) {
-        return vecLength(subVec(a, b));
-    }
-
-    function buildStarfield(count) {
-        const stars = [];
-        for (let i = 0; i < count; i++) {
-            const u = Math.random();
-            const v = Math.random();
-            const theta = 2 * Math.PI * u;
-            const phi = Math.acos(2 * v - 1);
-            const x = Math.sin(phi) * Math.cos(theta);
-            const y = Math.sin(phi) * Math.sin(theta);
-            const z = Math.cos(phi);
-            stars.push({ direction: { x, y, z } });
-        }
-        return stars;
     }
 
     function updateDustParticles() {
@@ -891,7 +535,7 @@ const SpaceTravelMap = (() => {
                 }
                 return false;
             }
-            const area = stationScreenAreaChars(station, viewWidth, viewHeight);
+            const area = SpaceStationGfx.stationScreenAreaChars(station, playerShip, viewWidth, viewHeight);
             const visible = area >= 0.01;
             if (DEBUG_STATION_VISIBILITY) {
                 console.log('[SpaceTravelMap] Station visibility', {
@@ -911,44 +555,6 @@ const SpaceTravelMap = (() => {
         if (!playerShip) {
             return;
         }
-    }
-
-    function stationScreenAreaChars(station, viewWidth, viewHeight) {
-        if (!playerShip || !station) {
-            return 0;
-        }
-
-        const cameraPos = playerShip.position;
-        const cameraRot = playerShip.rotation;
-        const half = station.size / 2;
-        const vertices = [
-            { x: -half, y: -half, z: -half },
-            { x: half, y: -half, z: -half },
-            { x: half, y: half, z: -half },
-            { x: -half, y: half, z: -half },
-            { x: -half, y: -half, z: half },
-            { x: half, y: -half, z: half },
-            { x: half, y: half, z: half },
-            { x: -half, y: half, z: half }
-        ].map(v => addVec(station.position, v));
-
-        const projected = vertices
-            .map(v => rotateVecByQuat(subVec(v, cameraPos), quatConjugate(cameraRot)))
-            .map(v => projectCameraSpacePointRaw(v, viewWidth, viewHeight))
-            .filter(p => p !== null);
-
-        if (projected.length === 0) {
-            return 0;
-        }
-
-        const minX = Math.min(...projected.map(p => p.x));
-        const maxX = Math.max(...projected.map(p => p.x));
-        const minY = Math.min(...projected.map(p => p.y));
-        const maxY = Math.max(...projected.map(p => p.y));
-
-        const width = Math.max(0, maxX - minX);
-        const height = Math.max(0, maxY - minY);
-        return width * height;
     }
 
     function renderCompass(viewWidth, viewHeight, startY) {
@@ -1013,32 +619,6 @@ const SpaceTravelMap = (() => {
         return offsets[index];
     }
 
-    function randomPointInSphereShellBiased(minDistance, maxDistance, edgeBand, direction, bias) {
-        const distance = Math.max(minDistance, maxDistance - Math.random() * edgeBand);
-        for (let i = 0; i < 20; i++) {
-            const u = Math.random();
-            const v = Math.random();
-            const theta = 2 * Math.PI * u;
-            const phi = Math.acos(2 * v - 1);
-            const point = {
-                x: distance * Math.sin(phi) * Math.cos(theta),
-                y: distance * Math.sin(phi) * Math.sin(theta),
-                z: distance * Math.cos(phi)
-            };
-            if (dotVec(normalizeVec(point), direction) >= bias) {
-                return point;
-            }
-        }
-
-        const fallbackTheta = Math.random() * Math.PI * 2;
-        const fallbackPhi = Math.acos(2 * Math.random() - 1);
-        return {
-            x: distance * Math.sin(fallbackPhi) * Math.cos(fallbackTheta),
-            y: distance * Math.sin(fallbackPhi) * Math.sin(fallbackTheta),
-            z: distance * Math.cos(fallbackPhi)
-        };
-    }
-
     function getVelocityWorldDirection() {
         const speed = vecLength(playerShip.velocity);
         if (speed > 0.000001) {
@@ -1058,24 +638,6 @@ const SpaceTravelMap = (() => {
         const index = (sector + 8) % 8;
         const chars = ['-', '/', '|', '\\', '-', '/', '|', '\\'];
         return chars[index];
-    }
-
-    function randomPointInSphere(radius) {
-        const u = Math.random();
-        const v = Math.random();
-        const w = Math.random();
-        const theta = 2 * Math.PI * u;
-        const phi = Math.acos(2 * v - 1);
-        const r = radius * Math.cbrt(w);
-        return {
-            x: r * Math.sin(phi) * Math.cos(theta),
-            y: r * Math.sin(phi) * Math.sin(theta),
-            z: r * Math.cos(phi)
-        };
-    }
-
-    function degToRad(deg) {
-        return deg * (Math.PI / 180);
     }
 
     return {

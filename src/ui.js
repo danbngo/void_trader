@@ -85,7 +85,7 @@ const UI = (() => {
             }
             
             // Handle button activation
-            if (key === 'Enter' || key === ' ') {
+            if (key === 'Enter') {
                 event.preventDefault();
                 if (registeredButtons.length > 0 && registeredButtons[selectedButtonIndex]) {
                     registeredButtons[selectedButtonIndex].callback();
@@ -563,6 +563,49 @@ const UI = (() => {
         
         uiLog(output);
     }
+
+    function logScreenToConsole() {
+        const output = buildScreenDump();
+        console.log(output);
+    }
+
+    function buildScreenDump() {
+        const screen = [];
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            screen[y] = new Array(GRID_WIDTH).fill(' ');
+        }
+
+        registeredTexts.forEach(item => {
+            for (let i = 0; i < item.text.length; i++) {
+                if (item.x + i >= 0 && item.x + i < GRID_WIDTH && item.y >= 0 && item.y < GRID_HEIGHT) {
+                    screen[item.y][item.x + i] = item.text[i];
+                }
+            }
+        });
+
+        registeredButtons.forEach((btn, index) => {
+            const buttonText = `[${btn.key}] ${btn.label}`;
+            const isSelected = (index === selectedButtonIndex);
+            const marker = isSelected ? '█' : ' ';
+
+            for (let i = 0; i < buttonText.length; i++) {
+                if (btn.x + i >= 0 && btn.x + i < GRID_WIDTH && btn.y >= 0 && btn.y < GRID_HEIGHT) {
+                    screen[btn.y][btn.x + i] = buttonText[i];
+                }
+            }
+            if (isSelected && btn.x > 0) {
+                screen[btn.y][btn.x - 1] = marker;
+            }
+        });
+
+        let output = '\n┌' + '─'.repeat(GRID_WIDTH) + '┐\n';
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            output += '│' + screen[y].join('') + '│\n';
+        }
+        output += '└' + '─'.repeat(GRID_WIDTH) + '┘\n';
+        output += `Texts: ${registeredTexts.length}, Buttons: ${registeredButtons.length}, Selected: ${selectedButtonIndex}`;
+        return output;
+    }
     
     /**
      * Get grid dimensions
@@ -793,6 +836,7 @@ const UI = (() => {
         stopFlashing,
         isFlashing,
         getFlashState,
-        addCenteredButtons
+        addCenteredButtons,
+        logScreenToConsole
     };
 })();

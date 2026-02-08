@@ -455,7 +455,7 @@ const DockMenu = (() => {
         if (destination) {
             gameState.previousSystemIndex = gameState.currentSystemIndex;
             gameState.destination = destination;
-            SpaceTravelMap.show(gameState, destination);
+            SpaceTravelMap.show(gameState, destination, { resetPosition: true });
         } else {
             GalaxyMap.show(gameState);
         }

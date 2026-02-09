@@ -117,7 +117,24 @@ const SpaceStationGfx = (() => {
                 return { cameraSpace, projected };
             });
 
-            geometry.faces.forEach(face => {
+            const faceColors = [
+                COLORS.RED,
+                COLORS.GREEN,
+                COLORS.BLUE,
+                COLORS.CYAN,
+                COLORS.MAGENTA,
+                COLORS.YELLOW,
+                COLORS.ORANGE,
+                COLORS.PURPLE,
+                COLORS.LIGHT_BLUE,
+                COLORS.LIGHT_CYAN,
+                COLORS.LIGHT_MAGENTA,
+                COLORS.BROWN,
+                COLORS.GRAY,
+                COLORS.LIGHT_GRAY
+            ];
+
+            geometry.faces.forEach((face, faceIndex) => {
                 const isEntrance = geometry.entranceFace && isSameFace(face, geometry.entranceFace);
                 const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
                 const clipped = PolygonUtils.clipPolygonToNearPlane(cameraFace, nearPlane);
@@ -133,7 +150,8 @@ const SpaceStationGfx = (() => {
                 }
                 const basis = PolygonUtils.buildPlaneBasis(normal);
                 const ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
-                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '░', COLORS.TEXT_DIM, faceBias, nearPlane, 75);
+                const faceColor = faceColors[faceIndex % faceColors.length] || COLORS.TEXT_DIM;
+                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '░', faceColor, faceBias, nearPlane, 75);
 
                 if (isEntrance) {
                     const center = cameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
@@ -188,11 +206,15 @@ const SpaceStationGfx = (() => {
                     return;
                 }
 
-                const linePoints = LineDrawer.drawLine(Math.round(p1.x), Math.round(p1.y), Math.round(p2.x), Math.round(p2.y), true, COLORS.TEXT_NORMAL);
+                const x1 = Math.round(p1.x - 0.5);
+                const y1 = Math.round(p1.y - 0.5);
+                const x2 = Math.round(p2.x - 0.5);
+                const y2 = Math.round(p2.y - 0.5);
+                const linePoints = LineDrawer.drawLine(x1, y1, x2, y2, true, COLORS.TEXT_NORMAL);
                 linePoints.forEach(point => {
                     if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                        const total = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
-                        const current = Math.hypot(point.x - p1.x, point.y - p1.y);
+                        const total = Math.hypot(x2 - x1, y2 - y1) || 1;
+                        const current = Math.hypot(point.x - x1, point.y - y1);
                         const t = current / total;
                         const z = (p1.z + (p2.z - p1.z) * t) - edgeBias;
                         RasterUtils.plotDepthText(depthBuffer, point.x, point.y, z, point.symbol, point.color);

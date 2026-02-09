@@ -132,7 +132,18 @@ const RasterUtils = (() => {
             return;
         }
 
-        const projected = orderedVertices
+        const shrink = 0.985;
+        const center = orderedVertices.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
+        center.x /= orderedVertices.length;
+        center.y /= orderedVertices.length;
+        center.z /= orderedVertices.length;
+
+        const insetVertices = orderedVertices.map(v => {
+            const offset = ThreeDUtils.subVec(v, center);
+            return ThreeDUtils.addVec(center, ThreeDUtils.scaleVec(offset, shrink));
+        });
+
+        const projected = insetVertices
             .map(v => projectCameraSpacePointRaw(v, viewWidth, viewHeight, fovDeg))
             .filter(p => p !== null);
 
@@ -152,7 +163,7 @@ const RasterUtils = (() => {
             return;
         }
 
-        const polygon2D = orderedVertices.map(v => ({
+        const polygon2D = insetVertices.map(v => ({
             x: ThreeDUtils.dotVec(v, basis.u),
             y: ThreeDUtils.dotVec(v, basis.v)
         }));
@@ -185,8 +196,10 @@ const RasterUtils = (() => {
             }
         };
 
+        const startY = minY;
+
         rasterLoop:
-        for (let y = minY; y <= maxY; y += step) {
+        for (let y = startY; y <= maxY; y += step) {
             for (let x = minX; x <= maxX; x += step) {
                 sampleCount++;
                 if (sampleCount > maxSamples) {
@@ -198,7 +211,7 @@ const RasterUtils = (() => {
                 const centerRay = screenRayDirection(x, y, viewWidth, viewHeight, fovDeg);
                 const centerDenom = ThreeDUtils.dotVec(normal, centerRay);
                 if (Math.abs(centerDenom) > 0.000001) {
-                    const tCenter = ThreeDUtils.dotVec(normal, orderedVertices[0]) / centerDenom;
+                    const tCenter = ThreeDUtils.dotVec(normal, insetVertices[0]) / centerDenom;
                     if (tCenter > nearPlane) {
                         const centerPoint = ThreeDUtils.scaleVec(centerRay, tCenter);
                         const center2D = { x: ThreeDUtils.dotVec(centerPoint, basis.u), y: ThreeDUtils.dotVec(centerPoint, basis.v) };
@@ -222,7 +235,7 @@ const RasterUtils = (() => {
                         continue;
                     }
 
-                    const t = ThreeDUtils.dotVec(normal, orderedVertices[0]) / denom;
+                    const t = ThreeDUtils.dotVec(normal, insetVertices[0]) / denom;
                     if (t <= nearPlane) {
                         continue;
                     }

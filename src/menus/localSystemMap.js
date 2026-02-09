@@ -115,6 +115,23 @@ const LocalSystemMap = (() => {
             });
         });
 
+        // Ship marker
+        const playerShip = gameState.ships && gameState.ships[0];
+        if (playerShip && playerShip.position && playerShip.rotation) {
+            const systemCenter = {
+                x: system.x * LY_TO_AU,
+                y: system.y * LY_TO_AU,
+                z: 0
+            };
+            const shipRel = ThreeDUtils.subVec(playerShip.position, systemCenter);
+            const shipX = Math.round(mapCenterX + shipRel.x * scale);
+            const shipY = Math.round(mapCenterY - shipRel.y * scale);
+            if (shipX > 0 && shipX < mapWidth - 1 && shipY > 0 && shipY < mapHeight - 1) {
+                const shipSymbol = getShipSymbolFromRotation(playerShip.rotation);
+                UI.addText(shipX, shipY, shipSymbol, COLORS.CYAN);
+            }
+        }
+
         // Info panel (right side)
         const infoX = Math.min(mapWidth + 1, Math.max(0, grid.width - 30));
         UI.addHeaderLine(infoX, 0, 'System Info');
@@ -124,18 +141,24 @@ const LocalSystemMap = (() => {
         if (bodies.length > 0 && bodies[selectedIndex]) {
             const body = bodies[selectedIndex];
             const bodyName = body.name || body.id || body.type;
-            UI.addText(infoX, 5, `Selected: ${bodyName}`, COLORS.TEXT_DIM);
+            let infoY = 5;
+            infoY = UI.addHeaderLine(infoX, infoY, 'Selected Object');
+            UI.addText(infoX, infoY, `Name: ${bodyName}`, COLORS.TEXT_NORMAL);
+            infoY += 1;
             if (body.type === 'STATION') {
-                UI.addText(infoX, 6, 'Type: Space Station', COLORS.TEXT_NORMAL);
-                UI.addText(infoX, 7, `Orbit: ${body.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
+                UI.addText(infoX, infoY, 'Type: Space Station', COLORS.TEXT_NORMAL);
+                infoY += 1;
+                UI.addText(infoX, infoY, `Orbit: ${body.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
             } else if (body.orbit) {
-                UI.addText(infoX, 6, `Type: ${BODY_TYPES[body.type]?.name || body.type}`, COLORS.TEXT_NORMAL);
-                UI.addText(infoX, 7, `Orbit: ${body.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
+                UI.addText(infoX, infoY, `Type: ${BODY_TYPES[body.type]?.name || body.type}`, COLORS.TEXT_NORMAL);
+                infoY += 1;
+                UI.addText(infoX, infoY, `Orbit: ${body.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
+                infoY += 1;
                 if (body.radiusAU) {
-                    UI.addText(infoX, 8, `Radius: ${body.radiusAU.toExponential(2)} AU`, COLORS.TEXT_NORMAL);
+                    UI.addText(infoX, infoY, `Radius: ${body.radiusAU.toExponential(2)} AU`, COLORS.TEXT_NORMAL);
                 }
             } else {
-                UI.addText(infoX, 6, `Type: ${BODY_TYPES[body.type]?.name || body.type}`, COLORS.TEXT_NORMAL);
+                UI.addText(infoX, infoY, `Type: ${BODY_TYPES[body.type]?.name || body.type}`, COLORS.TEXT_NORMAL);
             }
         }
 
@@ -236,6 +259,29 @@ const LocalSystemMap = (() => {
             return '#ffd76a';
         }
         return getPlanetColor(body.type);
+    }
+
+    function getShipSymbolFromRotation(rotation) {
+        const forward = ThreeDUtils.getLocalAxes(rotation).forward;
+        const angle = Math.atan2(-forward.y, forward.x);
+        const degrees = (angle * (180 / Math.PI) + 360) % 360;
+
+                if (degrees >= 337.5 || degrees < 22.5) {
+                    return '\u25B6'; // Right ▶
+                } else if (degrees >= 22.5 && degrees < 67.5) {
+                    return '\u25E5'; // Upper-Right ◥
+                } else if (degrees >= 67.5 && degrees < 112.5) {
+                    return '\u25B2'; // Up ▲
+                } else if (degrees >= 112.5 && degrees < 157.5) {
+                    return '\u25E4'; // Upper-Left ◤
+                } else if (degrees >= 157.5 && degrees < 202.5) {
+                    return '\u25C0'; // Left ◀
+                } else if (degrees >= 202.5 && degrees < 247.5) {
+                    return '\u25E3'; // Lower-Left ◣
+                } else if (degrees >= 247.5 && degrees < 292.5) {
+                    return '\u25BC'; // Down ▼
+                }
+                return '\u25E2'; // Lower-Right ◢
     }
 
     function getBodySymbol(body, isSelected) {

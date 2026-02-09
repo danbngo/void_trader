@@ -34,8 +34,8 @@ const GALAXY_MAP_HEIGHT = 30 // Characters
 const COMBAT_MAP_WIDTH = 50 // Characters
 const COMBAT_MAP_HEIGHT = 30 // Characters
 
-const MIN_NUM_SYSTEMS = 200
-const MAX_NUM_SYSTEMS = 300
+const MIN_NUM_SYSTEMS = 50
+const MAX_NUM_SYSTEMS = 75
 const MIN_SYSTEM_X = -100
 const MAX_SYSTEM_X = 100
 const MIN_SYSTEM_Y = -100

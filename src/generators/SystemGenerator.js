@@ -9,7 +9,10 @@ const SystemGenerator = (() => {
         'New', 'Old', 'Prime', 'Omega', 'Stellar', 'Cosmic', 'Nebula', 'Star',
         'Red', 'Blue', 'White', 'Gold', 'Silver', 'Iron', 'Black', 'Grey',
         'Swift', 'Lost', 'Wild', 'Cold', 'Hot', 'Lone', 'Twin', 'High',
-        'Low', 'East', 'West', 'North', 'South', 'Core', 'Edge', 'Last'
+        'Low', 'East', 'West', 'North', 'South', 'Core', 'Edge', 'Last',
+        'Aurora', 'Hollow', 'Radiant', 'Fading', 'Vast', 'Quiet', 'Shattered',
+        'Gilded', 'Emerald', 'Crimson', 'Azure', 'Obsidian', 'Ivory', 'Verdant',
+        'Harrow', 'Gleam', 'Distant', 'Hidden', 'Sundered', 'Verdigris'
     ];
     
     const roots = [
@@ -20,13 +23,16 @@ const SystemGenerator = (() => {
         'Dawn', 'Dusk', 'Shadow', 'Light', 'Ember', 'Frost', 'Storm',
         'Crest', 'Vale', 'Ridge', 'Forge', 'Port', 'Bay', 'Harbor',
         'Cove', 'Cross', 'Run', 'Pass', 'Rest', 'Hold', 'Keep',
-        'Watch', 'Guard', 'Shield', 'Spire', 'Tower', 'Crown', 'Pike'
+        'Watch', 'Guard', 'Shield', 'Spire', 'Tower', 'Crown', 'Pike',
+        'Hollow', 'Kestrel', 'Arc', 'Bastion', 'Eclipse', 'Horizon', 'Aegis',
+        'Drift', 'Sable', 'Myriad', 'Astral', 'Beacon', 'Caldera', 'Cinder',
+        'Ravel', 'Zephyr', 'Quill', 'Sunder', 'Helix', 'Jade', 'Auric'
     ];
     
     const suffixes = [
         'Prime', 'Major', 'Minor', 'Alpha', 'Beta', 'Gamma',
         'One', 'Two', 'Three', 'Four', 'Five', 'Six',
-        'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'
+        'East', 'West', 'North', 'South', 'Core', 'Reach', 'Rise', 'Fall'
     ];
     
     const usedNames = new Set();

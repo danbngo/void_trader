@@ -25,6 +25,11 @@ const LocalSystemMap = (() => {
         const mapHeight = GALAXY_MAP_HEIGHT;
         const startX = 0;
         const startY = 0;
+        const clampButtonX = (x, key, label) => {
+            const buttonText = `[${key}] ${label}`;
+            const maxX = Math.max(0, grid.width - buttonText.length);
+            return Math.max(0, Math.min(x, maxX));
+        };
 
         const system = gameState.getCurrentSystem();
         if (!system) {
@@ -59,8 +64,10 @@ const LocalSystemMap = (() => {
             UI.addText(startX + mapWidth - 1, startY + y, '║', COLORS.GRAY);
         }
         UI.addText(startX, startY + mapHeight - 1, '╚' + '═'.repeat(mapWidth - 2) + '╝', COLORS.GRAY);
-        UI.addHeaderLine(2, 0, 'LOCAL SYSTEM');
-        UI.addText(mapWidth - 18, 0, system.name, COLORS.TEXT_DIM);
+        UI.addHeaderLine(2, 0, system.name);
+        const dateStr = formatDate(gameState.date);
+        const dateCenterX = Math.floor(mapWidth / 2) - Math.floor(dateStr.length / 2);
+        UI.addText(dateCenterX, 0, dateStr, COLORS.TEXT_NORMAL);
 
         const mapCenterX = Math.floor(mapWidth / 2);
         const mapCenterY = Math.floor(mapHeight / 2);
@@ -77,7 +84,7 @@ const LocalSystemMap = (() => {
         // Draw star at center
         if (stars.length > 0) {
             const starColor = getBodyColor(stars[0]);
-            const starSymbol = selectedIndex === 0 ? '✶' : '✶';
+            const starSymbol = getBodySymbol(stars[0], selectedIndex === 0);
             UI.addText(mapCenterX, mapCenterY, starSymbol, starColor);
             UI.registerTableRow(mapCenterX, mapCenterY, 1, 0, (rowIndex) => {
                 selectedIndex = rowIndex;
@@ -100,9 +107,7 @@ const LocalSystemMap = (() => {
             }
 
             const color = getBodyColor(body);
-            const symbol = body.type === 'STATION'
-                ? (index === selectedIndex ? '■' : '□')
-                : (index === selectedIndex ? '●' : '•');
+            const symbol = getBodySymbol(body, index === selectedIndex);
             UI.addText(px, py, symbol, color);
             UI.registerTableRow(px, py, 1, index, (rowIndex) => {
                 selectedIndex = rowIndex;
@@ -111,7 +116,7 @@ const LocalSystemMap = (() => {
         });
 
         // Info panel (right side)
-        const infoX = mapWidth + 2;
+        const infoX = Math.min(mapWidth + 1, Math.max(0, grid.width - 30));
         UI.addHeaderLine(infoX, 0, 'System Info');
         UI.addText(infoX, 2, `System: ${system.name}`, COLORS.TEXT_NORMAL);
         UI.addText(infoX, 3, `Planets: ${planets.length}`, COLORS.TEXT_NORMAL);
@@ -136,21 +141,25 @@ const LocalSystemMap = (() => {
 
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(infoX, buttonY, '1', 'Prev Body', () => {
+        const leftX = infoX;
+        const middleX = infoX + 23;
+        const rightX = infoX + 46;
+
+        UI.addButton(clampButtonX(leftX, '1', 'Prev Body'), buttonY, '1', 'Prev Body', () => {
             if (bodies.length > 0) {
                 selectedIndex = (selectedIndex - 1 + bodies.length) % bodies.length;
                 render(gameState);
             }
         }, COLORS.BUTTON, 'Select previous body');
 
-        UI.addButton(infoX, buttonY + 1, '2', 'Next Body', () => {
+        UI.addButton(clampButtonX(leftX, '2', 'Next Body'), buttonY + 1, '2', 'Next Body', () => {
             if (bodies.length > 0) {
                 selectedIndex = (selectedIndex + 1) % bodies.length;
                 render(gameState);
             }
         }, COLORS.BUTTON, 'Select next body');
 
-        UI.addButton(infoX, buttonY + 2, '3', 'Set Destination', () => {
+        UI.addButton(clampButtonX(middleX, '3', 'Set Destination'), buttonY, '3', 'Set Destination', () => {
             if (bodies.length === 0) {
                 return;
             }
@@ -183,8 +192,12 @@ const LocalSystemMap = (() => {
             gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
         }, COLORS.GREEN, 'Set destination to selected body');
 
+        UI.addButton(clampButtonX(rightX, '4', 'Galaxy Map'), buttonY, '4', 'Galaxy Map', () => {
+            GalaxyMap.show(gameState);
+        }, COLORS.BUTTON, 'Open the galaxy map');
+
         const backHelp = returnCallback ? 'Return to previous menu' : 'Return to galaxy map';
-        UI.addButton(infoX + 22, buttonY + 2, '0', 'Back', () => {
+        UI.addButton(clampButtonX(rightX, '0', 'Back'), buttonY + 1, '0', 'Back', () => {
             if (returnCallback) {
                 returnCallback();
                 return;
@@ -193,6 +206,7 @@ const LocalSystemMap = (() => {
         }, COLORS.BUTTON, backHelp);
 
         UI.draw();
+        UI.logScreenToConsole();
     }
 
     function getPlanetColor(typeId) {
@@ -208,6 +222,55 @@ const LocalSystemMap = (() => {
             default:
                 return '#b0b0b0';
         }
+    }
+
+    function getBodyColor(body) {
+        if (!body) {
+            return COLORS.TEXT_NORMAL;
+        }
+        if (body.type === 'STATION') {
+            return COLORS.GRAY;
+        }
+        const starTypeId = BODY_TYPES?.STAR?.id;
+        if ((typeof starTypeId !== 'undefined' && body.type === starTypeId) || body.type === 'STAR') {
+            return '#ffd76a';
+        }
+        return getPlanetColor(body.type);
+    }
+
+    function getBodySymbol(body, isSelected) {
+        if (!body) {
+            return isSelected ? '●' : '•';
+        }
+        if (body.type === 'STATION') {
+            return isSelected ? '■' : '□';
+        }
+        const starTypeId = BODY_TYPES?.STAR?.id;
+        if ((typeof starTypeId !== 'undefined' && body.type === starTypeId) || body.type === 'STAR') {
+            return isSelected ? '✷' : '✶';
+        }
+        switch (body.type) {
+            case BODY_TYPES.PLANET_GAS_GIANT.id:
+                return isSelected ? '◉' : '○';
+            case BODY_TYPES.PLANET_GAS_DWARF.id:
+                return isSelected ? '◌' : '○';
+            case BODY_TYPES.PLANET_ICE_GIANT.id:
+                return isSelected ? '◆' : '◇';
+            case BODY_TYPES.PLANET_ICE_DWARF.id:
+                return isSelected ? '◇' : '◇';
+            case BODY_TYPES.PLANET_EARTHLIKE.id:
+            case BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id:
+            case BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id:
+                return isSelected ? '⬤' : '●';
+            default:
+                return isSelected ? '●' : '•';
+        }
+    }
+
+    function formatDate(date) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     }
 
     return {

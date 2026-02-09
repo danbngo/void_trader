@@ -62,6 +62,7 @@ const GalaxyMap = (() => {
         drawButtons(gameState, mapWidth + 2, mapHeight);
         
         UI.draw();
+        UI.logScreenToConsole();
     }
     
     /**
@@ -625,7 +626,7 @@ const GalaxyMap = (() => {
             LocalSystemMap.show(gameState, () => show(gameState));
         }, COLORS.BUTTON, 'View stars and planets in current system');
 
-        UI.addButton(rightX, buttonY + 1, '0', 'Travel', () => {
+        UI.addButton(rightX, buttonY + 1, '0', 'Return', () => {
             const destination = gameState.getCurrentSystem() || getNearestSystem(gameState);
             if (destination) {
                 SpaceTravelMap.show(gameState, destination, { resetPosition: false });

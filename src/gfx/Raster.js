@@ -132,7 +132,7 @@ const RasterUtils = (() => {
             return;
         }
 
-        const shrink = 0.985;
+        const shrink = 1.0;
         const center = orderedVertices.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
         center.x /= orderedVertices.length;
         center.y /= orderedVertices.length;
@@ -168,12 +168,8 @@ const RasterUtils = (() => {
             y: ThreeDUtils.dotVec(v, basis.v)
         }));
 
-        let step = 1;
-        if (bboxArea > 6000) {
-            step = 2;
-        }
-
-        const maxSamples = bboxArea > 8000 ? 12000 : Infinity;
+        const step = 1;
+        const maxSamples = Infinity;
         let sampleCount = 0;
 
         const plotBlock = (x, y, z) => {
@@ -201,7 +197,7 @@ const RasterUtils = (() => {
                 const centerDenom = ThreeDUtils.dotVec(normal, centerRay);
                 if (Math.abs(centerDenom) > 0.000001) {
                     const tCenter = ThreeDUtils.dotVec(normal, insetVertices[0]) / centerDenom;
-                    if (tCenter > nearPlane) {
+                    if (tCenter > nearPlane - 0.00001) {
                         const centerPoint = ThreeDUtils.scaleVec(centerRay, tCenter);
                         const center2D = { x: ThreeDUtils.dotVec(centerPoint, basis.u), y: ThreeDUtils.dotVec(centerPoint, basis.v) };
                         if (PolygonUtils.isPointInPolygon2D(center2D, polygon2D)) {
@@ -221,8 +217,12 @@ const RasterUtils = (() => {
     }
 
     function projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, fovDeg) {
-        if (cameraSpace.z < 0.0001) {
-            return null;
+        const nearPlane = 0.0001;
+        if (cameraSpace.z < nearPlane) {
+            if (cameraSpace.z <= 0) {
+                return null;
+            }
+            cameraSpace = { ...cameraSpace, z: nearPlane };
         }
 
         const charDims = UI.getCharDimensions();

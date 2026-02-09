@@ -11,7 +11,7 @@ const DockingAnimation = (() => {
     let frameCounter = 0;
 
     const DIM_DURATION_MS = 1000;
-    const ANIMATION_DURATION_MS = 2000;
+    const ANIMATION_DURATION_MS = 3000;
     const TOTAL_DURATION_MS = DIM_DURATION_MS + ANIMATION_DURATION_MS;
     const SQUARE_COUNT = 10;
     const Z_SPAWN_MIN = 20.0;

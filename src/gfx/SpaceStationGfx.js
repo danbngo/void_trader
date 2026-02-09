@@ -3,6 +3,18 @@
  */
 
 const SpaceStationGfx = (() => {
+    function lerpColorHex(a, b, t) {
+        const ar = parseInt(a.slice(1, 3), 16);
+        const ag = parseInt(a.slice(3, 5), 16);
+        const ab = parseInt(a.slice(5, 7), 16);
+        const br = parseInt(b.slice(1, 3), 16);
+        const bg = parseInt(b.slice(3, 5), 16);
+        const bb = parseInt(b.slice(5, 7), 16);
+        const rr = Math.round(ar + (br - ar) * t);
+        const rg = Math.round(ag + (bg - ag) * t);
+        const rb = Math.round(ab + (bb - ab) * t);
+        return `#${rr.toString(16).padStart(2, '0')}${rg.toString(16).padStart(2, '0')}${rb.toString(16).padStart(2, '0')}`;
+    }
     function buildCuboctahedronGeometry(station) {
         const half = station.size / 2;
         const baseVertices = [
@@ -117,7 +129,18 @@ const SpaceStationGfx = (() => {
                 return { cameraSpace, projected };
             });
 
-            geometry.faces.forEach(face => {
+            const faceDepths = geometry.faces.map(face => {
+                const center = face.reduce((acc, idx) => ThreeDUtils.addVec(acc, projectedVertices[idx].cameraSpace), { x: 0, y: 0, z: 0 });
+                center.x /= face.length;
+                center.y /= face.length;
+                center.z /= face.length;
+                return center.z;
+            });
+            const minDepth = Math.min(...faceDepths);
+            const maxDepth = Math.max(...faceDepths);
+            const depthRange = Math.max(0.000001, maxDepth - minDepth);
+
+            geometry.faces.forEach((face, faceIndex) => {
                 const isEntrance = geometry.entranceFace && isSameFace(face, geometry.entranceFace);
                 const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
                 const clipped = PolygonUtils.clipPolygonToNearPlane(cameraFace, nearPlane);
@@ -133,7 +156,10 @@ const SpaceStationGfx = (() => {
                 }
                 const basis = PolygonUtils.buildPlaneBasis(normal);
                 const ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
-                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '░', COLORS.TEXT_DIM, faceBias, nearPlane, 75);
+                const depthT = 1 - ((faceDepths[faceIndex] - minDepth) / depthRange);
+                const clampedT = Math.max(0, Math.min(1, depthT));
+                const faceColor = lerpColorHex('#000000', '#888888', clampedT);
+                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '█', faceColor, faceBias, nearPlane, 75);
 
                 if (isEntrance) {
                     const center = cameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
@@ -156,7 +182,7 @@ const SpaceStationGfx = (() => {
                         if (ThreeDUtils.vecLength(insetNormal) > 0) {
                             const insetBasis = PolygonUtils.buildPlaneBasis(insetNormal);
                             const insetOrdered = PolygonUtils.orderPolygonVertices(insetClipped, insetBasis);
-                            RasterUtils.rasterizeFaceDepth(depthBuffer, insetOrdered, viewWidth, viewHeight, '░', COLORS.BLACK, faceBias - 0.0002, nearPlane, 75);
+                            RasterUtils.rasterizeFaceDepth(depthBuffer, insetOrdered, viewWidth, viewHeight, '█', COLORS.BLACK, faceBias - 0.0002, nearPlane, 75);
                         }
                     }
                 }

@@ -14,6 +14,13 @@ class CanvasWrapper {
         
         this.charWidth = 0;
         this.charHeight = 0;
+        this.baseFontSize = 0;
+        this.lineGap = 0;
+        this.textOffsetY = 0;
+
+        this.canvasCssWidth = 0;
+        this.canvasCssHeight = 0;
+        this.dpr = window.devicePixelRatio || 1;
         
         this.resizeTimeout = null;
         this.onResize = null; // Callback to trigger after resize
@@ -60,18 +67,38 @@ class CanvasWrapper {
         let tempCharHeight = canvasHeight / this.gridHeight;
         let fontSize = Math.floor(tempCharHeight * 0.9);
         fontSize = Math.max(this.minFontSize, Math.min(this.maxFontSize, fontSize));
-        
-        this.charHeight = fontSize / 0.9;
-        this.charWidth = fontSize * 0.6;
-        
-        canvasWidth = this.charWidth * this.gridWidth;
-        canvasHeight = this.charHeight * this.gridHeight;
-        
-        this.canvas.width = canvasWidth;
-        this.canvas.height = canvasHeight;
-        
+
         this.ctx.font = `${fontSize}px ${this.fontFamily}`;
-        this.ctx.textBaseline = 'middle';
+        const heightMetrics = this.ctx.measureText('Mg');
+        const widthSample = 'MMMMMMMMMM';
+        const widthMetrics = this.ctx.measureText(widthSample);
+        const measuredWidth = widthMetrics.width / widthSample.length;
+        const ascent = heightMetrics.actualBoundingBoxAscent || Math.round(fontSize * 0.8);
+        const descent = heightMetrics.actualBoundingBoxDescent || Math.round(fontSize * 0.2);
+
+        this.baseFontSize = fontSize;
+        this.lineGap = Math.max(1, Math.round(this.baseFontSize * 0.2));
+        this.charHeight = Math.max(1, Math.round(ascent + descent + this.lineGap));
+        this.charWidth = Math.max(1, Math.ceil(measuredWidth));
+        this.textOffsetY = Math.floor(this.lineGap / 2);
+
+        canvasWidth = Math.round(this.charWidth * this.gridWidth);
+        canvasHeight = Math.round(this.charHeight * this.gridHeight);
+
+        this.canvasCssWidth = canvasWidth;
+        this.canvasCssHeight = canvasHeight;
+
+        this.dpr = window.devicePixelRatio || 1;
+        this.canvas.style.width = `${canvasWidth}px`;
+        this.canvas.style.height = `${canvasHeight}px`;
+        this.canvas.width = Math.round(canvasWidth * this.dpr);
+        this.canvas.height = Math.round(canvasHeight * this.dpr);
+
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.font = `${fontSize}px ${this.fontFamily}`;
+        this.ctx.textBaseline = 'top';
+        this.ctx.textAlign = 'left';
         
         // Trigger callback after resize completes
         if (this.onResize) {
@@ -84,7 +111,7 @@ class CanvasWrapper {
      */
     clear() {
         this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, this.canvasCssWidth, this.canvasCssHeight);
     }
     
     /**
@@ -106,18 +133,23 @@ class CanvasWrapper {
     drawText(x, y, text, color, fontSizeMultiplier = 1.0, underline = false) {
         const pixelX = x * this.charWidth;
         const pixelY = y * this.charHeight;
-        
-        const baseFontSize = Math.floor(this.charHeight * 0.9);
-        const actualFontSize = Math.floor(baseFontSize * fontSizeMultiplier);
+
+        const actualFontSize = Math.floor(this.baseFontSize * fontSizeMultiplier);
         this.ctx.font = `${actualFontSize}px ${this.fontFamily}`;
+
+        if (text.length === 1 && '█▓▒░'.includes(text)) {
+            this.ctx.fillStyle = color;
+            this.ctx.fillRect(pixelX, pixelY, this.charWidth, this.charHeight);
+            return;
+        }
         
         this.ctx.fillStyle = color;
-        this.ctx.fillText(text, pixelX, pixelY + this.charHeight / 2);
+        this.ctx.fillText(text, pixelX, pixelY + this.textOffsetY);
         
         // Draw underline if requested
         if (underline) {
             const textWidth = this.ctx.measureText(text).width;
-            const underlineY = pixelY + this.charHeight - 2;
+            const underlineY = pixelY + this.charHeight - 1;
             this.ctx.beginPath();
             this.ctx.strokeStyle = color;
             this.ctx.lineWidth = Math.max(1, actualFontSize / 16);

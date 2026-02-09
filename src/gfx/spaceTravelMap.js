@@ -46,7 +46,7 @@ const SpaceTravelMap = (() => {
     const SHIP_SIZE_AU = EARTH_SIZE_AU / 10000;
     const STATION_SIZE_AU = EARTH_SIZE_AU / 100;
 
-    const SHIP_SPEED_PER_ENGINE = 1; // ship sizes per second per engine point
+    const SHIP_SPEED_PER_ENGINE = 2; // ship sizes per second per engine point
     const SHIP_ACCEL_PER_ENGINE = 2; // ship sizes per second^2 per engine point
     const TURN_DEG_PER_SEC = 90; // turn rate
 
@@ -317,7 +317,7 @@ const SpaceTravelMap = (() => {
 
         SpaceStationGfx.renderStationOccluders(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, NEAR_PLANE, STATION_FACE_DEPTH_BIAS);
         renderStars(viewWidth, viewHeight, depthBuffer);
-        SpaceStationGfx.renderStationEdges(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, STATION_EDGE_DEPTH_BIAS);
+        // Edge rendering disabled in favor of face shading
         renderDust(viewWidth, viewHeight, depthBuffer);
         flushDepthBuffer(depthBuffer);
         renderHud(viewWidth, viewHeight);

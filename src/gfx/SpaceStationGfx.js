@@ -117,24 +117,7 @@ const SpaceStationGfx = (() => {
                 return { cameraSpace, projected };
             });
 
-            const faceColors = [
-                COLORS.RED,
-                COLORS.GREEN,
-                COLORS.BLUE,
-                COLORS.CYAN,
-                COLORS.MAGENTA,
-                COLORS.YELLOW,
-                COLORS.ORANGE,
-                COLORS.PURPLE,
-                COLORS.LIGHT_BLUE,
-                COLORS.LIGHT_CYAN,
-                COLORS.LIGHT_MAGENTA,
-                COLORS.BROWN,
-                COLORS.GRAY,
-                COLORS.LIGHT_GRAY
-            ];
-
-            geometry.faces.forEach((face, faceIndex) => {
+            geometry.faces.forEach(face => {
                 const isEntrance = geometry.entranceFace && isSameFace(face, geometry.entranceFace);
                 const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
                 const clipped = PolygonUtils.clipPolygonToNearPlane(cameraFace, nearPlane);
@@ -150,8 +133,7 @@ const SpaceStationGfx = (() => {
                 }
                 const basis = PolygonUtils.buildPlaneBasis(normal);
                 const ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
-                const faceColor = faceColors[faceIndex % faceColors.length] || COLORS.TEXT_DIM;
-                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '░', faceColor, faceBias, nearPlane, 75);
+                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '░', COLORS.TEXT_DIM, faceBias, nearPlane, 75);
 
                 if (isEntrance) {
                     const center = cameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });

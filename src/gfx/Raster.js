@@ -151,10 +151,10 @@ const RasterUtils = (() => {
             return;
         }
 
-        const minX = Math.max(0, Math.floor(Math.min(...projected.map(p => p.x))));
-        const maxX = Math.min(viewWidth - 1, Math.ceil(Math.max(...projected.map(p => p.x))));
-        const minY = Math.max(0, Math.floor(Math.min(...projected.map(p => p.y))));
-        const maxY = Math.min(viewHeight - 1, Math.ceil(Math.max(...projected.map(p => p.y))));
+        const minX = Math.max(0, Math.ceil(Math.min(...projected.map(p => p.x)) - 0.5));
+        const maxX = Math.min(viewWidth - 1, Math.floor(Math.max(...projected.map(p => p.x)) - 0.5));
+        const minY = Math.max(0, Math.ceil(Math.min(...projected.map(p => p.y)) - 0.5));
+        const maxY = Math.min(viewHeight - 1, Math.floor(Math.max(...projected.map(p => p.y)) - 0.5));
 
         const bboxWidth = Math.max(0, maxX - minX + 1);
         const bboxHeight = Math.max(0, maxY - minY + 1);
@@ -169,19 +169,8 @@ const RasterUtils = (() => {
         }));
 
         let step = 1;
-        let cornerOffsets = [
-            { x: 0.1, y: 0.1 },
-            { x: 0.9, y: 0.1 },
-            { x: 0.1, y: 0.9 },
-            { x: 0.9, y: 0.9 }
-        ];
-
         if (bboxArea > 6000) {
             step = 2;
-            cornerOffsets = [
-                { x: 0.2, y: 0.2 },
-                { x: 0.8, y: 0.8 }
-            ];
         }
 
         const maxSamples = bboxArea > 8000 ? 12000 : Infinity;
@@ -227,34 +216,6 @@ const RasterUtils = (() => {
                     continue;
                 }
 
-                let partialInside = false;
-                for (const offset of cornerOffsets) {
-                    const rayDir = screenRayDirection(x + offset.x - 0.5, y + offset.y - 0.5, viewWidth, viewHeight, fovDeg);
-                    const denom = ThreeDUtils.dotVec(normal, rayDir);
-                    if (Math.abs(denom) <= 0.000001) {
-                        continue;
-                    }
-
-                    const t = ThreeDUtils.dotVec(normal, insetVertices[0]) / denom;
-                    if (t <= nearPlane) {
-                        continue;
-                    }
-
-                    const hitPoint = ThreeDUtils.scaleVec(rayDir, t);
-                    const hit2D = { x: ThreeDUtils.dotVec(hitPoint, basis.u), y: ThreeDUtils.dotVec(hitPoint, basis.v) };
-                    if (!PolygonUtils.isPointInPolygon2D(hit2D, polygon2D)) {
-                        continue;
-                    }
-
-                    partialInside = true;
-                    if (closestZ === null || hitPoint.z < closestZ) {
-                        closestZ = hitPoint.z;
-                    }
-                }
-
-                if (partialInside && closestZ !== null) {
-                    plotBlock(x, y, closestZ + bias);
-                }
             }
         }
     }

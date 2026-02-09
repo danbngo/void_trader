@@ -6,6 +6,7 @@
 const TitleMenu = (() => {
     const LY_TO_AU = 63241; // 1 LY = 63,241 AU
     let animationInterval = null;
+    let mouseMoveLogger = null;
     
     /**
      * Show the title screen
@@ -20,6 +21,7 @@ const TitleMenu = (() => {
         
         // Initial render
         renderTitleScreen();
+        setupMouseLogging();
     }
     
     /**
@@ -62,6 +64,39 @@ const TitleMenu = (() => {
             clearInterval(animationInterval);
             animationInterval = null;
         }
+        if (mouseMoveLogger) {
+            const canvas = UI.getCanvas?.();
+            if (canvas) {
+                canvas.removeEventListener('mousemove', mouseMoveLogger);
+            }
+            mouseMoveLogger = null;
+        }
+    }
+    
+    function setupMouseLogging() {
+        const canvas = UI.getCanvas?.();
+        if (!canvas) {
+            return;
+        }
+        mouseMoveLogger = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const pixelX = e.clientX - rect.left;
+            const pixelY = e.clientY - rect.top;
+            const charDims = UI.getCharDimensions();
+            const gridX = Math.floor(pixelX / charDims.width);
+            const gridY = Math.floor(pixelY / charDims.height);
+            const underChar = UI.getScreenCharAt ? UI.getScreenCharAt(gridX, gridY) : ' ';
+            console.log('[TitleMenu Mouse]', {
+                pixelX: Math.round(pixelX),
+                pixelY: Math.round(pixelY),
+                gridX,
+                gridY,
+                underChar,
+                underCharGridX: gridX,
+                underCharGridY: gridY
+            });
+        };
+        canvas.addEventListener('mousemove', mouseMoveLogger);
     }
     
     /**

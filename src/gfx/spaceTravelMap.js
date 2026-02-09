@@ -120,6 +120,10 @@ const SpaceTravelMap = (() => {
     let mouseMoveHandler = null;
     let mouseTarget = { x: 0, y: 0 };
     let mouseTargetActive = false;
+    let windowBlurHandler = null;
+    let windowFocusHandler = null;
+    let isPaused = false;
+    let pausedByFocus = false;
 
     function lerpColorHex(a, b, t) {
         const ar = parseInt(a.slice(1, 3), 16);
@@ -160,6 +164,41 @@ const SpaceTravelMap = (() => {
         return typeId === BODY_TYPES.PLANET_EARTHLIKE.id
             || typeId === BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id
             || typeId === BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id;
+    }
+
+    function setPaused(nextPaused, byFocus = false) {
+        isPaused = nextPaused;
+        pausedByFocus = nextPaused && byFocus;
+    }
+
+    function togglePause() {
+        setPaused(!isPaused, false);
+    }
+
+    function toMonochrome(color) {
+        if (!color || typeof color !== 'string' || color[0] !== '#' || color.length !== 7) {
+            if (color === 'white') {
+                return '#ffffff';
+            }
+            if (color === 'black') {
+                return '#000000';
+            }
+            return color;
+        }
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        const luminance = Math.round((r * 0.3) + (g * 0.59) + (b * 0.11));
+        const hex = luminance.toString(16).padStart(2, '0');
+        return `#${hex}${hex}${hex}`;
+    }
+
+    function applyPauseColor(color) {
+        return isPaused ? toMonochrome(color) : color;
+    }
+
+    function addHudText(x, y, text, color) {
+        UI.addText(x, y, text, applyPauseColor(color));
     }
 
     function show(gameState, destination, options = {}) {
@@ -264,16 +303,31 @@ const SpaceTravelMap = (() => {
             document.removeEventListener('keyup', keyUpHandler);
             keyUpHandler = null;
         }
+        if (windowBlurHandler) {
+            window.removeEventListener('blur', windowBlurHandler);
+            windowBlurHandler = null;
+        }
+        if (windowFocusHandler) {
+            window.removeEventListener('focus', windowFocusHandler);
+            windowFocusHandler = null;
+        }
         if (mouseMoveHandler) {
             document.removeEventListener('mousemove', mouseMoveHandler);
             mouseMoveHandler = null;
         }
         mouseTargetActive = false;
+        isPaused = false;
+        pausedByFocus = false;
         keyState.clear();
     }
 
     function setupInput() {
         keyDownHandler = (e) => {
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                togglePause();
+                return;
+            }
             keyState.add(e.key);
         };
         keyUpHandler = (e) => {
@@ -281,6 +335,19 @@ const SpaceTravelMap = (() => {
         };
         document.addEventListener('keydown', keyDownHandler);
         document.addEventListener('keyup', keyUpHandler);
+
+        windowBlurHandler = () => {
+            if (!isPaused) {
+                setPaused(true, true);
+            }
+        };
+        windowFocusHandler = () => {
+            if (pausedByFocus) {
+                setPaused(false, false);
+            }
+        };
+        window.addEventListener('blur', windowBlurHandler);
+        window.addEventListener('focus', windowFocusHandler);
     }
 
     function setupMouseTargeting() {
@@ -356,6 +423,10 @@ const SpaceTravelMap = (() => {
 
     function update(dt, timestampMs = 0) {
         if (!playerShip) {
+            return;
+        }
+
+        if (isPaused) {
             return;
         }
 
@@ -449,9 +520,24 @@ const SpaceTravelMap = (() => {
         renderStars(viewWidth, viewHeight, depthBuffer);
         // Edge rendering disabled in favor of face shading
         renderDust(viewWidth, viewHeight, depthBuffer);
+        if (isPaused) {
+            for (let i = 0; i < depthBuffer.colors.length; i++) {
+                const color = depthBuffer.colors[i];
+                if (color) {
+                    depthBuffer.colors[i] = toMonochrome(color);
+                }
+            }
+        }
         flushDepthBuffer(depthBuffer);
         renderHud(viewWidth, viewHeight);
         renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight);
+
+        if (isPaused) {
+            const label = '=== PAUSED ===';
+            const x = Math.floor((viewWidth - label.length) / 2);
+            const y = Math.floor(viewHeight / 2);
+            UI.addText(x, y, label, COLORS.TEXT_NORMAL);
+        }
 
         UI.draw();
 
@@ -746,7 +832,7 @@ const SpaceTravelMap = (() => {
             }
             const x = Math.max(0, Math.min(viewWidth - Math.max(1, label.text.length), label.x));
             const y = Math.max(0, Math.min(viewHeight - 1, label.y));
-            UI.addText(x, y, label.text, label.color || COLORS.TEXT_NORMAL);
+            addHudText(x, y, label.text, label.color || COLORS.TEXT_NORMAL);
         });
     }
 
@@ -872,7 +958,7 @@ const SpaceTravelMap = (() => {
         const panelWidth = viewWidth;
 
         // Divider line
-        UI.addText(0, startY, '─'.repeat(panelWidth), COLORS.GRAY);
+        addHudText(0, startY, '─'.repeat(panelWidth), COLORS.GRAY);
 
         const ship = playerShip;
         if (!ship) {
@@ -883,26 +969,26 @@ const SpaceTravelMap = (() => {
         const shieldRatio = ship.maxShields ? (ship.shields / ship.maxShields) : 0;
         const hullRatio = ship.hull / ship.maxHull;
 
-        UI.addText(2, startY + 1, `Fuel: ${ship.fuel}/${ship.maxFuel}`, UI.calcStatColor(fuelRatio, true));
-        UI.addText(2, startY + 2, `Shields: ${ship.shields}/${ship.maxShields}`, UI.calcStatColor(shieldRatio, true));
-        UI.addText(2, startY + 3, `Hull: ${ship.hull}/${ship.maxHull}`, UI.calcStatColor(hullRatio, true));
+        addHudText(2, startY + 1, `Fuel: ${ship.fuel}/${ship.maxFuel}`, UI.calcStatColor(fuelRatio, true));
+        addHudText(2, startY + 2, `Shields: ${ship.shields}/${ship.maxShields}`, UI.calcStatColor(shieldRatio, true));
+        addHudText(2, startY + 3, `Hull: ${ship.hull}/${ship.maxHull}`, UI.calcStatColor(hullRatio, true));
 
         const speed = vecLength(ship.velocity);
         const speedPerMinute = speed * 60;
-        UI.addText(2, startY + 4, `Speed: ${speedPerMinute.toFixed(2)} AU/m`, COLORS.TEXT_DIM);
+        addHudText(2, startY + 4, `Speed: ${speedPerMinute.toFixed(2)} AU/m`, COLORS.TEXT_DIM);
 
         const targetInfo = getActiveTargetInfo();
         if (targetInfo) {
             const nameLabel = targetInfo.name ? `Destination: ${targetInfo.name}` : 'Destination: --';
-            UI.addText(2, startY + 5, nameLabel, COLORS.TEXT_DIM);
+            addHudText(2, startY + 5, nameLabel, COLORS.TEXT_DIM);
             const distanceToTarget = vecLength(subVec(targetInfo.position, ship.position));
             const distanceLabel = targetInfo.isLocal
                 ? `Distance: ${distanceToTarget.toFixed(2)} AU`
                 : `Distance: ${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / LY_TO_AU).toFixed(3)} LY)`;
-            UI.addText(2, startY + 6, distanceLabel, COLORS.TEXT_DIM);
+            addHudText(2, startY + 6, distanceLabel, COLORS.TEXT_DIM);
         } else {
-            UI.addText(2, startY + 5, 'Destination: --', COLORS.TEXT_DIM);
-            UI.addText(2, startY + 6, 'Distance: --', COLORS.TEXT_DIM);
+            addHudText(2, startY + 5, 'Destination: --', COLORS.TEXT_DIM);
+            addHudText(2, startY + 6, 'Distance: --', COLORS.TEXT_DIM);
         }
 
         // Placeholder button
@@ -914,7 +1000,7 @@ const SpaceTravelMap = (() => {
         UI.addButton(menuX, startY + 6, 'm', menuText, () => {
             stop();
             GalaxyMap.show(currentGameState);
-        }, COLORS.CYAN, '');
+        }, applyPauseColor(COLORS.CYAN), '');
     }
 
     function projectPoint(worldPos, viewWidth, viewHeight) {
@@ -1172,11 +1258,11 @@ const SpaceTravelMap = (() => {
         const compassCenterX = Math.floor(viewWidth / 2);
         const compassCenterY = startY + 3;
 
-        UI.addText(compassCenterX, compassCenterY, 'o', COLORS.CYAN);
+        addHudText(compassCenterX, compassCenterY, 'o', COLORS.CYAN);
 
         const arrow = getCompassArrowFromDirection(screenDx, screenDy);
         if (arrow) {
-            UI.addText(compassCenterX + arrow.dx, compassCenterY + arrow.dy, arrow.symbol, COLORS.CYAN);
+            addHudText(compassCenterX + arrow.dx, compassCenterY + arrow.dy, arrow.symbol, COLORS.CYAN);
         }
 
         const verticalRatio = cameraSpaceDir.y / distanceToTarget;
@@ -1186,7 +1272,7 @@ const SpaceTravelMap = (() => {
         } else if (verticalRatio < -0.2) {
             verticalLabel = 'BLW';
         }
-        UI.addText(compassCenterX - 2, compassCenterY + 2, verticalLabel, COLORS.TEXT_DIM);
+        addHudText(compassCenterX - 2, compassCenterY + 2, verticalLabel, COLORS.TEXT_DIM);
     }
 
     function getCompassArrowFromDirection(dx, dy) {

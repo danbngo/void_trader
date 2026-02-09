@@ -759,6 +759,42 @@ const UI = (() => {
     function getOutputRow() {
         return { text: outputRowText, color: outputRowColor, isHelpText: outputRowIsHelpText };
     }
+
+    function getScreenCharAt(x, y) {
+        const grid = getGridSize();
+        if (x < 0 || y < 0 || x >= grid.width || y >= grid.height) {
+            return ' ';
+        }
+
+        if (outputRowText) {
+            let minButtonY = grid.height - 3;
+            if (registeredButtons.length > 0) {
+                minButtonY = Math.min(...registeredButtons.map(btn => btn.y));
+            }
+            const rowY = minButtonY - 2;
+            const rowX = Math.floor((GRID_WIDTH - outputRowText.length) / 2);
+            if (y === rowY && x >= rowX && x < rowX + outputRowText.length) {
+                return outputRowText[x - rowX];
+            }
+        }
+
+        for (let i = 0; i < registeredButtons.length; i++) {
+            const btn = registeredButtons[i];
+            const buttonText = `[${btn.key}] ${btn.label}`;
+            if (y === btn.y && x >= btn.x && x < btn.x + buttonText.length) {
+                return buttonText[x - btn.x];
+            }
+        }
+
+        for (let i = 0; i < registeredTexts.length; i++) {
+            const textItem = registeredTexts[i];
+            if (y === textItem.y && x >= textItem.x && x < textItem.x + textItem.text.length) {
+                return textItem.text[x - textItem.x];
+            }
+        }
+
+        return ' ';
+    }
     
     /**
      * Register a clickable table row
@@ -932,6 +968,7 @@ const UI = (() => {
         setOutputRow,
         clearOutputRow,
         getOutputRow,
+        getScreenCharAt,
         addClickable,
         setWheelZoomHandler,
         calcStatColor: ColorUtils.calcStatColor, // Re-export from ColorUtils for convenience

@@ -117,6 +117,9 @@ const SpaceTravelMap = (() => {
     const keyState = new Set();
     let keyDownHandler = null;
     let keyUpHandler = null;
+    let mouseMoveHandler = null;
+    let mouseTarget = { x: 0, y: 0 };
+    let mouseTargetActive = false;
 
     function lerpColorHex(a, b, t) {
         const ar = parseInt(a.slice(1, 3), 16);
@@ -241,6 +244,7 @@ const SpaceTravelMap = (() => {
         updateStationVisibility();
 
         setupInput();
+        setupMouseTargeting();
         isActive = true;
         startLoop();
     }
@@ -259,6 +263,11 @@ const SpaceTravelMap = (() => {
             document.removeEventListener('keyup', keyUpHandler);
             keyUpHandler = null;
         }
+        if (mouseMoveHandler) {
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            mouseMoveHandler = null;
+        }
+        mouseTargetActive = false;
         keyState.clear();
     }
 
@@ -271,6 +280,55 @@ const SpaceTravelMap = (() => {
         };
         document.addEventListener('keydown', keyDownHandler);
         document.addEventListener('keyup', keyUpHandler);
+    }
+
+    function setupMouseTargeting() {
+        const canvas = UI.getCanvas?.();
+        if (!canvas) {
+            return;
+        }
+        const grid = UI.getGridSize();
+        const viewWidth = grid.width;
+        const viewHeight = grid.height - PANEL_HEIGHT;
+        mouseTarget = {
+            x: Math.floor(viewWidth / 2),
+            y: Math.floor(viewHeight / 2)
+        };
+        mouseTargetActive = true;
+        mouseMoveHandler = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const charDims = UI.getCharDimensions();
+            const pixelX = e.clientX - rect.left;
+            const pixelY = e.clientY - rect.top;
+            const gridX = Math.floor(pixelX / charDims.width);
+            const gridY = Math.floor(pixelY / charDims.height);
+            mouseTarget = { x: gridX, y: gridY };
+            mouseTargetActive = true;
+        };
+        document.addEventListener('mousemove', mouseMoveHandler);
+    }
+
+    function getMouseTargetState(viewWidth, viewHeight) {
+        if (!mouseTargetActive) {
+            return { active: false };
+        }
+        const rawX = mouseTarget.x;
+        const rawY = mouseTarget.y;
+        const inView = rawX >= 0 && rawX < viewWidth && rawY >= 0 && rawY < viewHeight;
+        const displayX = Math.max(0, Math.min(viewWidth - 1, rawX));
+        const displayY = Math.max(0, Math.min(viewHeight - 1, rawY));
+        return {
+            active: true,
+            rawX,
+            rawY,
+            inView,
+            displayX,
+            displayY,
+            offLeft: rawX < 0,
+            offRight: rawX >= viewWidth,
+            offTop: rawY < 0,
+            offBottom: rawY >= viewHeight
+        };
     }
 
     function startLoop() {
@@ -309,10 +367,14 @@ const SpaceTravelMap = (() => {
 
         // Rotation controls (relative to current orientation)
         const turnRad = degToRad(TURN_DEG_PER_SEC) * dt;
-        const yawLeft = keyState.has('a') || keyState.has('A') || keyState.has('ArrowLeft');
-        const yawRight = keyState.has('d') || keyState.has('D') || keyState.has('ArrowRight');
-        const pitchUp = keyState.has('ArrowUp');
-        const pitchDown = keyState.has('ArrowDown');
+        const grid = UI.getGridSize();
+        const viewHeight = grid.height - PANEL_HEIGHT;
+        const viewWidth = grid.width;
+        const mouseState = getMouseTargetState(viewWidth, viewHeight);
+        const yawLeft = keyState.has('a') || keyState.has('A') || keyState.has('ArrowLeft') || mouseState.offLeft;
+        const yawRight = keyState.has('d') || keyState.has('D') || keyState.has('ArrowRight') || mouseState.offRight;
+        const pitchUp = keyState.has('ArrowUp') || mouseState.offTop;
+        const pitchDown = keyState.has('ArrowDown') || mouseState.offBottom;
 
         if (yawLeft || yawRight || pitchUp || pitchDown) {
             let newRotation = playerShip.rotation;
@@ -380,13 +442,15 @@ const SpaceTravelMap = (() => {
 
         const depthBuffer = createDepthBuffer(viewWidth, viewHeight);
 
+        const mouseState = getMouseTargetState(viewWidth, viewHeight);
         SpaceStationGfx.renderStationOccluders(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, NEAR_PLANE, STATION_FACE_DEPTH_BIAS);
-        renderSystemBodies(viewWidth, viewHeight, depthBuffer);
+        const bodyLabels = renderSystemBodies(viewWidth, viewHeight, depthBuffer, timestampMs, mouseState);
         renderStars(viewWidth, viewHeight, depthBuffer);
         // Edge rendering disabled in favor of face shading
         renderDust(viewWidth, viewHeight, depthBuffer);
         flushDepthBuffer(depthBuffer);
         renderHud(viewWidth, viewHeight);
+        renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight);
 
         UI.draw();
 
@@ -415,9 +479,9 @@ const SpaceTravelMap = (() => {
         }
     }
 
-    function renderSystemBodies(viewWidth, viewHeight, depthBuffer) {
+    function renderSystemBodies(viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null) {
         if (!targetSystem || !playerShip) {
-            return;
+            return [];
         }
 
         const systemCenter = {
@@ -435,7 +499,7 @@ const SpaceTravelMap = (() => {
         }
 
         if (bodies.length === 0) {
-            return;
+            return [];
         }
 
         const bodyColors = {
@@ -455,6 +519,9 @@ const SpaceTravelMap = (() => {
             [BODY_TYPES.PLANET_ICE_DWARF.id]: '#9fc7d9'
         };
 
+        const labels = [];
+        const hoverInfos = [];
+
         bodies.forEach(body => {
             const rel = body.orbit ? SystemOrbitUtils.getOrbitPosition(body.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
             const worldPos = addVec(systemCenter, rel);
@@ -467,17 +534,50 @@ const SpaceTravelMap = (() => {
             const dist = distance(playerShip.position, worldPos);
             const shadeT = Math.max(0, Math.min(1, 1 - (dist / SYSTEM_BODY_SHADE_MAX_DISTANCE_AU)));
             const baseColor = bodyColors[body.type] || COLORS.TEXT_NORMAL;
-            const color = lerpColorHex('#000000', baseColor, shadeT);
+            let flickerT = 1;
+            if (body.kind === 'STAR') {
+                const flickerIntervalMs = 500;
+                const flickerStep = Math.floor(timestampMs / flickerIntervalMs);
+                const flickerSeed = `${body.id || body.type}-${flickerStep}`;
+                const flickerHash = hashString(flickerSeed);
+                const flickerRand = (((flickerHash % 1000) + 1000) % 1000) / 1000;
+                flickerT = 0.1 + (0.7 * flickerRand);
+            }
+            const color = lerpColorHex('#000000', baseColor, shadeT * flickerT);
 
             const charDims = UI.getCharDimensions();
             const fovScale = Math.tan(degToRad(VIEW_FOV) / 2);
             const viewPixelWidth = viewWidth * charDims.width;
             const pixelsPerUnit = viewPixelWidth / (2 * fovScale * cameraSpace.z);
-            const radiusPx = Math.max(1, body.radiusAU * pixelsPerUnit);
-            const radiusChars = Math.max(1, Math.round(radiusPx / charDims.width));
+            const radiusPx = body.radiusAU * pixelsPerUnit;
+            const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
+            const radiusChars = Math.max(minRadiusChars, Math.round(radiusPx / charDims.width));
 
             const centerX = Math.round(projected.x);
             const centerY = Math.round(projected.y);
+            const hoverActive = mouseState && mouseState.active && mouseState.inView;
+            const hoverDx = hoverActive ? (mouseState.rawX - centerX) : 0;
+            const hoverDy = hoverActive ? (mouseState.rawY - centerY) : 0;
+
+            if (radiusChars === 0) {
+                RasterUtils.plotDepthText(depthBuffer, centerX, centerY, projected.z, '█', color);
+                const bboxLeft = centerX;
+                const bboxRight = centerX;
+                const bboxTop = centerY;
+                const bboxBottom = centerY;
+                const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
+                if (isOnScreen) {
+                    hoverInfos.push({
+                        name: BODY_TYPES[body.type]?.name || body.type,
+                        centerX,
+                        centerY,
+                        radiusChars: 0,
+                        depth: projected.z,
+                        isOnScreen
+                    });
+                }
+                return;
+            }
 
             let craterData = null;
             if (isTerrestrialPlanet(body.type)) {
@@ -536,15 +636,113 @@ const SpaceTravelMap = (() => {
             const bboxBottom = centerY + radiusChars;
             const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
 
-            if (isOnScreen && dist <= SYSTEM_BODY_LABEL_DISTANCE_AU) {
-                const name = BODY_TYPES[body.type]?.name || body.type;
-                const label = `${name}`;
-                const labelWidth = label.length;
-                const rawLabelX = centerX - Math.floor(labelWidth / 2);
-                const labelX = Math.max(0, Math.min(viewWidth - labelWidth, rawLabelX));
-                const labelY = Math.max(0, Math.min(viewHeight - 1, centerY - radiusChars - 1));
-                UI.addText(labelX, labelY, label, COLORS.TEXT_NORMAL);
+            if (isOnScreen) {
+                hoverInfos.push({
+                    name: BODY_TYPES[body.type]?.name || body.type,
+                    centerX,
+                    centerY,
+                    radiusChars,
+                    depth: projected.z,
+                    isOnScreen
+                });
             }
+        });
+
+        if (currentStation) {
+            const stationCamera = rotateVecByQuat(subVec(currentStation.position, playerShip.position), quatConjugate(playerShip.rotation));
+            const stationProjected = projectCameraSpacePointRaw(stationCamera, viewWidth, viewHeight, VIEW_FOV);
+            if (stationProjected) {
+                const charDims = UI.getCharDimensions();
+                const fovScale = Math.tan(degToRad(VIEW_FOV) / 2);
+                const viewPixelWidth = viewWidth * charDims.width;
+                const pixelsPerUnit = viewPixelWidth / (2 * fovScale * stationCamera.z);
+                const stationRadiusPx = (currentStation.size * 0.5) * pixelsPerUnit;
+                const stationRadiusChars = Math.max(1, Math.round(stationRadiusPx / charDims.width));
+                const stationCenterX = Math.round(stationProjected.x);
+                const stationCenterY = Math.round(stationProjected.y);
+                const bboxLeft = stationCenterX - stationRadiusChars;
+                const bboxRight = stationCenterX + stationRadiusChars;
+                const bboxTop = stationCenterY - stationRadiusChars;
+                const bboxBottom = stationCenterY + stationRadiusChars;
+                const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
+
+                if (isOnScreen) {
+                    hoverInfos.push({
+                        name: 'Station',
+                        centerX: stationCenterX,
+                        centerY: stationCenterY,
+                        radiusChars: stationRadiusChars,
+                        depth: stationCamera.z,
+                        isOnScreen,
+                        depthEpsilon: currentStation.size * 2
+                    });
+                }
+            }
+        }
+
+        if (mouseState && mouseState.active && mouseState.inView) {
+            const cursorX = mouseState.rawX;
+            const cursorY = mouseState.rawY;
+            const depthIndex = cursorY * depthBuffer.width + cursorX;
+            const depthAtCursor = depthBuffer.depth[depthIndex];
+
+            if (Number.isFinite(depthAtCursor)) {
+                let best = null;
+                hoverInfos.forEach(info => {
+                    const dx = cursorX - info.centerX;
+                    const dy = cursorY - info.centerY;
+                    const radius = info.radiusChars;
+                    const within = radius === 0 ? (dx === 0 && dy === 0) : ((dx * dx + dy * dy) <= (radius * radius));
+                    if (!within) {
+                        return;
+                    }
+                    const epsilon = typeof info.depthEpsilon === 'number' ? info.depthEpsilon : 0.002;
+                    if (Math.abs(info.depth - depthAtCursor) > epsilon) {
+                        return;
+                    }
+                    if (!best || info.depth < best.depth) {
+                        best = info;
+                    }
+                });
+
+                if (best) {
+                    const labelText = best.name.length > viewWidth ? best.name.slice(0, viewWidth) : best.name;
+                    const labelWidth = labelText.length;
+                    const rawLabelX = best.centerX - Math.floor(labelWidth / 2);
+                    const labelX = Math.max(0, Math.min(viewWidth - labelWidth, rawLabelX));
+                    const topY = best.centerY - best.radiusChars - 1;
+                    const bottomY = best.centerY + best.radiusChars + 1;
+                    let labelY = null;
+
+                    if (topY >= 0) {
+                        labelY = Math.min(topY, viewHeight - 1);
+                    } else if (bottomY <= viewHeight - 1) {
+                        labelY = bottomY;
+                    } else {
+                        labelY = 0;
+                    }
+
+                    labels.push({ x: labelX, y: labelY, text: labelText });
+                }
+            }
+        }
+
+        return labels;
+    }
+
+
+    function renderSystemBodyLabels(labels, viewWidth, viewHeight) {
+        if (!labels || labels.length === 0) {
+            return;
+        }
+
+        labels.forEach(label => {
+            if (!label) {
+                return;
+            }
+            const x = Math.max(0, Math.min(viewWidth - Math.max(1, label.text.length), label.x));
+            const y = Math.max(0, Math.min(viewHeight - 1, label.y));
+            UI.addText(x, y, label.text, COLORS.TEXT_NORMAL);
         });
     }
 
@@ -555,12 +753,23 @@ const SpaceTravelMap = (() => {
                 y: targetSystem.y * LY_TO_AU,
                 z: 0
             };
-            const rel = localDestination.orbit
-                ? SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date)
-                : { x: 0, y: 0, z: 0 };
+            let rel = { x: 0, y: 0, z: 0 };
+            if (localDestination.type === 'STATION' && localDestination.positionWorld) {
+                return {
+                    position: localDestination.positionWorld,
+                    isLocal: true,
+                    name: localDestination.id || localDestination.name || localDestination.type || 'Destination',
+                    type: localDestination.type || 'LOCAL'
+                };
+            }
+            if (localDestination.orbit) {
+                rel = SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date);
+            }
             return {
                 position: addVec(systemCenter, rel),
-                isLocal: true
+                isLocal: true,
+                name: localDestination.id || localDestination.name || localDestination.type || 'Destination',
+                type: localDestination.type || 'LOCAL'
             };
         }
 
@@ -571,7 +780,9 @@ const SpaceTravelMap = (() => {
                     y: targetSystem.y * LY_TO_AU,
                     z: 0
                 },
-                isLocal: false
+                isLocal: false,
+                name: targetSystem.name,
+                type: 'SYSTEM'
             };
         }
 
@@ -678,13 +889,16 @@ const SpaceTravelMap = (() => {
 
         const targetInfo = getActiveTargetInfo();
         if (targetInfo) {
+            const nameLabel = targetInfo.name ? `Destination: ${targetInfo.name}` : 'Destination: --';
+            UI.addText(2, startY + 5, nameLabel, COLORS.TEXT_DIM);
             const distanceToTarget = vecLength(subVec(targetInfo.position, ship.position));
             const distanceLabel = targetInfo.isLocal
                 ? `Distance: ${distanceToTarget.toFixed(2)} AU`
                 : `Distance: ${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / LY_TO_AU).toFixed(3)} LY)`;
-            UI.addText(2, startY + 5, distanceLabel, COLORS.TEXT_DIM);
+            UI.addText(2, startY + 6, distanceLabel, COLORS.TEXT_DIM);
         } else {
-            UI.addText(2, startY + 5, 'Distance: --', COLORS.TEXT_DIM);
+            UI.addText(2, startY + 5, 'Destination: --', COLORS.TEXT_DIM);
+            UI.addText(2, startY + 6, 'Distance: --', COLORS.TEXT_DIM);
         }
 
         // Placeholder button

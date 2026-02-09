@@ -19,6 +19,10 @@ const UI = (() => {
     let lastSelectedButtonIndex = -1; // Track last selection to detect changes
     let preservedButtonKey = null; // Track button key to preserve selection across re-renders
     let wheelZoomHandler = null; // Handler for mouse wheel zoom
+
+    let gameCursorEnabled = true;
+    let gameCursorActive = false;
+    let gameCursorPos = { x: 0, y: 0 };
     
     // Output row state
     let outputRowText = '';
@@ -54,6 +58,13 @@ const UI = (() => {
         
         // Setup input callbacks
         setupInputCallbacks();
+
+        const grid = getGridSize();
+        gameCursorPos = {
+            x: Math.floor(grid.width / 2),
+            y: Math.floor(grid.height / 2)
+        };
+        gameCursorActive = true;
         
         // Initial draw
         draw();
@@ -124,6 +135,10 @@ const UI = (() => {
         
         // Mouse move callback (for hover)
         inputHandler.setMouseMoveCallback((gridX, gridY) => {
+            if (gameCursorEnabled) {
+                gameCursorPos = { x: gridX, y: gridY };
+                gameCursorActive = true;
+            }
             // Check if hovering over any button
             let hoveredButtonIndex = -1;
             registeredButtons.forEach((btn, index) => {
@@ -138,6 +153,8 @@ const UI = (() => {
             // Update selection if hovering over a button
             if (hoveredButtonIndex !== -1 && hoveredButtonIndex !== selectedButtonIndex) {
                 selectedButtonIndex = hoveredButtonIndex;
+                draw();
+            } else if (gameCursorEnabled) {
                 draw();
             }
         });
@@ -508,6 +525,10 @@ const UI = (() => {
             uiLog('[UI] No output row text to draw');
         }
         
+        if (gameCursorEnabled && gameCursorActive) {
+            drawGameCursor();
+        }
+
         // Debug output
         if (DEBUG_UI) {
             debugToConsole();
@@ -637,6 +658,44 @@ const UI = (() => {
     function getContext() {
         return canvasWrapper ? canvasWrapper.getContext() : null;
     }
+
+    /**
+     * Test whether the current font behaves as monospace by measuring glyph widths.
+     * @param {string} sample - Characters to measure.
+     * @returns {{ sample: string, widths: Record<string, number>, min: number, max: number, average: number, spread: number, font: string }} Width stats.
+     */
+    function testMonospaceFont(sample = 'ilIWMm01. _-|') {
+        const ctx = getContext();
+        if (!ctx) {
+            return { sample, widths: {}, min: 0, max: 0, average: 0, spread: 0, font: '' };
+        }
+
+        const widths = {};
+        let min = Infinity;
+        let max = -Infinity;
+        let sum = 0;
+
+        for (const ch of sample) {
+            const width = ctx.measureText(ch).width;
+            widths[ch] = width;
+            min = Math.min(min, width);
+            max = Math.max(max, width);
+            sum += width;
+        }
+
+        const average = sample.length ? sum / sample.length : 0;
+        const spread = sample.length ? (max - min) : 0;
+
+        return {
+            sample,
+            widths,
+            min,
+            max,
+            average,
+            spread,
+            font: ctx.font
+        };
+    }
     
     /**
      * Reset button selection to first button (for entering new menus)
@@ -733,6 +792,31 @@ const UI = (() => {
                 uiLog(`  [${item.index}] x=${item.x}, color=${item.color}, text="${preview}"`);
             });
         });
+
+    }
+
+    function drawGameCursor() {
+        const grid = getGridSize();
+        const x = Math.max(0, Math.min(grid.width - 1, gameCursorPos.x));
+        const y = Math.max(0, Math.min(grid.height - 1, gameCursorPos.y));
+        const color = COLORS.TEXT_NORMAL;
+
+        if (x - 1 >= 0) {
+            canvasWrapper.drawRect(x - 1, y, 1, 1, 'black');
+            canvasWrapper.drawText(x - 1, y, '-', color);
+        }
+        if (x + 1 < grid.width) {
+            canvasWrapper.drawRect(x + 1, y, 1, 1, 'black');
+            canvasWrapper.drawText(x + 1, y, '-', color);
+        }
+        if (y - 1 >= 0) {
+            canvasWrapper.drawRect(x, y - 1, 1, 1, 'black');
+            canvasWrapper.drawText(x, y - 1, '|', color);
+        }
+        if (y + 1 < grid.height) {
+            canvasWrapper.drawRect(x, y + 1, 1, 1, 'black');
+            canvasWrapper.drawText(x, y + 1, '|', color);
+        }
     }
     
     /**
@@ -841,6 +925,7 @@ const UI = (() => {
         getCharDimensions,
         getCanvas,
         getContext,
+        testMonospaceFont,
         resetSelection,
         setOutputRow,
         clearOutputRow,

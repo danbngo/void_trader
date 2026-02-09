@@ -4,6 +4,7 @@
  */
 
 const TitleMenu = (() => {
+    const LY_TO_AU = 63241; // 1 LY = 63,241 AU
     let animationInterval = null;
     
     /**
@@ -258,6 +259,7 @@ const TitleMenu = (() => {
                 });
                 
                 gameState.setCurrentSystem(bestSystemIndex);
+                setStationLocalDestination(gameState);
                 
                 // Validate galaxy: name starting system, remove its guild, name nearest guild system
                 // Returns true if there's a valid path from Nexus to Proxima
@@ -359,6 +361,7 @@ const TitleMenu = (() => {
                 });
                 
                 gameState.setCurrentSystem(bestSystemIndex);
+                setStationLocalDestination(gameState);
                 
                 // Validate galaxy: name starting system, remove its guild, name nearest guild system
                 // Returns true if there's a valid path from Nexus to Proxima
@@ -444,6 +447,30 @@ const TitleMenu = (() => {
             // Show introduction screen
             IntroScreen.show(gameState);
         }, 500);
+    }
+
+    function setStationLocalDestination(gameState) {
+        const system = gameState.getCurrentSystem();
+        if (!system || typeof system.stationOrbitAU !== 'number') {
+            return;
+        }
+        const stationDir = ThreeDUtils.normalizeVec({ x: 0, y: 0, z: 1 });
+        gameState.localDestination = {
+            id: `${system.name}-STATION`,
+            type: 'STATION',
+            positionWorld: {
+                x: system.x * LY_TO_AU + stationDir.x * system.stationOrbitAU,
+                y: system.y * LY_TO_AU + stationDir.y * system.stationOrbitAU,
+                z: stationDir.z * system.stationOrbitAU
+            },
+            orbit: {
+                semiMajorAU: system.stationOrbitAU,
+                periodDays: Number.POSITIVE_INFINITY,
+                percentOffset: 0,
+                progress: 0
+            }
+        };
+        gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
     }
     
     /**

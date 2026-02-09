@@ -83,8 +83,8 @@ class InputHandler {
             }
         }, { passive: false });
         
-        // Set default cursor
-        this.canvas.style.cursor = 'default';
+        // Hide system cursor (game cursor is rendered in UI)
+        this.canvas.style.cursor = 'none';
     }
     
     /**

@@ -838,23 +838,7 @@ const UI = (() => {
         const x = Math.max(0, Math.min(grid.width - 1, gameCursorPos.x));
         const y = Math.max(0, Math.min(grid.height - 1, gameCursorPos.y));
         const color = COLORS.CYAN;
-
-        const cursorItems = [];
-
-        if (x - 1 >= 0) {
-            cursorItems.push({ x: x - 1, y, text: '-', color });
-        }
-        if (x + 1 < grid.width) {
-            cursorItems.push({ x: x + 1, y, text: '-', color });
-        }
-        if (y - 1 >= 0) {
-            cursorItems.push({ x, y: y - 1, text: '|', color });
-        }
-        if (y + 1 < grid.height) {
-            cursorItems.push({ x, y: y + 1, text: '|', color });
-        }
-
-        cursorItems.forEach(item => drawTextItem(item, true));
+        drawTextItem({ x, y, text: '⊹', color }, true);
     }
     
     /**

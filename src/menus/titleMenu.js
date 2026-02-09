@@ -226,6 +226,7 @@ const TitleMenu = (() => {
             
             // Create game state
             const gameState = new GameState();
+            gameState.debug = true;
             
             // Generate galaxy with valid path from Nexus to Proxima
             let galaxyValid = false;

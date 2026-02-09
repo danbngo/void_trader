@@ -166,6 +166,47 @@ const SpaceTravelMap = (() => {
             || typeId === BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id;
     }
 
+    function getLocalMapBodySymbol(body) {
+        if (!body) {
+            return '•';
+        }
+        if (body.kind === 'STATION' || body.type === 'STATION') {
+            return '□';
+        }
+        if (body.kind === 'STAR') {
+            if (body.type === BODY_TYPES.STAR_RED_GIANT.id || body.type === BODY_TYPES.STAR_BLUE_GIANT.id) {
+                return '☼';
+            }
+            if (body.type === BODY_TYPES.STAR_NEUTRON.id) {
+                return '+';
+            }
+            if (body.type === BODY_TYPES.STAR_BLACK_HOLE.id) {
+                return '@';
+            }
+            return '⋆';
+        }
+        const hasRing = Array.isArray(body.features)
+            ? body.features.includes('RING') || body.features.includes(PLANET_FEATURES?.RING?.id)
+            : false;
+        switch (body.type) {
+            case BODY_TYPES.PLANET_GAS_GIANT.id:
+                return hasRing ? 'Ø' : 'O';
+            case BODY_TYPES.PLANET_GAS_DWARF.id:
+                return '○';
+            case BODY_TYPES.PLANET_ICE_GIANT.id:
+                return hasRing ? 'ʘ' : '⓿';
+            case BODY_TYPES.PLANET_ICE_DWARF.id:
+                return '*';
+            case BODY_TYPES.PLANET_EARTHLIKE.id:
+            case BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id:
+                return '●';
+            case BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id:
+                return '•';
+            default:
+                return '•';
+        }
+    }
+
     function setPaused(nextPaused, byFocus = false) {
         isPaused = nextPaused;
         pausedByFocus = nextPaused && byFocus;
@@ -323,6 +364,18 @@ const SpaceTravelMap = (() => {
 
     function setupInput() {
         keyDownHandler = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                stop();
+                SpaceTravelMenu.show(currentGameState, () => {
+                    const destination = targetSystem || getNearestSystem(currentGameState);
+                    show(currentGameState, destination, {
+                        resetPosition: false,
+                        localDestination
+                    });
+                });
+                return;
+            }
             if (e.code === 'Space' || e.key === ' ') {
                 e.preventDefault();
                 togglePause();
@@ -632,6 +685,15 @@ const SpaceTravelMap = (() => {
             }
             const color = lerpColorHex('#000000', baseColor, shadeT * flickerT);
 
+            let fillSymbol = '█';
+            if (body.kind === 'STAR') {
+                fillSymbol = '░';
+            } else if (isGasPlanet(body.type)) {
+                fillSymbol = '▒';
+            } else if (body.type === BODY_TYPES.PLANET_ICE_GIANT.id || body.type === BODY_TYPES.PLANET_ICE_DWARF.id) {
+                fillSymbol = '▓';
+            }
+
             const charDims = UI.getCharDimensions();
             const fovScale = Math.tan(degToRad(VIEW_FOV) / 2);
             const viewPixelWidth = viewWidth * charDims.width;
@@ -647,7 +709,8 @@ const SpaceTravelMap = (() => {
             const hoverDy = hoverActive ? (mouseState.rawY - centerY) : 0;
 
             if (radiusChars === 0) {
-                RasterUtils.plotDepthText(depthBuffer, centerX, centerY, projected.z, '█', color);
+                const symbol = getLocalMapBodySymbol(body);
+                RasterUtils.plotDepthText(depthBuffer, centerX, centerY, projected.z, symbol, color);
                 const bboxLeft = centerX;
                 const bboxRight = centerX;
                 const bboxTop = centerY;
@@ -714,7 +777,7 @@ const SpaceTravelMap = (() => {
                         }
                     }
 
-                    RasterUtils.plotDepthText(depthBuffer, x, y, projected.z, '█', pixelColor);
+                    RasterUtils.plotDepthText(depthBuffer, x, y, projected.z, fillSymbol, pixelColor);
                 }
             }
 
@@ -749,6 +812,9 @@ const SpaceTravelMap = (() => {
                 const stationRadiusChars = Math.max(1, Math.round(stationRadiusPx / charDims.width));
                 const stationCenterX = Math.round(stationProjected.x);
                 const stationCenterY = Math.round(stationProjected.y);
+                if (stationRadiusChars <= 1) {
+                    RasterUtils.plotDepthText(depthBuffer, stationCenterX, stationCenterY, stationCamera.z, getLocalMapBodySymbol({ type: 'STATION' }), COLORS.GRAY);
+                }
                 const bboxLeft = stationCenterX - stationRadiusChars;
                 const bboxRight = stationCenterX + stationRadiusChars;
                 const bboxTop = stationCenterY - stationRadiusChars;
@@ -969,27 +1035,59 @@ const SpaceTravelMap = (() => {
         const shieldRatio = ship.maxShields ? (ship.shields / ship.maxShields) : 0;
         const hullRatio = ship.hull / ship.maxHull;
 
-        addHudText(2, startY + 1, `Fuel: ${ship.fuel}/${ship.maxFuel}`, UI.calcStatColor(fuelRatio, true));
-        addHudText(2, startY + 2, `Shields: ${ship.shields}/${ship.maxShields}`, UI.calcStatColor(shieldRatio, true));
-        addHudText(2, startY + 3, `Hull: ${ship.hull}/${ship.maxHull}`, UI.calcStatColor(hullRatio, true));
-
         const speed = vecLength(ship.velocity);
         const speedPerMinute = speed * 60;
-        addHudText(2, startY + 4, `Speed: ${speedPerMinute.toFixed(2)} AU/m`, COLORS.TEXT_DIM);
+        const engine = ship.engine || 10;
+        const maxSpeed = ship.size * engine * SHIP_SPEED_PER_ENGINE;
+        const speedRatio = maxSpeed > 0 ? (1 + (3 * Math.min(1, speed / maxSpeed))) : 1;
 
         const targetInfo = getActiveTargetInfo();
-        if (targetInfo) {
-            const nameLabel = targetInfo.name ? `Destination: ${targetInfo.name}` : 'Destination: --';
-            addHudText(2, startY + 5, nameLabel, COLORS.TEXT_DIM);
-            const distanceToTarget = vecLength(subVec(targetInfo.position, ship.position));
-            const distanceLabel = targetInfo.isLocal
-                ? `Distance: ${distanceToTarget.toFixed(2)} AU`
-                : `Distance: ${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / LY_TO_AU).toFixed(3)} LY)`;
-            addHudText(2, startY + 6, distanceLabel, COLORS.TEXT_DIM);
-        } else {
-            addHudText(2, startY + 5, 'Destination: --', COLORS.TEXT_DIM);
-            addHudText(2, startY + 6, 'Distance: --', COLORS.TEXT_DIM);
-        }
+        const destinationLabel = targetInfo && targetInfo.name ? targetInfo.name : '--';
+        const distanceToTarget = targetInfo ? vecLength(subVec(targetInfo.position, ship.position)) : null;
+        const distanceLabel = targetInfo
+            ? (targetInfo.isLocal
+                ? `${distanceToTarget.toFixed(2)} AU`
+                : `${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / LY_TO_AU).toFixed(3)} LY)`)
+            : '--';
+
+        TableRenderer.renderKeyValueList(2, startY + 1, [
+            {
+                label: 'Fuel:',
+                value: `${ship.fuel}/${ship.maxFuel}`,
+                labelColor: applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: applyPauseColor(UI.calcStatColor(fuelRatio, true))
+            },
+            {
+                label: 'Shields:',
+                value: `${ship.shields}/${ship.maxShields}`,
+                labelColor: applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: applyPauseColor(UI.calcStatColor(shieldRatio, true))
+            },
+            {
+                label: 'Hull:',
+                value: `${ship.hull}/${ship.maxHull}`,
+                labelColor: applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: applyPauseColor(UI.calcStatColor(hullRatio, true))
+            },
+            {
+                label: 'Speed:',
+                value: `${speedPerMinute.toFixed(2)} AU/m`,
+                labelColor: applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: applyPauseColor(UI.calcStatColor(speedRatio))
+            },
+            {
+                label: 'Destination:',
+                value: destinationLabel,
+                labelColor: applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: applyPauseColor(COLORS.TEXT_NORMAL)
+            },
+            {
+                label: 'Distance:',
+                value: distanceLabel,
+                labelColor: applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: applyPauseColor(COLORS.TEXT_NORMAL)
+            }
+        ]);
 
         // Placeholder button
         renderCompass(viewWidth, viewHeight, startY);
@@ -1285,7 +1383,7 @@ const SpaceTravelMap = (() => {
         } else if (verticalRatio < -0.2) {
             verticalLabel = 'BLW';
         }
-        addHudText(compassCenterX - 2, compassCenterY + 2, verticalLabel, COLORS.TEXT_DIM);
+        addHudText(compassCenterX - 2, compassCenterY + 2, verticalLabel, COLORS.CYAN);
     }
 
     function getCompassArrowFromDirection(dx, dy) {

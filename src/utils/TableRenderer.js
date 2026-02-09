@@ -70,14 +70,14 @@ const TableRenderer = (() => {
      * Render a simple key-value list
      * @param {number} x - Starting X position
      * @param {number} y - Starting Y position
-     * @param {Array<{label: string, value: string, valueColor: string}>} items - Array of label-value pairs
+    * @param {Array<{label: string, value: string, valueColor: string, labelColor?: string}>} items - Array of label-value pairs
      * @returns {number} - Y position after the list
      */
     function renderKeyValueList(x, y, items) {
         const grid = UI.getGridSize();
         let currentY = y;
         items.forEach(item => {
-            UI.addText(x, currentY, item.label + ' ', COLORS.TEXT_DIM);
+            UI.addText(x, currentY, item.label + ' ', item.labelColor || COLORS.TEXT_DIM);
             const valueX = x + item.label.length + 1;
             // Ensure value doesn't go out of bounds
             if (valueX < grid.width) {

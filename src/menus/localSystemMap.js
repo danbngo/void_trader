@@ -7,6 +7,7 @@ const LocalSystemMap = (() => {
     let selectedIndex = 0;
     let bodies = [];
     let returnCallback = null;
+    let mapZoom = 1;
     const LY_TO_AU = 63241; // 1 LY = 63,241 AU
 
     function show(gameState, onReturn = null) {
@@ -48,24 +49,38 @@ const LocalSystemMap = (() => {
                 semiMajorAU: system.stationOrbitAU,
                 periodDays: Number.POSITIVE_INFINITY,
                 percentOffset: 0,
-                progress: 0
+                return '□';
             }
         };
 
-        bodies = [...stars, ...planets, station];
+                return '⋆';
         if (selectedIndex >= bodies.length) {
+            if (body.type === BODY_TYPES.STAR_RED_GIANT.id || body.type === BODY_TYPES.STAR_BLUE_GIANT.id) {
+                return '☼';
+            }
+            if (body.type === BODY_TYPES.STAR_NEUTRON.id) {
+                return '+';
+            }
+            if (body.type === BODY_TYPES.STAR_BLACK_HOLE.id) {
+                return '@';
+            }
+            if (body.type === BODY_TYPES.STAR_RED_DWARF.id
+                || body.type === BODY_TYPES.STAR_YELLOW_DWARF.id
+                || body.type === BODY_TYPES.STAR_WHITE_DWARF.id) {
+                return '⋆';
+            }
             selectedIndex = Math.max(0, bodies.length - 1);
         }
 
         // Border
         UI.addText(startX, startY, '╔' + '═'.repeat(mapWidth - 2) + '╗', COLORS.GRAY);
-        for (let y = 1; y < mapHeight - 1; y++) {
+                    return hasRing ? 'Ø' : 'O';
             UI.addText(startX, startY + y, '║', COLORS.GRAY);
             UI.addText(startX + mapWidth - 1, startY + y, '║', COLORS.GRAY);
         }
-        UI.addText(startX, startY + mapHeight - 1, '╚' + '═'.repeat(mapWidth - 2) + '╝', COLORS.GRAY);
+                    return hasRing ? 'ʘ' : '⓿';
         UI.addHeaderLine(2, 0, system.name);
-        const dateStr = formatDate(gameState.date);
+                    return '*';
         const dateCenterX = Math.floor(mapWidth / 2) - Math.floor(dateStr.length / 2);
         UI.addText(dateCenterX, 0, dateStr, COLORS.TEXT_NORMAL);
 
@@ -79,7 +94,7 @@ const LocalSystemMap = (() => {
             ? Math.max(...orbitValues)
             : SYSTEM_PLANET_ORBIT_MIN_AU;
         const radius = Math.max(1, maxOrbit);
-        const scale = (Math.min(mapWidth, mapHeight) / 2 - 2) / radius;
+        const scale = ((Math.min(mapWidth, mapHeight) / 2 - 2) / radius) * mapZoom;
 
         // Draw star at center
         if (stars.length > 0) {
@@ -92,6 +107,7 @@ const LocalSystemMap = (() => {
             });
         }
 
+        let selectedPos = null;
         // Draw planets + station
         bodies.forEach((body, index) => {
             if (!body.orbit) {
@@ -104,6 +120,10 @@ const LocalSystemMap = (() => {
             const py = Math.round(mapCenterY - orbitPos.y * scale);
             if (px <= 0 || px >= mapWidth - 1 || py <= 0 || py >= mapHeight - 1) {
                 return;
+            }
+
+            if (index === selectedIndex) {
+                selectedPos = { x: px, y: py };
             }
 
             const color = getBodyColor(body);
@@ -127,13 +147,32 @@ const LocalSystemMap = (() => {
             const shipX = Math.round(mapCenterX + shipRel.x * scale);
             const shipY = Math.round(mapCenterY - shipRel.y * scale);
             if (shipX > 0 && shipX < mapWidth - 1 && shipY > 0 && shipY < mapHeight - 1) {
+                if (selectedPos) {
+                    const linePoints = LineDrawer.drawLine(shipX, shipY, selectedPos.x, selectedPos.y, true, COLORS.CYAN);
+                    linePoints.forEach(point => {
+                        if ((point.x === shipX && point.y === shipY) || (point.x === selectedPos.x && point.y === selectedPos.y)) {
+                            return;
+                        }
+                        if (point.x > 0 && point.x < mapWidth - 1 && point.y > 0 && point.y < mapHeight - 1) {
+                            UI.addText(point.x, point.y, point.symbol, COLORS.CYAN);
+                        }
+                    });
+                }
                 const shipSymbol = getShipSymbolFromRotation(playerShip.rotation);
                 UI.addText(shipX, shipY, shipSymbol, COLORS.CYAN);
             }
         }
 
         // Info panel (right side)
-        const infoX = Math.min(mapWidth + 1, Math.max(0, grid.width - 30));
+        const infoX = Math.min(grid.width - 1, Math.max(mapWidth + 2, grid.width - 30));
+        console.log('[LocalSystemMap] layout', {
+            gridWidth: grid.width,
+            gridHeight: grid.height,
+            mapWidth,
+            mapHeight,
+            infoX,
+            expectedGap: infoX - (mapWidth + 1)
+        });
         UI.addHeaderLine(infoX, 0, 'System Info');
         UI.addText(infoX, 2, `System: ${system.name}`, COLORS.TEXT_NORMAL);
         UI.addText(infoX, 3, `Planets: ${planets.length}`, COLORS.TEXT_NORMAL);
@@ -164,9 +203,9 @@ const LocalSystemMap = (() => {
 
         // Buttons
         const buttonY = grid.height - 4;
-        const leftX = infoX;
-        const middleX = infoX + 23;
-        const rightX = infoX + 46;
+        const leftX = 5;
+        const middleX = 28;
+        const rightX = 51;
 
         UI.addButton(clampButtonX(leftX, '1', 'Prev Body'), buttonY, '1', 'Prev Body', () => {
             if (bodies.length > 0) {
@@ -214,6 +253,16 @@ const LocalSystemMap = (() => {
             }
             gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
         }, COLORS.GREEN, 'Set destination to selected body');
+
+        UI.addButton(clampButtonX(middleX, '5', 'Zoom In'), buttonY + 1, '5', 'Zoom In', () => {
+            mapZoom = Math.min(3, mapZoom * 1.2);
+            render(gameState);
+        }, COLORS.BUTTON, 'Zoom in');
+
+        UI.addButton(clampButtonX(middleX, '6', 'Zoom Out'), buttonY + 2, '6', 'Zoom Out', () => {
+            mapZoom = Math.max(0.5, mapZoom / 1.2);
+            render(gameState);
+        }, COLORS.BUTTON, 'Zoom out');
 
         UI.addButton(clampButtonX(rightX, '4', 'Galaxy Map'), buttonY, '4', 'Galaxy Map', () => {
             GalaxyMap.show(gameState);
@@ -289,25 +338,43 @@ const LocalSystemMap = (() => {
             return isSelected ? '●' : '•';
         }
         if (body.type === 'STATION') {
-            return isSelected ? '■' : '□';
+            return '⧳';
         }
         const starTypeId = BODY_TYPES?.STAR?.id;
         if ((typeof starTypeId !== 'undefined' && body.type === starTypeId) || body.type === 'STAR') {
-            return isSelected ? '✷' : '✶';
+            return '★';
         }
+        if (body.type === BODY_TYPES.STAR_RED_GIANT.id || body.type === BODY_TYPES.STAR_BLUE_GIANT.id) {
+            return '𖤐';
+        }
+        if (body.type === BODY_TYPES.STAR_NEUTRON.id) {
+            return '✮';
+        }
+        if (body.type === BODY_TYPES.STAR_BLACK_HOLE.id) {
+            return '𖦹';
+        }
+        if (body.type === BODY_TYPES.STAR_RED_DWARF.id
+            || body.type === BODY_TYPES.STAR_YELLOW_DWARF.id
+            || body.type === BODY_TYPES.STAR_WHITE_DWARF.id) {
+            return '★';
+        }
+        const hasRing = Array.isArray(body.features)
+            ? body.features.includes('RING') || body.features.includes(PLANET_FEATURES?.RING?.id)
+            : false;
         switch (body.type) {
             case BODY_TYPES.PLANET_GAS_GIANT.id:
-                return isSelected ? '◉' : '○';
+                return hasRing ? '⦵' : '〇';
             case BODY_TYPES.PLANET_GAS_DWARF.id:
-                return isSelected ? '◌' : '○';
+                return '○';
             case BODY_TYPES.PLANET_ICE_GIANT.id:
-                return isSelected ? '◆' : '◇';
+                return hasRing ? '⦸' : '⊛';
             case BODY_TYPES.PLANET_ICE_DWARF.id:
-                return isSelected ? '◇' : '◇';
+                return '◌';
             case BODY_TYPES.PLANET_EARTHLIKE.id:
             case BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id:
+                return '●';
             case BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id:
-                return isSelected ? '⬤' : '●';
+                return '•';
             default:
                 return isSelected ? '●' : '•';
         }

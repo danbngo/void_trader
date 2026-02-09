@@ -35,9 +35,13 @@ const IntroScreen = (() => {
         // Ship and credit info
         UI.addTextCentered(21, `Your Ships: ${gameState.ships.length}`, COLORS.CYAN);
         UI.addTextCentered(22, `Starting Credits: ${gameState.credits} CR`, COLORS.GREEN);
+
+        const symbolLine = '⓿ ⚉ ʘ ⊹';
+        UI.addTextCentered(23, symbolLine, COLORS.TEXT_NORMAL);
+        console.log('[IntroScreen] Symbol Line:', symbolLine);
         
-        UI.addTextCentered(24, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);
-        UI.addTextCentered(25, 'Or perish among the stars?', COLORS.TEXT_DIM);
+        UI.addTextCentered(25, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);
+        UI.addTextCentered(26, 'Or perish among the stars?', COLORS.TEXT_DIM);
         
         // Continue button
         UI.addCenteredButton(grid.height - 4, '1', 'Begin Your Journey', () => {

@@ -29,6 +29,7 @@ class StarSystem {
         this.planets = [];
         this.moons = [];
         this.belts = [];
+        this.stationOrbitAU = null;
 
         // System features
         this.features = [];

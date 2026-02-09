@@ -46,8 +46,8 @@ const SpaceTravelMap = (() => {
     const SHIP_SIZE_AU = EARTH_SIZE_AU / 10000;
     const STATION_SIZE_AU = EARTH_SIZE_AU / 100;
 
-    const SHIP_SPEED_PER_ENGINE = 2; // ship sizes per second per engine point
-    const SHIP_ACCEL_PER_ENGINE = 2; // ship sizes per second^2 per engine point
+    const SHIP_SPEED_PER_ENGINE = 10; // ship sizes per second per engine point
+    const SHIP_ACCEL_PER_ENGINE = 0.8; // ship sizes per second^2 per engine point
     const TURN_DEG_PER_SEC = 90; // turn rate
 
     const STAR_RENDER_DISTANCE_AU = 2_000_000; // distance to render stars
@@ -75,6 +75,17 @@ const SpaceTravelMap = (() => {
     const STATION_FACE_DEPTH_BIAS = 0.0005;
     const STATION_EDGE_DEPTH_BIAS = 0.0005;
     const STATION_ENTRANCE_DIR = { x: 0, y: 0, z: 1 };
+    const STATION_ENTRANCE_DOT = 0.85;
+    const STATION_BOUNCE_DAMPING = 0.6;
+    const STATION_COLLISION_COOLDOWN_MS = 600;
+    const STATION_COLLISION_RADIUS_MULT = 0.8;
+    const STATION_COLLISION_MIN_SPEED = 0.1 / 60;
+    const STATION_COLLISION_MAX_ENTRANCE_DOT = 0.7;
+    const STATION_COLLISION_SPEED_PER_HULL = 5;
+    const DAMAGE_FLASH_DURATION_MS = 500;
+    const DAMAGE_FLASH_ALPHA = 0.5;
+    const SYSTEM_BODY_SHADE_MAX_DISTANCE_AU = 50;
+    const SYSTEM_BODY_LABEL_DISTANCE_AU = 8;
 
     const ASCII_LOG_INTERVAL_MS = 2000;
 
@@ -84,6 +95,7 @@ const SpaceTravelMap = (() => {
     // === State ===
     let currentGameState = null;
     let targetSystem = null;
+    let localDestination = null;
     let playerShip = null;
     let currentStation = null;
 
@@ -98,10 +110,54 @@ const SpaceTravelMap = (() => {
     let lastAsciiLogTimestamp = 0;
     let animationId = null;
     let isActive = false;
+    let lastStationCollisionMs = -Infinity;
+    let damageFlashStartMs = -Infinity;
+    const DEBUG_STATION_COLLISION = true;
 
     const keyState = new Set();
     let keyDownHandler = null;
     let keyUpHandler = null;
+
+    function lerpColorHex(a, b, t) {
+        const ar = parseInt(a.slice(1, 3), 16);
+        const ag = parseInt(a.slice(3, 5), 16);
+        const ab = parseInt(a.slice(5, 7), 16);
+        const br = parseInt(b.slice(1, 3), 16);
+        const bg = parseInt(b.slice(3, 5), 16);
+        const bb = parseInt(b.slice(5, 7), 16);
+        const rr = Math.round(ar + (br - ar) * t);
+        const rg = Math.round(ag + (bg - ag) * t);
+        const rb = Math.round(ab + (bb - ab) * t);
+        return `#${rr.toString(16).padStart(2, '0')}${rg.toString(16).padStart(2, '0')}${rb.toString(16).padStart(2, '0')}`;
+    }
+
+    function hashString(seed) {
+        let h = 2166136261;
+        for (let i = 0; i < seed.length; i++) {
+            h ^= seed.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+    }
+
+    function makeRng(seed) {
+        let state = seed >>> 0;
+        return () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state / 0x100000000;
+        };
+    }
+
+    function isGasPlanet(typeId) {
+        return typeId === BODY_TYPES.PLANET_GAS_GIANT.id
+            || typeId === BODY_TYPES.PLANET_GAS_DWARF.id;
+    }
+
+    function isTerrestrialPlanet(typeId) {
+        return typeId === BODY_TYPES.PLANET_EARTHLIKE.id
+            || typeId === BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id
+            || typeId === BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id;
+    }
 
     function show(gameState, destination, options = {}) {
         stop();
@@ -112,7 +168,12 @@ const SpaceTravelMap = (() => {
         const resetPosition = options.resetPosition !== false;
 
         currentGameState = gameState;
-        targetSystem = destination || gameState.destination || getNearestSystem(gameState);
+        targetSystem = destination || getNearestSystem(gameState);
+        localDestination = options.localDestination || gameState.localDestination || null;
+        if (localDestination && gameState.localDestinationSystemIndex !== null
+            && gameState.localDestinationSystemIndex !== gameState.currentSystemIndex) {
+            localDestination = null;
+        }
         playerShip = gameState.ships[0];
 
         if (!playerShip.size || playerShip.size === 1) {
@@ -134,10 +195,14 @@ const SpaceTravelMap = (() => {
         currentStation = null;
         if (targetSystem) {
             currentStation = new SpaceStation('DESTINATION', STATION_SIZE_AU);
+            const stationOrbit = typeof targetSystem.stationOrbitAU === 'number'
+                ? targetSystem.stationOrbitAU
+                : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
+            const stationDir = normalizeVec(STATION_ENTRANCE_DIR);
             currentStation.position = {
-                x: targetSystem.x * LY_TO_AU,
-                y: targetSystem.y * LY_TO_AU,
-                z: 0
+                x: targetSystem.x * LY_TO_AU + stationDir.x * stationOrbit,
+                y: targetSystem.y * LY_TO_AU + stationDir.y * stationOrbit,
+                z: stationDir.z * stationOrbit
             };
         }
 
@@ -219,18 +284,18 @@ const SpaceTravelMap = (() => {
             const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
             lastTimestamp = timestamp;
 
-            update(dt);
+            update(dt, timestamp);
             if (!isActive) {
                 return;
             }
-            render();
+            render(timestamp);
 
             animationId = requestAnimationFrame(loop);
         };
         animationId = requestAnimationFrame(loop);
     }
 
-    function update(dt) {
+    function update(dt, timestampMs = 0) {
         if (!playerShip) {
             return;
         }
@@ -291,7 +356,7 @@ const SpaceTravelMap = (() => {
         // Update position
         playerShip.position = addVec(playerShip.position, scaleVec(playerShip.velocity, dt));
 
-        if (currentStation && checkStationDocking(currentStation)) {
+        if (currentStation && checkStationDocking(currentStation, timestampMs)) {
             return;
         }
 
@@ -302,7 +367,7 @@ const SpaceTravelMap = (() => {
         }
     }
 
-    function render() {
+    function render(timestampMs = 0) {
         if (!isActive) {
             return;
         }
@@ -316,6 +381,7 @@ const SpaceTravelMap = (() => {
         const depthBuffer = createDepthBuffer(viewWidth, viewHeight);
 
         SpaceStationGfx.renderStationOccluders(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, NEAR_PLANE, STATION_FACE_DEPTH_BIAS);
+        renderSystemBodies(viewWidth, viewHeight, depthBuffer);
         renderStars(viewWidth, viewHeight, depthBuffer);
         // Edge rendering disabled in favor of face shading
         renderDust(viewWidth, viewHeight, depthBuffer);
@@ -324,11 +390,192 @@ const SpaceTravelMap = (() => {
 
         UI.draw();
 
+        const flashElapsed = timestampMs - damageFlashStartMs;
+        if (flashElapsed >= 0 && flashElapsed <= DAMAGE_FLASH_DURATION_MS) {
+            const t = flashElapsed / DAMAGE_FLASH_DURATION_MS;
+            const alpha = t < 0.5
+                ? (DAMAGE_FLASH_ALPHA * (t / 0.5))
+                : (DAMAGE_FLASH_ALPHA * (1 - ((t - 0.5) / 0.5)));
+            const ctx = UI.getContext?.();
+            const canvas = UI.getCanvas?.();
+            if (ctx && canvas) {
+                const rect = canvas.getBoundingClientRect();
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, rect.width, rect.height);
+                ctx.restore();
+            }
+        }
+
         const now = Date.now();
         if (!lastAsciiLogTimestamp || (now - lastAsciiLogTimestamp) >= ASCII_LOG_INTERVAL_MS) {
             lastAsciiLogTimestamp = now;
             UI.logScreenToConsole();
         }
+    }
+
+    function renderSystemBodies(viewWidth, viewHeight, depthBuffer) {
+        if (!targetSystem || !playerShip) {
+            return;
+        }
+
+        const systemCenter = {
+            x: targetSystem.x * LY_TO_AU,
+            y: targetSystem.y * LY_TO_AU,
+            z: 0
+        };
+
+        const bodies = [];
+        if (Array.isArray(targetSystem.stars)) {
+            targetSystem.stars.forEach(star => bodies.push({ ...star, kind: 'STAR' }));
+        }
+        if (Array.isArray(targetSystem.planets)) {
+            targetSystem.planets.forEach(planet => bodies.push({ ...planet, kind: 'PLANET' }));
+        }
+
+        if (bodies.length === 0) {
+            return;
+        }
+
+        const bodyColors = {
+            [BODY_TYPES.STAR_RED_DWARF.id]: '#ff6655',
+            [BODY_TYPES.STAR_YELLOW_DWARF.id]: '#ffd479',
+            [BODY_TYPES.STAR_WHITE_DWARF.id]: '#ffffff',
+            [BODY_TYPES.STAR_RED_GIANT.id]: '#ff7755',
+            [BODY_TYPES.STAR_BLUE_GIANT.id]: '#66aaff',
+            [BODY_TYPES.STAR_NEUTRON.id]: '#cfcfff',
+            [BODY_TYPES.STAR_BLACK_HOLE.id]: '#222222',
+            [BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id]: '#8a7a6a',
+            [BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id]: '#7a9b6f',
+            [BODY_TYPES.PLANET_EARTHLIKE.id]: '#5fbf6b',
+            [BODY_TYPES.PLANET_GAS_GIANT.id]: '#d9a45b',
+            [BODY_TYPES.PLANET_GAS_DWARF.id]: '#b88a55',
+            [BODY_TYPES.PLANET_ICE_GIANT.id]: '#7fc6d9',
+            [BODY_TYPES.PLANET_ICE_DWARF.id]: '#9fc7d9'
+        };
+
+        bodies.forEach(body => {
+            const rel = body.orbit ? SystemOrbitUtils.getOrbitPosition(body.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
+            const worldPos = addVec(systemCenter, rel);
+            const cameraSpace = rotateVecByQuat(subVec(worldPos, playerShip.position), quatConjugate(playerShip.rotation));
+            const projected = projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, VIEW_FOV);
+            if (!projected) {
+                return;
+            }
+
+            const dist = distance(playerShip.position, worldPos);
+            const shadeT = Math.max(0, Math.min(1, 1 - (dist / SYSTEM_BODY_SHADE_MAX_DISTANCE_AU)));
+            const baseColor = bodyColors[body.type] || COLORS.TEXT_NORMAL;
+            const color = lerpColorHex('#000000', baseColor, shadeT);
+
+            const charDims = UI.getCharDimensions();
+            const fovScale = Math.tan(degToRad(VIEW_FOV) / 2);
+            const viewPixelWidth = viewWidth * charDims.width;
+            const pixelsPerUnit = viewPixelWidth / (2 * fovScale * cameraSpace.z);
+            const radiusPx = Math.max(1, body.radiusAU * pixelsPerUnit);
+            const radiusChars = Math.max(1, Math.round(radiusPx / charDims.width));
+
+            const centerX = Math.round(projected.x);
+            const centerY = Math.round(projected.y);
+
+            let craterData = null;
+            if (isTerrestrialPlanet(body.type)) {
+                const rng = makeRng(hashString(body.id || body.type));
+                const craterCount = Math.max(2, Math.min(8, Math.round(radiusChars * 1.2)));
+                craterData = Array.from({ length: craterCount }, () => {
+                    const angle = rng() * Math.PI * 2;
+                    const dist = rng() * radiusChars * 0.6;
+                    return {
+                        x: Math.cos(angle) * dist,
+                        y: Math.sin(angle) * dist,
+                        r: Math.max(1, rng() * radiusChars * 0.35)
+                    };
+                });
+            }
+
+            const stripeSize = Math.max(1, Math.round(radiusChars * 0.35));
+            const stripePhase = Math.floor((hashString(body.id || body.type) % 100) / 100 * stripeSize);
+
+            for (let dy = -radiusChars; dy <= radiusChars; dy++) {
+                for (let dx = -radiusChars; dx <= radiusChars; dx++) {
+                    if (dx * dx + dy * dy > radiusChars * radiusChars) {
+                        continue;
+                    }
+                    const x = centerX + dx;
+                    const y = centerY + dy;
+                    let pixelColor = color;
+
+                    if (isGasPlanet(body.type)) {
+                        const band = Math.floor((dy + radiusChars + stripePhase) / stripeSize);
+                        const bandT = (band % 2 === 0) ? 0.15 : -0.2;
+                        if (bandT >= 0) {
+                            pixelColor = lerpColorHex(pixelColor, '#ffffff', bandT);
+                        } else {
+                            pixelColor = lerpColorHex(pixelColor, '#000000', Math.abs(bandT));
+                        }
+                    } else if (craterData) {
+                        for (let i = 0; i < craterData.length; i++) {
+                            const crater = craterData[i];
+                            const dxr = dx - crater.x;
+                            const dyr = dy - crater.y;
+                            if (dxr * dxr + dyr * dyr <= crater.r * crater.r) {
+                                pixelColor = lerpColorHex(pixelColor, '#000000', 0.35);
+                                break;
+                            }
+                        }
+                    }
+
+                    RasterUtils.plotDepthText(depthBuffer, x, y, projected.z, '█', pixelColor);
+                }
+            }
+
+            const bboxLeft = centerX - radiusChars;
+            const bboxRight = centerX + radiusChars;
+            const bboxTop = centerY - radiusChars;
+            const bboxBottom = centerY + radiusChars;
+            const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
+
+            if (isOnScreen && dist <= SYSTEM_BODY_LABEL_DISTANCE_AU) {
+                const name = BODY_TYPES[body.type]?.name || body.type;
+                const label = `${name}`;
+                const labelWidth = label.length;
+                const rawLabelX = centerX - Math.floor(labelWidth / 2);
+                const labelX = Math.max(0, Math.min(viewWidth - labelWidth, rawLabelX));
+                const labelY = Math.max(0, Math.min(viewHeight - 1, centerY - radiusChars - 1));
+                UI.addText(labelX, labelY, label, COLORS.TEXT_NORMAL);
+            }
+        });
+    }
+
+    function getActiveTargetInfo() {
+        if (localDestination && targetSystem) {
+            const systemCenter = {
+                x: targetSystem.x * LY_TO_AU,
+                y: targetSystem.y * LY_TO_AU,
+                z: 0
+            };
+            const rel = localDestination.orbit
+                ? SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date)
+                : { x: 0, y: 0, z: 0 };
+            return {
+                position: addVec(systemCenter, rel),
+                isLocal: true
+            };
+        }
+
+        if (targetSystem) {
+            return {
+                position: {
+                    x: targetSystem.x * LY_TO_AU,
+                    y: targetSystem.y * LY_TO_AU,
+                    z: 0
+                },
+                isLocal: false
+            };
+        }
+
+        return null;
     }
 
     function renderStars(viewWidth, viewHeight, depthBuffer) {
@@ -426,16 +673,16 @@ const SpaceTravelMap = (() => {
         UI.addText(2, startY + 3, `Hull: ${ship.hull}/${ship.maxHull}`, UI.calcStatColor(hullRatio, true));
 
         const speed = vecLength(ship.velocity);
-        UI.addText(2, startY + 4, `Speed: ${speed.toFixed(4)} AU/s`, COLORS.TEXT_DIM);
+        const speedPerMinute = speed * 60;
+        UI.addText(2, startY + 4, `Speed: ${speedPerMinute.toFixed(2)} AU/m`, COLORS.TEXT_DIM);
 
-        if (targetSystem) {
-            const targetPos = {
-                x: targetSystem.x * LY_TO_AU,
-                y: targetSystem.y * LY_TO_AU,
-                z: 0
-            };
-            const distanceToTarget = vecLength(subVec(targetPos, ship.position));
-            UI.addText(2, startY + 5, `Distance: ${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / LY_TO_AU).toFixed(3)} LY)`, COLORS.TEXT_DIM);
+        const targetInfo = getActiveTargetInfo();
+        if (targetInfo) {
+            const distanceToTarget = vecLength(subVec(targetInfo.position, ship.position));
+            const distanceLabel = targetInfo.isLocal
+                ? `Distance: ${distanceToTarget.toFixed(2)} AU`
+                : `Distance: ${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / LY_TO_AU).toFixed(3)} LY)`;
+            UI.addText(2, startY + 5, distanceLabel, COLORS.TEXT_DIM);
         } else {
             UI.addText(2, startY + 5, 'Distance: --', COLORS.TEXT_DIM);
         }
@@ -508,31 +755,114 @@ const SpaceTravelMap = (() => {
 
     }
 
-    function checkStationDocking(station) {
+    function checkStationDocking(station, timestampMs = 0) {
         if (!station || !playerShip) {
             return false;
         }
 
         const dockRadius = station.size * 0.6;
+        const collisionRadius = station.size * STATION_COLLISION_RADIUS_MULT;
         const dist = distance(playerShip.position, station.position);
-        if (dist > dockRadius) {
+        if (dist > collisionRadius) {
             return false;
         }
 
-        stop();
-        const dockGameState = currentGameState;
-        const dockTarget = targetSystem;
-        DockingAnimation.show(dockGameState, () => {
-            if (dockGameState && dockTarget) {
-                const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
-                if (systemIndex >= 0) {
-                    dockGameState.setCurrentSystem(systemIndex);
-                }
-                dockGameState.destination = null;
+        const entranceDir = normalizeVec(STATION_ENTRANCE_DIR);
+        const toShip = normalizeVec(subVec(playerShip.position, station.position));
+        const entranceDot = ThreeDUtils.dotVec(toShip, entranceDir);
+        const toStation = normalizeVec(subVec(station.position, playerShip.position));
+        const approachingSpeed = ThreeDUtils.dotVec(playerShip.velocity, toStation);
+        const rawSpeed = vecLength(playerShip.velocity);
+        const collisionDebug = {
+            timestampMs: Math.floor(timestampMs),
+            stationId: station.id,
+            distAU: dist,
+            dockRadiusAU: dockRadius,
+            collisionRadiusAU: collisionRadius,
+            entranceDot,
+            approachingSpeedAUps: approachingSpeed,
+            speedAUps: rawSpeed,
+            speedAUpm: rawSpeed * 60,
+            minSpeedAUps: STATION_COLLISION_MIN_SPEED,
+            minSpeedAUpm: STATION_COLLISION_MIN_SPEED * 60,
+            maxEntranceDot: STATION_COLLISION_MAX_ENTRANCE_DOT,
+            isInsideDockRadius: dist <= dockRadius,
+            isInsideCollisionRadius: dist <= collisionRadius
+        };
+
+        if (dist <= dockRadius && entranceDot >= STATION_ENTRANCE_DOT && approachingSpeed > 0) {
+            if (DEBUG_STATION_COLLISION) {
+                console.log('[SpaceTravelMap] Docking conditions met', collisionDebug);
             }
-            DockMenu.show(dockGameState);
-        });
-        return true;
+            stop();
+            const dockGameState = currentGameState;
+            const dockTarget = targetSystem;
+            DockingAnimation.show(dockGameState, () => {
+                if (dockGameState && dockTarget) {
+                    const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
+                    if (systemIndex >= 0) {
+                        dockGameState.setCurrentSystem(systemIndex);
+                    }
+                    dockGameState.destination = null;
+                }
+                DockMenu.show(dockGameState);
+            });
+            return true;
+        }
+
+        if (approachingSpeed < STATION_COLLISION_MIN_SPEED) {
+            const v = playerShip.velocity;
+            const dotVN = ThreeDUtils.dotVec(v, toShip);
+            if (dotVN > 0) {
+                playerShip.velocity = subVec(v, scaleVec(toShip, dotVN));
+            }
+            playerShip.position = addVec(station.position, scaleVec(toShip, collisionRadius));
+            if (DEBUG_STATION_COLLISION) {
+                console.log('[SpaceTravelMap] Soft collision clamp (below min speed)', {
+                    ...collisionDebug,
+                    dotVN,
+                    newVelocity: playerShip.velocity
+                });
+            }
+            return false;
+        }
+
+        const v = playerShip.velocity;
+        const dotVN = ThreeDUtils.dotVec(v, toShip);
+        const reflected = subVec(v, scaleVec(toShip, 2 * dotVN));
+        playerShip.velocity = scaleVec(reflected, STATION_BOUNCE_DAMPING);
+        playerShip.position = addVec(station.position, scaleVec(toShip, collisionRadius));
+        if (DEBUG_STATION_COLLISION) {
+            console.log('[SpaceTravelMap] Bounce collision', {
+                ...collisionDebug,
+                dotVN,
+                reflectedVelocity: reflected,
+                postVelocity: playerShip.velocity
+            });
+        }
+
+        if (timestampMs - lastStationCollisionMs >= STATION_COLLISION_COOLDOWN_MS) {
+            const damage = Math.max(1, Math.floor((approachingSpeed * 60) / 0.1));
+            playerShip.hull = Math.max(0, (playerShip.hull ?? 0) - damage);
+            lastStationCollisionMs = timestampMs;
+            damageFlashStartMs = timestampMs;
+            if (DEBUG_STATION_COLLISION) {
+                console.log('[SpaceTravelMap] Collision damage', {
+                    ...collisionDebug,
+                    damage,
+                    hullAfter: playerShip.hull,
+                    cooldownMs: STATION_COLLISION_COOLDOWN_MS
+                });
+            }
+        } else if (DEBUG_STATION_COLLISION) {
+            console.log('[SpaceTravelMap] Collision no damage (cooldown)', {
+                ...collisionDebug,
+                lastCollisionMs: lastStationCollisionMs,
+                cooldownMs: STATION_COLLISION_COOLDOWN_MS
+            });
+        }
+        return false;
+
     }
 
     function getNearestSystem(gameState) {
@@ -607,16 +937,11 @@ const SpaceTravelMap = (() => {
     }
 
     function renderCompass(viewWidth, viewHeight, startY) {
-        if (!playerShip || !targetSystem) {
+        const targetInfo = getActiveTargetInfo();
+        if (!playerShip || !targetInfo) {
             return;
         }
-
-        const targetPos = {
-            x: targetSystem.x * LY_TO_AU,
-            y: targetSystem.y * LY_TO_AU,
-            z: 0
-        };
-        const toTarget = subVec(targetPos, playerShip.position);
+        const toTarget = subVec(targetInfo.position, playerShip.position);
         const distanceToTarget = vecLength(toTarget);
         if (distanceToTarget <= 0.000001) {
             return;

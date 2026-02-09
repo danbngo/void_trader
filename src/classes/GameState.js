@@ -12,6 +12,8 @@ class GameState {
         this.currentSystemIndex = 0;
         this.previousSystemIndex = 0; // Track system player departed from (for jail mechanic)
         this.destination = null; // Target system for travel
+        this.localDestination = null; // Target planet/star in current system
+        this.localDestinationSystemIndex = null;
         this.x = 0; // Player's current x position
         this.y = 0; // Player's current y position
         this.credits = STARTING_CREDITS; // Player's money

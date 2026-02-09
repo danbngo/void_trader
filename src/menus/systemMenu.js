@@ -451,10 +451,9 @@ const DockMenu = (() => {
     }
 
     function beginSpaceTravel(gameState) {
-        const destination = gameState.destination || getNearestSystem(gameState);
+        const destination = gameState.getCurrentSystem() || getNearestSystem(gameState);
         if (destination) {
             gameState.previousSystemIndex = gameState.currentSystemIndex;
-            gameState.destination = destination;
             SpaceTravelMap.show(gameState, destination, { resetPosition: true });
         } else {
             GalaxyMap.show(gameState);

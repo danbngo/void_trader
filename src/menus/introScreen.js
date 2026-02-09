@@ -41,11 +41,10 @@ const IntroScreen = (() => {
         
         // Continue button
         UI.addCenteredButton(grid.height - 4, '1', 'Begin Your Journey', () => {
-            const destination = getNearestSystem(gameState);
-            if (destination) {
-                gameState.destination = destination;
-                SpaceTravelMap.show(gameState, destination, { resetPosition: true });
-            } else {
+                const destination = gameState.getCurrentSystem() || getNearestSystem(gameState);
+                if (destination) {
+                    SpaceTravelMap.show(gameState, destination, { resetPosition: true });
+                } else {
                 DockMenu.show(gameState);
             }
         }, COLORS.BUTTON);

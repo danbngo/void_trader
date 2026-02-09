@@ -80,7 +80,7 @@ class CanvasWrapper {
         this.lineGap = Math.max(1, Math.round(this.baseFontSize * 0.2));
         this.charHeight = Math.max(1, Math.round(ascent + descent + this.lineGap));
         this.charWidth = Math.max(1, Math.ceil(measuredWidth));
-        this.textOffsetY = Math.floor(this.lineGap / 2);
+        this.textOffsetY = Math.max(0, Math.floor(this.lineGap / 2) - 2);
 
         canvasWidth = Math.round(this.charWidth * this.gridWidth);
         canvasHeight = Math.round(this.charHeight * this.gridHeight);

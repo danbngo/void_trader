@@ -623,6 +623,20 @@ const UI = (() => {
         }
         return canvasWrapper.getCharDimensions();
     }
+
+    /**
+     * Get canvas element
+     */
+    function getCanvas() {
+        return canvasWrapper ? canvasWrapper.getCanvas() : null;
+    }
+
+    /**
+     * Get canvas context
+     */
+    function getContext() {
+        return canvasWrapper ? canvasWrapper.getContext() : null;
+    }
     
     /**
      * Reset button selection to first button (for entering new menus)
@@ -825,6 +839,8 @@ const UI = (() => {
         draw,
         getGridSize,
         getCharDimensions,
+        getCanvas,
+        getContext,
         resetSelection,
         setOutputRow,
         clearOutputRow,

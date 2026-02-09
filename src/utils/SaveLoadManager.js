@@ -44,6 +44,8 @@ const SaveLoadManager = (() => {
                 systems: gameState.systems,
                 visitedSystems: gameState.visitedSystems,
                 date: gameState.date.toISOString(),
+                localDestination: gameState.localDestination || null,
+                localDestinationSystemIndex: gameState.localDestinationSystemIndex ?? null,
                 encounterShips: gameState.encounterShips,
                 encounter: gameState.encounter,
                 // Save message states (ID, isRead, suppressWarning)
@@ -130,6 +132,8 @@ const SaveLoadManager = (() => {
         gameState.y = data.y;
         gameState.visitedSystems = data.visitedSystems || [];
         gameState.date = data.date ? new Date(data.date) : new Date(3000, 0, 1);
+        gameState.localDestination = data.localDestination || null;
+        gameState.localDestinationSystemIndex = data.localDestinationSystemIndex ?? null;
         
         // Reconstruct encounter ships
         gameState.encounterShips = (data.encounterShips || []).map(s => {

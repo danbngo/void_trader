@@ -30,6 +30,46 @@ const SystemGenerator = (() => {
     ];
     
     const usedNames = new Set();
+
+    const STAR_TYPE_WEIGHTS = [
+        { type: BODY_TYPES.STAR_RED_DWARF.id, weight: 0.45 },
+        { type: BODY_TYPES.STAR_YELLOW_DWARF.id, weight: 0.25 },
+        { type: BODY_TYPES.STAR_WHITE_DWARF.id, weight: 0.1 },
+        { type: BODY_TYPES.STAR_RED_GIANT.id, weight: 0.08 },
+        { type: BODY_TYPES.STAR_BLUE_GIANT.id, weight: 0.04 },
+        { type: BODY_TYPES.STAR_NEUTRON.id, weight: 0.05 },
+        { type: BODY_TYPES.STAR_BLACK_HOLE.id, weight: 0.03 }
+    ];
+
+    const PLANET_TYPE_WEIGHTS = [
+        { type: BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id, weight: 0.25 },
+        { type: BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id, weight: 0.1 },
+        { type: BODY_TYPES.PLANET_EARTHLIKE.id, weight: 0.08 },
+        { type: BODY_TYPES.PLANET_GAS_GIANT.id, weight: 0.2 },
+        { type: BODY_TYPES.PLANET_GAS_DWARF.id, weight: 0.12 },
+        { type: BODY_TYPES.PLANET_ICE_GIANT.id, weight: 0.12 },
+        { type: BODY_TYPES.PLANET_ICE_DWARF.id, weight: 0.13 }
+    ];
+
+    const STAR_RADIUS_RANGES_AU = {
+        [BODY_TYPES.STAR_RED_DWARF.id]: [0.004, 0.02],
+        [BODY_TYPES.STAR_YELLOW_DWARF.id]: [0.004, 0.01],
+        [BODY_TYPES.STAR_WHITE_DWARF.id]: [0.002, 0.005],
+        [BODY_TYPES.STAR_RED_GIANT.id]: [0.1, 0.6],
+        [BODY_TYPES.STAR_BLUE_GIANT.id]: [0.2, 0.9],
+        [BODY_TYPES.STAR_NEUTRON.id]: [0.00002, 0.00008],
+        [BODY_TYPES.STAR_BLACK_HOLE.id]: [0.00005, 0.0002]
+    };
+
+    const PLANET_RADIUS_RANGES_AU = {
+        [BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id]: [0.00002, 0.00005],
+        [BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id]: [0.00005, 0.00012],
+        [BODY_TYPES.PLANET_EARTHLIKE.id]: [0.00004, 0.00007],
+        [BODY_TYPES.PLANET_GAS_GIANT.id]: [0.0003, 0.0007],
+        [BODY_TYPES.PLANET_GAS_DWARF.id]: [0.00015, 0.0003],
+        [BODY_TYPES.PLANET_ICE_GIANT.id]: [0.0002, 0.00045],
+        [BODY_TYPES.PLANET_ICE_DWARF.id]: [0.00005, 0.00015]
+    };
     
     /**
      * Generate a unique star system name
@@ -143,6 +183,28 @@ const SystemGenerator = (() => {
         return min + Math.floor(Math.random() * (max - min + 1));
     }
 
+    function randomRange(min, max) {
+        return min + Math.random() * (max - min);
+    }
+
+    function pickWeighted(list) {
+        const total = list.reduce((sum, entry) => sum + entry.weight, 0);
+        const roll = Math.random() * total;
+        let acc = 0;
+        for (const entry of list) {
+            acc += entry.weight;
+            if (roll <= acc) {
+                return entry.type;
+            }
+        }
+        return list[list.length - 1].type;
+    }
+
+    function getRadiusForType(typeId, ranges) {
+        const range = ranges[typeId] || [0.00005, 0.0002];
+        return randomRange(range[0], range[1]);
+    }
+
     function randomBodyEntry(bodyList) {
         const bodyType = bodyList[Math.floor(Math.random() * bodyList.length)];
         return bodyType ? { type: bodyType.id } : null;
@@ -154,10 +216,64 @@ const SystemGenerator = (() => {
         const beltCount = randomInt(MIN_SYSTEM_BELTS, MAX_SYSTEM_BELTS);
         const moonCount = randomInt(MIN_SYSTEM_MOONS, MAX_SYSTEM_MOONS);
 
-        system.stars = Array.from({ length: starCount }, () => randomBodyEntry(STAR_BODY_TYPES)).filter(Boolean);
-        system.planets = Array.from({ length: planetCount }, () => randomBodyEntry(PLANETARY_BODY_TYPES)).filter(Boolean);
+        system.stars = Array.from({ length: starCount }, (_, index) => {
+            const type = pickWeighted(STAR_TYPE_WEIGHTS);
+            return {
+                id: `${system.name}-STAR-${index + 1}`,
+                type,
+                radiusAU: getRadiusForType(type, STAR_RADIUS_RANGES_AU),
+                orbit: null
+            };
+        });
+
+        const planets = [];
+        let orbitRadius = SYSTEM_PLANET_ORBIT_MIN_AU;
+        for (let i = 0; i < planetCount; i++) {
+            const gap = randomRange(SYSTEM_PLANET_ORBIT_GAP_MIN_AU, SYSTEM_PLANET_ORBIT_GAP_MAX_AU);
+            if (i > 0) {
+                orbitRadius += gap;
+            }
+            if (orbitRadius > SYSTEM_PLANET_ORBIT_MAX_AU) {
+                break;
+            }
+            const type = pickWeighted(PLANET_TYPE_WEIGHTS);
+            const periodDays = 365.25 * Math.pow(orbitRadius, 1.5);
+            const progress = Math.random();
+            planets.push({
+                id: `${system.name}-PLANET-${i + 1}`,
+                type,
+                radiusAU: getRadiusForType(type, PLANET_RADIUS_RANGES_AU),
+                orbit: {
+                    semiMajorAU: orbitRadius,
+                    periodDays,
+                    percentOffset: progress,
+                    progress
+                }
+            });
+        }
+        if (planets.length === 0) {
+            const type = pickWeighted(PLANET_TYPE_WEIGHTS);
+            const periodDays = 365.25 * Math.pow(SYSTEM_PLANET_ORBIT_MIN_AU, 1.5);
+            const progress = Math.random();
+            planets.push({
+                id: `${system.name}-PLANET-1`,
+                type,
+                radiusAU: getRadiusForType(type, PLANET_RADIUS_RANGES_AU),
+                orbit: {
+                    semiMajorAU: SYSTEM_PLANET_ORBIT_MIN_AU,
+                    periodDays,
+                    percentOffset: progress,
+                    progress
+                }
+            });
+        }
+        system.planets = planets;
+
         system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
         system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);
+
+        const farthestOrbit = planets.length > 0 ? planets[planets.length - 1].orbit.semiMajorAU : SYSTEM_PLANET_ORBIT_MIN_AU;
+        system.stationOrbitAU = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
     }
 
     function assignSystemLevels(system) {

@@ -605,7 +605,6 @@ const GalaxyMap = (() => {
                 } else {
                     outputMessage = '';
                     gameState.previousSystemIndex = gameState.currentSystemIndex;
-                    gameState.destination = targetSystem;
                     SpaceTravelMap.show(gameState, targetSystem, { resetPosition: false });
                 }
             }
@@ -622,8 +621,12 @@ const GalaxyMap = (() => {
         }, COLORS.BUTTON, 'Increase map view range to see more distant systems');
         
         // Third column: Return to travel
-        UI.addButton(rightX, buttonY, '0', 'Travel', () => {
-            const destination = gameState.destination || getNearestSystem(gameState);
+        UI.addButton(rightX, buttonY, '7', 'Local System', () => {
+            LocalSystemMap.show(gameState);
+        }, COLORS.BUTTON, 'View stars and planets in current system');
+
+        UI.addButton(rightX, buttonY + 1, '0', 'Travel', () => {
+            const destination = gameState.getCurrentSystem() || getNearestSystem(gameState);
             if (destination) {
                 SpaceTravelMap.show(gameState, destination, { resetPosition: false });
             }

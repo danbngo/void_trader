@@ -207,6 +207,7 @@ const SpaceTravelMap = (() => {
                 y: targetSystem.y * LY_TO_AU + stationDir.y * stationOrbit,
                 z: stationDir.z * stationOrbit
             };
+            currentStation.name = targetSystem.stationName || `${targetSystem.name} Station`;
         }
 
         if (resetPosition || !hasPosition) {
@@ -568,12 +569,13 @@ const SpaceTravelMap = (() => {
                 const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
                 if (isOnScreen) {
                     hoverInfos.push({
-                        name: BODY_TYPES[body.type]?.name || body.type,
+                        name: body.name || BODY_TYPES[body.type]?.name || body.type,
                         centerX,
                         centerY,
                         radiusChars: 0,
                         depth: projected.z,
-                        isOnScreen
+                        isOnScreen,
+                        labelColor: color
                     });
                 }
                 return;
@@ -638,12 +640,13 @@ const SpaceTravelMap = (() => {
 
             if (isOnScreen) {
                 hoverInfos.push({
-                    name: BODY_TYPES[body.type]?.name || body.type,
+                    name: body.name || BODY_TYPES[body.type]?.name || body.type,
                     centerX,
                     centerY,
                     radiusChars,
                     depth: projected.z,
-                    isOnScreen
+                    isOnScreen,
+                    labelColor: color
                 });
             }
         });
@@ -668,13 +671,14 @@ const SpaceTravelMap = (() => {
 
                 if (isOnScreen) {
                     hoverInfos.push({
-                        name: 'Station',
+                        name: currentStation.name || 'Station',
                         centerX: stationCenterX,
                         centerY: stationCenterY,
                         radiusChars: stationRadiusChars,
                         depth: stationCamera.z,
                         isOnScreen,
-                        depthEpsilon: currentStation.size * 2
+                        depthEpsilon: currentStation.size * 2,
+                        labelColor: COLORS.GRAY
                     });
                 }
             }
@@ -722,7 +726,7 @@ const SpaceTravelMap = (() => {
                         labelY = 0;
                     }
 
-                    labels.push({ x: labelX, y: labelY, text: labelText });
+                    labels.push({ x: labelX, y: labelY, text: labelText, color: best.labelColor || COLORS.TEXT_NORMAL });
                 }
             }
         }
@@ -742,7 +746,7 @@ const SpaceTravelMap = (() => {
             }
             const x = Math.max(0, Math.min(viewWidth - Math.max(1, label.text.length), label.x));
             const y = Math.max(0, Math.min(viewHeight - 1, label.y));
-            UI.addText(x, y, label.text, COLORS.TEXT_NORMAL);
+            UI.addText(x, y, label.text, label.color || COLORS.TEXT_NORMAL);
         });
     }
 

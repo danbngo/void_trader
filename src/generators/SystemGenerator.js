@@ -210,6 +210,36 @@ const SystemGenerator = (() => {
         return bodyType ? { type: bodyType.id } : null;
     }
 
+    function toRomanNumeral(value) {
+        if (value <= 0) {
+            return '';
+        }
+        const map = [
+            { value: 1000, symbol: 'M' },
+            { value: 900, symbol: 'CM' },
+            { value: 500, symbol: 'D' },
+            { value: 400, symbol: 'CD' },
+            { value: 100, symbol: 'C' },
+            { value: 90, symbol: 'XC' },
+            { value: 50, symbol: 'L' },
+            { value: 40, symbol: 'XL' },
+            { value: 10, symbol: 'X' },
+            { value: 9, symbol: 'IX' },
+            { value: 5, symbol: 'V' },
+            { value: 4, symbol: 'IV' },
+            { value: 1, symbol: 'I' }
+        ];
+        let remaining = value;
+        let result = '';
+        for (const entry of map) {
+            while (remaining >= entry.value) {
+                result += entry.symbol;
+                remaining -= entry.value;
+            }
+        }
+        return result;
+    }
+
     function assignSystemBodies(system) {
         const starCount = randomInt(MIN_SYSTEM_STARS, MAX_SYSTEM_STARS);
         const planetCount = randomInt(MIN_SYSTEM_PLANETS, MAX_SYSTEM_PLANETS);
@@ -267,6 +297,11 @@ const SystemGenerator = (() => {
                 }
             });
         }
+        const orderedPlanets = [...planets].sort((a, b) => (a.orbit?.semiMajorAU || 0) - (b.orbit?.semiMajorAU || 0));
+        orderedPlanets.forEach((planet, index) => {
+            const numeral = toRomanNumeral(index + 1);
+            planet.name = `${system.name} ${numeral}`;
+        });
         system.planets = planets;
 
         system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
@@ -274,6 +309,7 @@ const SystemGenerator = (() => {
 
         const farthestOrbit = planets.length > 0 ? planets[planets.length - 1].orbit.semiMajorAU : SYSTEM_PLANET_ORBIT_MIN_AU;
         system.stationOrbitAU = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
+        system.stationName = `${system.name} Station`;
     }
 
     function assignSystemLevels(system) {

@@ -401,6 +401,23 @@ const UI = (() => {
     function addClickable(x, y, width, callback) {
         registeredTableRows.push({ x, y, width, callback, index: -1 });
     }
+
+    function drawTextItem(item, forceBackground = false) {
+        const textWidth = item.text.length;
+
+        // Check if this text is on a highlighted row
+        const isOnHighlightedRow = registeredHighlights.some(highlight =>
+            highlight.y === item.y && item.x >= highlight.x && item.x < highlight.x + highlight.width
+        );
+
+        if (forceBackground) {
+            canvasWrapper.drawRect(item.x, item.y, textWidth, 1, 'black');
+        } else if (item.color !== 'black' && !isOnHighlightedRow) {
+            canvasWrapper.drawRect(item.x, item.y, textWidth, 1, 'black');
+        }
+
+        canvasWrapper.drawText(item.x, item.y, item.text, item.color, item.fontSize, item.underline || false);
+    }
     
     /**
      * Draw all registered UI elements to the canvas
@@ -430,22 +447,7 @@ const UI = (() => {
         
         // Draw all registered texts
         registeredTexts.forEach(item => {
-            const textWidth = item.text.length;
-            
-            // Check if this text is on a highlighted row
-            const isOnHighlightedRow = registeredHighlights.some(highlight => 
-                highlight.y === item.y && item.x >= highlight.x && item.x < highlight.x + highlight.width
-            );
-            
-            // Clear the area before drawing to prevent overlapping artifacts
-            // BUT don't clear if text is black (selected text on white background)
-            // OR if the text is on a highlighted row (preserve the highlight background)
-            if (item.color !== 'black' && !isOnHighlightedRow) {
-                canvasWrapper.drawRect(item.x, item.y, textWidth, 1, 'black');
-            }
-            
-            // Draw the text
-            canvasWrapper.drawText(item.x, item.y, item.text, item.color, item.fontSize, item.underline || false);
+            drawTextItem(item);
         });
         
         // Draw all registered buttons
@@ -801,22 +803,22 @@ const UI = (() => {
         const y = Math.max(0, Math.min(grid.height - 1, gameCursorPos.y));
         const color = COLORS.TEXT_NORMAL;
 
+        const cursorItems = [];
+
         if (x - 1 >= 0) {
-            canvasWrapper.drawRect(x - 1, y, 1, 1, 'black');
-            canvasWrapper.drawText(x - 1, y, '-', color);
+            cursorItems.push({ x: x - 1, y, text: '-', color });
         }
         if (x + 1 < grid.width) {
-            canvasWrapper.drawRect(x + 1, y, 1, 1, 'black');
-            canvasWrapper.drawText(x + 1, y, '-', color);
+            cursorItems.push({ x: x + 1, y, text: '-', color });
         }
         if (y - 1 >= 0) {
-            canvasWrapper.drawRect(x, y - 1, 1, 1, 'black');
-            canvasWrapper.drawText(x, y - 1, '|', color);
+            cursorItems.push({ x, y: y - 1, text: '|', color });
         }
         if (y + 1 < grid.height) {
-            canvasWrapper.drawRect(x, y + 1, 1, 1, 'black');
-            canvasWrapper.drawText(x, y + 1, '|', color);
+            cursorItems.push({ x, y: y + 1, text: '|', color });
         }
+
+        cursorItems.forEach(item => drawTextItem(item, true));
     }
     
     /**

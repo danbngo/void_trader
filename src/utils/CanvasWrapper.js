@@ -136,6 +136,9 @@ class CanvasWrapper {
 
         const actualFontSize = Math.floor(this.baseFontSize * fontSizeMultiplier);
         this.ctx.font = `${actualFontSize}px ${this.fontFamily}`;
+        if (typeof this.ctx.fontKerning !== 'undefined') {
+            this.ctx.fontKerning = 'none';
+        }
 
         if (text.length === 1 && '█▓▒░'.includes(text)) {
             this.ctx.fillStyle = color;
@@ -144,11 +147,19 @@ class CanvasWrapper {
         }
         
         this.ctx.fillStyle = color;
-        this.ctx.fillText(text, pixelX, pixelY + this.textOffsetY);
+        if (text.length > 1) {
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                const charX = pixelX + (i * this.charWidth);
+                this.ctx.fillText(ch, charX, pixelY + this.textOffsetY);
+            }
+        } else {
+            this.ctx.fillText(text, pixelX, pixelY + this.textOffsetY);
+        }
         
         // Draw underline if requested
         if (underline) {
-            const textWidth = this.ctx.measureText(text).width;
+            const textWidth = this.charWidth * text.length;
             const underlineY = pixelY + this.charHeight - 1;
             this.ctx.beginPath();
             this.ctx.strokeStyle = color;

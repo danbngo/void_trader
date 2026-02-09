@@ -79,7 +79,7 @@ const SpaceTravelMap = (() => {
     const STATION_BOUNCE_DAMPING = 0.6;
     const STATION_COLLISION_COOLDOWN_MS = 600;
     const STATION_COLLISION_RADIUS_MULT = 0.8;
-    const STATION_COLLISION_MIN_SPEED = 0.1 / 60;
+    const STATION_COLLISION_MIN_SPEED = 0.2 / 60;
     const STATION_COLLISION_MAX_ENTRANCE_DOT = 0.7;
     const STATION_COLLISION_SPEED_PER_HULL = 5;
     const DAMAGE_FLASH_DURATION_MS = 500;
@@ -999,7 +999,13 @@ const SpaceTravelMap = (() => {
         const menuX = Math.max(0, panelWidth - buttonText.length - 1);
         UI.addButton(menuX, startY + 6, 'm', menuText, () => {
             stop();
-            GalaxyMap.show(currentGameState);
+            SpaceTravelMenu.show(currentGameState, () => {
+                const destination = targetSystem || getNearestSystem(currentGameState);
+                show(currentGameState, destination, {
+                    resetPosition: false,
+                    localDestination
+                });
+            });
         }, applyPauseColor(COLORS.CYAN), '');
     }
 
@@ -1112,6 +1118,13 @@ const SpaceTravelMap = (() => {
                 DockMenu.show(dockGameState);
             });
             return true;
+        }
+
+        if (entranceDot >= STATION_ENTRANCE_DOT) {
+            if (DEBUG_STATION_COLLISION) {
+                console.log('[SpaceTravelMap] Entrance approach - collision suppressed', collisionDebug);
+            }
+            return false;
         }
 
         if (approachingSpeed < STATION_COLLISION_MIN_SPEED) {

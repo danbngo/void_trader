@@ -622,7 +622,7 @@ const GalaxyMap = (() => {
         
         // Third column: Return to travel
         UI.addButton(rightX, buttonY, '7', 'Local System', () => {
-            LocalSystemMap.show(gameState);
+            LocalSystemMap.show(gameState, () => show(gameState));
         }, COLORS.BUTTON, 'View stars and planets in current system');
 
         UI.addButton(rightX, buttonY + 1, '0', 'Travel', () => {

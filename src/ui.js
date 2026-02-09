@@ -837,7 +837,7 @@ const UI = (() => {
         const grid = getGridSize();
         const x = Math.max(0, Math.min(grid.width - 1, gameCursorPos.x));
         const y = Math.max(0, Math.min(grid.height - 1, gameCursorPos.y));
-        const color = COLORS.TEXT_NORMAL;
+        const color = COLORS.CYAN;
 
         const cursorItems = [];
 

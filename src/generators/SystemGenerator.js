@@ -250,6 +250,7 @@ const SystemGenerator = (() => {
             const type = pickWeighted(STAR_TYPE_WEIGHTS);
             return {
                 id: `${system.name}-STAR-${index + 1}`,
+                name: starCount === 1 ? `${system.name} Star` : `${system.name} Star ${index + 1}`,
                 type,
                 radiusAU: getRadiusForType(type, STAR_RADIUS_RANGES_AU),
                 orbit: null

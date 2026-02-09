@@ -6,10 +6,13 @@
 const LocalSystemMap = (() => {
     let selectedIndex = 0;
     let bodies = [];
+    let returnCallback = null;
+    const LY_TO_AU = 63241; // 1 LY = 63,241 AU
 
-    function show(gameState) {
+    function show(gameState, onReturn = null) {
         UI.clear();
         UI.resetSelection();
+        returnCallback = onReturn;
         render(gameState);
     }
 
@@ -30,8 +33,21 @@ const LocalSystemMap = (() => {
             return;
         }
 
+        const stars = Array.isArray(system.stars) ? system.stars : [];
         const planets = Array.isArray(system.planets) ? system.planets : [];
-        bodies = planets;
+        const station = {
+            id: system.stationName || `${system.name} Station`,
+            name: system.stationName || `${system.name} Station`,
+            type: 'STATION',
+            orbit: {
+                semiMajorAU: system.stationOrbitAU,
+                periodDays: Number.POSITIVE_INFINITY,
+                percentOffset: 0,
+                progress: 0
+            }
+        };
+
+        bodies = [...stars, ...planets, station];
         if (selectedIndex >= bodies.length) {
             selectedIndex = Math.max(0, bodies.length - 1);
         }
@@ -49,26 +65,44 @@ const LocalSystemMap = (() => {
         const mapCenterX = Math.floor(mapWidth / 2);
         const mapCenterY = Math.floor(mapHeight / 2);
 
-        const maxOrbit = planets.length > 0
-            ? Math.max(...planets.map(p => p.orbit?.semiMajorAU || 0))
+        const orbitValues = bodies
+            .map(body => body.orbit?.semiMajorAU || 0)
+            .filter(value => value > 0);
+        const maxOrbit = orbitValues.length > 0
+            ? Math.max(...orbitValues)
             : SYSTEM_PLANET_ORBIT_MIN_AU;
         const radius = Math.max(1, maxOrbit);
         const scale = (Math.min(mapWidth, mapHeight) / 2 - 2) / radius;
 
         // Draw star at center
-        UI.addText(mapCenterX, mapCenterY, '✶', COLORS.YELLOW);
+        if (stars.length > 0) {
+            const starColor = getBodyColor(stars[0]);
+            const starSymbol = selectedIndex === 0 ? '✶' : '✶';
+            UI.addText(mapCenterX, mapCenterY, starSymbol, starColor);
+            UI.registerTableRow(mapCenterX, mapCenterY, 1, 0, (rowIndex) => {
+                selectedIndex = rowIndex;
+                render(gameState);
+            });
+        }
 
-        // Draw planets
-        planets.forEach((planet, index) => {
-            const orbitPos = SystemOrbitUtils.getOrbitPosition(planet.orbit, gameState.date);
+        // Draw planets + station
+        bodies.forEach((body, index) => {
+            if (!body.orbit) {
+                return;
+            }
+            const orbitPos = body.type === 'STATION'
+                ? { x: body.orbit.semiMajorAU, y: 0, z: 0 }
+                : SystemOrbitUtils.getOrbitPosition(body.orbit, gameState.date);
             const px = Math.round(mapCenterX + orbitPos.x * scale);
             const py = Math.round(mapCenterY - orbitPos.y * scale);
             if (px <= 0 || px >= mapWidth - 1 || py <= 0 || py >= mapHeight - 1) {
                 return;
             }
 
-            const color = getPlanetColor(planet.type);
-            const symbol = index === selectedIndex ? '●' : '•';
+            const color = getBodyColor(body);
+            const symbol = body.type === 'STATION'
+                ? (index === selectedIndex ? '■' : '□')
+                : (index === selectedIndex ? '●' : '•');
             UI.addText(px, py, symbol, color);
             UI.registerTableRow(px, py, 1, index, (rowIndex) => {
                 selectedIndex = rowIndex;
@@ -82,40 +116,81 @@ const LocalSystemMap = (() => {
         UI.addText(infoX, 2, `System: ${system.name}`, COLORS.TEXT_NORMAL);
         UI.addText(infoX, 3, `Planets: ${planets.length}`, COLORS.TEXT_NORMAL);
 
-        if (planets.length > 0 && planets[selectedIndex]) {
-            const planet = planets[selectedIndex];
-            UI.addText(infoX, 5, `Selected: ${planet.id}`, COLORS.TEXT_DIM);
-            UI.addText(infoX, 6, `Type: ${BODY_TYPES[planet.type]?.name || planet.type}`, COLORS.TEXT_NORMAL);
-            UI.addText(infoX, 7, `Orbit: ${planet.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
-            UI.addText(infoX, 8, `Radius: ${planet.radiusAU.toExponential(2)} AU`, COLORS.TEXT_NORMAL);
+        if (bodies.length > 0 && bodies[selectedIndex]) {
+            const body = bodies[selectedIndex];
+            const bodyName = body.name || body.id || body.type;
+            UI.addText(infoX, 5, `Selected: ${bodyName}`, COLORS.TEXT_DIM);
+            if (body.type === 'STATION') {
+                UI.addText(infoX, 6, 'Type: Space Station', COLORS.TEXT_NORMAL);
+                UI.addText(infoX, 7, `Orbit: ${body.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
+            } else if (body.orbit) {
+                UI.addText(infoX, 6, `Type: ${BODY_TYPES[body.type]?.name || body.type}`, COLORS.TEXT_NORMAL);
+                UI.addText(infoX, 7, `Orbit: ${body.orbit.semiMajorAU.toFixed(2)} AU`, COLORS.TEXT_NORMAL);
+                if (body.radiusAU) {
+                    UI.addText(infoX, 8, `Radius: ${body.radiusAU.toExponential(2)} AU`, COLORS.TEXT_NORMAL);
+                }
+            } else {
+                UI.addText(infoX, 6, `Type: ${BODY_TYPES[body.type]?.name || body.type}`, COLORS.TEXT_NORMAL);
+            }
         }
 
         // Buttons
         const buttonY = grid.height - 4;
-        UI.addButton(infoX, buttonY, '1', 'Prev Planet', () => {
-            if (planets.length > 0) {
-                selectedIndex = (selectedIndex - 1 + planets.length) % planets.length;
+        UI.addButton(infoX, buttonY, '1', 'Prev Body', () => {
+            if (bodies.length > 0) {
+                selectedIndex = (selectedIndex - 1 + bodies.length) % bodies.length;
                 render(gameState);
             }
-        }, COLORS.BUTTON, 'Select previous planet');
+        }, COLORS.BUTTON, 'Select previous body');
 
-        UI.addButton(infoX, buttonY + 1, '2', 'Next Planet', () => {
-            if (planets.length > 0) {
-                selectedIndex = (selectedIndex + 1) % planets.length;
+        UI.addButton(infoX, buttonY + 1, '2', 'Next Body', () => {
+            if (bodies.length > 0) {
+                selectedIndex = (selectedIndex + 1) % bodies.length;
                 render(gameState);
             }
-        }, COLORS.BUTTON, 'Select next planet');
+        }, COLORS.BUTTON, 'Select next body');
 
         UI.addButton(infoX, buttonY + 2, '3', 'Set Destination', () => {
-            if (planets.length > 0 && planets[selectedIndex]) {
-                gameState.localDestination = planets[selectedIndex];
-                gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
+            if (bodies.length === 0) {
+                return;
             }
-        }, COLORS.GREEN, 'Set destination to selected planet');
+            const body = bodies[selectedIndex];
+            if (!body) {
+                return;
+            }
+            if (body.type === 'STATION') {
+                const stationDir = ThreeDUtils.normalizeVec({ x: 0, y: 0, z: 1 });
+                const stationOrbit = system.stationOrbitAU || SYSTEM_PLANET_ORBIT_MIN_AU;
+                gameState.localDestination = {
+                    id: `${system.name}-STATION`,
+                    type: 'STATION',
+                    name: body.name,
+                    positionWorld: {
+                        x: system.x * LY_TO_AU + stationDir.x * stationOrbit,
+                        y: system.y * LY_TO_AU + stationDir.y * stationOrbit,
+                        z: stationDir.z * stationOrbit
+                    },
+                    orbit: {
+                        semiMajorAU: stationOrbit,
+                        periodDays: Number.POSITIVE_INFINITY,
+                        percentOffset: 0,
+                        progress: 0
+                    }
+                };
+            } else {
+                gameState.localDestination = body;
+            }
+            gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
+        }, COLORS.GREEN, 'Set destination to selected body');
 
+        const backHelp = returnCallback ? 'Return to previous menu' : 'Return to galaxy map';
         UI.addButton(infoX + 22, buttonY + 2, '0', 'Back', () => {
+            if (returnCallback) {
+                returnCallback();
+                return;
+            }
             GalaxyMap.show(gameState);
-        }, COLORS.BUTTON, 'Return to galaxy map');
+        }, COLORS.BUTTON, backHelp);
 
         UI.draw();
     }

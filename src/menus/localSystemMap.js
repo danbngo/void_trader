@@ -49,38 +49,24 @@ const LocalSystemMap = (() => {
                 semiMajorAU: system.stationOrbitAU,
                 periodDays: Number.POSITIVE_INFINITY,
                 percentOffset: 0,
-                return '□';
+                progress: 0
             }
         };
 
-                return '⋆';
+        bodies = [...stars, ...planets, station];
         if (selectedIndex >= bodies.length) {
-            if (body.type === BODY_TYPES.STAR_RED_GIANT.id || body.type === BODY_TYPES.STAR_BLUE_GIANT.id) {
-                return '☼';
-            }
-            if (body.type === BODY_TYPES.STAR_NEUTRON.id) {
-                return '+';
-            }
-            if (body.type === BODY_TYPES.STAR_BLACK_HOLE.id) {
-                return '@';
-            }
-            if (body.type === BODY_TYPES.STAR_RED_DWARF.id
-                || body.type === BODY_TYPES.STAR_YELLOW_DWARF.id
-                || body.type === BODY_TYPES.STAR_WHITE_DWARF.id) {
-                return '⋆';
-            }
             selectedIndex = Math.max(0, bodies.length - 1);
         }
 
         // Border
         UI.addText(startX, startY, '╔' + '═'.repeat(mapWidth - 2) + '╗', COLORS.GRAY);
-                    return hasRing ? 'Ø' : 'O';
+        for (let y = 1; y < mapHeight - 1; y++) {
             UI.addText(startX, startY + y, '║', COLORS.GRAY);
             UI.addText(startX + mapWidth - 1, startY + y, '║', COLORS.GRAY);
         }
-                    return hasRing ? 'ʘ' : '⓿';
+        UI.addText(startX, startY + mapHeight - 1, '╚' + '═'.repeat(mapWidth - 2) + '╝', COLORS.GRAY);
         UI.addHeaderLine(2, 0, system.name);
-                    return '*';
+        const dateStr = formatDate(gameState.date);
         const dateCenterX = Math.floor(mapWidth / 2) - Math.floor(dateStr.length / 2);
         UI.addText(dateCenterX, 0, dateStr, COLORS.TEXT_NORMAL);
 

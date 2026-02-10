@@ -424,7 +424,7 @@ const TravelMenu = (() => {
         if (SystemUtils.isHabitedSystem(targetSystem)) {
             DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
         } else {
-            UninhabitedSystemMenu.show(currentGameState, () => GalaxyMap.show(currentGameState));
+            UninhabitedSystemMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation, () => GalaxyMap.show(currentGameState));
         }
     }
     

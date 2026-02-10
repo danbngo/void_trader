@@ -26,9 +26,12 @@ const DockMenu = (() => {
     function show(gameState, location) {
         currentDockLocation = getDockLocation(gameState, location);
         const dockData = currentDockLocation && currentDockLocation.dataRef ? currentDockLocation.dataRef : currentDockLocation;
-        const isHabitedLocation = dockData && (((dockData.population || 0) > 0) || (dockData.buildings && dockData.buildings.length > 0));
+        const hasHabitedFeature = dockData?.features && PLANET_FEATURES?.HABITED?.id
+            ? dockData.features.includes(PLANET_FEATURES.HABITED.id)
+            : false;
+        const isHabitedLocation = dockData && (((dockData.population || 0) > 0) || (dockData.buildings && dockData.buildings.length > 0) || hasHabitedFeature);
         if (!isHabitedLocation) {
-            UninhabitedSystemMenu.show(gameState, () => GalaxyMap.show(gameState));
+            UninhabitedSystemMenu.show(gameState, currentDockLocation, () => GalaxyMap.show(gameState));
             return;
         }
         // If we changed systems, reset the news arrays

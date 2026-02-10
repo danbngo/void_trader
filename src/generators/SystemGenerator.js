@@ -211,6 +211,75 @@ const SystemGenerator = (() => {
         return randomRange(range[0], range[1]);
     }
 
+    function addPlanetFeature(planet, featureId) {
+        if (!planet.features) {
+            planet.features = [];
+        }
+        if (!planet.features.includes(featureId)) {
+            planet.features.push(featureId);
+        }
+    }
+
+    function isGasPlanetType(typeId) {
+        return typeId === BODY_TYPES.PLANET_GAS_GIANT.id
+            || typeId === BODY_TYPES.PLANET_GAS_DWARF.id;
+    }
+
+    function isIcePlanetType(typeId) {
+        return typeId === BODY_TYPES.PLANET_ICE_GIANT.id
+            || typeId === BODY_TYPES.PLANET_ICE_DWARF.id;
+    }
+
+    function isTerrestrialPlanetType(typeId) {
+        return typeId === BODY_TYPES.PLANET_EARTHLIKE.id
+            || typeId === BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id
+            || typeId === BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id;
+    }
+
+    function assignPlanetTraits(planet) {
+        planet.features = planet.features || [];
+
+        const isGas = isGasPlanetType(planet.type);
+        const isIce = isIcePlanetType(planet.type);
+        const isTerrestrial = isTerrestrialPlanetType(planet.type);
+
+        const ringFeature = PLANET_FEATURES.RING;
+        if (ringFeature?.bodyTypes?.includes(planet.type) && Math.random() < (ringFeature.probability || 0)) {
+            addPlanetFeature(planet, ringFeature.id);
+        }
+
+        if (Math.random() < (PLANET_FEATURES.HAS_MOONS?.probability || 0)) {
+            addPlanetFeature(planet, PLANET_FEATURES.HAS_MOONS.id);
+            planet.moonCount = randomInt(1, 4);
+        }
+
+        if (isGas || isIce) {
+            addPlanetFeature(planet, PLANET_FEATURES.HAS_ATMOSPHERE.id);
+            planet.surfaceType = PLANET_SURFACE_TYPES.GASEOUS.id;
+        } else if (isTerrestrial) {
+            if (Math.random() < (PLANET_FEATURES.HAS_ATMOSPHERE?.probability || 0)) {
+                addPlanetFeature(planet, PLANET_FEATURES.HAS_ATMOSPHERE.id);
+            }
+            if (Math.random() < (PLANET_FEATURES.HAS_ICE_CAPS?.probability || 0)) {
+                addPlanetFeature(planet, PLANET_FEATURES.HAS_ICE_CAPS.id);
+            }
+            const terrestrialSurfaces = [
+                PLANET_SURFACE_TYPES.MAGMA.id,
+                PLANET_SURFACE_TYPES.BARREN.id,
+                PLANET_SURFACE_TYPES.FROZEN.id,
+                PLANET_SURFACE_TYPES.OCEANIC.id,
+                PLANET_SURFACE_TYPES.EARTHLIKE.id,
+                PLANET_SURFACE_TYPES.DESERT.id,
+                PLANET_SURFACE_TYPES.CRYSTALLINE.id
+            ];
+            planet.surfaceType = terrestrialSurfaces[Math.floor(Math.random() * terrestrialSurfaces.length)];
+        }
+
+        if (Math.random() < (PLANET_FEATURES.HABITED?.probability || 0)) {
+            addPlanetFeature(planet, PLANET_FEATURES.HABITED.id);
+        }
+    }
+
     function randomBodyEntry(bodyList) {
         const bodyType = bodyList[Math.floor(Math.random() * bodyList.length)];
         return bodyType ? { type: bodyType.id } : null;
@@ -290,6 +359,7 @@ const SystemGenerator = (() => {
                     progress
                 }
             }));
+            assignPlanetTraits(planets[planets.length - 1]);
         }
         if (planets.length === 0) {
             const type = pickWeighted(PLANET_TYPE_WEIGHTS);
@@ -309,6 +379,7 @@ const SystemGenerator = (() => {
                     progress
                 }
             }));
+            assignPlanetTraits(planets[planets.length - 1]);
         }
         const orderedPlanets = [...planets].sort((a, b) => (a.orbit?.semiMajorAU || 0) - (b.orbit?.semiMajorAU || 0));
         orderedPlanets.forEach((planet, index) => {
@@ -321,6 +392,10 @@ const SystemGenerator = (() => {
             || orderedPlanets[0]
             || null;
         if (primaryPlanet) {
+            if (PLANET_FEATURES?.HABITED?.id && !primaryPlanet.features?.includes(PLANET_FEATURES.HABITED.id)) {
+                primaryPlanet.features = primaryPlanet.features || [];
+                primaryPlanet.features.push(PLANET_FEATURES.HABITED.id);
+            }
             system.setPrimaryBody(primaryPlanet);
         }
 

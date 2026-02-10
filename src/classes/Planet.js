@@ -14,6 +14,9 @@ class Planet {
         this.radiusAU = data.radiusAU || 0;
         this.orbit = data.orbit || null;
         this.kind = data.kind || 'PLANET';
+        this.features = data.features ?? [];
+        this.surfaceType = data.surfaceType ?? null;
+        this.moonCount = data.moonCount ?? 0;
         this.rotationDurationHours = data.rotationDurationHours ?? 24;
         this.rotationPhase = data.rotationPhase ?? 0;
         this.axialTiltDeg = data.axialTiltDeg ?? 0;

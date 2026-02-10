@@ -7,34 +7,51 @@ const UninhabitedSystemMenu = (() => {
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
 
-    function show(gameState, onReturn) {
+    function show(gameState, location, onReturn) {
         outputMessage = '';
         outputColor = COLORS.TEXT_NORMAL;
         UI.clear();
         UI.resetSelection();
-        render(gameState, onReturn);
+        render(gameState, location, onReturn);
     }
 
-    function render(gameState, onReturn) {
+    function render(gameState, location, onReturn) {
         UI.clear();
 
         const grid = UI.getGridSize();
         const system = gameState.getCurrentSystem();
+        const planet = location || (gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation) || null;
+        const planetName = planet?.name || system.name;
 
-        UI.addTitleLineCentered(0, `${system.name}: Uninhabited System`);
-
-        const starsCount = (system.stars || []).length;
-        const planetsCount = (system.planets || []).length;
-        const moonsCount = (system.moons || []).length;
-        const beltsCount = (system.belts || []).length;
+        UI.addTitleLineCentered(0, `${planetName}: Uninhabited Planet`);
 
         let y = 2;
-        y = TableRenderer.renderKeyValueList(5, y, [
-            { label: 'Stars:', value: String(starsCount), valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Planets:', value: String(planetsCount), valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Moons:', value: String(moonsCount), valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Belts:', value: String(beltsCount), valueColor: COLORS.TEXT_NORMAL }
-        ]);
+        if (planet) {
+            const hasAtmosphere = planet.features?.includes(PLANET_FEATURES.HAS_ATMOSPHERE.id);
+            const hasMoons = planet.features?.includes(PLANET_FEATURES.HAS_MOONS.id);
+            const hasRings = planet.features?.includes(PLANET_FEATURES.RING.id);
+            const hasIceCaps = planet.features?.includes(PLANET_FEATURES.HAS_ICE_CAPS.id);
+            const surfaceName = PLANET_SURFACE_TYPES[planet.surfaceType]?.name || planet.surfaceType || 'Unknown';
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Type:', value: BODY_TYPES[planet.type]?.name || planet.type || 'Unknown', valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Surface:', value: surfaceName, valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Atmosphere:', value: hasAtmosphere ? 'Yes' : 'No', valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Moons:', value: hasMoons ? 'Yes' : 'No', valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Rings:', value: hasRings ? 'Yes' : 'No', valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Ice Caps:', value: hasIceCaps ? 'Yes' : 'No', valueColor: COLORS.TEXT_NORMAL }
+            ]);
+        } else {
+            const starsCount = (system.stars || []).length;
+            const planetsCount = (system.planets || []).length;
+            const moonsCount = (system.moons || []).length;
+            const beltsCount = (system.belts || []).length;
+            y = TableRenderer.renderKeyValueList(5, y, [
+                { label: 'Stars:', value: String(starsCount), valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Planets:', value: String(planetsCount), valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Moons:', value: String(moonsCount), valueColor: COLORS.TEXT_NORMAL },
+                { label: 'Belts:', value: String(beltsCount), valueColor: COLORS.TEXT_NORMAL }
+            ]);
+        }
         y++;
 
         const totalLasers = gameState.ships.reduce((sum, ship) => sum + Ship.getLaserMax(ship), 0);
@@ -47,7 +64,7 @@ const UninhabitedSystemMenu = (() => {
 
         UI.addHeaderLine(5, y++, 'Mining Operations');
 
-        const miningOptions = getMiningOptions(system);
+        const miningOptions = getMiningOptions(planet);
         const buttonY = grid.height - 7;
         const leftX = 5;
         const middleX = 30;
@@ -62,10 +79,10 @@ const UninhabitedSystemMenu = (() => {
                 if (disabled) {
                     outputMessage = option.unavailableReason;
                     outputColor = COLORS.TEXT_ERROR;
-                    render(gameState, onReturn);
+                    render(gameState, planet, onReturn);
                     return;
                 }
-                handleMining(gameState, option, onReturn);
+                handleMining(gameState, option, planet, onReturn);
             }, color, helpText);
         });
 
@@ -78,30 +95,64 @@ const UninhabitedSystemMenu = (() => {
         UI.draw();
     }
 
-    function getMiningOptions(system) {
-        const gasGiants = countBodies(system.planets, [BODY_TYPES.PLANET_GAS_GIANT.id]);
-        const iceGiants = countBodies(system.planets, [BODY_TYPES.PLANET_ICE_GIANT.id]);
-        const icyBelts = countBodies(system.belts, [BODY_TYPES.BELT_ICY.id]);
-        const moons = (system.moons || []).length;
-        const solarFlares = countBodies(system.stars, [BODY_TYPES.STAR_RED_GIANT.id, BODY_TYPES.STAR_BLUE_GIANT.id]);
-        const gasDwarfs = countBodies(system.planets, [BODY_TYPES.PLANET_GAS_DWARF.id]);
-        const gasBelts = countBodies(system.belts, [BODY_TYPES.BELT_GAS.id]);
-        const asteroids = countBodies(system.belts, [BODY_TYPES.BELT_ASTEROID.id]);
+    function getMiningOptions(planet) {
+        if (!planet) {
+            return [];
+        }
+
+        const hasAtmosphere = planet.features?.includes(PLANET_FEATURES.HAS_ATMOSPHERE.id);
+        const hasMoons = planet.features?.includes(PLANET_FEATURES.HAS_MOONS.id);
+        const hasRings = planet.features?.includes(PLANET_FEATURES.RING.id);
+        const hasIceCaps = planet.features?.includes(PLANET_FEATURES.HAS_ICE_CAPS.id);
+        const surfaceType = planet.surfaceType || '';
+        const isOceanic = surfaceType === PLANET_SURFACE_TYPES.OCEANIC.id || surfaceType === PLANET_SURFACE_TYPES.EARTHLIKE.id;
+        const isFrozen = surfaceType === PLANET_SURFACE_TYPES.FROZEN.id;
+        const isLand = [
+            PLANET_SURFACE_TYPES.BARREN.id,
+            PLANET_SURFACE_TYPES.EARTHLIKE.id,
+            PLANET_SURFACE_TYPES.DESERT.id,
+            PLANET_SURFACE_TYPES.CRYSTALLINE.id
+        ].includes(surfaceType);
 
         return [
-            buildOption('1', 'Mine Atmospheres', CARGO_TYPES.AIR.id, gasGiants > 0, 1.0, COLORS.BUTTON, 'Extract breathable air from gas giants', 'No gas giants to mine for air.'),
-            buildOption('2', 'Mine Icy Bodies', CARGO_TYPES.WATER.id, (iceGiants + icyBelts) > 0, 1.2, COLORS.BUTTON, 'Harvest water from icy bodies', 'No icy bodies to mine for water.'),
-            buildOption('3', 'Mine Moons', CARGO_TYPES.HYDROCARBONS.id, moons > 0, 1.4, COLORS.YELLOW, 'Extract fuel precursors from major moons', 'No moons available for fuel mining.'),
-            buildOption('4', 'Mine Solar Flares', CARGO_TYPES.PLASMA.id, (solarFlares + gasDwarfs + gasBelts) > 0, 1.6, COLORS.YELLOW, 'Collect plasma from stellar flares', 'No plasma-rich flares or gas belts detected.'),
-            buildOption('5', 'Mine Asteroids', CARGO_TYPES.ISOTOPES.id, asteroids > 0, 1.8, COLORS.TEXT_ERROR, 'Strip isotopes from asteroid belts', 'No asteroid belts for isotopes.')
+            buildOption('1', 'Mine Atmosphere', {
+                primaryCargoIds: [CARGO_TYPES.AIR.id],
+                bonusCargoIds: [CARGO_TYPES.PLASMA.id],
+                bonusChance: 0.15
+            }, hasAtmosphere, 1.0, COLORS.BUTTON, 'Extract air with occasional plasma', 'No atmosphere to mine.'),
+            buildOption('2', 'Mine Rings', {
+                primaryCargoIds: [CARGO_TYPES.METAL.id],
+                bonusCargoIds: [CARGO_TYPES.ISOTOPES.id],
+                bonusChance: 0.2
+            }, hasRings, 1.2, COLORS.YELLOW, 'Harvest metals from rings', 'No rings detected.'),
+            buildOption('3', 'Mine Moons', {
+                primaryCargoIds: CARGO_TYPES_SAFE.map(ct => ct.id),
+                bonusCargoIds: CARGO_TYPES_DANGEROUS.map(ct => ct.id),
+                bonusChance: 0.1
+            }, hasMoons, 1.4, COLORS.YELLOW, 'Harvest common goods from moons', 'No moons available.'),
+            buildOption('4', 'Mine Ocean', {
+                primaryCargoIds: [CARGO_TYPES.WATER.id],
+                bonusCargoIds: [CARGO_TYPES.HYDROCARBONS.id],
+                bonusChance: 0.2
+            }, isOceanic, 1.5, COLORS.BUTTON, 'Harvest water with occasional hydrocarbons', 'No oceans to mine.'),
+            buildOption('5', 'Mine Ice', {
+                primaryCargoIds: [CARGO_TYPES.WATER.id],
+                bonusCargoIds: [CARGO_TYPES.HYDROCARBONS.id],
+                bonusChance: 0.35
+            }, hasIceCaps || isFrozen, 1.7, COLORS.TEXT_WARNING, 'Harvest ice and hydrocarbons', 'No ice caps detected.'),
+            buildOption('6', 'Mine Land', {
+                primaryCargoIds: [CARGO_TYPES.METAL.id],
+                bonusCargoIds: [CARGO_TYPES.ISOTOPES.id],
+                bonusChance: 0.35
+            }, isLand, 1.9, COLORS.TEXT_ERROR, 'Extract metals and isotopes', 'No suitable land to mine.')
         ];
     }
 
-    function buildOption(key, label, cargoId, isAvailable, riskMultiplier, color, helpText, unavailableReason) {
+    function buildOption(key, label, cargoConfig, isAvailable, riskMultiplier, color, helpText, unavailableReason) {
         return {
             key,
             label,
-            cargoId,
+            cargoConfig,
             isAvailable,
             riskMultiplier,
             color,
@@ -110,12 +161,12 @@ const UninhabitedSystemMenu = (() => {
         };
     }
 
-    function handleMining(gameState, option, onReturn) {
+    function handleMining(gameState, option, planet, onReturn) {
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         if (availableSpace <= 0) {
             outputMessage = 'No cargo space available for mining.';
             outputColor = COLORS.TEXT_ERROR;
-            render(gameState, onReturn);
+            render(gameState, planet, onReturn);
             return;
         }
 
@@ -123,7 +174,7 @@ const UninhabitedSystemMenu = (() => {
         if (totalLasers <= 0) {
             outputMessage = 'No mining lasers available.';
             outputColor = COLORS.TEXT_ERROR;
-            render(gameState, onReturn);
+            render(gameState, planet, onReturn);
             return;
         }
 
@@ -131,12 +182,16 @@ const UninhabitedSystemMenu = (() => {
         if (!anyHullAboveOne) {
             outputMessage = 'Hull integrity too low to risk mining.';
             outputColor = COLORS.TEXT_ERROR;
-            render(gameState, onReturn);
+            render(gameState, planet, onReturn);
             return;
         }
 
         const system = gameState.getCurrentSystem();
-        const priceModifier = system.cargoPriceModifier[option.cargoId] || 1.0;
+        const primaryIds = option.cargoConfig?.primaryCargoIds || [];
+        const primaryId = primaryIds.length > 0 ? primaryIds[Math.floor(Math.random() * primaryIds.length)] : null;
+        const priceModifier = (planet?.cargoPriceModifier && primaryId && planet.cargoPriceModifier[primaryId])
+            || (system.cargoPriceModifier && primaryId && system.cargoPriceModifier[primaryId])
+            || 1.0;
         const abundanceMultiplier = clamp(1 / priceModifier, 0.25, 4.0);
         const yieldMultiplier = abundanceMultiplier * option.riskMultiplier;
 
@@ -149,12 +204,28 @@ const UninhabitedSystemMenu = (() => {
         if (goods === 0) {
             outputMessage = 'Mining yielded no recoverable goods.';
             outputColor = COLORS.TEXT_DIM;
-            render(gameState, onReturn);
+            render(gameState, planet, onReturn);
             return;
         }
 
         const actualGoods = Math.min(goods, availableSpace);
-        const added = Ship.addCargoToFleet(gameState.ships, option.cargoId, actualGoods);
+
+        const bonusIds = option.cargoConfig?.bonusCargoIds || [];
+        const bonusChance = option.cargoConfig?.bonusChance || 0;
+        const bonusGoods = Math.min(actualGoods, Math.floor(actualGoods * bonusChance));
+        const primaryGoods = Math.max(0, actualGoods - bonusGoods);
+
+        let addedPrimary = 0;
+        let addedBonus = 0;
+        let bonusId = null;
+
+        if (primaryId && primaryGoods > 0) {
+            addedPrimary = Ship.addCargoToFleet(gameState.ships, primaryId, primaryGoods);
+        }
+        if (bonusIds.length > 0 && bonusGoods > 0) {
+            bonusId = bonusIds[Math.floor(Math.random() * bonusIds.length)];
+            addedBonus = Ship.addCargoToFleet(gameState.ships, bonusId, bonusGoods);
+        }
 
         let totalDamage = 0;
         const maxDamage = Math.max(1, Math.round(MINING_MAX_HULL_DAMAGE * option.riskMultiplier));
@@ -166,15 +237,15 @@ const UninhabitedSystemMenu = (() => {
             totalDamage += actualDamage;
         });
 
-        const cargoName = CARGO_TYPES[option.cargoId]?.name || option.cargoId;
-        outputMessage = `Mining complete: +${added} ${cargoName}, ${totalDamage} hull damage across fleet.`;
+        const cargoName = primaryId ? (CARGO_TYPES[primaryId]?.name || primaryId) : 'Goods';
+        const bonusName = bonusId ? (CARGO_TYPES[bonusId]?.name || bonusId) : null;
+        if (addedBonus > 0 && bonusName) {
+            outputMessage = `Mining complete: +${addedPrimary} ${cargoName}, +${addedBonus} ${bonusName}, ${totalDamage} hull damage across fleet.`;
+        } else {
+            outputMessage = `Mining complete: +${addedPrimary} ${cargoName}, ${totalDamage} hull damage across fleet.`;
+        }
         outputColor = COLORS.TEXT_NORMAL;
-        render(gameState, onReturn);
-    }
-
-    function countBodies(list, typeIds) {
-        if (!Array.isArray(list)) return 0;
-        return list.reduce((sum, body) => sum + (typeIds.includes(body.type) ? 1 : 0), 0);
+        render(gameState, planet, onReturn);
     }
 
     function clamp(value, min, max) {

@@ -286,6 +286,12 @@ const SpaceTravelMap = (() => {
 
         frameCount++;
 
+        if (currentGameState && currentGameState.date) {
+            const gameSecondsAdvance = dt * config.TIME_SCALE_GAME_SECONDS_PER_REAL_SECOND;
+            currentGameState.date = new Date(currentGameState.date.getTime() + (gameSecondsAdvance * 1000));
+            currentGameState.timeSinceDock = (currentGameState.timeSinceDock || 0) + (gameSecondsAdvance * 1000);
+        }
+
         if (frameCount % config.POSSIBLE_STATION_CHECK_FRAMES === 0 || frameCount % config.VISIBLE_STATION_CHECK_FRAMES === 0) {
             const grid = UI.getGridSize();
             const viewHeight = grid.height - config.PANEL_HEIGHT;
@@ -299,6 +305,13 @@ const SpaceTravelMap = (() => {
             });
             possibleStations = visibility.possibleStations;
             visibleStations = visibility.visibleStations;
+        }
+
+        if (currentStation && currentGameState && currentGameState.date) {
+            const gameSeconds = currentGameState.date.getTime() / 1000;
+            const dayT = (gameSeconds % config.GAME_SECONDS_PER_DAY) / config.GAME_SECONDS_PER_DAY;
+            const angle = (dayT * Math.PI * 2) + (currentStation.rotationPhase || 0);
+            currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
         }
 
         const turnRad = ThreeDUtils.degToRad(config.TURN_DEG_PER_SEC) * dt;
@@ -696,7 +709,8 @@ const SpaceTravelMap = (() => {
             state: {
                 playerShip,
                 boostActive,
-                boostCooldownRemaining
+                boostCooldownRemaining,
+                currentGameState
             },
             config,
             helpers: {

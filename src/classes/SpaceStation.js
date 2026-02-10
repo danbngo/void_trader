@@ -14,7 +14,10 @@ class SpaceStation extends Planet {
             name: id,
             type: 'STATION',
             kind: 'STATION',
-            radiusAU: size
+            radiusAU: size,
+            rotationDurationHours: 24,
+            rotationPhase: 0,
+            axialTiltDeg: 0
         });
         this.size = size;
         this.position = { x: 0, y: 0, z: 0 };

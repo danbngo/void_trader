@@ -76,6 +76,8 @@ const SpaceTravelRender = (() => {
             let baseColor = bodyColors.TERRESTRIAL;
             let gasStripeLight = null;
             let gasStripeDark = null;
+            let spinRad = 0;
+            let tiltRad = 0;
             if (body.kind === 'STAR') {
                 baseColor = bodyColors.STAR;
             } else if (SpaceTravelShared.isGasPlanet(body.type)) {
@@ -85,6 +87,15 @@ const SpaceTravelRender = (() => {
                 gasStripeDark = gasStripePalette[Math.abs(gasSeed + 3) % gasStripePalette.length];
             } else if (body.type === BODY_TYPES.PLANET_ICE_GIANT.id || body.type === BODY_TYPES.PLANET_ICE_DWARF.id) {
                 baseColor = bodyColors.ICE;
+            }
+
+            if (body.kind === 'PLANET' && currentGameState && currentGameState.date) {
+                const rotationHours = body.rotationDurationHours || 24;
+                const rotationSeconds = Math.max(1, rotationHours * 3600);
+                const timeSeconds = currentGameState.date.getTime() / 1000;
+                const spinT = (timeSeconds % rotationSeconds) / rotationSeconds;
+                spinRad = (spinT * Math.PI * 2) + (body.rotationPhase || 0);
+                tiltRad = ThreeDUtils.degToRad(body.axialTiltDeg || 0);
             }
 
             const shadeT = Math.max(0.2, 1 - (dist / config.SYSTEM_BODY_SHADE_MAX_DISTANCE_AU));
@@ -201,6 +212,11 @@ const SpaceTravelRender = (() => {
             const stripePhaseRad = (((stripeSeed % 360) + 360) % 360) * (Math.PI / 180);
             const stripeWobble = Math.max(1, Math.round(Math.max(radiusCharsX, radiusCharsY) * 0.2));
 
+            const cosSpin = Math.cos(spinRad);
+            const sinSpin = Math.sin(spinRad);
+            const cosTilt = Math.cos(tiltRad);
+            const sinTilt = Math.sin(tiltRad);
+
             for (let dy = -radiusCharsY; dy <= radiusCharsY; dy++) {
                 for (let dx = -radiusCharsX; dx <= radiusCharsX; dx++) {
                     const nx = radiusCharsX > 0 ? (dx / radiusCharsX) : 0;
@@ -208,21 +224,25 @@ const SpaceTravelRender = (() => {
                     if ((nx * nx + ny * ny) > 1) {
                         continue;
                     }
+                    const tiltX = (dx * cosTilt) - (dy * sinTilt);
+                    const tiltY = (dx * sinTilt) + (dy * cosTilt);
+                    const spinX = (tiltX * cosSpin) - (tiltY * sinSpin);
+                    const spinY = (tiltX * sinSpin) + (tiltY * cosSpin);
                     const x = centerX + dx;
                     const y = centerY + dy;
                     let pixelColor = color;
 
                     if (SpaceTravelShared.isGasPlanet(body.type)) {
-                        const wave = Math.sin(((dx / Math.max(1, radiusCharsX)) * Math.PI * 2) + stripePhaseRad);
+                        const wave = Math.sin(((spinX / Math.max(1, radiusCharsX)) * Math.PI * 2) + stripePhaseRad);
                         const wobble = Math.round(wave * stripeWobble);
-                        const band = Math.floor((dy + radiusCharsY + stripePhase + wobble) / stripeSize);
+                        const band = Math.floor((spinY + radiusCharsY + stripePhase + wobble) / stripeSize);
                         const stripeColor = (band % 2 === 0) ? gasStripeLight : gasStripeDark;
                         pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, stripeColor || pixelColor, 0.35);
                     } else if (craterData) {
                         for (let i = 0; i < craterData.length; i++) {
                             const crater = craterData[i];
-                            const dxr = dx - crater.x;
-                            const dyr = dy - crater.y;
+                            const dxr = spinX - crater.x;
+                            const dyr = spinY - crater.y;
                             if (dxr * dxr + dyr * dyr <= crater.r * crater.r) {
                                 pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#000000', 0.35);
                                 break;

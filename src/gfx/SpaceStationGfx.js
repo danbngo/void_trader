@@ -32,7 +32,12 @@ const SpaceStationGfx = (() => {
             { x: 0, y: -1, z: -1 }
         ];
 
-        const vertices = baseVertices.map(v => ThreeDUtils.addVec(station.position, ThreeDUtils.scaleVec(v, half)));
+        const rotation = station.rotation || { x: 0, y: 0, z: 0, w: 1 };
+        const vertices = baseVertices.map(v => {
+            const scaled = ThreeDUtils.scaleVec(v, half);
+            const rotated = ThreeDUtils.rotateVecByQuat(scaled, rotation);
+            return ThreeDUtils.addVec(station.position, rotated);
+        });
 
         const edges = [];
         const target = 2 * half * half;

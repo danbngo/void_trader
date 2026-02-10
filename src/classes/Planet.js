@@ -14,6 +14,9 @@ class Planet {
         this.radiusAU = data.radiusAU || 0;
         this.orbit = data.orbit || null;
         this.kind = data.kind || 'PLANET';
+        this.rotationDurationHours = data.rotationDurationHours ?? 24;
+        this.rotationPhase = data.rotationPhase ?? 0;
+        this.axialTiltDeg = data.axialTiltDeg ?? 0;
 
         // Buildings available at this location
         this.buildings = data.buildings ?? [];

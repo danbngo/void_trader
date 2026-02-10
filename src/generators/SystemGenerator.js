@@ -280,6 +280,9 @@ const SystemGenerator = (() => {
                 id: `${system.name}-PLANET-${i + 1}`,
                 type,
                 radiusAU: getRadiusForType(type, PLANET_RADIUS_RANGES_AU),
+                rotationDurationHours: randomRange(8, 40),
+                rotationPhase: randomRange(0, Math.PI * 2),
+                axialTiltDeg: randomRange(0, 35),
                 orbit: {
                     semiMajorAU: orbitRadius,
                     periodDays,
@@ -296,6 +299,9 @@ const SystemGenerator = (() => {
                 id: `${system.name}-PLANET-1`,
                 type,
                 radiusAU: getRadiusForType(type, PLANET_RADIUS_RANGES_AU),
+                rotationDurationHours: randomRange(8, 40),
+                rotationPhase: randomRange(0, Math.PI * 2),
+                axialTiltDeg: randomRange(0, 35),
                 orbit: {
                     semiMajorAU: SYSTEM_PLANET_ORBIT_MIN_AU,
                     periodDays,

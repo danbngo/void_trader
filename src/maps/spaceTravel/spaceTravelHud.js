@@ -14,6 +14,10 @@ const SpaceTravelHud = (() => {
             return;
         }
 
+        const laserCurrent = Ship.getLaserCurrent(ship);
+        const laserMax = Ship.getLaserMax(ship);
+        const gameTimeLabel = formatGameTime(state.currentGameState?.date);
+
         const fuelRatio = ship.fuel / ship.maxFuel;
         const shieldRatio = ship.maxShields ? (ship.shields / ship.maxShields) : 0;
         const hullRatio = ship.hull / ship.maxHull;
@@ -40,6 +44,12 @@ const SpaceTravelHud = (() => {
                 value: `${Math.floor(ship.fuel)}/${Math.floor(ship.maxFuel)}`,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
                 valueColor: helpers.applyPauseColor(UI.calcStatColor(fuelRatio, true))
+            },
+            {
+                label: 'Lasers:',
+                value: `${laserCurrent}/${laserMax}`,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
             },
             {
                 label: 'Shields:',
@@ -70,6 +80,12 @@ const SpaceTravelHud = (() => {
                 value: distanceLabel,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
                 valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
+            },
+            {
+                label: 'Time:',
+                value: gameTimeLabel,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
             }
         ]);
 
@@ -94,7 +110,7 @@ const SpaceTravelHud = (() => {
             if (boostTag) {
                 const valueX = 2 + speedLabel.length + 1;
                 const boostX = valueX + speedValue.length;
-                const speedLineY = startY + 1 + 3;
+                const speedLineY = startY + 1 + 4;
                 if (boostX < panelWidth) {
                     UI.addText(boostX, speedLineY, boostTag, helpers.applyPauseColor(boostColor));
                 }
@@ -106,11 +122,24 @@ const SpaceTravelHud = (() => {
         const menuText = 'MENU';
         const buttonText = `[m] ${menuText}`;
         const menuX = Math.max(0, panelWidth - buttonText.length - 1);
-        UI.addButton(menuX, startY + 6, 'm', menuText, () => {
+        const menuY = startY + Math.max(0, config.PANEL_HEIGHT - 1);
+        UI.addButton(menuX, menuY, 'm', menuText, () => {
             if (onMenu) {
                 onMenu();
             }
         }, helpers.applyPauseColor(COLORS.CYAN), '');
+    }
+
+    function formatGameTime(date) {
+        if (!date) {
+            return '--';
+        }
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()] || '';
+        const day = date.getDate();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${month} ${day} ${hours}:${minutes}`;
     }
 
     function renderCompass(viewWidth, viewHeight, startY, state, helpers) {

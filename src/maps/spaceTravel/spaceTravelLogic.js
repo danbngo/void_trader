@@ -19,14 +19,21 @@ const SpaceTravelLogic = (() => {
             return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
         }
 
-        const dockRadius = station.size * 0.6;
-        const collisionRadius = station.size * config.STATION_COLLISION_RADIUS_MULT;
+        const stationRadius = Math.max(0.0001, station.radiusAU ?? station.size ?? 0);
+        const dockRadius = stationRadius * (config.STATION_DOCK_RADIUS_MULT ?? 0.6);
+        const collisionRadius = stationRadius * config.STATION_COLLISION_RADIUS_MULT;
         const dist = ThreeDUtils.distance(playerShip.position, station.position);
         if (dist > collisionRadius) {
             return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
         }
 
-        const entranceDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
+        const baseEntranceDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
+        const entranceYaw = ThreeDUtils.degToRad(config.STATION_ENTRANCE_YAW_DEG || 0);
+        const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
+        const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(baseEntranceDir, yawRot);
+        const entranceDir = station.rotation
+            ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, station.rotation)
+            : yawedEntranceDir;
         const toShip = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(playerShip.position, station.position));
         const entranceDot = ThreeDUtils.dotVec(toShip, entranceDir);
         const toStation = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(station.position, playerShip.position));
@@ -101,7 +108,8 @@ const SpaceTravelLogic = (() => {
         }
 
         if (timestampMs - lastStationCollisionMs >= config.STATION_COLLISION_COOLDOWN_MS) {
-            const damage = Math.max(1, Math.floor((approachingSpeed * 60) / 0.1));
+            const speedPerMinute = approachingSpeed * 60;
+            const damage = Math.max(1, Math.floor(speedPerMinute / 10));
             playerShip.hull = Math.max(0, (playerShip.hull ?? 0) - damage);
             lastStationCollisionMs = timestampMs;
             damageFlashStartMs = timestampMs;
@@ -131,7 +139,8 @@ const SpaceTravelLogic = (() => {
         targetSystem,
         onStop,
         onDock,
-        config
+        config,
+        debug = false
     }) {
         if (!planet || !playerShip || !targetSystem) {
             return { didDock: false };
@@ -148,6 +157,17 @@ const SpaceTravelLogic = (() => {
         const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
         const dist = ThreeDUtils.distance(playerShip.position, worldPos);
         const dockRadius = planet.radiusAU * (config.PLANET_DOCK_RADIUS_MULT || 1);
+        if (debug && dist <= dockRadius * 1.5) {
+            console.log('[SpaceTravelMap] Planet docking check', {
+                planetId: planet.id,
+                planetName: planet.name,
+                distAU: dist,
+                dockRadiusAU: dockRadius,
+                playerPos: playerShip.position,
+                planetPos: worldPos
+            });
+        }
+
         if (dist > dockRadius) {
             return { didDock: false };
         }

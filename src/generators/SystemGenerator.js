@@ -68,13 +68,13 @@ const SystemGenerator = (() => {
     };
 
     const PLANET_RADIUS_RANGES_AU = {
-        [BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id]: [0.00002, 0.00005],
-        [BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id]: [0.00005, 0.00012],
-        [BODY_TYPES.PLANET_EARTHLIKE.id]: [0.00004, 0.00007],
-        [BODY_TYPES.PLANET_GAS_GIANT.id]: [0.0003, 0.0007],
-        [BODY_TYPES.PLANET_GAS_DWARF.id]: [0.00015, 0.0003],
-        [BODY_TYPES.PLANET_ICE_GIANT.id]: [0.0002, 0.00045],
-        [BODY_TYPES.PLANET_ICE_DWARF.id]: [0.00005, 0.00015]
+        [BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id]: [0.00002, 0.00004],
+        [BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id]: [0.00008, 0.00015],
+        [BODY_TYPES.PLANET_EARTHLIKE.id]: [0.00004, 0.00008],
+        [BODY_TYPES.PLANET_GAS_GIANT.id]: [0.0007, 0.0015],
+        [BODY_TYPES.PLANET_GAS_DWARF.id]: [0.0002, 0.0004],
+        [BODY_TYPES.PLANET_ICE_GIANT.id]: [0.0003, 0.0006],
+        [BODY_TYPES.PLANET_ICE_DWARF.id]: [0.00005, 0.00012]
     };
     
     /**
@@ -330,6 +330,7 @@ const SystemGenerator = (() => {
         const farthestOrbit = planets.length > 0 ? planets[planets.length - 1].orbit.semiMajorAU : SYSTEM_PLANET_ORBIT_MIN_AU;
         system.stationOrbitAU = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
         system.stationName = `${system.name} Station`;
+        system.stationSizeAU = 1;
     }
 
     function assignSystemLevels(system) {

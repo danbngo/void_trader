@@ -21,13 +21,17 @@ const SpaceTravelHud = (() => {
         const fuelRatio = ship.fuel / ship.maxFuel;
         const shieldRatio = ship.maxShields ? (ship.shields / ship.maxShields) : 0;
         const hullRatio = ship.hull / ship.maxHull;
+        const laserRatio = laserMax > 0 ? (laserCurrent / laserMax) : 0;
 
         const speed = ThreeDUtils.vecLength(ship.velocity);
         const speedPerMinute = speed * 60;
         const engine = ship.engine || 10;
         const baseMaxSpeed = ship.size * engine * config.SHIP_SPEED_PER_ENGINE;
         const maxSpeed = baseMaxSpeed * (state.boostActive ? config.BOOST_MAX_SPEED_MULT : 1);
-        const speedRatio = maxSpeed > 0 ? (1 + (3 * Math.min(1, speed / maxSpeed))) : 1;
+        const speedRatio = maxSpeed > 0 ? (Math.min(1, speed / maxSpeed) * 2) : 0;
+        const speedValueColor = speed <= 0
+            ? COLORS.TEXT_DIM
+            : (speed >= maxSpeed ? COLORS.ORANGE : UI.calcStatColor(speedRatio));
 
         const targetInfo = helpers.getActiveTargetInfo();
         const destinationLabel = targetInfo && targetInfo.name ? targetInfo.name : '--';
@@ -37,54 +41,60 @@ const SpaceTravelHud = (() => {
                 ? `${distanceToTarget.toFixed(2)} AU`
                 : `${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / config.LY_TO_AU).toFixed(3)} LY)`)
             : '--';
+        const rightColumnX = Math.max(2, panelWidth - 32);
 
-        TableRenderer.renderKeyValueList(2, startY + 1, [
+        const leftRows = [
             {
                 label: 'Fuel:',
                 value: `${Math.floor(ship.fuel)}/${Math.floor(ship.maxFuel)}`,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(UI.calcStatColor(fuelRatio, true))
             },
             {
                 label: 'Lasers:',
                 value: `${laserCurrent}/${laserMax}`,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
-                valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
+                valueColor: helpers.applyPauseColor(UI.calcStatColor(laserRatio, true))
             },
             {
                 label: 'Shields:',
                 value: `${Math.floor(ship.shields)}/${Math.floor(ship.maxShields)}`,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(UI.calcStatColor(shieldRatio, true))
             },
             {
                 label: 'Hull:',
                 value: `${Math.floor(ship.hull)}/${Math.floor(ship.maxHull)}`,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(UI.calcStatColor(hullRatio, true))
             },
             {
                 label: 'Speed:',
                 value: `${speedPerMinute.toFixed(2)} AU/m`,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
-                valueColor: helpers.applyPauseColor(UI.calcStatColor(speedRatio))
-            },
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
+                valueColor: helpers.applyPauseColor(speedValueColor)
+            }
+        ];
+
+        TableRenderer.renderKeyValueList(2, startY + 1, leftRows);
+
+        TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
             {
                 label: 'Destination:',
                 value: destinationLabel,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
             },
             {
                 label: 'Distance:',
                 value: distanceLabel,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
             },
             {
                 label: 'Time:',
                 value: gameTimeLabel,
-                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
             }
         ]);
@@ -110,7 +120,8 @@ const SpaceTravelHud = (() => {
             if (boostTag) {
                 const valueX = 2 + speedLabel.length + 1;
                 const boostX = valueX + speedValue.length;
-                const speedLineY = startY + 1 + 4;
+                const speedIndex = leftRows.findIndex(row => row.label === 'Speed:');
+                const speedLineY = startY + 1 + Math.max(0, speedIndex);
                 if (boostX < panelWidth) {
                     UI.addText(boostX, speedLineY, boostTag, helpers.applyPauseColor(boostColor));
                 }

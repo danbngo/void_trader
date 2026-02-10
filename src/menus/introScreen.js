@@ -39,6 +39,9 @@ const IntroScreen = (() => {
         const symbolLine = '⓿ ⚉ ʘ ⊹';
         UI.addTextCentered(23, symbolLine, COLORS.TEXT_NORMAL);
         console.log('[IntroScreen] Symbol Line:', symbolLine);
+
+        logCurrentSystemBodies(gameState);
+        logInitialStationState(gameState);
         
         UI.addTextCentered(25, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);
         UI.addTextCentered(26, 'Or perish among the stars?', COLORS.TEXT_DIM);
@@ -60,6 +63,89 @@ const IntroScreen = (() => {
         show
     };
 })();
+
+function logCurrentSystemBodies(gameState) {
+    const system = gameState.getCurrentSystem();
+    if (!system) {
+        console.log('[IntroScreen] No current system to log.');
+        return;
+    }
+    const date = gameState.date ? gameState.date.toISOString() : 'unknown-date';
+    console.log('[IntroScreen] Current system bodies', {
+        systemName: system.name,
+        systemIndex: system.index,
+        date
+    });
+
+    const bodies = [];
+    (system.planets || []).forEach(planet => {
+        const orbitPos = planet.orbit
+            ? SystemOrbitUtils.getOrbitPosition(planet.orbit, gameState.date)
+            : { x: 0, y: 0, z: 0 };
+        bodies.push({
+            id: planet.id,
+            name: planet.name,
+            type: planet.type,
+            radiusAU: planet.radiusAU,
+            kind: planet.kind,
+            rotationDurationHours: planet.rotationDurationHours,
+            rotationPhase: planet.rotationPhase,
+            axialTiltDeg: planet.axialTiltDeg,
+            population: planet.population,
+            governmentType: planet.governmentType,
+            cultureLevel: planet.cultureLevel,
+            technologyLevel: planet.technologyLevel,
+            industryLevel: planet.industryLevel,
+            populationLevel: planet.populationLevel,
+            fees: planet.fees,
+            buildings: planet.buildings,
+            conqueredByAliens: planet.conqueredByAliens,
+            conqueredYear: planet.conqueredYear,
+            orbit: planet.orbit,
+            orbitPos
+        });
+    });
+    console.log('[IntroScreen] Planet positions', bodies);
+}
+
+function logInitialStationState(gameState) {
+    const system = gameState.getCurrentSystem();
+    const playerShip = gameState.ships && gameState.ships[0];
+    if (!system || !playerShip) {
+        console.log('[IntroScreen] Missing system or player ship for station log.');
+        return;
+    }
+    const stationOrbit = typeof system.stationOrbitAU === 'number'
+        ? system.stationOrbitAU
+        : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
+    const entranceDir = ThreeDUtils.normalizeVec(SpaceTravelConfig.STATION_ENTRANCE_DIR);
+    const stationPos = {
+        x: system.x * SpaceTravelConfig.LY_TO_AU + entranceDir.x * stationOrbit,
+        y: system.y * SpaceTravelConfig.LY_TO_AU + entranceDir.y * stationOrbit,
+        z: entranceDir.z * stationOrbit
+    };
+    const gameSeconds = gameState.date ? (gameState.date.getTime() / 1000) : 0;
+    const dayT = (gameSeconds % SpaceTravelConfig.GAME_SECONDS_PER_DAY) / SpaceTravelConfig.GAME_SECONDS_PER_DAY;
+    const stationRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, dayT * Math.PI * 2);
+    const entranceYaw = ThreeDUtils.degToRad(SpaceTravelConfig.STATION_ENTRANCE_YAW_DEG || 0);
+    const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
+    const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(entranceDir, yawRot);
+    const entranceWorldDir = ThreeDUtils.rotateVecByQuat(yawedEntranceDir, stationRotation);
+    const entranceWorldAngleDeg = Math.atan2(entranceWorldDir.x, entranceWorldDir.z) * (180 / Math.PI);
+    const toStation = ThreeDUtils.subVec(stationPos, playerShip.position);
+    const playerToStationAngleDeg = Math.atan2(toStation.x, toStation.z) * (180 / Math.PI);
+    console.log('[IntroScreen] Station spawn info', {
+        systemName: system.name,
+        stationOrbitAU: stationOrbit,
+        stationPos,
+        entranceDir,
+        stationRotation,
+        entranceWorldAngleDeg,
+        playerToStationAngleDeg,
+        playerPos: playerShip.position,
+        playerRotation: playerShip.rotation
+    });
+}
 
 function getNearestSystem(gameState) {
     if (!gameState || !gameState.systems || gameState.systems.length === 0) {

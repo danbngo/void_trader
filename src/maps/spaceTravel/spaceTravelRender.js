@@ -27,7 +27,7 @@ const SpaceTravelRender = (() => {
                 ...currentStation,
                 kind: 'STATION',
                 type: 'STATION',
-                radiusAU: currentStation.size || config.STATION_SIZE_AU,
+                radiusAU: currentStation.size,
                 positionWorld: currentStation.position,
                 skipRender: true
             });
@@ -125,8 +125,9 @@ const SpaceTravelRender = (() => {
             const viewPixelHeight = viewHeight * charDims.height;
             const pixelsPerUnitX = viewPixelWidth / (2 * fovScale * cameraSpace.z);
             const pixelsPerUnitY = viewPixelHeight / (2 * fovScale * cameraSpace.z);
-            const radiusPx = body.radiusAU * pixelsPerUnitX;
-            const radiusPy = body.radiusAU * pixelsPerUnitY;
+            const bodyRadiusAU = (body.radiusAU || 0) * (config.SYSTEM_BODY_SCREEN_SCALE || 1);
+            const radiusPx = bodyRadiusAU * pixelsPerUnitX;
+            const radiusPy = bodyRadiusAU * pixelsPerUnitY;
             const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
             const charAspect = charDims.height / charDims.width;
             const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPx / charDims.width));

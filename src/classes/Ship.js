@@ -17,7 +17,7 @@ class Ship {
      * @param {number} engine - Engine level (affects travel speed)
      * @param {number} radar - Radar level (affects targeting accuracy)
      */
-    constructor(fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5, size = 1) {
+    constructor(fuel, maxFuel, cargoCapacity, hull = 100, maxHull = 100, type = 'SCOUT', shields = 0, maxShields = 0, lasers = 0, engine = 5, radar = 5, size = 0.01) {
         this.type = type;
         this.fuel = fuel;
         this.maxFuel = maxFuel;
@@ -47,6 +47,8 @@ class Ship {
             this.cargo[cargoType.id] = 0;
         });
     }
+
+    static DEFAULT_SIZE_AU = 0.01;
     
     /**
      * Get total cargo count

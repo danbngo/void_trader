@@ -119,7 +119,7 @@ const MESSAGES_UNCLE = {
             'and Nanites - far more profitable than basic cargo.',
             '',
             'The training costs credits, so continue trading until you can',
-            'afford it. Once you master fragile cargo handling, greater',
+            'afford it. Once you master perishable cargo handling, greater',
             'opportunities will follow.',
             '',
             '- Uncle'
@@ -140,7 +140,7 @@ const MESSAGES_UNCLE = {
         [
             'Outstanding, nephew!',
             '',
-            'You have mastered the handling of fragile cargo. Already I can',
+            'You have mastered the handling of perishable cargo. Already I can',
             'see your profits growing with each successful trade.',
             '',
             'But a true merchant needs more than cargo expertise - they need',

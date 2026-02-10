@@ -25,9 +25,8 @@ const SpaceTravelHud = (() => {
 
         const speed = ThreeDUtils.vecLength(ship.velocity);
         const speedPerMinute = speed * 60;
-        const engine = ship.engine || 10;
-        const baseMaxSpeed = ship.size * engine * config.SHIP_SPEED_PER_ENGINE;
-        const maxSpeed = baseMaxSpeed * (state.boostActive ? config.BOOST_MAX_SPEED_MULT : 1);
+            const baseMaxSpeed = state.baseMaxSpeed ?? (ship.engine || 10) * config.SHIP_SPEED_PER_ENGINE;
+            const maxSpeed = state.maxSpeed ?? (baseMaxSpeed * (state.boostActive ? config.BOOST_MAX_SPEED_MULT : 1));
         const speedRatio = maxSpeed > 0 ? (Math.min(1, speed / maxSpeed) * 2) : 0;
         const speedValueColor = speed <= 0
             ? COLORS.TEXT_DIM

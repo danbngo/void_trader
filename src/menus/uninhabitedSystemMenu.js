@@ -91,7 +91,7 @@ const UninhabitedSystemMenu = (() => {
         return [
             buildOption('1', 'Mine Atmospheres', CARGO_TYPES.AIR.id, gasGiants > 0, 1.0, COLORS.BUTTON, 'Extract breathable air from gas giants', 'No gas giants to mine for air.'),
             buildOption('2', 'Mine Icy Bodies', CARGO_TYPES.WATER.id, (iceGiants + icyBelts) > 0, 1.2, COLORS.BUTTON, 'Harvest water from icy bodies', 'No icy bodies to mine for water.'),
-            buildOption('3', 'Mine Moons', CARGO_TYPES.FUEL.id, moons > 0, 1.4, COLORS.YELLOW, 'Extract fuel precursors from major moons', 'No moons available for fuel mining.'),
+            buildOption('3', 'Mine Moons', CARGO_TYPES.HYDROCARBONS.id, moons > 0, 1.4, COLORS.YELLOW, 'Extract fuel precursors from major moons', 'No moons available for fuel mining.'),
             buildOption('4', 'Mine Solar Flares', CARGO_TYPES.PLASMA.id, (solarFlares + gasDwarfs + gasBelts) > 0, 1.6, COLORS.YELLOW, 'Collect plasma from stellar flares', 'No plasma-rich flares or gas belts detected.'),
             buildOption('5', 'Mine Asteroids', CARGO_TYPES.ISOTOPES.id, asteroids > 0, 1.8, COLORS.TEXT_ERROR, 'Strip isotopes from asteroid belts', 'No asteroid belts for isotopes.')
         ];

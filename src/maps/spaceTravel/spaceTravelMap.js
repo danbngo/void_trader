@@ -66,6 +66,16 @@ const SpaceTravelMap = (() => {
         return isPaused ? ColorUtils.toMonochrome(color) : color;
     }
 
+    function getBaseMaxSpeed(ship) {
+        const engine = ship?.engine || 10;
+        return engine * config.SHIP_SPEED_PER_ENGINE;
+    }
+
+    function getMaxSpeed(ship, isBoosting) {
+        const baseMaxSpeed = getBaseMaxSpeed(ship);
+        return baseMaxSpeed * (isBoosting ? config.BOOST_MAX_SPEED_MULT : 1);
+    }
+
     function addHudText(x, y, text, color) {
         UI.addText(x, y, text, applyPauseColor(color));
     }
@@ -357,7 +367,7 @@ const SpaceTravelMap = (() => {
         const wasBoosting = boostActive;
 
         const engine = playerShip.engine || 10;
-        const baseMaxSpeed = playerShip.size * engine * config.SHIP_SPEED_PER_ENGINE;
+        const baseMaxSpeed = getBaseMaxSpeed(playerShip);
         const baseAccel = playerShip.size * engine * config.SHIP_ACCEL_PER_ENGINE * config.BASE_ACCEL_MULT;
         const speedNow = ThreeDUtils.vecLength(playerShip.velocity);
         const hasFuel = (playerShip.fuel ?? 0) > 0;
@@ -407,7 +417,7 @@ const SpaceTravelMap = (() => {
         const inBoostCooldown = !boostActive && pendingCooldown > 0;
         const accel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : 1);
         const brakeAccel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : (inBoostCooldown ? config.BOOST_BRAKE_MULT : 1));
-        const maxSpeed = baseMaxSpeed * (boostActive ? config.BOOST_MAX_SPEED_MULT : 1);
+        const maxSpeed = getMaxSpeed(playerShip, boostActive);
 
         const forward = ThreeDUtils.getLocalAxes(playerShip.rotation).forward;
 
@@ -733,7 +743,9 @@ const SpaceTravelMap = (() => {
                 playerShip,
                 boostActive,
                 boostCooldownRemaining,
-                currentGameState
+                currentGameState,
+                baseMaxSpeed: getBaseMaxSpeed(playerShip),
+                maxSpeed: getMaxSpeed(playerShip, boostActive)
             },
             config,
             helpers: {
@@ -785,8 +797,7 @@ const SpaceTravelMap = (() => {
         UI.draw();
 
         if (boostActive || boostCooldownRemaining > 0) {
-            const engine = playerShip.engine || 10;
-            const baseMaxSpeed = playerShip.size * engine * config.SHIP_SPEED_PER_ENGINE;
+            const baseMaxSpeed = getBaseMaxSpeed(playerShip);
             const maxSpeed = baseMaxSpeed * config.BOOST_MAX_SPEED_MULT;
             const speedRatio = maxSpeed > 0 ? Math.min(1, ThreeDUtils.vecLength(playerShip.velocity) / maxSpeed) : 0;
             const cooldownFactor = boostActive

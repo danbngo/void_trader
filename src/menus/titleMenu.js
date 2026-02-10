@@ -413,6 +413,9 @@ const TitleMenu = (() => {
             });
             
             // Update enabled cargo types based on perks
+            if (gameState.perks.has('CARGO_PERISHABLE')) {
+                gameState.enabledCargoTypes = [...gameState.enabledCargoTypes, ...CARGO_TYPES_PERISHABLE];
+            }
             if (gameState.perks.has('CARGO_FRAGILE')) {
                 gameState.enabledCargoTypes = [...gameState.enabledCargoTypes, ...CARGO_TYPES_FRAGILE];
             }

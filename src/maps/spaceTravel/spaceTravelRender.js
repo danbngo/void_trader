@@ -327,6 +327,8 @@ const SpaceTravelRender = (() => {
                 } else {
                     setLastHoverPick(null);
                 }
+            } else {
+                setLastHoverPick(null);
             }
         } else {
             setLastHoverPick(null);

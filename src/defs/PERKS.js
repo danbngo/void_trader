@@ -4,12 +4,19 @@
  */
 
 const PERKS = {
+    CARGO_PERISHABLE: {
+        id: 'CARGO_PERISHABLE',
+        name: 'Cargo Handling: Perishable',
+        description: 'Handle perishable cargo types (Food, Oil, Batteries)',
+        baseCost: 2500,
+        requiredPerks: [] // First cargo perk - no requirements
+    },
     CARGO_FRAGILE: {
         id: 'CARGO_FRAGILE',
         name: 'Cargo Handling: Fragile',
         description: 'Handle fragile cargo types (Holocubes, Medicine, Nanites)',
         baseCost: 5000,
-        requiredPerks: [] // First cargo perk - no requirements
+        requiredPerks: ['CARGO_PERISHABLE'] // Requires perishable handling first
     },
     CARGO_DANGEROUS: {
         id: 'CARGO_DANGEROUS',

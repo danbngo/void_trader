@@ -184,7 +184,9 @@ const GuildMenu = (() => {
         gameState.perks.add(perk.id);
         
         // Unlock corresponding cargo types
-        if (perk.id === 'CARGO_FRAGILE') {
+        if (perk.id === 'CARGO_PERISHABLE') {
+            gameState.enabledCargoTypes.push(...CARGO_TYPES_PERISHABLE);
+        } else if (perk.id === 'CARGO_FRAGILE') {
             gameState.enabledCargoTypes.push(...CARGO_TYPES_FRAGILE);
         } else if (perk.id === 'CARGO_DANGEROUS') {
             gameState.enabledCargoTypes.push(...CARGO_TYPES_DANGEROUS);

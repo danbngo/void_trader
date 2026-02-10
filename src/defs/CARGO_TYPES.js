@@ -10,7 +10,7 @@ const CARGO_TYPES = {
         description: 'Compressed breathable atmosphere for life support systems',
         baseValue: 20,
         illegal: false,
-        color: COLORS.LIGHT_GRAY,
+        color: COLORS.WHITE,
     },
     WATER: {
         id: 'WATER',
@@ -20,19 +20,43 @@ const CARGO_TYPES = {
         illegal: false,
         color: COLORS.BLUE,
     },
+    METAL: {
+        id: 'METAL',
+        name: 'Metal',
+        description: 'Raw metal ores for construction and manufacturing',
+        baseValue: 40,
+        illegal: false,
+        color: COLORS.GRAY,
+    },
     FOOD: {
         id: 'FOOD',
         name: 'Food',
         description: 'Preserved rations and nutrition supplies',
-        baseValue: 40,
+        baseValue: 60,
         illegal: false,
         color: COLORS.BROWN,
+    },
+    PLANTS: {
+        id: 'PLANTS',
+        name: 'Plants',
+        description: 'Organic plant life for air and food production',
+        baseValue: 90,
+        illegal: false,
+        color: COLORS.GREEN,
+    },
+    ANIMALS: {
+        id: 'ANIMALS',
+        name: 'Animals',
+        description: 'Live animals for food, research, or companionship',
+        baseValue: 120,
+        illegal: false,
+        color: COLORS.LIGHT_BROWN,
     },
     HOLOCUBES: {
         id: 'HOLOCUBES',
         name: 'Holocubes',
         description: 'Entertainment and data storage cubes',
-        baseValue: 100,
+        baseValue: 200,
         illegal: false,
         color: COLORS.CYAN,
     },
@@ -40,7 +64,7 @@ const CARGO_TYPES = {
         id: 'MEDICINE',
         name: 'Medicine',
         description: 'Medical supplies and pharmaceuticals',
-        baseValue: 150,
+        baseValue: 300,
         illegal: false,
         color: COLORS.MAGENTA,
     },
@@ -48,9 +72,9 @@ const CARGO_TYPES = {
         id: 'NANITES',
         name: 'Nanites',
         description: 'Programmable nanomachines for advanced manufacturing',
-        baseValue: 200,
+        baseValue: 400,
         illegal: false,
-        color: COLORS.GRAY,
+        color: COLORS.LIGHT_GRAY,
     },
     PLASMA: {
         id: 'PLASMA',
@@ -60,10 +84,10 @@ const CARGO_TYPES = {
         illegal: false,
         color: COLORS.YELLOW,
     },
-    FUEL: {
-        id: 'FUEL',
-        name: 'Fuel',
-        description: 'Refined starship fuel for FTL drives',
+    HYDROCARBONS: {
+        id: 'HYDROCARBONS',
+        name: 'Hydrocarbons',
+        description: 'Organic compounds used as fuel and chemical feedstock',
         baseValue: 750,
         illegal: false,
         color: COLORS.ORANGE,
@@ -74,7 +98,7 @@ const CARGO_TYPES = {
         description: 'Radioactive heavy metals for power generation and research',
         baseValue: 1000,
         illegal: false,
-        color: COLORS.GREEN
+        color: COLORS.LIGHT_GREEN
     },
     ALIEN_ARTIFACTS: {
         id: 'ALIEN_ARTIFACTS',
@@ -116,7 +140,8 @@ const ALL_CARGO_TYPES = Object.values(CARGO_TYPES);
 // Array of cargo types that can be traded/found in markets and on ships (excludes ALIEN_ARTIFACTS)
 const CARGO_TYPES_TRADEABLE = ALL_CARGO_TYPES.filter(ct => ct.id !== 'ALIEN_ARTIFACTS');
 
-const CARGO_TYPES_SAFE = [CARGO_TYPES.AIR, CARGO_TYPES.WATER, CARGO_TYPES.FOOD];
+const CARGO_TYPES_SAFE = [CARGO_TYPES.AIR, CARGO_TYPES.WATER, CARGO_TYPES.METAL];
+const CARGO_TYPES_PERISHABLE = [CARGO_TYPES.FOOD, CARGO_TYPES.PLANTS, CARGO_TYPES.ANIMALS];
 const CARGO_TYPES_FRAGILE = [CARGO_TYPES.HOLOCUBES, CARGO_TYPES.MEDICINE, CARGO_TYPES.NANITES];
-const CARGO_TYPES_DANGEROUS = [CARGO_TYPES.PLASMA, CARGO_TYPES.FUEL, CARGO_TYPES.ISOTOPES];
+const CARGO_TYPES_DANGEROUS = [CARGO_TYPES.PLASMA, CARGO_TYPES.HYDROCARBONS, CARGO_TYPES.ISOTOPES];
 const CARGO_TYPES_ILLEGAL = [CARGO_TYPES.WEAPONS, CARGO_TYPES.DRUGS, CARGO_TYPES.ANTIMATTER];

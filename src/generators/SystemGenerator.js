@@ -412,7 +412,7 @@ const SystemGenerator = (() => {
             FOOD: CARGO_TYPES.FOOD.id,
             NANITES: CARGO_TYPES.NANITES.id,
             ISOTOPES: CARGO_TYPES.ISOTOPES.id,
-            FUEL: CARGO_TYPES.FUEL.id,
+            FUEL: CARGO_TYPES.HYDROCARBONS.id,
             PLASMA: CARGO_TYPES.PLASMA.id,
             ANTIMATTER: CARGO_TYPES.ANTIMATTER.id
         };

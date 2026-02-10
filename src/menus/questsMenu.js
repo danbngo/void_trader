@@ -151,7 +151,7 @@ const QuestsMenu = (() => {
                             currentValue = currentGameState.credits;
                             const proximaSystem = currentGameState.systems.find(s => s.name === 'Proxima');
                             const fees = proximaSystem ? proximaSystem.fees : 0;
-                            maxValue = Math.floor(PERKS.CARGO_FRAGILE.baseCost * (1 + fees));
+                            maxValue = Math.floor(PERKS.CARGO_PERISHABLE.baseCost * (1 + fees));
                             unit = '';
                         } else if (quest.id === 'LEARN_SHIP_HANDLING') {
                             descriptor = 'Credits';

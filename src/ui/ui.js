@@ -445,6 +445,13 @@ const UI = (() => {
     function setWheelZoomHandler(handler) {
         wheelZoomHandler = handler;
     }
+
+    function setGameCursorEnabled(enabled) {
+        gameCursorEnabled = !!enabled;
+        if (!gameCursorEnabled) {
+            gameCursorActive = false;
+        }
+    }
     
     /**
      * Get current output row state
@@ -564,6 +571,7 @@ const UI = (() => {
         getScreenCharAt,
         addClickable,
         setWheelZoomHandler,
+        setGameCursorEnabled,
         calcStatColor: ColorUtils.calcStatColor, // Re-export from ColorUtils for convenience
         startFlashing,
         stopFlashing,

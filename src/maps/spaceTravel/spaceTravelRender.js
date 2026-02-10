@@ -22,6 +22,16 @@ const SpaceTravelRender = (() => {
         if (Array.isArray(targetSystem.planets)) {
             targetSystem.planets.forEach(planet => bodies.push({ ...planet, kind: 'PLANET' }));
         }
+        if (currentStation) {
+            bodies.push({
+                ...currentStation,
+                kind: 'STATION',
+                type: 'STATION',
+                radiusAU: currentStation.size || config.STATION_SIZE_AU,
+                positionWorld: currentStation.position,
+                skipRender: true
+            });
+        }
 
         if (bodies.length === 0) {
             return [];
@@ -39,14 +49,12 @@ const SpaceTravelRender = (() => {
 
         const hoverActive = mouseState && mouseState.active && mouseState.inView;
         let depthAtCursor = null;
-        if (hoverActive) {
-            const bufferIndex = mouseState.displayY * depthBuffer.width + mouseState.displayX;
-            depthAtCursor = depthBuffer.depth[bufferIndex];
-        }
 
         bodies.forEach(body => {
             const orbitOffset = body.orbit ? SystemOrbitUtils.getOrbitPosition(body.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
-            const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+            const worldPos = body.positionWorld
+                ? body.positionWorld
+                : ThreeDUtils.addVec(systemCenter, orbitOffset);
             const relative = ThreeDUtils.subVec(worldPos, playerShip.position);
             const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
             if (cameraSpace.z < config.NEAR_PLANE) {
@@ -108,6 +116,33 @@ const SpaceTravelRender = (() => {
 
             const centerX = Math.round(projected.x);
             const centerY = Math.round(projected.y);
+
+            if (body.kind === 'STATION' && body.skipRender) {
+                const bboxLeft = centerX - radiusCharsX;
+                const bboxRight = centerX + radiusCharsX;
+                const bboxTop = centerY - radiusCharsY;
+                const bboxBottom = centerY + radiusCharsY;
+                const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
+                if (isOnScreen) {
+                    const isDestination = isDestinationBody(localDestination, body);
+                    if (isDestination) {
+                        addDestinationLabel(labels, centerX, centerY, Math.max(radiusCharsX, radiusCharsY), body.name || 'Station', viewWidth, viewHeight);
+                    }
+                    hoverInfos.push({
+                        name: body.name || 'Station',
+                        centerX,
+                        centerY,
+                        radiusChars: Math.max(radiusCharsX, radiusCharsY),
+                        depth: projected.z,
+                        depthEpsilon: 0.05,
+                        isOnScreen,
+                        labelColor: isDestination ? COLORS.CYAN : COLORS.TEXT_NORMAL,
+                        bodyRef: body,
+                        kind: body.kind
+                    });
+                }
+                return;
+            }
 
             if (radiusCharsX === 0 && radiusCharsY === 0) {
                 const symbol = SpaceTravelShared.getLocalMapBodySymbol(body);
@@ -216,6 +251,8 @@ const SpaceTravelRender = (() => {
         });
 
         if (hoverActive && hoverInfos.length > 0) {
+            const bufferIndex = mouseState.displayY * depthBuffer.width + mouseState.displayX;
+            depthAtCursor = depthBuffer.depth[bufferIndex];
             if (depthAtCursor !== null && Number.isFinite(depthAtCursor)) {
                 let best = null;
                 hoverInfos.forEach(info => {

@@ -27,6 +27,9 @@ const SpaceTravelMap = (() => {
     let lastStationCollisionMs = -Infinity;
     let damageFlashStartMs = -Infinity;
     let laserFireUntilMs = 0;
+    let laserFireStartMs = 0;
+    let laserTarget = { x: 0, y: 0 };
+    let laserTargetWorldDir = { x: 0, y: 0, z: 1 };
     let laserRegenTimer = 0;
     let shieldRegenTimer = 0;
 
@@ -154,6 +157,9 @@ const SpaceTravelMap = (() => {
         lastTimestamp = 0;
         lastAsciiLogTimestamp = 0;
         laserFireUntilMs = 0;
+        laserFireStartMs = 0;
+        laserTarget = { x: 0, y: 0 };
+        laserTargetWorldDir = { x: 0, y: 0, z: 1 };
         laserRegenTimer = 0;
         shieldRegenTimer = 0;
 
@@ -210,6 +216,7 @@ const SpaceTravelMap = (() => {
 
     function stop() {
         isActive = false;
+        UI.setGameCursorEnabled?.(true);
         if (animationId !== null) {
             cancelAnimationFrame(animationId);
             animationId = null;
@@ -498,7 +505,10 @@ const SpaceTravelMap = (() => {
         }
 
         const now = performance.now();
-        laserFireUntilMs = Math.max(laserFireUntilMs, now + config.LASER_FIRE_DURATION_MS);
+        laserFireStartMs = now;
+        laserFireUntilMs = now + config.LASER_FIRE_DURATION_MS;
+        laserTarget = getLaserTarget();
+        laserTargetWorldDir = getLaserTargetWorldDirection(laserTarget);
         Ship.setLaserCurrent(playerShip, 0);
 
         if (lastHoverPick && lastHoverPick.bodyRef) {
@@ -560,7 +570,9 @@ const SpaceTravelMap = (() => {
         }
 
         if (tookDamage) {
-            damageFlashStartMs = timestampMs;
+            if ((timestampMs - damageFlashStartMs) > config.DAMAGE_FLASH_DURATION_MS) {
+                damageFlashStartMs = timestampMs;
+            }
         }
 
         return false;
@@ -582,6 +594,7 @@ const SpaceTravelMap = (() => {
         if (!isActive) {
             return;
         }
+        UI.setGameCursorEnabled?.(!isPaused);
         UI.clear();
         UI.clearOutputRow();
 
@@ -751,18 +764,82 @@ const SpaceTravelMap = (() => {
     }
 
     function renderLaserFire(depthBuffer, viewWidth, viewHeight, timestampMs) {
-        if (timestampMs > laserFireUntilMs) {
+        if (timestampMs < laserFireStartMs || timestampMs > laserFireUntilMs) {
             return;
         }
+        const duration = Math.max(1, config.LASER_FIRE_DURATION_MS);
+        const progress = Math.min(1, Math.max(0, (timestampMs - laserFireStartMs) / duration));
+        const targetScreen = getLaserTargetScreenPosition(viewWidth, viewHeight);
+        const targetX = Math.max(0, Math.min(viewWidth - 1, Math.floor(targetScreen.x)));
+        const targetY = Math.max(0, Math.min(viewHeight - 1, Math.floor(targetScreen.y)));
+        let pulseT = 0;
+        if (progress >= 0.25 && progress < 0.5) {
+            pulseT = (progress - 0.25) / 0.25;
+        } else if (progress >= 0.5 && progress < 0.75) {
+            pulseT = 1 - ((progress - 0.5) / 0.25);
+        }
+        const laserColor = SpaceTravelShared.lerpColorHex(config.LASER_COLOR, '#ffffff', pulseT);
 
-        const centerX = Math.floor(viewWidth / 2);
-        const centerY = Math.floor(viewHeight / 2);
-        const leftPoints = LineDrawer.drawLine(0, viewHeight - 1, centerX, centerY, true, config.LASER_COLOR);
-        const rightPoints = LineDrawer.drawLine(viewWidth - 1, viewHeight - 1, centerX, centerY, true, config.LASER_COLOR);
-        const allPoints = leftPoints.concat(rightPoints);
-        allPoints.forEach(point => {
-            RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, config.LASER_COLOR);
-        });
+        const leftPoints = LineDrawer.drawLine(0, viewHeight - 1, targetX, targetY, true, config.LASER_COLOR);
+        const rightPoints = LineDrawer.drawLine(viewWidth - 1, viewHeight - 1, targetX, targetY, true, config.LASER_COLOR);
+
+        const renderPoints = (points) => {
+            if (points.length === 0) {
+                return;
+            }
+            if (progress < 0.5) {
+                const growT = progress / 0.5;
+                const endIndex = Math.max(0, Math.floor(points.length * growT) - 1);
+                for (let i = 0; i <= endIndex; i++) {
+                    const point = points[i];
+                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
+                }
+            } else {
+                const shrinkT = (progress - 0.5) / 0.5;
+                const startIndex = Math.min(points.length, Math.floor(points.length * shrinkT));
+                for (let i = startIndex; i < points.length; i++) {
+                    const point = points[i];
+                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
+                }
+            }
+        };
+
+        renderPoints(leftPoints);
+        renderPoints(rightPoints);
+    }
+
+    function getLaserTarget() {
+        const grid = UI.getGridSize();
+        const viewWidth = grid.width;
+        const viewHeight = grid.height - config.PANEL_HEIGHT;
+        const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
+        if (mouseState && mouseState.active) {
+            return { x: mouseState.displayX, y: mouseState.displayY };
+        }
+        return {
+            x: Math.floor(viewWidth / 2),
+            y: Math.floor(viewHeight / 2)
+        };
+    }
+
+    function getLaserTargetWorldDirection(target) {
+        const grid = UI.getGridSize();
+        const viewWidth = grid.width;
+        const viewHeight = grid.height - config.PANEL_HEIGHT;
+        const cameraDir = RasterUtils.screenRayDirection(target.x, target.y, viewWidth, viewHeight, config.VIEW_FOV);
+        return ThreeDUtils.rotateVecByQuat(cameraDir, playerShip.rotation);
+    }
+
+    function getLaserTargetScreenPosition(viewWidth, viewHeight) {
+        if (!laserTargetWorldDir) {
+            return laserTarget;
+        }
+        const cameraDir = ThreeDUtils.rotateVecByQuat(laserTargetWorldDir, ThreeDUtils.quatConjugate(playerShip.rotation));
+        const projected = RasterUtils.projectCameraSpacePointRaw(cameraDir, viewWidth, viewHeight, config.VIEW_FOV);
+        if (!projected) {
+            return { x: viewWidth / 2, y: viewHeight / 2 };
+        }
+        return { x: projected.x, y: projected.y };
     }
 
     function getVelocityWorldDirection() {

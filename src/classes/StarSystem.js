@@ -14,13 +14,7 @@ class StarSystem {
         this.name = name;
         this.x = x;
         this.y = y;
-        this.population = population;
-        this.governmentType = null;
-        this.cultureLevel = null;
-        this.technologyLevel = null;
-        this.industryLevel = null;
-        this.populationLevel = null;
-        
+                
         // Buildings available in this system
         this.buildings = []; // Array of building IDs (e.g., 'MARKET', 'SHIPYARD', 'GUILD')
 
@@ -35,6 +29,12 @@ class StarSystem {
         this.features = [];
         
         // Market data
+        this.population = population;
+        this.governmentType = null;
+        this.cultureLevel = null;
+        this.technologyLevel = null;
+        this.industryLevel = null;
+        this.populationLevel = null;
         this.cargoStock = {}; // Amount of each cargo type available
         this.cargoPriceModifier = {}; // Price multipliers for each cargo type
         this.fees = 0; // Trading fees ratio (affects buy/sell prices)

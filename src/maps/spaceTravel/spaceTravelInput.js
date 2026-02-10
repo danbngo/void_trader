@@ -64,6 +64,25 @@ const SpaceTravelInput = (() => {
 
         handlers.mouseDownHandler = (e) => {
             if (e.button === 0) {
+                const rect = canvas.getBoundingClientRect();
+                const charDims = UI.getCharDimensions();
+                const pixelX = e.clientX - rect.left;
+                const pixelY = e.clientY - rect.top;
+                const gridX = Math.floor(pixelX / charDims.width);
+                const gridY = Math.floor(pixelY / charDims.height);
+                const pick = getLastHoverPick();
+                console.log('[SpaceTravelInput] Left click', {
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    gridX,
+                    gridY,
+                    pick
+                });
+                if (pick) {
+                    console.log('[SpaceTravelInput] Picked object:', pick);
+                    onPick(pick);
+                    return;
+                }
                 if (typeof onFire === 'function') {
                     onFire();
                 }
@@ -72,6 +91,7 @@ const SpaceTravelInput = (() => {
             if (e.button === 2) {
                 const pick = getLastHoverPick();
                 if (pick) {
+                    console.log('[SpaceTravelInput] Picked object:', pick);
                     onPick(pick);
                 }
             }

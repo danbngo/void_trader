@@ -108,8 +108,6 @@ const SpaceTravelRender = (() => {
 
             const centerX = Math.round(projected.x);
             const centerY = Math.round(projected.y);
-            const hoverDx = hoverActive ? (mouseState.rawX - centerX) : 0;
-            const hoverDy = hoverActive ? (mouseState.rawY - centerY) : 0;
 
             if (radiusCharsX === 0 && radiusCharsY === 0) {
                 const symbol = SpaceTravelShared.getLocalMapBodySymbol(body);

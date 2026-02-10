@@ -36,17 +36,22 @@
     <script src="src/defs/DIALOGUE.js"></script>
     <script src="src/defs/JOB_TYPES.js"></script>
     <script src="src/defs/NEWS_TYPES.js"></script>
+    <script src="debug.js"></script>
     
-    <!-- Utils (loaded before ui.js as ui.js depends on them) -->
-    <script src="src/utils/colorUtils.js"></script>
-    <script src="src/utils/CanvasWrapper.js"></script>
-    <script src="src/utils/InputHandler.js"></script>
-    <script src="src/utils/ProgressBar.js"></script>
+    <!-- UI Utils (loaded before ui.js as ui.js depends on them) -->
+    <script src="src/ui/colorUtils.js"></script>
+    <script src="src/ui/CanvasWrapper.js"></script>
+    <script src="src/ui/InputHandler.js"></script>
+    <script src="src/ui/ProgressBar.js"></script>
+    <script src="src/ui/uiText.js"></script>
+    <script src="src/ui/uiButtons.js"></script>
+    <script src="src/ui/uiCursor.js"></script>
+    <script src="src/ui/uiAnimations.js"></script>
     <script src="src/utils/SkillEffects.js"></script>
     <script src="src/utils/SystemUtils.js"></script>
-    <script src="src/utils/SystemOrbitUtils.js"></script>
+    <script src="src/geom/SystemOrbitUtils.js"></script>
     
-    <script src="src/ui.js"></script>
+    <script src="src/ui/ui.js"></script>
     
     <!-- Classes -->
     <script src="src/classes/StarSystem.js"></script>
@@ -80,38 +85,38 @@
     <script src="src/generators/OfficerGenerator.js"></script>
     
     <!-- Utils -->
-    <script src="src/utils/geom.js"></script>
+    <script src="src/geom/geomUtils.js"></script>
     <script src="src/utils/SaveLoadManager.js"></script>
-    <script src="src/utils/TableRenderer.js"></script>
-    <script src="src/utils/ShipTableRenderer.js"></script>
-    <script src="src/utils/LineDrawer.js"></script>
-    <script src="src/utils/Starfield.js"></script>
-    <script src="src/utils/questUtils.js"></script>
-    <script src="src/utils/encounterUtils.js"></script>
+    <script src="src/ui/TableRenderer.js"></script>
+    <script src="src/ui/ShipTableRenderer.js"></script>
+    <script src="src/ui/LineDrawer.js"></script>
+    <script src="src/menus/Starfield.js"></script>
+    <script src="src/quests/questUtils.js"></script>
+    <script src="src/encounters/encounterUtils.js"></script>
     <script src="src/utils/experienceUtils.js"></script>
     
     <!-- Menus -->
     <script src="src/menus/titleMenu.js"></script>
     <script src="src/menus/introScreen.js"></script>
-    <script src="src/menus/galaxyMap.js"></script>
+    <script src="src/maps/galaxyMap.js"></script>
     <script src="src/menus/localSystemMap.js"></script>
     <script src="src/menus/spaceTravelMenu.js"></script>
     <script src="src/menus/scanSystemMenu.js"></script>
-    <script src="src/gfx/3d.js"></script>
-    <script src="src/gfx/Polygon.js"></script>
-    <script src="src/gfx/Raster.js"></script>
-    <script src="src/gfx/physics.js"></script>
+    <script src="src/geom/3dUtils.js"></script>
+    <script src="src/geom/Polygon.js"></script>
+    <script src="src/utils/rasterUtils.js"></script>
+    <script src="src/geom/physicsUtils.js"></script>
     <script src="src/gfx/SpaceStationGfx.js"></script>
     <script src="src/gfx/dockingAnimation.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelConfig.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelShared.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelLogic.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelUi.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelInput.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelParticles.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelRender.js"></script>
-    <script src="src/gfx/spaceTravel/spaceTravelHud.js"></script>
-    <script src="src/gfx/spaceTravelMap.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelConfig.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelShared.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelLogic.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelUi.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelInput.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelParticles.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelRender.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelHud.js"></script>
+    <script src="src/maps/spaceTravel/spaceTravelMap.js"></script>
     <script src="src/menus/travelConfirmMenu.js"></script>
     <script src="src/menus/travelMenu.js"></script>
     

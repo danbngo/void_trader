@@ -36,21 +36,22 @@ const SpaceTravelParticles = (() => {
                 continue;
             }
 
-            const { x, y } = projected;
-            if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
+            const baseX = Math.round(projected.x);
+            const baseY = Math.round(projected.y);
+            if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
                 if (boostActive) {
                     const seed = Math.abs(Math.floor((star.direction.x * 100000) + (star.direction.y * 310000) + (star.direction.z * 730000) + (starIndex * 1997)));
                     const offsetMs = seed % config.BOOST_STREAK_GROWTH_MS;
                     const delayMs = config.BOOST_STREAK_DELAY_MS + (seed % config.BOOST_STREAK_DELAY_MS);
                     if ((timestampMs - boostStartTimestampMs) < delayMs) {
-                        RasterUtils.plotDepthText(depthBuffer, x, y, projected.z, '.', COLORS.TEXT_DIM);
+                        RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, '.', COLORS.TEXT_DIM);
                         drawn++;
                         continue;
                     }
                     const centerX = (viewWidth - 1) / 2;
                     const centerY = (viewHeight - 1) / 2;
-                    const dx = x - centerX;
-                    const dy = y - centerY;
+                    const dx = baseX - centerX;
+                    const dy = baseY - centerY;
                     const mag = Math.sqrt(dx * dx + dy * dy) || 1;
                     const dirX = dx / mag;
                     const dirY = dy / mag;
@@ -58,14 +59,14 @@ const SpaceTravelParticles = (() => {
                     const streakElapsed = Math.max(0, timestampMs - boostStartTimestampMs - delayMs);
                     const length = 1 + Math.floor(Math.max(0, streakElapsed - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
                     for (let i = 0; i < length; i++) {
-                        const sx = Math.round(x + dirX * i);
-                        const sy = Math.round(y + dirY * i);
+                        const sx = Math.round(baseX + dirX * i);
+                        const sy = Math.round(baseY + dirY * i);
                         if (sx >= 0 && sx < viewWidth && sy >= 0 && sy < viewHeight) {
                             RasterUtils.plotDepthText(depthBuffer, sx, sy, projected.z, symbol, COLORS.TEXT_DIM);
                         }
                     }
                 } else {
-                    RasterUtils.plotDepthText(depthBuffer, x, y, projected.z, '.', COLORS.TEXT_DIM);
+                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, '.', COLORS.TEXT_DIM);
                 }
                 drawn++;
             }

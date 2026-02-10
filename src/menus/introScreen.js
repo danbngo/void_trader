@@ -49,7 +49,7 @@ const IntroScreen = (() => {
                 if (destination) {
                     SpaceTravelMap.show(gameState, destination, { resetPosition: true });
                 } else {
-                DockMenu.show(gameState);
+                DockMenu.show(gameState, gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation);
             }
         }, COLORS.BUTTON);
         

@@ -1490,7 +1490,7 @@ const EncounterMenu = (() => {
                 delete ship.escaped;
             });
             
-            DockMenu.show(gameState);
+            DockMenu.show(gameState, gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation);
         }, COLORS.GREEN);
         
         UI.draw();

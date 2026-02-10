@@ -155,25 +155,60 @@ const DockingAnimation = (() => {
             const right = Math.max(...xs);
             const top = Math.min(...ys);
             const bottom = Math.max(...ys);
+            const minSize = 3;
+            const width = right - left;
+            const height = bottom - top;
+            let drawLeft = left;
+            let drawRight = right;
+            let drawTop = top;
+            let drawBottom = bottom;
 
-            if (right - left < 1 || bottom - top < 1) {
+            if (width < minSize || height < minSize) {
+                const centerX = Math.round((left + right) / 2);
+                const centerY = Math.round((top + bottom) / 2);
+                drawLeft = centerX - 1;
+                drawRight = centerX + 1;
+                drawTop = centerY - 1;
+                drawBottom = centerY + 1;
+            }
+
+            if (drawRight - drawLeft < 1 || drawBottom - drawTop < 1) {
                 return;
             }
 
-            RasterUtils.plotDepthText(depthBuffer, left, top, z, '┌', COLORS.LIGHT_GRAY);
-            RasterUtils.plotDepthText(depthBuffer, right, top, z, '┐', COLORS.LIGHT_GRAY);
-            RasterUtils.plotDepthText(depthBuffer, left, bottom, z, '└', COLORS.LIGHT_GRAY);
-            RasterUtils.plotDepthText(depthBuffer, right, bottom, z, '┘', COLORS.LIGHT_GRAY);
+            if (drawLeft < 0) {
+                drawRight += -drawLeft;
+                drawLeft = 0;
+            }
+            if (drawTop < 0) {
+                drawBottom += -drawTop;
+                drawTop = 0;
+            }
+            if (drawRight >= viewWidth) {
+                const shift = drawRight - (viewWidth - 1);
+                drawLeft = Math.max(0, drawLeft - shift);
+                drawRight = viewWidth - 1;
+            }
+            if (drawBottom >= viewHeight) {
+                const shift = drawBottom - (viewHeight - 1);
+                drawTop = Math.max(0, drawTop - shift);
+                drawBottom = viewHeight - 1;
+            }
+
+            RasterUtils.plotDepthText(depthBuffer, drawLeft, drawTop, z, '┌', COLORS.LIGHT_GRAY);
+            RasterUtils.plotDepthText(depthBuffer, drawRight, drawTop, z, '┐', COLORS.LIGHT_GRAY);
+            RasterUtils.plotDepthText(depthBuffer, drawLeft, drawBottom, z, '└', COLORS.LIGHT_GRAY);
+            RasterUtils.plotDepthText(depthBuffer, drawRight, drawBottom, z, '┘', COLORS.LIGHT_GRAY);
             drawnSegments += 4;
 
-            for (let x = left + 1; x < right; x++) {
-                RasterUtils.plotDepthText(depthBuffer, x, top, z, '─', COLORS.LIGHT_GRAY);
-                RasterUtils.plotDepthText(depthBuffer, x, bottom, z, '─', COLORS.LIGHT_GRAY);
+            for (let x = drawLeft + 1; x < drawRight; x++) {
+                RasterUtils.plotDepthText(depthBuffer, x, drawTop, z, '─', COLORS.LIGHT_GRAY);
+                RasterUtils.plotDepthText(depthBuffer, x, drawBottom, z, '─', COLORS.LIGHT_GRAY);
                 drawnSegments += 2;
             }
-            for (let y = top + 1; y < bottom; y++) {
-                RasterUtils.plotDepthText(depthBuffer, left, y, z, '│', COLORS.LIGHT_GRAY);
-                RasterUtils.plotDepthText(depthBuffer, right, y, z, '│', COLORS.LIGHT_GRAY);
+            for (let y = drawTop + 1; y < drawBottom; y++) {
+                RasterUtils.plotDepthText(depthBuffer, drawLeft, y, z, '│', COLORS.LIGHT_GRAY);
+                RasterUtils.plotDepthText(depthBuffer, drawRight, y, z, '│', COLORS.LIGHT_GRAY);
                 drawnSegments += 2;
             }
         });

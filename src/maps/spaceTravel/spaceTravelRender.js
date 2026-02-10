@@ -39,10 +39,13 @@ const SpaceTravelRender = (() => {
 
         const bodyColors = {
             STAR: '#ffeeaa',
-            GAS: '#b4f1ff',
+            GAS: '#d6b27a',
             ICE: '#d7f7ff',
             TERRESTRIAL: '#c4a484'
         };
+
+        const gasBasePalette = ['#d6b27a', '#c9a06a', '#d1bb8a', '#c08a5a', '#b57a4a'];
+        const gasStripePalette = ['#f3dbac', '#e7c58e', '#c58a5a', '#a46a45', '#8b5a3a'];
 
         const labels = [];
         const hoverInfos = [];
@@ -71,10 +74,15 @@ const SpaceTravelRender = (() => {
             }
 
             let baseColor = bodyColors.TERRESTRIAL;
+            let gasStripeLight = null;
+            let gasStripeDark = null;
             if (body.kind === 'STAR') {
                 baseColor = bodyColors.STAR;
             } else if (SpaceTravelShared.isGasPlanet(body.type)) {
-                baseColor = bodyColors.GAS;
+                const gasSeed = SpaceTravelShared.hashString(body.id || body.type);
+                baseColor = gasBasePalette[Math.abs(gasSeed) % gasBasePalette.length];
+                gasStripeLight = gasStripePalette[Math.abs(gasSeed + 1) % gasStripePalette.length];
+                gasStripeDark = gasStripePalette[Math.abs(gasSeed + 3) % gasStripePalette.length];
             } else if (body.type === BODY_TYPES.PLANET_ICE_GIANT.id || body.type === BODY_TYPES.PLANET_ICE_DWARF.id) {
                 baseColor = bodyColors.ICE;
             }
@@ -187,8 +195,11 @@ const SpaceTravelRender = (() => {
                 });
             }
 
-            const stripeSize = Math.max(1, Math.round(Math.max(radiusCharsX, radiusCharsY) * 0.35));
-            const stripePhase = Math.floor((SpaceTravelShared.hashString(body.id || body.type) % 100) / 100 * stripeSize);
+            const stripeSize = Math.max(1, Math.round(Math.max(radiusCharsX, radiusCharsY) * 0.18));
+            const stripeSeed = SpaceTravelShared.hashString(body.id || body.type);
+            const stripePhase = Math.floor(((stripeSeed % 100) + 100) % 100 / 100 * stripeSize);
+            const stripePhaseRad = (((stripeSeed % 360) + 360) % 360) * (Math.PI / 180);
+            const stripeWobble = Math.max(1, Math.round(Math.max(radiusCharsX, radiusCharsY) * 0.2));
 
             for (let dy = -radiusCharsY; dy <= radiusCharsY; dy++) {
                 for (let dx = -radiusCharsX; dx <= radiusCharsX; dx++) {
@@ -202,13 +213,11 @@ const SpaceTravelRender = (() => {
                     let pixelColor = color;
 
                     if (SpaceTravelShared.isGasPlanet(body.type)) {
-                        const band = Math.floor((dy + radiusCharsY + stripePhase) / stripeSize);
-                        const bandT = (band % 2 === 0) ? 0.15 : -0.2;
-                        if (bandT >= 0) {
-                            pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#ffffff', bandT);
-                        } else {
-                            pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#000000', Math.abs(bandT));
-                        }
+                        const wave = Math.sin(((dx / Math.max(1, radiusCharsX)) * Math.PI * 2) + stripePhaseRad);
+                        const wobble = Math.round(wave * stripeWobble);
+                        const band = Math.floor((dy + radiusCharsY + stripePhase + wobble) / stripeSize);
+                        const stripeColor = (band % 2 === 0) ? gasStripeLight : gasStripeDark;
+                        pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, stripeColor || pixelColor, 0.35);
                     } else if (craterData) {
                         for (let i = 0; i < craterData.length; i++) {
                             const crater = craterData[i];

@@ -85,7 +85,7 @@ const TowMenu = (() => {
         currentGameState.encounterCargo = {};
         currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
         
-        DockMenu.show(currentGameState);
+        DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
     }
     
     return {

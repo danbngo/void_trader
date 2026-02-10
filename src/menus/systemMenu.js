@@ -9,13 +9,25 @@ const DockMenu = (() => {
     let currentNewNews = []; // Persist new news within the current system visit
     let currentExpiredNews = []; // Persist expired news within the current system visit
     let lastSystemIndex = -1; // Track which system we're at
+    let currentDockLocation = null;
+
+    function getDockLocation(gameState, location) {
+        return location
+            || currentDockLocation
+            || (gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation)
+            || null;
+    }
     
     /**
      * Show the dock menu
      * @param {GameState} gameState - Current game state
+     * @param {Object} location - Docked planet/station
      */
-    function show(gameState) {
-        if (!SystemUtils.isHabitedSystem(gameState.getCurrentSystem())) {
+    function show(gameState, location) {
+        currentDockLocation = getDockLocation(gameState, location);
+        const dockData = currentDockLocation && currentDockLocation.dataRef ? currentDockLocation.dataRef : currentDockLocation;
+        const isHabitedLocation = dockData && (((dockData.population || 0) > 0) || (dockData.buildings && dockData.buildings.length > 0));
+        if (!isHabitedLocation) {
             UninhabitedSystemMenu.show(gameState, () => GalaxyMap.show(gameState));
             return;
         }
@@ -151,9 +163,13 @@ const DockMenu = (() => {
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
+        const dockLocation = getDockLocation(gameState);
+        const dockData = dockLocation && dockLocation.dataRef ? dockLocation.dataRef : dockLocation;
+        const returnToDock = () => show(gameState, dockLocation);
         
         // Title at top edge
-        UI.addTitleLineCentered(0, `${currentSystem.name}`);
+        const titleName = dockLocation?.name || currentSystem?.name || 'Dock';
+        UI.addTitleLineCentered(0, `${titleName}`);
         
         // Two-column layout for info
         const leftColumnX = 5;
@@ -161,12 +177,12 @@ const DockMenu = (() => {
         const startY = 2;
         
         // Left column title
-        UI.addHeaderLine(leftColumnX, startY, 'System Info');
+        UI.addHeaderLine(leftColumnX, startY, 'Location Info');
         
         // Left column: System info
         TableRenderer.renderKeyValueList(leftColumnX, startY + 1, [
-            { label: 'Population:', value: `${currentSystem.population}M`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[currentSystem.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Population:', value: `${dockData?.population || 0}M`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[dockData?.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
         ]);
         
         // Right column title
@@ -289,55 +305,56 @@ const DockMenu = (() => {
                 name: 'Dock',
                 key: '1',
                 buildingType: BUILDING_TYPES.DOCK,
-                openMenu: () => DockServicesMenu.show(gameState, () => show(gameState))
+                openMenu: () => DockServicesMenu.show(gameState, dockLocation, returnToDock)
             },
             {
                 id: 'MARKET',
                 name: 'Market',
                 key: '2',
                 buildingType: BUILDING_TYPES.MARKET,
-                openMenu: () => MarketMenu.show(gameState, () => show(gameState))
+                openMenu: () => MarketMenu.show(gameState, returnToDock)
             },
             {
                 id: 'BLACK_MARKET',
                 name: 'Black Market',
                 key: 'b',
                 buildingType: BUILDING_TYPES.BLACK_MARKET,
-                openMenu: () => BlackMarketMenu.show(gameState, () => show(gameState))
+                openMenu: () => BlackMarketMenu.show(gameState, returnToDock)
             },
             {
                 id: 'COURTHOUSE',
                 name: 'Courthouse',
                 key: '3',
                 buildingType: BUILDING_TYPES.COURTHOUSE,
-                openMenu: () => CourthouseMenu.show(gameState, () => show(gameState))
+                openMenu: () => CourthouseMenu.show(gameState, returnToDock)
             },
             {
                 id: 'SHIPYARD',
                 name: 'Shipyard',
                 key: '4',
                 buildingType: BUILDING_TYPES.SHIPYARD,
-                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
+                openMenu: () => ShipyardMenu.show(gameState, returnToDock)
             },
             {
                 id: 'TAVERN',
                 name: 'Tavern',
                 key: '5',
                 buildingType: BUILDING_TYPES.TAVERN,
-                openMenu: () => TavernMenu.show(gameState, () => show(gameState))
+                openMenu: () => TavernMenu.show(gameState, returnToDock)
             },
             {
                 id: 'GUILD',
                 name: 'Guild',
                 key: '6',
                 buildingType: BUILDING_TYPES.GUILD,
-                openMenu: () => GuildMenu.show(gameState, () => show(gameState))
+                openMenu: () => GuildMenu.show(gameState, returnToDock)
             }
         ].filter(building => building.id !== 'BLACK_MARKET' || currentSystem.name === 'Blackreach');
         
         // Add building buttons in 3 columns (3 per column)
         allBuildings.forEach((building, index) => {
-            let hasBuilding = currentSystem.buildings.includes(building.id);
+            const buildingList = dockData?.buildings || [];
+            let hasBuilding = buildingList.includes(building.id);
             if (building.id === 'BLACK_MARKET') {
                 hasBuilding = hasBuilding && currentSystem.name === 'Blackreach';
             }
@@ -389,9 +406,9 @@ const DockMenu = (() => {
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
         const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
         const assistantColor = (hasUnreadMessages || hasSkillPoints) ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(rightX, buttonY + 1, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
+        UI.addButton(rightX, buttonY + 1, 'a', 'Assistant', () => AssistantMenu.show(gameState, returnToDock), assistantColor, 'View ship, cargo, and captain information');
         
-        UI.addButton(rightX, buttonY + 2, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
+        UI.addButton(rightX, buttonY + 2, '0', 'Options', () => OptionsMenu.show(returnToDock), COLORS.BUTTON, 'Game settings and save/load');
         
         // Set output message if there is one
         if (outputMessage) {
@@ -419,7 +436,7 @@ const DockMenu = (() => {
         // Check for unread messages and handle departure flow
         UnreadMessagesMenu.show(
             gameState,
-            show, // onReturn to dock
+            () => show(gameState, currentDockLocation), // onReturn to dock
             proceedToGalaxyMap // onProceed with departure
         );
     }
@@ -441,7 +458,7 @@ const DockMenu = (() => {
             // Show resupply menu
             ResupplyMenu.show(
                 gameState,
-                () => show(gameState), // onReturn
+                () => show(gameState, currentDockLocation), // onReturn
                 () => beginSpaceTravel(gameState) // onDepart
             );
         } else {
@@ -626,7 +643,7 @@ const DockMenu = (() => {
                 gameState.completedJobReward = null;
                 
                 // Return to dock menu
-                show(gameState);
+                show(gameState, currentDockLocation);
             }, color: COLORS.GREEN, helpText: 'Collect your rewards and continue' }
         ]);
         

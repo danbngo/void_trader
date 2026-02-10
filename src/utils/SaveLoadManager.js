@@ -46,6 +46,8 @@ const SaveLoadManager = (() => {
                 date: gameState.date.toISOString(),
                 localDestination: gameState.localDestination || null,
                 localDestinationSystemIndex: gameState.localDestinationSystemIndex ?? null,
+                currentLocationId: (gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation)?.id || null,
+                currentLocationKind: (gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation)?.kind || null,
                 encounterShips: gameState.encounterShips,
                 encounter: gameState.encounter,
                 // Save message states (ID, isRead, suppressWarning)
@@ -212,13 +214,8 @@ const SaveLoadManager = (() => {
         gameState.systems = data.systems.map((s, index) => {
             const system = new StarSystem(s.name, s.x, s.y, s.population);
             system.index = index; // Restore index
-            system.governmentType = s.governmentType || null;
-            system.cultureLevel = s.cultureLevel || null;
-            system.technologyLevel = s.technologyLevel || null;
-            system.industryLevel = s.industryLevel || null;
-            system.populationLevel = s.populationLevel || null;
             system.stars = s.stars || [];
-            system.planets = s.planets || [];
+            system.planets = (s.planets || []).map(planet => (planet instanceof Planet ? planet : new Planet(planet)));
             system.moons = s.moons || [];
             system.belts = s.belts || [];
             if (s.features) {
@@ -226,8 +223,22 @@ const SaveLoadManager = (() => {
             } else {
                 system.features = [SYSTEM_FEATURES.HABITED.id];
             }
-            system.cargoStock = s.cargoStock || {};
-            system.cargoPriceModifier = s.cargoPriceModifier || {};
+            if (system.planets && system.planets.length > 0 && system.setPrimaryBody) {
+                system.setPrimaryBody(system.planets[0]);
+            }
+            if (system.primaryBody && typeof system.primaryBody.copySystemDataFrom === 'function') {
+                system.primaryBody.copySystemDataFrom(s);
+                if (Array.isArray(s.buildings)) {
+                    system.primaryBody.buildings = s.buildings;
+                }
+            }
+            if (s.governmentType !== undefined) system.governmentType = s.governmentType;
+            if (s.cultureLevel !== undefined) system.cultureLevel = s.cultureLevel;
+            if (s.technologyLevel !== undefined) system.technologyLevel = s.technologyLevel;
+            if (s.industryLevel !== undefined) system.industryLevel = s.industryLevel;
+            if (s.populationLevel !== undefined) system.populationLevel = s.populationLevel;
+            if (s.cargoStock !== undefined) system.cargoStock = s.cargoStock || {};
+            if (s.cargoPriceModifier !== undefined) system.cargoPriceModifier = s.cargoPriceModifier || {};
             
             // Reconstruct ships in the system
             system.ships = (s.ships || []).map(shipData => {
@@ -251,14 +262,34 @@ const SaveLoadManager = (() => {
             
             system.modules = s.modules || [];
             
-            system.pirateWeight = s.pirateWeight || 0;
-            system.policeWeight = s.policeWeight || 0;
-            system.merchantWeight = s.merchantWeight || 0;
-            system.buildings = s.buildings || [];
-            system.conqueredByAliens = s.conqueredByAliens || false;
-            system.conqueredYear = s.conqueredYear || null;
+            if (s.pirateWeight !== undefined) system.pirateWeight = s.pirateWeight || 0;
+            if (s.policeWeight !== undefined) system.policeWeight = s.policeWeight || 0;
+            if (s.merchantWeight !== undefined) system.merchantWeight = s.merchantWeight || 0;
+            if (s.smugglersWeight !== undefined) system.smugglersWeight = s.smugglersWeight || 0;
+            if (s.soldiersWeight !== undefined) system.soldiersWeight = s.soldiersWeight || 0;
+            if (s.alienWeight !== undefined) system.alienWeight = s.alienWeight || 0;
+            if (Array.isArray(s.buildings)) system.buildings = s.buildings;
+            if (s.conqueredByAliens !== undefined) system.conqueredByAliens = s.conqueredByAliens || false;
+            if (s.conqueredYear !== undefined) system.conqueredYear = s.conqueredYear || null;
             return system;
         });
+
+        const currentSystem = gameState.getCurrentSystem();
+        if (currentSystem) {
+            const savedLocationId = data.currentLocationId || null;
+            let currentLocation = null;
+            if (savedLocationId && Array.isArray(currentSystem.planets)) {
+                currentLocation = currentSystem.planets.find(planet => planet.id === savedLocationId) || null;
+            }
+            if (!currentLocation) {
+                currentLocation = currentSystem.primaryBody || (currentSystem.planets && currentSystem.planets[0]) || null;
+            }
+            if (typeof gameState.setCurrentLocation === 'function') {
+                gameState.setCurrentLocation(currentLocation);
+            } else {
+                gameState.currentLocation = currentLocation;
+            }
+        }
         
         // Reconstruct messages from MESSAGES definitions
         gameState.messages = [];

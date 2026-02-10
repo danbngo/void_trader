@@ -136,7 +136,7 @@ const AlienLiberationBattle = (() => {
                     });
                     gameState.encounter = false;
                     gameState.liberationBattle = null;
-                    DockMenu.show(gameState);
+                    DockMenu.show(gameState, gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation);
                 });
             } else {
                 // No ships to loot, restore shields and go to dock
@@ -145,7 +145,7 @@ const AlienLiberationBattle = (() => {
                 });
                 gameState.encounter = false;
                 gameState.liberationBattle = null;
-                DockMenu.show(gameState);
+                DockMenu.show(gameState, gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation);
             }
         }, COLORS.GREEN);
         
@@ -213,7 +213,7 @@ const AlienLiberationBattle = (() => {
         
         const buttonY = grid.height - 3;
         UI.addCenteredButton(buttonY, '1', 'Continue', () => {
-            DockMenu.show(gameState);
+            DockMenu.show(gameState, gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation);
         }, COLORS.BUTTON);
         
         UI.draw();

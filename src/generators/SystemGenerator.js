@@ -276,7 +276,7 @@ const SystemGenerator = (() => {
             const type = pickWeighted(PLANET_TYPE_WEIGHTS);
             const periodDays = 365.25 * Math.pow(orbitRadius, 1.5);
             const progress = Math.random();
-            planets.push({
+            planets.push(new Planet({
                 id: `${system.name}-PLANET-${i + 1}`,
                 type,
                 radiusAU: getRadiusForType(type, PLANET_RADIUS_RANGES_AU),
@@ -286,13 +286,13 @@ const SystemGenerator = (() => {
                     percentOffset: progress,
                     progress
                 }
-            });
+            }));
         }
         if (planets.length === 0) {
             const type = pickWeighted(PLANET_TYPE_WEIGHTS);
             const periodDays = 365.25 * Math.pow(SYSTEM_PLANET_ORBIT_MIN_AU, 1.5);
             const progress = Math.random();
-            planets.push({
+            planets.push(new Planet({
                 id: `${system.name}-PLANET-1`,
                 type,
                 radiusAU: getRadiusForType(type, PLANET_RADIUS_RANGES_AU),
@@ -302,7 +302,7 @@ const SystemGenerator = (() => {
                     percentOffset: progress,
                     progress
                 }
-            });
+            }));
         }
         const orderedPlanets = [...planets].sort((a, b) => (a.orbit?.semiMajorAU || 0) - (b.orbit?.semiMajorAU || 0));
         orderedPlanets.forEach((planet, index) => {
@@ -310,6 +310,13 @@ const SystemGenerator = (() => {
             planet.name = `${system.name} ${numeral}`;
         });
         system.planets = planets;
+
+        const primaryPlanet = orderedPlanets.find(planet => planet.type === BODY_TYPES.PLANET_EARTHLIKE.id)
+            || orderedPlanets[0]
+            || null;
+        if (primaryPlanet) {
+            system.setPrimaryBody(primaryPlanet);
+        }
 
         system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
         system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);

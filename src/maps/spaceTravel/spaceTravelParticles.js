@@ -39,12 +39,13 @@ const SpaceTravelParticles = (() => {
             const baseX = Math.round(projected.x);
             const baseY = Math.round(projected.y);
             if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
+                const starSeed = Math.abs(Math.floor((star.direction.x * 100000) + (star.direction.y * 310000) + (star.direction.z * 730000) + (starIndex * 1997)));
+                const starSymbol = (starSeed % 2 === 0) ? '·' : '.';
                 if (boostActive) {
-                    const seed = Math.abs(Math.floor((star.direction.x * 100000) + (star.direction.y * 310000) + (star.direction.z * 730000) + (starIndex * 1997)));
-                    const offsetMs = seed % config.BOOST_STREAK_GROWTH_MS;
-                    const delayMs = config.BOOST_STREAK_DELAY_MS + (seed % config.BOOST_STREAK_DELAY_MS);
+                    const offsetMs = starSeed % config.BOOST_STREAK_GROWTH_MS;
+                    const delayMs = config.BOOST_STREAK_DELAY_MS + (starSeed % config.BOOST_STREAK_DELAY_MS);
                     if ((timestampMs - boostStartTimestampMs) < delayMs) {
-                        RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, '.', COLORS.TEXT_DIM);
+                        RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, COLORS.TEXT_DIM);
                         drawn++;
                         continue;
                     }
@@ -66,7 +67,7 @@ const SpaceTravelParticles = (() => {
                         }
                     }
                 } else {
-                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, '.', COLORS.TEXT_DIM);
+                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, COLORS.TEXT_DIM);
                 }
                 drawn++;
             }

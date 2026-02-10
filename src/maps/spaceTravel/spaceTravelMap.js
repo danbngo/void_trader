@@ -123,6 +123,7 @@ const SpaceTravelMap = (() => {
                 z: stationDir.z * stationOrbit
             };
             currentStation.name = targetSystem.stationName || `${targetSystem.name} Station`;
+            currentStation.dataRef = targetSystem.primaryBody || (targetSystem.planets && targetSystem.planets[0]) || null;
         }
 
         if (resetPosition || !hasPosition) {
@@ -426,6 +427,28 @@ const SpaceTravelMap = (() => {
             return;
         }
 
+        if (targetSystem && Array.isArray(targetSystem.planets)) {
+            for (let i = 0; i < targetSystem.planets.length; i++) {
+                const planet = targetSystem.planets[i];
+                const dockingResult = SpaceTravelLogic.checkPlanetDocking({
+                    planet,
+                    playerShip,
+                    currentGameState,
+                    targetSystem,
+                    onStop: stop,
+                    onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget, planet: dockPlanet }) => {
+                        DockingAnimation.show(dockGameState, () => {
+                            handleDock({ dockGameState, dockTarget, location: dockPlanet });
+                        });
+                    },
+                    config
+                });
+                if (dockingResult.didDock) {
+                    return;
+                }
+            }
+        }
+
         if (currentStation) {
             const dockingResult = SpaceTravelLogic.checkStationDocking({
                 station: currentStation,
@@ -438,14 +461,7 @@ const SpaceTravelMap = (() => {
                 onStop: stop,
                 onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget }) => {
                     DockingAnimation.show(dockGameState, () => {
-                        if (dockGameState && dockTarget) {
-                            const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
-                            if (systemIndex >= 0) {
-                                dockGameState.setCurrentSystem(systemIndex);
-                            }
-                            dockGameState.destination = null;
-                        }
-                        DockMenu.show(dockGameState);
+                        handleDock({ dockGameState, dockTarget, location: currentStation });
                     });
                 },
                 config
@@ -469,6 +485,24 @@ const SpaceTravelMap = (() => {
         }
 
         regenShipStats(dt);
+    }
+
+    function handleDock({ dockGameState, dockTarget, location }) {
+        if (dockGameState && dockTarget) {
+            const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
+            if (systemIndex >= 0) {
+                dockGameState.setCurrentSystem(systemIndex);
+            }
+            dockGameState.destination = null;
+            dockGameState.localDestination = null;
+            dockGameState.localDestinationSystemIndex = null;
+        }
+        if (dockGameState && typeof dockGameState.setCurrentLocation === 'function') {
+            dockGameState.setCurrentLocation(location || dockGameState.getCurrentLocation());
+        } else if (dockGameState) {
+            dockGameState.currentLocation = location || dockGameState.currentLocation;
+        }
+        DockMenu.show(dockGameState, location);
     }
 
     function regenShipStats(dt) {
@@ -720,9 +754,16 @@ const SpaceTravelMap = (() => {
             const speedRatio = maxSpeed > 0 ? Math.min(1, ThreeDUtils.vecLength(playerShip.velocity) / maxSpeed) : 0;
             const cooldownFactor = boostActive
                 ? 1
-                : (config.BOOST_COOLDOWN_SEC > 0 ? (boostCooldownRemaining / config.BOOST_COOLDOWN_SEC) : 0);
-            const rampedSpeedRatio = Math.pow(speedRatio, config.BOOST_TINT_RAMP_POWER);
-            let alpha = config.BOOST_TINT_MAX * rampedSpeedRatio * cooldownFactor;
+                : (config.BOOST_COOLDOWN_SEC > 0
+                    ? Math.min(1, (boostCooldownRemaining / config.BOOST_COOLDOWN_SEC) * 2)
+                    : 0);
+            let timeRatio = 1;
+            if (boostActive) {
+                const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
+                const elapsedSec = Math.max(0, (timestampMs - boostStartTimestampMs) / 1000);
+                timeRatio = Math.min(1, elapsedSec / rampSec);
+            }
+            let alpha = config.BOOST_TINT_MAX * timeRatio * cooldownFactor;
             if (boostActive) {
                 alpha = Math.max(alpha, config.BOOST_TINT_MIN);
             }

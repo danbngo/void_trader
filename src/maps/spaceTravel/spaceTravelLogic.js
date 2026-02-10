@@ -124,6 +124,43 @@ const SpaceTravelLogic = (() => {
         return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
     }
 
+    function checkPlanetDocking({
+        planet,
+        playerShip,
+        currentGameState,
+        targetSystem,
+        onStop,
+        onDock,
+        config
+    }) {
+        if (!planet || !playerShip || !targetSystem) {
+            return { didDock: false };
+        }
+
+        const systemCenter = {
+            x: targetSystem.x * config.LY_TO_AU,
+            y: targetSystem.y * config.LY_TO_AU,
+            z: 0
+        };
+        const orbitOffset = planet.orbit
+            ? SystemOrbitUtils.getOrbitPosition(planet.orbit, currentGameState?.date)
+            : { x: 0, y: 0, z: 0 };
+        const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+        const dist = ThreeDUtils.distance(playerShip.position, worldPos);
+        const dockRadius = planet.radiusAU * (config.PLANET_DOCK_RADIUS_MULT || 1);
+        if (dist > dockRadius) {
+            return { didDock: false };
+        }
+
+        if (onStop) {
+            onStop();
+        }
+        if (onDock) {
+            onDock({ currentGameState, targetSystem, planet });
+        }
+        return { didDock: true };
+    }
+
     function getNearestSystem(gameState) {
         if (!gameState || !gameState.systems || gameState.systems.length === 0) {
             return null;
@@ -195,6 +232,7 @@ const SpaceTravelLogic = (() => {
 
     return {
         checkStationDocking,
+        checkPlanetDocking,
         getNearestSystem,
         updateStationVisibility,
         logNearestStationDebug

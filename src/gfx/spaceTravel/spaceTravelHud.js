@@ -1,0 +1,176 @@
+/**
+ * Space Travel Map HUD
+ */
+
+const SpaceTravelHud = (() => {
+    function renderHud({ viewWidth, viewHeight, state, config, helpers, onMenu }) {
+        const startY = viewHeight;
+        const panelWidth = viewWidth;
+
+        helpers.addHudText(0, startY, '─'.repeat(panelWidth), COLORS.GRAY);
+
+        const ship = state.playerShip;
+        if (!ship) {
+            return;
+        }
+
+        const fuelRatio = ship.fuel / ship.maxFuel;
+        const shieldRatio = ship.maxShields ? (ship.shields / ship.maxShields) : 0;
+        const hullRatio = ship.hull / ship.maxHull;
+
+        const speed = ThreeDUtils.vecLength(ship.velocity);
+        const speedPerMinute = speed * 60;
+        const engine = ship.engine || 10;
+        const baseMaxSpeed = ship.size * engine * config.SHIP_SPEED_PER_ENGINE;
+        const maxSpeed = baseMaxSpeed * (state.boostActive ? config.BOOST_MAX_SPEED_MULT : 1);
+        const speedRatio = maxSpeed > 0 ? (1 + (3 * Math.min(1, speed / maxSpeed))) : 1;
+
+        const targetInfo = helpers.getActiveTargetInfo();
+        const destinationLabel = targetInfo && targetInfo.name ? targetInfo.name : '--';
+        const distanceToTarget = targetInfo ? ThreeDUtils.vecLength(ThreeDUtils.subVec(targetInfo.position, ship.position)) : null;
+        const distanceLabel = targetInfo
+            ? (targetInfo.isLocal
+                ? `${distanceToTarget.toFixed(2)} AU`
+                : `${distanceToTarget.toFixed(2)} AU (${(distanceToTarget / config.LY_TO_AU).toFixed(3)} LY)`)
+            : '--';
+
+        TableRenderer.renderKeyValueList(2, startY + 1, [
+            {
+                label: 'Fuel:',
+                value: `${Math.floor(ship.fuel)}/${Math.floor(ship.maxFuel)}`,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(UI.calcStatColor(fuelRatio, true))
+            },
+            {
+                label: 'Shields:',
+                value: `${Math.floor(ship.shields)}/${Math.floor(ship.maxShields)}`,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(UI.calcStatColor(shieldRatio, true))
+            },
+            {
+                label: 'Hull:',
+                value: `${Math.floor(ship.hull)}/${Math.floor(ship.maxHull)}`,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(UI.calcStatColor(hullRatio, true))
+            },
+            {
+                label: 'Speed:',
+                value: `${speedPerMinute.toFixed(2)} AU/m`,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(UI.calcStatColor(speedRatio))
+            },
+            {
+                label: 'Destination:',
+                value: destinationLabel,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
+            },
+            {
+                label: 'Distance:',
+                value: distanceLabel,
+                labelColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL),
+                valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
+            }
+        ]);
+
+        {
+            const speedLabel = 'Speed:';
+            const speedValue = `${speedPerMinute.toFixed(2)} AU/m`;
+            let boostTag = '';
+            let boostColor = COLORS.TEXT_NORMAL;
+            if (state.boostActive) {
+                boostTag = ' [BOOST]';
+                boostColor = COLORS.ORANGE;
+            } else if (!state.boostActive && state.boostCooldownRemaining > 0) {
+                boostTag = ' [COOLDOWN]';
+                boostColor = COLORS.TEXT_WARNING;
+            } else if (!state.boostActive
+                && state.boostCooldownRemaining <= 0
+                && (ship.fuel ?? 0) > 0
+                && speed >= (baseMaxSpeed * config.BOOST_READY_SPEED_RATIO)) {
+                boostTag = ' [READY]';
+                boostColor = COLORS.TEXT_SUCCESS;
+            }
+            if (boostTag) {
+                const valueX = 2 + speedLabel.length + 1;
+                const boostX = valueX + speedValue.length;
+                const speedLineY = startY + 1 + 3;
+                if (boostX < panelWidth) {
+                    UI.addText(boostX, speedLineY, boostTag, helpers.applyPauseColor(boostColor));
+                }
+            }
+        }
+
+        renderCompass(viewWidth, viewHeight, startY, state, helpers);
+
+        const menuText = 'MENU';
+        const buttonText = `[m] ${menuText}`;
+        const menuX = Math.max(0, panelWidth - buttonText.length - 1);
+        UI.addButton(menuX, startY + 6, 'm', menuText, () => {
+            if (onMenu) {
+                onMenu();
+            }
+        }, helpers.applyPauseColor(COLORS.CYAN), '');
+    }
+
+    function renderCompass(viewWidth, viewHeight, startY, state, helpers) {
+        const targetInfo = helpers.getActiveTargetInfo();
+        if (!state.playerShip || !targetInfo) {
+            return;
+        }
+        const toTarget = ThreeDUtils.subVec(targetInfo.position, state.playerShip.position);
+        const distanceToTarget = ThreeDUtils.vecLength(toTarget);
+        if (distanceToTarget <= 0.000001) {
+            return;
+        }
+
+        const cameraSpaceDir = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(state.playerShip.rotation));
+        const screenDx = cameraSpaceDir.x;
+        const screenDy = cameraSpaceDir.z;
+
+        const compassCenterX = Math.floor(viewWidth / 2);
+        const compassCenterY = startY + 3;
+
+        helpers.addHudText(compassCenterX, compassCenterY, 'o', COLORS.CYAN);
+
+        const arrow = getCompassArrowFromDirection(screenDx, screenDy);
+        if (arrow) {
+            helpers.addHudText(compassCenterX + arrow.dx, compassCenterY + arrow.dy, arrow.symbol, COLORS.CYAN);
+        }
+
+        const verticalRatio = cameraSpaceDir.y / distanceToTarget;
+        let verticalLabel = 'LVL';
+        if (verticalRatio > 0.2) {
+            verticalLabel = 'ABV';
+        } else if (verticalRatio < -0.2) {
+            verticalLabel = 'BLW';
+        }
+        helpers.addHudText(compassCenterX - 2, compassCenterY + 2, verticalLabel, COLORS.CYAN);
+    }
+
+    function getCompassArrowFromDirection(dx, dy) {
+        const mag = Math.sqrt(dx * dx + dy * dy);
+        if (mag <= 0.000001) {
+            return null;
+        }
+
+        const angle = Math.atan2(dy, dx);
+        const sector = Math.round(angle / (Math.PI / 4));
+        const index = (sector + 8) % 8;
+        const offsets = [
+            { dx: 1, dy: 0, symbol: '→' },
+            { dx: 1, dy: -1, symbol: '↗' },
+            { dx: 0, dy: -1, symbol: '↑' },
+            { dx: -1, dy: -1, symbol: '↖' },
+            { dx: -1, dy: 0, symbol: '←' },
+            { dx: -1, dy: 1, symbol: '↙' },
+            { dx: 0, dy: 1, symbol: '↓' },
+            { dx: 1, dy: 1, symbol: '↘' }
+        ];
+        return offsets[index];
+    }
+
+    return {
+        renderHud
+    };
+})();

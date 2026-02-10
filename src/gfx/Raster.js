@@ -2,8 +2,8 @@
  * Raster utilities
  */
 
-const RasterUtils = (() => {
-    function createDepthBuffer(width, height) {
+class RasterUtils {
+    static createDepthBuffer(width, height) {
         return {
             width,
             height,
@@ -13,7 +13,7 @@ const RasterUtils = (() => {
         };
     }
 
-    function plotDepthText(buffer, x, y, z, symbol, color) {
+    static plotDepthText(buffer, x, y, z, symbol, color) {
         if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
             return;
         }
@@ -37,7 +37,7 @@ const RasterUtils = (() => {
         }
     }
 
-    function plotDepthOnly(buffer, x, y, z) {
+    static plotDepthOnly(buffer, x, y, z) {
         if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
             return;
         }
@@ -47,7 +47,7 @@ const RasterUtils = (() => {
         }
     }
 
-    function flushDepthBuffer(buffer) {
+    static flushDepthBuffer(buffer) {
         for (let y = 0; y < buffer.height; y++) {
             for (let x = 0; x < buffer.width; x++) {
                 const index = y * buffer.width + x;
@@ -59,15 +59,15 @@ const RasterUtils = (() => {
         }
     }
 
-    function fillDepthQuad(buffer, quad, symbol, color, bias = 0) {
+    static fillDepthQuad(buffer, quad, symbol, color, bias = 0) {
         if (quad.length !== 4) {
             return;
         }
-        fillDepthTriangle(buffer, quad[0], quad[1], quad[2], symbol, color, bias);
-        fillDepthTriangle(buffer, quad[0], quad[2], quad[3], symbol, color, bias);
+        RasterUtils.fillDepthTriangle(buffer, quad[0], quad[1], quad[2], symbol, color, bias);
+        RasterUtils.fillDepthTriangle(buffer, quad[0], quad[2], quad[3], symbol, color, bias);
     }
 
-    function fillDepthTriangle(buffer, v0, v1, v2, symbol, color, bias = 0) {
+    static fillDepthTriangle(buffer, v0, v1, v2, symbol, color, bias = 0) {
         const minX = Math.max(0, Math.floor(Math.min(v0.x, v1.x, v2.x)));
         const maxX = Math.min(buffer.width - 1, Math.ceil(Math.max(v0.x, v1.x, v2.x)));
         const minY = Math.max(0, Math.floor(Math.min(v0.y, v1.y, v2.y)));
@@ -87,13 +87,13 @@ const RasterUtils = (() => {
                 const w3 = 1 - w1 - w2;
                 if ((w1 >= 0 && w2 >= 0 && w3 >= 0) || (w1 <= 0 && w2 <= 0 && w3 <= 0)) {
                     const z = (w1 * v0.z + w2 * v1.z + w3 * v2.z) + bias;
-                    plotDepthText(buffer, x, y, z, symbol, color);
+                    RasterUtils.plotDepthText(buffer, x, y, z, symbol, color);
                 }
             }
         }
     }
 
-    function screenRayDirection(x, y, viewWidth, viewHeight, fovDeg) {
+    static screenRayDirection(x, y, viewWidth, viewHeight, fovDeg) {
         const charDims = UI.getCharDimensions();
         const fovRad = ThreeDUtils.degToRad(fovDeg);
         const fovScale = Math.tan(fovRad / 2);
@@ -113,7 +113,7 @@ const RasterUtils = (() => {
         return ThreeDUtils.normalizeVec(dir);
     }
 
-    function rasterizeFaceDepth(buffer, faceVertices, viewWidth, viewHeight, fillSymbol, fillColor, bias = 0, nearPlane = 0.0001, fovDeg = 75) {
+    static rasterizeFaceDepth(buffer, faceVertices, viewWidth, viewHeight, fillSymbol, fillColor, bias = 0, nearPlane = 0.0001, fovDeg = 75) {
         if (faceVertices.length < 3) {
             return;
         }
@@ -144,7 +144,7 @@ const RasterUtils = (() => {
         });
 
         const projected = insetVertices
-            .map(v => projectCameraSpacePointRaw(v, viewWidth, viewHeight, fovDeg))
+            .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, fovDeg))
             .filter(p => p !== null);
 
         if (projected.length < 3) {
@@ -173,11 +173,11 @@ const RasterUtils = (() => {
         let sampleCount = 0;
 
         const plotBlock = (x, y, z) => {
-            plotDepthText(buffer, x, y, z, fillSymbol, fillColor);
+            RasterUtils.plotDepthText(buffer, x, y, z, fillSymbol, fillColor);
             if (step > 1) {
-                plotDepthText(buffer, x + 1, y, z, fillSymbol, fillColor);
-                plotDepthText(buffer, x, y + 1, z, fillSymbol, fillColor);
-                plotDepthText(buffer, x + 1, y + 1, z, fillSymbol, fillColor);
+                RasterUtils.plotDepthText(buffer, x + 1, y, z, fillSymbol, fillColor);
+                RasterUtils.plotDepthText(buffer, x, y + 1, z, fillSymbol, fillColor);
+                RasterUtils.plotDepthText(buffer, x + 1, y + 1, z, fillSymbol, fillColor);
             }
         };
 
@@ -193,7 +193,7 @@ const RasterUtils = (() => {
                 let closestZ = null;
                 let centerInside = false;
 
-                const centerRay = screenRayDirection(x, y, viewWidth, viewHeight, fovDeg);
+                const centerRay = RasterUtils.screenRayDirection(x, y, viewWidth, viewHeight, fovDeg);
                 const centerDenom = ThreeDUtils.dotVec(normal, centerRay);
                 if (Math.abs(centerDenom) > 0.000001) {
                     const tCenter = ThreeDUtils.dotVec(normal, insetVertices[0]) / centerDenom;
@@ -216,7 +216,7 @@ const RasterUtils = (() => {
         }
     }
 
-    function projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, fovDeg) {
+    static projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, fovDeg) {
         const nearPlane = 0.0001;
         if (cameraSpace.z < nearPlane) {
             if (cameraSpace.z <= 0) {
@@ -248,15 +248,4 @@ const RasterUtils = (() => {
         };
     }
 
-    return {
-        createDepthBuffer,
-        plotDepthText,
-        plotDepthOnly,
-        flushDepthBuffer,
-        fillDepthQuad,
-        fillDepthTriangle,
-        rasterizeFaceDepth,
-        screenRayDirection,
-        projectCameraSpacePointRaw
-    };
-})();
+}

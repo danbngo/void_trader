@@ -76,9 +76,33 @@ const ColorUtils = (() => {
         
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
+
+    /**
+     * Convert a color to monochrome using luminance
+     * @param {string} color - Color string (hex or named)
+     * @returns {string} Monochrome color string
+     */
+    function toMonochrome(color) {
+        if (!color || typeof color !== 'string' || color[0] !== '#' || color.length !== 7) {
+            if (color === 'white') {
+                return '#ffffff';
+            }
+            if (color === 'black') {
+                return '#000000';
+            }
+            return color;
+        }
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        const luminance = Math.round((r * 0.3) + (g * 0.59) + (b * 0.11));
+        const hex = luminance.toString(16).padStart(2, '0');
+        return `#${hex}${hex}${hex}`;
+    }
     
     return {
         calcStatColor,
-        interpolateColor
+        interpolateColor,
+        toMonochrome
     };
 })();

@@ -226,18 +226,16 @@ const SpaceTravelLogic = (() => {
                 }
                 return false;
             }
-            const area = SpaceStationGfx.stationScreenAreaChars(station, playerShip, viewWidth, viewHeight);
+            const bounds = SpaceStationGfx.stationScreenBoundsChars(
+                station,
+                playerShip,
+                viewWidth,
+                viewHeight,
+                config.VIEW_FOV,
+                config.SYSTEM_BODY_SCREEN_SCALE || 1
+            );
+            const area = bounds ? bounds.area : 0;
             const visible = area >= 0.01;
-            if (config.DEBUG_STATION_VISIBILITY) {
-                console.log('[SpaceTravelMap] Station visibility', {
-                    stationId: station.id,
-                    distanceAU: dist,
-                    distanceLY: dist / config.LY_TO_AU,
-                    area,
-                    threshold: 0.01,
-                    visible
-                });
-            }
             return visible;
         });
 

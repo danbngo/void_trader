@@ -123,7 +123,7 @@ const SpaceTravelMap = (() => {
         if (targetSystem) {
             const stationSize = typeof targetSystem.stationSizeAU === 'number'
                 ? targetSystem.stationSizeAU
-                : 1;
+                : 0.000043;
             currentStation = new SpaceStation('DESTINATION', stationSize);
             const stationOrbit = typeof targetSystem.stationOrbitAU === 'number'
                 ? targetSystem.stationOrbitAU
@@ -682,10 +682,20 @@ const SpaceTravelMap = (() => {
         const viewHeight = grid.height - config.PANEL_HEIGHT;
         const viewWidth = grid.width;
 
+
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
         const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
-        SpaceStationGfx.renderStationOccluders(visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, config.NEAR_PLANE, config.STATION_FACE_DEPTH_BIAS);
+        SpaceStationGfx.renderStationOccluders(
+            visibleStations,
+            playerShip,
+            viewWidth,
+            viewHeight,
+            depthBuffer,
+            config.NEAR_PLANE,
+            config.STATION_FACE_DEPTH_BIAS,
+            config.SYSTEM_BODY_SCREEN_SCALE || 1
+        );
         const bodyLabels = SpaceTravelRender.renderSystemBodies({
             viewWidth,
             viewHeight,
@@ -851,6 +861,7 @@ const SpaceTravelMap = (() => {
             UI.logScreenToConsole();
         }
     }
+
 
     function renderLaserFire(depthBuffer, viewWidth, viewHeight, timestampMs) {
         if (timestampMs < laserFireStartMs || timestampMs > laserFireUntilMs) {

@@ -42,6 +42,7 @@ const IntroScreen = (() => {
 
         logCurrentSystemBodies(gameState);
         logInitialStationState(gameState);
+        logInitialBodyScreenRadiiDelayed(gameState);
         
         UI.addTextCentered(25, 'Will you make your fortune in the void?', COLORS.TEXT_DIM);
         UI.addTextCentered(26, 'Or perish among the stars?', COLORS.TEXT_DIM);
@@ -146,6 +147,104 @@ function logInitialStationState(gameState) {
         playerRotation: playerShip.rotation
     });
 }
+
+function logInitialBodyScreenRadiiDelayed(gameState) {
+    const delayMs = 750;
+    setTimeout(() => {
+        logInitialBodyScreenRadii(gameState);
+    }, delayMs);
+}
+
+function logInitialBodyScreenRadii(gameState) {
+    const system = gameState.getCurrentSystem();
+    const playerShip = gameState.ships && gameState.ships[0];
+    if (!system || !playerShip || !playerShip.position) {
+        console.log('[IntroScreen] Missing system or player ship position for body radius log.');
+        return;
+    }
+
+    const grid = UI.getGridSize();
+    const charDims = UI.getCharDimensions();
+    const viewWidth = grid.width;
+    const viewHeight = grid.height - SpaceTravelConfig.PANEL_HEIGHT;
+    const fovScale = Math.tan(ThreeDUtils.degToRad(SpaceTravelConfig.VIEW_FOV) / 2);
+    const viewPixelWidth = viewWidth * charDims.width;
+    const viewPixelHeight = viewHeight * charDims.height;
+    const charAspect = charDims.height / charDims.width;
+
+    const systemCenter = {
+        x: system.x * SpaceTravelConfig.LY_TO_AU,
+        y: system.y * SpaceTravelConfig.LY_TO_AU,
+        z: 0
+    };
+
+    const bodies = [];
+    (system.stars || []).forEach(star => bodies.push({ ...star, kind: 'STAR' }));
+    (system.planets || []).forEach(planet => bodies.push({ ...planet, kind: 'PLANET' }));
+
+    const stationOrbit = typeof system.stationOrbitAU === 'number'
+        ? system.stationOrbitAU
+        : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
+    const stationSize = typeof system.stationSizeAU === 'number'
+        ? system.stationSizeAU
+        : 0.000043;
+    const entranceDir = ThreeDUtils.normalizeVec(SpaceTravelConfig.STATION_ENTRANCE_DIR);
+    const stationPos = {
+        x: systemCenter.x + entranceDir.x * stationOrbit,
+        y: systemCenter.y + entranceDir.y * stationOrbit,
+        z: entranceDir.z * stationOrbit
+    };
+    bodies.push({
+        id: system.stationId || 'STATION',
+        name: system.stationName || `${system.name} Station`,
+        kind: 'STATION',
+        type: 'STATION',
+        radiusAU: stationSize,
+        positionWorld: stationPos
+    });
+
+    const results = bodies.map(body => {
+        const orbitOffset = body.orbit
+            ? SystemOrbitUtils.getOrbitPosition(body.orbit, gameState.date)
+            : { x: 0, y: 0, z: 0 };
+        const bodyPos = body.positionWorld
+            ? body.positionWorld
+            : ThreeDUtils.addVec(systemCenter, orbitOffset);
+        const dist = Math.max(1e-6, ThreeDUtils.vecLength(ThreeDUtils.subVec(bodyPos, playerShip.position)));
+        const pixelsPerUnitX = viewPixelWidth / (2 * fovScale * dist);
+        const pixelsPerUnitY = viewPixelHeight / (2 * fovScale * dist);
+        const bodyRadiusAU = (body.radiusAU || 0) * (SpaceTravelConfig.SYSTEM_BODY_SCREEN_SCALE || 1);
+        const radiusPx = bodyRadiusAU * pixelsPerUnitX;
+        const radiusPy = bodyRadiusAU * pixelsPerUnitY;
+        const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
+        const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPx / charDims.width));
+        const radiusCharsY = Math.max(minRadiusChars, Math.round((radiusPy / charDims.height) * charAspect));
+
+        return {
+            id: body.id,
+            name: body.name || body.type || body.kind,
+            kind: body.kind,
+            type: body.type,
+            radiusAU: body.radiusAU || 0,
+            distanceAU: dist,
+            radiusCharsX,
+            radiusCharsY
+        };
+    });
+
+    console.log('[IntroScreen] Body screen radii (system bodies)', {
+        systemName: system.name,
+        viewWidth,
+        viewHeight,
+        screenScale: SpaceTravelConfig.SYSTEM_BODY_SCREEN_SCALE || 1,
+        bodyCount: results.length
+    });
+    console.table(results);
+    results.forEach(entry => {
+        console.log('[IntroScreen] Body screen radius', entry);
+    });
+}
+
 
 function getNearestSystem(gameState) {
     if (!gameState || !gameState.systems || gameState.systems.length === 0) {

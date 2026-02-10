@@ -31,6 +31,10 @@ const SpaceTravelHud = (() => {
         const speedValueColor = speed <= 0
             ? COLORS.TEXT_DIM
             : (speed >= maxSpeed ? COLORS.ORANGE : UI.calcStatColor(speedRatio));
+        const speedArrow = getVelocityArrow(ship);
+        const speedValueText = speedArrow
+            ? `${speedPerMinute.toFixed(2)} AU/m ${speedArrow}`
+            : `${speedPerMinute.toFixed(2)} AU/m`;
 
         const targetInfo = helpers.getActiveTargetInfo();
         const destinationLabel = targetInfo && targetInfo.name ? targetInfo.name : '--';
@@ -69,7 +73,7 @@ const SpaceTravelHud = (() => {
             },
             {
                 label: 'Speed:',
-                value: `${speedPerMinute.toFixed(2)} AU/m`,
+                value: speedValueText,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(speedValueColor)
             }
@@ -100,7 +104,7 @@ const SpaceTravelHud = (() => {
 
         {
             const speedLabel = 'Speed:';
-            const speedValue = `${speedPerMinute.toFixed(2)} AU/m`;
+            const speedValue = speedValueText;
             let boostTag = '';
             let boostColor = COLORS.TEXT_NORMAL;
             if (state.boostActive) {
@@ -207,6 +211,19 @@ const SpaceTravelHud = (() => {
             { dx: 1, dy: 1, symbol: '↘' }
         ];
         return offsets[index];
+    }
+
+    function getVelocityArrow(ship) {
+        if (!ship || !ship.velocity) {
+            return '';
+        }
+        const speed = ThreeDUtils.vecLength(ship.velocity);
+        if (speed <= 0.000001) {
+            return '';
+        }
+        const cameraSpace = ThreeDUtils.rotateVecByQuat(ship.velocity, ThreeDUtils.quatConjugate(ship.rotation));
+        const arrow = getCompassArrowFromDirection(cameraSpace.x, cameraSpace.z);
+        return arrow ? arrow.symbol : '';
     }
 
     return {

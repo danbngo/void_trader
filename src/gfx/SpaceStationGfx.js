@@ -15,8 +15,11 @@ const SpaceStationGfx = (() => {
         const rb = Math.round(ab + (bb - ab) * t);
         return `#${rr.toString(16).padStart(2, '0')}${rg.toString(16).padStart(2, '0')}${rb.toString(16).padStart(2, '0')}`;
     }
-    function buildCuboctahedronGeometry(station) {
-        const half = station.size / 2;
+    function buildCuboctahedronGeometry(station, sizeOverride = null) {
+        const baseSize = typeof sizeOverride === 'number'
+            ? sizeOverride
+            : (station.radiusAU ?? station.size ?? 0);
+        const half = baseSize / 2;
         const baseVertices = [
             { x: 1, y: 1, z: 0 },
             { x: 1, y: -1, z: 0 },
@@ -89,22 +92,23 @@ const SpaceStationGfx = (() => {
         return b.every(idx => setA.has(idx));
     }
 
-    function stationScreenAreaChars(station, playerShip, viewWidth, viewHeight) {
+    function stationScreenBoundsChars(station, playerShip, viewWidth, viewHeight, fov = 75, scale = 1) {
         if (!playerShip || !station) {
-            return 0;
+            return null;
         }
 
         const cameraPos = playerShip.position;
         const cameraRot = playerShip.rotation;
-        const vertices = buildCuboctahedronGeometry(station).vertices;
+        const sizeOverride = (station.radiusAU ?? station.size ?? 0) * scale;
+        const vertices = buildCuboctahedronGeometry(station, sizeOverride).vertices;
 
         const projected = vertices
             .map(v => ThreeDUtils.rotateVecByQuat(ThreeDUtils.subVec(v, cameraPos), ThreeDUtils.quatConjugate(cameraRot)))
-            .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, 75))
+            .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, fov))
             .filter(p => p !== null);
 
         if (projected.length === 0) {
-            return 0;
+            return null;
         }
 
         const minX = Math.min(...projected.map(p => p.x));
@@ -114,16 +118,22 @@ const SpaceStationGfx = (() => {
 
         const width = Math.max(0, maxX - minX);
         const height = Math.max(0, maxY - minY);
-        return width * height;
+        return { minX, maxX, minY, maxY, width, height, area: width * height };
     }
 
-    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias) {
+    function stationScreenAreaChars(station, playerShip, viewWidth, viewHeight, scale = 1) {
+        const bounds = stationScreenBoundsChars(station, playerShip, viewWidth, viewHeight, 75, scale);
+        return bounds ? bounds.area : 0;
+    }
+
+    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias, scale = 1) {
         if (stations.length === 0) {
             return;
         }
 
         stations.forEach(station => {
-            const geometry = buildCuboctahedronGeometry(station);
+            const sizeOverride = (station.radiusAU ?? station.size ?? 0) * scale;
+            const geometry = buildCuboctahedronGeometry(station, sizeOverride);
             const cameraPos = playerShip.position;
             const cameraRot = playerShip.rotation;
 
@@ -195,13 +205,14 @@ const SpaceStationGfx = (() => {
         });
     }
 
-    function renderStationEdges(stations, playerShip, viewWidth, viewHeight, depthBuffer, edgeBias) {
+    function renderStationEdges(stations, playerShip, viewWidth, viewHeight, depthBuffer, edgeBias, scale = 1) {
         if (stations.length === 0) {
             return;
         }
 
         stations.forEach(station => {
-            const geometry = buildCuboctahedronGeometry(station);
+            const sizeOverride = (station.radiusAU ?? station.size ?? 0) * scale;
+            const geometry = buildCuboctahedronGeometry(station, sizeOverride);
             const cameraPos = playerShip.position;
             const cameraRot = playerShip.rotation;
 
@@ -241,6 +252,7 @@ const SpaceStationGfx = (() => {
 
     return {
         buildCuboctahedronGeometry,
+        stationScreenBoundsChars,
         stationScreenAreaChars,
         renderStationOccluders,
         renderStationEdges

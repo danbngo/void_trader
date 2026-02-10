@@ -137,17 +137,20 @@ const SpaceTravelRender = (() => {
             const centerX = Math.round(projected.x);
             const centerY = Math.round(projected.y);
 
+            const bboxLeft = centerX - radiusCharsX;
+            const bboxRight = centerX + radiusCharsX;
+            const bboxTop = centerY - radiusCharsY;
+            const bboxBottom = centerY + radiusCharsY;
+            const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
+
             if (body.kind === 'STATION' && body.skipRender) {
-                const bboxLeft = centerX - radiusCharsX;
-                const bboxRight = centerX + radiusCharsX;
-                const bboxTop = centerY - radiusCharsY;
-                const bboxBottom = centerY + radiusCharsY;
-                const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
                 if (isOnScreen) {
+                    const symbol = SpaceTravelShared.getLocalMapBodySymbol(body);
+                    const symbolDepth = projected.z - (config.STATION_FACE_DEPTH_BIAS || 0.0005);
+                    RasterUtils.plotDepthText(depthBuffer, centerX, centerY, symbolDepth, symbol, color);
+                    const labelName = body.name || 'Station';
                     const isDestination = isDestinationBody(localDestination, body);
-                    if (isDestination) {
-                        addDestinationLabel(labels, centerX, centerY, Math.max(radiusCharsX, radiusCharsY), body.name || 'Station', viewWidth, viewHeight);
-                    }
+                    addDestinationLabel(labels, centerX, centerY, Math.max(radiusCharsX, radiusCharsY), labelName, viewWidth, viewHeight);
                     hoverInfos.push({
                         name: body.name || 'Station',
                         centerX,
@@ -167,11 +170,6 @@ const SpaceTravelRender = (() => {
             if (radiusCharsX === 0 && radiusCharsY === 0) {
                 const symbol = SpaceTravelShared.getLocalMapBodySymbol(body);
                 RasterUtils.plotDepthText(depthBuffer, centerX, centerY, projected.z, symbol, color);
-                const bboxLeft = centerX;
-                const bboxRight = centerX;
-                const bboxTop = centerY;
-                const bboxBottom = centerY;
-                const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
                 if (isOnScreen) {
                     const isDestination = isDestinationBody(localDestination, body);
                     if (isDestination) {
@@ -189,6 +187,10 @@ const SpaceTravelRender = (() => {
                         kind: body.kind
                     });
                 }
+                return;
+            }
+
+            if (!isOnScreen) {
                 return;
             }
 
@@ -218,8 +220,16 @@ const SpaceTravelRender = (() => {
             const cosTilt = Math.cos(tiltRad);
             const sinTilt = Math.sin(tiltRad);
 
-            for (let dy = -radiusCharsY; dy <= radiusCharsY; dy++) {
-                for (let dx = -radiusCharsX; dx <= radiusCharsX; dx++) {
+            const dyStart = Math.max(-radiusCharsY, -centerY);
+            const dyEnd = Math.min(radiusCharsY, viewHeight - 1 - centerY);
+            const dxStart = Math.max(-radiusCharsX, -centerX);
+            const dxEnd = Math.min(radiusCharsX, viewWidth - 1 - centerX);
+            if (dyStart > dyEnd || dxStart > dxEnd) {
+                return;
+            }
+
+            for (let dy = dyStart; dy <= dyEnd; dy++) {
+                for (let dx = dxStart; dx <= dxEnd; dx++) {
                     const nx = radiusCharsX > 0 ? (dx / radiusCharsX) : 0;
                     const ny = radiusCharsY > 0 ? (dy / radiusCharsY) : 0;
                     if ((nx * nx + ny * ny) > 1) {
@@ -256,11 +266,6 @@ const SpaceTravelRender = (() => {
                 }
             }
 
-            const bboxLeft = centerX - radiusCharsX;
-            const bboxRight = centerX + radiusCharsX;
-            const bboxTop = centerY - radiusCharsY;
-            const bboxBottom = centerY + radiusCharsY;
-            const isOnScreen = bboxRight >= 0 && bboxLeft < viewWidth && bboxBottom >= 0 && bboxTop < viewHeight;
             if (isOnScreen) {
                 const isDestination = isDestinationBody(localDestination, body);
                 if (isDestination) {

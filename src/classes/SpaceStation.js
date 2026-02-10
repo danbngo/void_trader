@@ -8,7 +8,7 @@ class SpaceStation extends Planet {
      * @param {string} id - Station identifier
      * @param {number} size - Station size
      */
-    constructor(id, size = 1) {
+    constructor(id, size = 0.000043) {
         super({
             id,
             name: id,

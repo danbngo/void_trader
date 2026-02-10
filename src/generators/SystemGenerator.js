@@ -405,7 +405,7 @@ const SystemGenerator = (() => {
         const farthestOrbit = planets.length > 0 ? planets[planets.length - 1].orbit.semiMajorAU : SYSTEM_PLANET_ORBIT_MIN_AU;
         system.stationOrbitAU = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
         system.stationName = `${system.name} Station`;
-        system.stationSizeAU = 1;
+        system.stationSizeAU = 0.000043;
     }
 
     function assignSystemLevels(system) {

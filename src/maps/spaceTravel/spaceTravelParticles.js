@@ -101,7 +101,8 @@ const SpaceTravelParticles = (() => {
                 }
 
                 let symbol = config.DUST_PARTICLE_SYMBOL;
-                if (config.DUST_PARTICLE_LINE_SYMBOLS && speed >= config.DUST_PARTICLE_LINE_SPEED_THRESHOLD) {
+                const speedPerMinute = speed * 60;
+                if (config.DUST_PARTICLE_LINE_SYMBOLS && speedPerMinute >= 0.25) {
                     const denom = cameraSpacePos.z * cameraSpacePos.z;
                     const vx = (velocityView.x * cameraSpacePos.z - cameraSpacePos.x * velocityView.z) / denom;
                     const vy = (velocityView.y * cameraSpacePos.z - cameraSpacePos.y * velocityView.z) / denom;

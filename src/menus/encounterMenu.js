@@ -1052,8 +1052,8 @@ const EncounterMenu = (() => {
             const shieldRatio = activeShip.shields / activeShip.maxShields;
             UI.addText(startX + 8, y - 1, `${activeShip.shields}/${activeShip.maxShields}`, UI.calcStatColor(shieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            const laserRatio = activeShip.lasers / AVERAGE_SHIP_LASER;
-            UI.addText(startX + 7, y - 1, `${activeShip.lasers}`, UI.calcStatColor(laserRatio));
+            const laserRatio = Ship.getLaserMax(activeShip) / AVERAGE_SHIP_LASER;
+            UI.addText(startX + 7, y - 1, `${Ship.getLaserMax(activeShip)}`, UI.calcStatColor(laserRatio));
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
             const engineRatio = activeShip.engine / AVERAGE_SHIP_ENGINE;
             UI.addText(startX + 8, y - 1, `${activeShip.engine}`, UI.calcStatColor(engineRatio));
@@ -1103,8 +1103,8 @@ const EncounterMenu = (() => {
             const targetShieldRatio = targetShip.shields / targetShip.maxShields;
             UI.addText(startX + 8, y - 1, `${targetShip.shields}/${targetShip.maxShields}`, UI.calcStatColor(targetShieldRatio, true));
             UI.addText(startX, y++, 'Laser:', COLORS.TEXT_DIM);
-            const targetLaserRatio = targetShip.lasers / AVERAGE_SHIP_LASER;
-            UI.addText(startX + 7, y - 1, `${targetShip.lasers}`, UI.calcStatColor(targetLaserRatio));
+            const targetLaserRatio = Ship.getLaserMax(targetShip) / AVERAGE_SHIP_LASER;
+            UI.addText(startX + 7, y - 1, `${Ship.getLaserMax(targetShip)}`, UI.calcStatColor(targetLaserRatio));
             UI.addText(startX, y++, 'Engine:', COLORS.TEXT_DIM);
             const targetEngineRatio = targetShip.engine / AVERAGE_SHIP_ENGINE;
             UI.addText(startX + 8, y - 1, `${targetShip.engine}`, UI.calcStatColor(targetEngineRatio));
@@ -1251,7 +1251,7 @@ const EncounterMenu = (() => {
                     hitChance = Math.floor(hitChance * 0.5);
                 }
                 const minDamage = SkillEffects.getLaserDamage(1, gunneryLevel);
-                const maxDamage = SkillEffects.getLaserDamage(activeShip.lasers, gunneryLevel);
+                const maxDamage = SkillEffects.getLaserDamage(Ship.getLaserMax(activeShip), gunneryLevel);
                 const damageRange = `${minDamage}-${maxDamage}`;
                 if (obstructionCount > 0) {
                     laserHelpText = `Fire laser (${hitChance}% hit, ${damageRange} dmg, ${obstructionCount} obstructions)`;

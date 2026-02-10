@@ -37,7 +37,7 @@ const UninhabitedSystemMenu = (() => {
         ]);
         y++;
 
-        const totalLasers = gameState.ships.reduce((sum, ship) => sum + (ship.lasers || 0), 0);
+        const totalLasers = gameState.ships.reduce((sum, ship) => sum + Ship.getLaserMax(ship), 0);
         const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
         y = TableRenderer.renderKeyValueList(5, y, [
             { label: 'Mining Lasers:', value: String(totalLasers), valueColor: COLORS.TEXT_NORMAL },
@@ -119,7 +119,7 @@ const UninhabitedSystemMenu = (() => {
             return;
         }
 
-        const totalLasers = gameState.ships.reduce((sum, ship) => sum + (ship.lasers || 0), 0);
+        const totalLasers = gameState.ships.reduce((sum, ship) => sum + Ship.getLaserMax(ship), 0);
         if (totalLasers <= 0) {
             outputMessage = 'No mining lasers available.';
             outputColor = COLORS.TEXT_ERROR;

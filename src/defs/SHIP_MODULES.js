@@ -47,7 +47,7 @@ const SHIP_MODULES = {
         slot: SHIP_MODULE_SLOT.WEAPON,
         value: 6000,
         onInstall: (ship) => {
-            ship.lasers += 5;
+            Ship.setLaserMax(ship, Ship.getLaserMax(ship) + 5);
         }
     },
     

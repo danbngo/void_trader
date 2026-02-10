@@ -26,6 +26,9 @@ const SpaceTravelMap = (() => {
     let isActive = false;
     let lastStationCollisionMs = -Infinity;
     let damageFlashStartMs = -Infinity;
+    let laserFireUntilMs = 0;
+    let laserRegenTimer = 0;
+    let shieldRegenTimer = 0;
 
     const inputState = {
         keyState: new Set(),
@@ -81,6 +84,12 @@ const SpaceTravelMap = (() => {
             localDestination = null;
         }
         playerShip = gameState.ships[0];
+
+        if (!Array.isArray(playerShip.lasers)) {
+            const laserMax = Ship.getLaserMax(playerShip);
+            Ship.setLaserMax(playerShip, laserMax);
+            Ship.setLaserCurrent(playerShip, laserMax);
+        }
 
         if (!playerShip.size || playerShip.size === 1) {
             playerShip.size = config.SHIP_SIZE_AU;
@@ -144,6 +153,9 @@ const SpaceTravelMap = (() => {
         frameCount = 0;
         lastTimestamp = 0;
         lastAsciiLogTimestamp = 0;
+        laserFireUntilMs = 0;
+        laserRegenTimer = 0;
+        shieldRegenTimer = 0;
 
         {
             const grid = UI.getGridSize();
@@ -187,6 +199,9 @@ const SpaceTravelMap = (() => {
                     currentGameState,
                     localDestination
                 }, config);
+            },
+            onFire: () => {
+                fireLaser();
             }
         });
         isActive = true;
@@ -400,6 +415,10 @@ const SpaceTravelMap = (() => {
 
         playerShip.position = ThreeDUtils.addVec(playerShip.position, ThreeDUtils.scaleVec(playerShip.velocity, dt));
 
+        if (applyStarHazards(dt, timestampMs)) {
+            return;
+        }
+
         if (currentStation) {
             const dockingResult = SpaceTravelLogic.checkStationDocking({
                 station: currentStation,
@@ -440,6 +459,122 @@ const SpaceTravelMap = (() => {
 
         if (config.DEBUG_STATION_LOG) {
             SpaceTravelLogic.logNearestStationDebug({ playerShip });
+        }
+
+        regenShipStats(dt);
+    }
+
+    function regenShipStats(dt) {
+        const laserMax = Ship.getLaserMax(playerShip);
+        const laserCurrent = Ship.getLaserCurrent(playerShip);
+        if (laserCurrent < laserMax) {
+            laserRegenTimer += dt;
+            while (laserRegenTimer >= config.LASER_REGEN_SEC) {
+                Ship.setLaserCurrent(playerShip, Ship.getLaserCurrent(playerShip) + 1);
+                laserRegenTimer -= config.LASER_REGEN_SEC;
+            }
+        } else {
+            laserRegenTimer = 0;
+        }
+
+        if (playerShip.maxShields > 0 && playerShip.shields < playerShip.maxShields) {
+            shieldRegenTimer += dt;
+            while (shieldRegenTimer >= config.SHIELD_REGEN_SEC) {
+                playerShip.shields = Math.min(playerShip.maxShields, playerShip.shields + 1);
+                shieldRegenTimer -= config.SHIELD_REGEN_SEC;
+            }
+        } else {
+            shieldRegenTimer = 0;
+        }
+    }
+
+    function fireLaser() {
+        if (!playerShip || isPaused) {
+            return;
+        }
+        const currentLaser = Ship.getLaserCurrent(playerShip);
+        if (currentLaser <= 0) {
+            return;
+        }
+
+        const now = performance.now();
+        laserFireUntilMs = Math.max(laserFireUntilMs, now + config.LASER_FIRE_DURATION_MS);
+        Ship.setLaserCurrent(playerShip, 0);
+
+        if (lastHoverPick && lastHoverPick.bodyRef) {
+            const target = lastHoverPick.bodyRef;
+            const damage = Ship.getLaserMax(playerShip);
+            if (typeof target.shields === 'number' && target.shields > 0) {
+                const remaining = Math.max(0, target.shields - damage);
+                const overflow = Math.max(0, damage - target.shields);
+                target.shields = remaining;
+                if (overflow > 0 && typeof target.hull === 'number') {
+                    target.hull = Math.max(0, target.hull - overflow);
+                }
+            } else if (typeof target.hull === 'number') {
+                target.hull = Math.max(0, target.hull - damage);
+            }
+        }
+    }
+
+    function applyStarHazards(dt, timestampMs) {
+        if (!targetSystem || !playerShip) {
+            return false;
+        }
+        const stars = Array.isArray(targetSystem.stars) ? targetSystem.stars : [];
+        if (stars.length === 0) {
+            return false;
+        }
+
+        const systemCenter = {
+            x: targetSystem.x * config.LY_TO_AU,
+            y: targetSystem.y * config.LY_TO_AU,
+            z: 0
+        };
+
+        let tookDamage = false;
+
+        for (let i = 0; i < stars.length; i++) {
+            const star = { ...stars[i], kind: 'STAR' };
+            const orbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
+            const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+            const dist = ThreeDUtils.distance(playerShip.position, worldPos);
+            const radius = star.radiusAU || 0;
+
+            if (radius > 0 && dist <= radius) {
+                playerShip.shields = 0;
+                playerShip.hull = 0;
+                damageFlashStartMs = timestampMs;
+                return true;
+            }
+
+            const heatRange = radius * config.STAR_HEAT_RANGE_MULT;
+            if (radius > 0 && dist <= heatRange && config.STAR_HEAT_DAMAGE_PER_SEC > 0) {
+                const t = 1 - Math.min(1, (dist - radius) / Math.max(0.000001, heatRange - radius));
+                const damage = config.STAR_HEAT_DAMAGE_PER_SEC * t * dt;
+                if (damage > 0) {
+                    applyDamageToPlayer(damage);
+                    tookDamage = true;
+                }
+            }
+        }
+
+        if (tookDamage) {
+            damageFlashStartMs = timestampMs;
+        }
+
+        return false;
+    }
+
+    function applyDamageToPlayer(damage) {
+        let remaining = damage;
+        if (playerShip.shields > 0) {
+            const shieldDamage = Math.min(playerShip.shields, remaining);
+            playerShip.shields -= shieldDamage;
+            remaining -= shieldDamage;
+        }
+        if (remaining > 0) {
+            playerShip.hull = Math.max(0, playerShip.hull - remaining);
         }
     }
 
@@ -498,6 +633,7 @@ const SpaceTravelMap = (() => {
                 getVelocityCameraSpace
             });
         }
+        renderLaserFire(depthBuffer, viewWidth, viewHeight, timestampMs);
         if (isPaused) {
             for (let i = 0; i < depthBuffer.colors.length; i++) {
                 const color = depthBuffer.colors[i];
@@ -612,6 +748,21 @@ const SpaceTravelMap = (() => {
             lastAsciiLogTimestamp = now;
             UI.logScreenToConsole();
         }
+    }
+
+    function renderLaserFire(depthBuffer, viewWidth, viewHeight, timestampMs) {
+        if (timestampMs > laserFireUntilMs) {
+            return;
+        }
+
+        const centerX = Math.floor(viewWidth / 2);
+        const centerY = Math.floor(viewHeight / 2);
+        const leftPoints = LineDrawer.drawLine(0, viewHeight - 1, centerX, centerY, true, config.LASER_COLOR);
+        const rightPoints = LineDrawer.drawLine(viewWidth - 1, viewHeight - 1, centerX, centerY, true, config.LASER_COLOR);
+        const allPoints = leftPoints.concat(rightPoints);
+        allPoints.forEach(point => {
+            RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, config.LASER_COLOR);
+        });
     }
 
     function getVelocityWorldDirection() {

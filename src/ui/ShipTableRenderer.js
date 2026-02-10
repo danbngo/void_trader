@@ -63,7 +63,7 @@ const ShipTableRenderer = (() => {
             const nameColor = isActive ? COLORS.GREEN : COLORS.TEXT_NORMAL;
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.maxShields > 0 ? ship.shields / ship.maxShields : 0;
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const laserRatio = Ship.getLaserMax(ship) / AVERAGE_SHIP_LASER;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             const fuelRatio = ship.maxFuel > 0 ? ship.fuel / ship.maxFuel : 0;
@@ -77,7 +77,7 @@ const ShipTableRenderer = (() => {
                 { text: shipType.name, color: nameColor },
                 { text: hullText, color: UI.calcStatColor(hullRatio, true) },
                 { text: shieldText, color: UI.calcStatColor(shieldRatio, true) },
-                { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
+                { text: String(Ship.getLaserMax(ship)), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) },
             ];
@@ -141,7 +141,7 @@ const ShipTableRenderer = (() => {
             const shipType = SHIP_TYPES[ship.type] || ALIEN_SHIP_TYPES[ship.type] || { name: 'Unknown' };
             const hullRatio = ship.hull / ship.maxHull;
             const shieldRatio = ship.maxShields > 0 ? ship.shields / ship.maxShields : 0;
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const laserRatio = Ship.getLaserMax(ship) / AVERAGE_SHIP_LASER;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             
@@ -152,7 +152,7 @@ const ShipTableRenderer = (() => {
                 { text: displayName, color: COLORS.TEXT_NORMAL },
                 { text: `${ship.hull}/${ship.maxHull}`, color: UI.calcStatColor(hullRatio, true) },
                 { text: `${ship.shields}/${ship.maxShields}`, color: UI.calcStatColor(shieldRatio, true) },
-                { text: String(ship.lasers), color: UI.calcStatColor(laserRatio) },
+                { text: String(Ship.getLaserMax(ship)), color: UI.calcStatColor(laserRatio) },
                 { text: String(ship.engine), color: UI.calcStatColor(engineRatio) },
                 { text: String(ship.radar), color: UI.calcStatColor(radarRatio) }
             ];

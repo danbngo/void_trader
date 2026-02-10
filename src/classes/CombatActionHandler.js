@@ -195,7 +195,7 @@ class CombatActionHandler {
                     
                     // Pre-calculate damage for hit
                     if (hit) {
-                        let damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                        let damage = Math.floor(Math.random() * Ship.getLaserMax(this.ship)) + 1;
                         
                         // Apply gunnery skill for damage boost (use max from all crew)
                         if (this.gameState && this.ship.isPlayer) {
@@ -334,7 +334,7 @@ class CombatActionHandler {
                 this.action.hitObstruction = { type: 'asteroid', name: 'asteroid', x: hitX, y: hitY, asteroid: hitObstruction.object };
             } else if (hitObstruction.type === 'ship') {
                 const hitShip = hitObstruction.object;
-                let damage = Math.floor(Math.random() * this.ship.lasers) + 1;
+                let damage = Math.floor(Math.random() * Ship.getLaserMax(this.ship)) + 1;
                 let blinkTriggered = false;
 
                 // BLINK: only triggers if the ship was going to be hit

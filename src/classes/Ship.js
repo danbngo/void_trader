@@ -26,7 +26,14 @@ class Ship {
         this.maxHull = maxHull;
         this.shields = shields;
         this.maxShields = maxShields;
-        this.lasers = lasers;
+        if (Array.isArray(lasers)) {
+            const current = Number.isFinite(lasers[0]) ? lasers[0] : 0;
+            const max = Number.isFinite(lasers[1]) ? lasers[1] : current;
+            this.lasers = [current, Math.max(current, max)];
+        } else {
+            const laserValue = Number.isFinite(lasers) ? lasers : 0;
+            this.lasers = [laserValue, laserValue];
+        }
         this.engine = engine;
         this.radar = radar;
         this.size = size;
@@ -67,11 +74,50 @@ class Ship {
         const cargoValue = this.cargoCapacity / AVERAGE_SHIP_CARGO;
         const hullValue = this.maxHull / AVERAGE_SHIP_HULL;
         const shieldValue = this.maxShields / AVERAGE_SHIP_SHIELDS;
-        const laserValue = this.lasers / AVERAGE_SHIP_LASER;
+        const laserValue = Ship.getLaserMax(this) / AVERAGE_SHIP_LASER;
         const radarValue = this.radar / AVERAGE_SHIP_RADAR;
         
         const baseValue = (fuelValue + cargoValue + hullValue + shieldValue + laserValue + radarValue) / 6 * AVERAGE_SHIP_VALUE;
         return Math.ceil(Math.pow(baseValue, 1.5));
+    }
+
+    static getLaserCurrent(ship) {
+        if (!ship) {
+            return 0;
+        }
+        if (Array.isArray(ship.lasers)) {
+            return Number.isFinite(ship.lasers[0]) ? ship.lasers[0] : 0;
+        }
+        return Number.isFinite(ship.lasers) ? ship.lasers : 0;
+    }
+
+    static getLaserMax(ship) {
+        if (!ship) {
+            return 0;
+        }
+        if (Array.isArray(ship.lasers)) {
+            const max = Number.isFinite(ship.lasers[1]) ? ship.lasers[1] : 0;
+            return Math.max(Ship.getLaserCurrent(ship), max);
+        }
+        return Number.isFinite(ship.lasers) ? ship.lasers : 0;
+    }
+
+    static setLaserCurrent(ship, value) {
+        if (!ship) {
+            return;
+        }
+        const max = Ship.getLaserMax(ship);
+        const next = Math.max(0, Math.min(max, Math.floor(value)));
+        ship.lasers = [next, max];
+    }
+
+    static setLaserMax(ship, value) {
+        if (!ship) {
+            return;
+        }
+        const nextMax = Math.max(0, Math.floor(value));
+        const current = Ship.getLaserCurrent(ship);
+        ship.lasers = [Math.min(current, nextMax), nextMax];
     }
     
     /**

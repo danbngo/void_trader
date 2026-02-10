@@ -206,7 +206,7 @@ const ShipyardMenu = (() => {
             // Check if player has license for this ship type
             const hasLicense = gameState.enabledShipTypes.some(st => st.id === ship.type);
             
-            const laserRatio = ship.lasers / AVERAGE_SHIP_LASER;
+            const laserRatio = Ship.getLaserMax(ship) / AVERAGE_SHIP_LASER;
             const engineRatio = ship.engine / AVERAGE_SHIP_ENGINE;
             const radarRatio = ship.radar / AVERAGE_SHIP_RADAR;
             
@@ -218,7 +218,7 @@ const ShipyardMenu = (() => {
                 { text: shipType.name, color: textColor },
                 { text: `${ship.maxHull}`, color: textColor },
                 { text: `${ship.maxShields}`, color: textColor },
-                { text: String(ship.lasers), color: statColor(laserRatio) },
+                { text: String(Ship.getLaserMax(ship)), color: statColor(laserRatio) },
                 { text: String(ship.engine), color: statColor(engineRatio) },
                 { text: String(ship.radar), color: statColor(radarRatio) },
                 { text: String(ship.cargoCapacity), color: textColor },

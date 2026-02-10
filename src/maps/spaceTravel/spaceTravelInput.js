@@ -37,7 +37,7 @@ const SpaceTravelInput = (() => {
         window.addEventListener('focus', handlers.windowFocusHandler);
     }
 
-    function setupMouseTargeting({ handlers, config, getLastHoverPick, onPick }) {
+    function setupMouseTargeting({ handlers, config, getLastHoverPick, onPick, onFire }) {
         const canvas = UI.getCanvas?.();
         if (!canvas) {
             return;
@@ -63,12 +63,17 @@ const SpaceTravelInput = (() => {
         document.addEventListener('mousemove', handlers.mouseMoveHandler);
 
         handlers.mouseDownHandler = (e) => {
-            if (e.button !== 0) {
+            if (e.button === 0) {
+                if (typeof onFire === 'function') {
+                    onFire();
+                }
                 return;
             }
-            const pick = getLastHoverPick();
-            if (pick) {
-                onPick(pick);
+            if (e.button === 2) {
+                const pick = getLastHoverPick();
+                if (pick) {
+                    onPick(pick);
+                }
             }
         };
         document.addEventListener('mousedown', handlers.mouseDownHandler);

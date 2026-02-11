@@ -3,6 +3,33 @@
  */
 
 class RasterUtils {
+    static _segmentsIntersect(a, b, c, d) {
+        const cross = (p1, p2, p3) => ((p2.x - p1.x) * (p3.y - p1.y)) - ((p2.y - p1.y) * (p3.x - p1.x));
+        const d1 = cross(a, b, c);
+        const d2 = cross(a, b, d);
+        const d3 = cross(c, d, a);
+        const d4 = cross(c, d, b);
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0))
+            && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+            return true;
+        }
+        return false;
+    }
+
+    static _segmentIntersectsRect(p1, p2, rect) {
+        if ((p1.x >= rect.minX && p1.x <= rect.maxX && p1.y >= rect.minY && p1.y <= rect.maxY)
+            || (p2.x >= rect.minX && p2.x <= rect.maxX && p2.y >= rect.minY && p2.y <= rect.maxY)) {
+            return true;
+        }
+        const tl = { x: rect.minX, y: rect.minY };
+        const tr = { x: rect.maxX, y: rect.minY };
+        const br = { x: rect.maxX, y: rect.maxY };
+        const bl = { x: rect.minX, y: rect.maxY };
+        return RasterUtils._segmentsIntersect(p1, p2, tl, tr)
+            || RasterUtils._segmentsIntersect(p1, p2, tr, br)
+            || RasterUtils._segmentsIntersect(p1, p2, br, bl)
+            || RasterUtils._segmentsIntersect(p1, p2, bl, tl);
+    }
     static createDepthBuffer(width, height) {
         return {
             width,
@@ -151,10 +178,37 @@ class RasterUtils {
             return;
         }
 
-        const minX = Math.max(0, Math.ceil(Math.min(...projected.map(p => p.x)) - 0.5));
-        const maxX = Math.min(viewWidth - 1, Math.floor(Math.max(...projected.map(p => p.x)) - 0.5));
-        const minY = Math.max(0, Math.ceil(Math.min(...projected.map(p => p.y)) - 0.5));
-        const maxY = Math.min(viewHeight - 1, Math.floor(Math.max(...projected.map(p => p.y)) - 0.5));
+        const pad = 2.5;
+        const rect = { minX: 0, maxX: viewWidth - 1, minY: 0, maxY: viewHeight - 1 };
+        const inView = projected.some(p => p.x >= rect.minX && p.x <= rect.maxX && p.y >= rect.minY && p.y <= rect.maxY);
+        let intersects = inView;
+        if (!intersects) {
+            for (let i = 0; i < projected.length; i++) {
+                const a = projected[i];
+                const b = projected[(i + 1) % projected.length];
+                if (RasterUtils._segmentIntersectsRect(a, b, rect)) {
+                    intersects = true;
+                    break;
+                }
+            }
+        }
+
+        let minX = Math.floor(Math.min(...projected.map(p => p.x)) - pad);
+        let maxX = Math.ceil(Math.max(...projected.map(p => p.x)) + pad);
+        let minY = Math.floor(Math.min(...projected.map(p => p.y)) - pad);
+        let maxY = Math.ceil(Math.max(...projected.map(p => p.y)) + pad);
+
+        if (intersects && !inView) {
+            minX = rect.minX;
+            maxX = rect.maxX;
+            minY = rect.minY;
+            maxY = rect.maxY;
+        }
+
+        minX = Math.max(rect.minX, minX);
+        maxX = Math.min(rect.maxX, maxX);
+        minY = Math.max(rect.minY, minY);
+        maxY = Math.min(rect.maxY, maxY);
 
         const bboxWidth = Math.max(0, maxX - minX + 1);
         const bboxHeight = Math.max(0, maxY - minY + 1);

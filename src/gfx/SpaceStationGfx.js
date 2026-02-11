@@ -149,12 +149,13 @@ const SpaceStationGfx = (() => {
         return bounds ? bounds.area : 0;
     }
 
-    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias, scale = 1) {
+    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias, scale = 1, debug = false) {
         if (stations.length === 0) {
             return;
         }
 
         stations.forEach(station => {
+            let edgeDebugCount = 0;
             const geometry = buildCuboctahedronGeometry(station);
             const cameraPos = playerShip.position;
             const cameraRot = playerShip.rotation;
@@ -215,6 +216,28 @@ const SpaceStationGfx = (() => {
                     .filter(p => p !== null);
                 if (projectedFace.length < 3) {
                     return;
+                }
+                if (debug && edgeDebugCount < 3) {
+                    const inViewCount = projectedFace.filter(p => (
+                        p.x >= 0 && p.x < viewWidth && p.y >= 0 && p.y < viewHeight
+                    )).length;
+                    if (inViewCount > 0 && inViewCount < projectedFace.length) {
+                        edgeDebugCount += 1;
+                        const minX = Math.min(...projectedFace.map(p => p.x));
+                        const maxX = Math.max(...projectedFace.map(p => p.x));
+                        const minY = Math.min(...projectedFace.map(p => p.y));
+                        const maxY = Math.max(...projectedFace.map(p => p.y));
+                        console.log('[StationFaceEdgeDebug]', {
+                            stationId: station.id,
+                            faceIndex,
+                            inViewCount,
+                            projectedCount: projectedFace.length,
+                            minX,
+                            maxX,
+                            minY,
+                            maxY
+                        });
+                    }
                 }
                 const depthT = 1 - ((faceDepths[faceIndex] - minDepth) / depthRange);
                 const clampedT = Math.max(0, Math.min(1, depthT));

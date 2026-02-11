@@ -167,6 +167,9 @@ function logInitialBodyScreenRadii(gameState) {
     const charDims = UI.getCharDimensions();
     const viewWidth = grid.width;
     const viewHeight = grid.height - SpaceTravelConfig.PANEL_HEIGHT;
+    const charAspect = (typeof SpaceTravelConfig.CHAR_CELL_ASPECT_RATIO === 'number' && Number.isFinite(SpaceTravelConfig.CHAR_CELL_ASPECT_RATIO))
+        ? SpaceTravelConfig.CHAR_CELL_ASPECT_RATIO
+        : (charDims.height / Math.max(0.000001, charDims.width));
     const fovScale = Math.tan(ThreeDUtils.degToRad(SpaceTravelConfig.VIEW_FOV) / 2);
     const viewPixelWidth = viewWidth * charDims.width;
     const viewPixelHeight = viewHeight * charDims.height;

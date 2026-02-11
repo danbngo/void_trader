@@ -40,8 +40,9 @@ const SpaceTravelLogic = (() => {
             : yawedEntranceDir;
         let entrancePlaneDistance = null;
         let isInEntranceAperture = true;
+        const entranceGeometrySize = stationRadius * stationDockScale;
         if (SpaceStationGfx && typeof SpaceStationGfx.buildCuboctahedronGeometry === 'function') {
-            const geometry = SpaceStationGfx.buildCuboctahedronGeometry(station);
+            const geometry = SpaceStationGfx.buildCuboctahedronGeometry(station, entranceGeometrySize);
             const entranceFace = geometry.entranceFace || [];
             if (entranceFace.length >= 3) {
                 const faceVerts = entranceFace.map(idx => geometry.vertices[idx]);
@@ -54,10 +55,8 @@ const SpaceTravelLogic = (() => {
                     ThreeDUtils.subVec(faceVerts[2], faceVerts[0])
                 );
                 const normalUnit = ThreeDUtils.normalizeVec(normal);
-                entrancePlaneDistance = ThreeDUtils.dotVec(
-                    ThreeDUtils.subVec(playerShip.position, faceCenter),
-                    normalUnit
-                );
+                const toShipFromPlane = ThreeDUtils.subVec(playerShip.position, faceCenter);
+                entrancePlaneDistance = ThreeDUtils.dotVec(toShipFromPlane, normalUnit);
                 const basis = PolygonUtils.buildPlaneBasis(normalUnit);
                 const inset = 0.45;
                 const insetVerts = faceVerts.map(v => {
@@ -72,7 +71,11 @@ const SpaceTravelLogic = (() => {
                     };
                 };
                 const polygon2D = insetVerts.map(to2D);
-                const ship2D = to2D(playerShip.position);
+                const projectedOnPlane = ThreeDUtils.subVec(
+                    playerShip.position,
+                    ThreeDUtils.scaleVec(normalUnit, entrancePlaneDistance)
+                );
+                const ship2D = to2D(projectedOnPlane);
                 isInEntranceAperture = PolygonUtils.isPointInPolygon2D(ship2D, polygon2D);
             }
         }
@@ -82,6 +85,9 @@ const SpaceTravelLogic = (() => {
         const approachingSpeed = ThreeDUtils.dotVec(playerShip.velocity, toStation);
         const rawSpeed = ThreeDUtils.vecLength(playerShip.velocity);
         const minCollisionSpeed = (config.STATION_COLLISION_MIN_SPEED || 0) * stationDockScale;
+        const dotVNPre = ThreeDUtils.dotVec(playerShip.velocity, toShip);
+        const impactSpeed = Math.max(0, -dotVNPre);
+        const impactNormalRatio = rawSpeed > 0 ? (impactSpeed / rawSpeed) : 0;
         const collisionDebug = {
             timestampMs: Math.floor(timestampMs),
             stationId: station.id,
@@ -91,6 +97,7 @@ const SpaceTravelLogic = (() => {
             stationPhysicsScale: stationDockScale,
             stationVisualRadiusAU: stationRadius * stationVisualScale,
             stationPhysicsRadiusAU: stationRadius * stationDockScale,
+            entranceGeometrySizeAU: entranceGeometrySize,
             dockRadiusAU: dockRadius,
             collisionRadiusAU: collisionRadius,
             isInEntranceAperture,
@@ -99,6 +106,9 @@ const SpaceTravelLogic = (() => {
             approachingSpeedAUps: approachingSpeed,
             speedAUps: rawSpeed,
             speedAUpm: rawSpeed * 60,
+            dotVN: dotVNPre,
+            impactSpeedAUps: impactSpeed,
+            impactNormalRatio,
             minSpeedAUps: minCollisionSpeed,
             minSpeedAUpm: minCollisionSpeed * 60,
             maxEntranceDot: config.STATION_COLLISION_MAX_ENTRANCE_DOT,
@@ -160,7 +170,11 @@ const SpaceTravelLogic = (() => {
             });
         }
 
-        if (timestampMs - lastStationCollisionMs >= config.STATION_COLLISION_COOLDOWN_MS) {
+        const damageNormalRatio = typeof config.STATION_COLLISION_DAMAGE_NORMAL_RATIO === 'number'
+            ? config.STATION_COLLISION_DAMAGE_NORMAL_RATIO
+            : 0;
+        if (impactNormalRatio >= damageNormalRatio
+            && timestampMs - lastStationCollisionMs >= config.STATION_COLLISION_COOLDOWN_MS) {
             const speedPerMinute = approachingSpeed * 60;
             const damage = Math.max(1, Math.floor(speedPerMinute / 10));
             playerShip.hull = Math.max(0, (playerShip.hull ?? 0) - damage);
@@ -174,6 +188,11 @@ const SpaceTravelLogic = (() => {
                     cooldownMs: config.STATION_COLLISION_COOLDOWN_MS
                 });
             }
+        } else if (impactNormalRatio < damageNormalRatio && config.DEBUG_STATION_COLLISION) {
+            console.log('[SpaceTravelMap] Collision no damage (glancing impact)', {
+                ...collisionDebug,
+                damageNormalRatio
+            });
         } else if (config.DEBUG_STATION_COLLISION) {
             console.log('[SpaceTravelMap] Collision no damage (cooldown)', {
                 ...collisionDebug,

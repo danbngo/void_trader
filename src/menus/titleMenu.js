@@ -458,20 +458,21 @@ const TitleMenu = (() => {
 
     function setStationLocalDestination(gameState) {
         const system = gameState.getCurrentSystem();
-        if (!system || typeof system.stationOrbitAU !== 'number') {
+        if (!system || !system.station || typeof system.station.orbit?.semiMajorAU !== 'number') {
             return;
         }
         const stationDir = ThreeDUtils.normalizeVec({ x: 0, y: 0, z: 1 });
+        const stationOrbit = system.station.orbit.semiMajorAU;
         gameState.localDestination = {
-            id: `${system.name}-STATION`,
+            id: system.station.id || `${system.name}-STATION`,
             type: 'STATION',
             positionWorld: {
-                x: system.x * LY_TO_AU + stationDir.x * system.stationOrbitAU,
-                y: system.y * LY_TO_AU + stationDir.y * system.stationOrbitAU,
-                z: stationDir.z * system.stationOrbitAU
+                x: system.x * LY_TO_AU + stationDir.x * stationOrbit,
+                y: system.y * LY_TO_AU + stationDir.y * stationOrbit,
+                z: stationDir.z * stationOrbit
             },
             orbit: {
-                semiMajorAU: system.stationOrbitAU,
+                semiMajorAU: stationOrbit,
                 periodDays: Number.POSITIVE_INFINITY,
                 percentOffset: 0,
                 progress: 0

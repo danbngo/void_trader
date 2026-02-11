@@ -41,12 +41,12 @@ const LocalSystemMap = (() => {
 
         const stars = Array.isArray(system.stars) ? system.stars : [];
         const planets = Array.isArray(system.planets) ? system.planets : [];
-        const station = {
-            id: system.stationName || `${system.name} Station`,
-            name: system.stationName || `${system.name} Station`,
+        const station = system.station || {
+            id: `${system.name}-STATION`,
+            name: `${system.name} Station`,
             type: 'STATION',
             orbit: {
-                semiMajorAU: system.stationOrbitAU,
+                semiMajorAU: SYSTEM_PLANET_ORBIT_MIN_AU,
                 periodDays: Number.POSITIVE_INFINITY,
                 percentOffset: 0,
                 progress: 0
@@ -217,9 +217,9 @@ const LocalSystemMap = (() => {
             }
             if (body.type === 'STATION') {
                 const stationDir = ThreeDUtils.normalizeVec({ x: 0, y: 0, z: 1 });
-                const stationOrbit = system.stationOrbitAU || SYSTEM_PLANET_ORBIT_MIN_AU;
+                const stationOrbit = system.station?.orbit?.semiMajorAU || SYSTEM_PLANET_ORBIT_MIN_AU;
                 gameState.localDestination = {
-                    id: `${system.name}-STATION`,
+                    id: system.station?.id || `${system.name}-STATION`,
                     type: 'STATION',
                     name: body.name,
                     positionWorld: {

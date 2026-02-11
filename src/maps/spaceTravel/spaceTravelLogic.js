@@ -19,9 +19,13 @@ const SpaceTravelLogic = (() => {
             return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
         }
 
-        const stationRadius = Math.max(0.0001, station.radiusAU ?? station.size ?? 0);
-        const dockRadius = stationRadius * (config.STATION_DOCK_RADIUS_MULT ?? 0.6);
-        const collisionRadius = stationRadius * config.STATION_COLLISION_RADIUS_MULT;
+        const stationRadius = Math.max(0, station.radiusAU ?? station.size ?? 0);
+        const stationVisualScale = config.STATION_SCREEN_SCALE || 1;
+        const stationDockScale = (typeof config.STATION_PHYSICS_SCALE === 'number' && config.STATION_PHYSICS_SCALE > 0)
+            ? config.STATION_PHYSICS_SCALE
+            : 1;
+        const dockRadius = stationRadius * stationDockScale * (config.STATION_DOCK_RADIUS_MULT ?? 0.6);
+        const collisionRadius = stationRadius * stationDockScale * config.STATION_COLLISION_RADIUS_MULT;
         const dist = ThreeDUtils.distance(playerShip.position, station.position);
         if (dist > collisionRadius) {
             return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
@@ -34,29 +38,75 @@ const SpaceTravelLogic = (() => {
         const entranceDir = station.rotation
             ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, station.rotation)
             : yawedEntranceDir;
+        let entrancePlaneDistance = null;
+        let isInEntranceAperture = true;
+        if (SpaceStationGfx && typeof SpaceStationGfx.buildCuboctahedronGeometry === 'function') {
+            const geometry = SpaceStationGfx.buildCuboctahedronGeometry(station);
+            const entranceFace = geometry.entranceFace || [];
+            if (entranceFace.length >= 3) {
+                const faceVerts = entranceFace.map(idx => geometry.vertices[idx]);
+                const faceCenter = faceVerts.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
+                faceCenter.x /= faceVerts.length;
+                faceCenter.y /= faceVerts.length;
+                faceCenter.z /= faceVerts.length;
+                const normal = ThreeDUtils.crossVec(
+                    ThreeDUtils.subVec(faceVerts[1], faceVerts[0]),
+                    ThreeDUtils.subVec(faceVerts[2], faceVerts[0])
+                );
+                const normalUnit = ThreeDUtils.normalizeVec(normal);
+                entrancePlaneDistance = ThreeDUtils.dotVec(
+                    ThreeDUtils.subVec(playerShip.position, faceCenter),
+                    normalUnit
+                );
+                const basis = PolygonUtils.buildPlaneBasis(normalUnit);
+                const inset = 0.45;
+                const insetVerts = faceVerts.map(v => {
+                    const offset = ThreeDUtils.subVec(v, faceCenter);
+                    return ThreeDUtils.addVec(faceCenter, ThreeDUtils.scaleVec(offset, inset));
+                });
+                const to2D = (v) => {
+                    const rel = ThreeDUtils.subVec(v, faceCenter);
+                    return {
+                        x: ThreeDUtils.dotVec(rel, basis.u),
+                        y: ThreeDUtils.dotVec(rel, basis.v)
+                    };
+                };
+                const polygon2D = insetVerts.map(to2D);
+                const ship2D = to2D(playerShip.position);
+                isInEntranceAperture = PolygonUtils.isPointInPolygon2D(ship2D, polygon2D);
+            }
+        }
         const toShip = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(playerShip.position, station.position));
         const entranceDot = ThreeDUtils.dotVec(toShip, entranceDir);
         const toStation = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(station.position, playerShip.position));
         const approachingSpeed = ThreeDUtils.dotVec(playerShip.velocity, toStation);
         const rawSpeed = ThreeDUtils.vecLength(playerShip.velocity);
+        const minCollisionSpeed = (config.STATION_COLLISION_MIN_SPEED || 0) * stationDockScale;
         const collisionDebug = {
             timestampMs: Math.floor(timestampMs),
             stationId: station.id,
             distAU: dist,
+            stationRadiusAU: stationRadius,
+            stationVisualScale,
+            stationPhysicsScale: stationDockScale,
+            stationVisualRadiusAU: stationRadius * stationVisualScale,
+            stationPhysicsRadiusAU: stationRadius * stationDockScale,
             dockRadiusAU: dockRadius,
             collisionRadiusAU: collisionRadius,
+            isInEntranceAperture,
+            entrancePlaneDistanceAU: entrancePlaneDistance,
             entranceDot,
             approachingSpeedAUps: approachingSpeed,
             speedAUps: rawSpeed,
             speedAUpm: rawSpeed * 60,
-            minSpeedAUps: config.STATION_COLLISION_MIN_SPEED,
-            minSpeedAUpm: config.STATION_COLLISION_MIN_SPEED * 60,
+            minSpeedAUps: minCollisionSpeed,
+            minSpeedAUpm: minCollisionSpeed * 60,
             maxEntranceDot: config.STATION_COLLISION_MAX_ENTRANCE_DOT,
             isInsideDockRadius: dist <= dockRadius,
             isInsideCollisionRadius: dist <= collisionRadius
         };
 
-        if (dist <= dockRadius && entranceDot >= config.STATION_ENTRANCE_DOT && approachingSpeed > 0) {
+        if (dist <= dockRadius && entranceDot >= config.STATION_ENTRANCE_DOT && isInEntranceAperture && approachingSpeed > 0) {
             if (config.DEBUG_STATION_COLLISION) {
                 console.log('[SpaceTravelMap] Docking conditions met', collisionDebug);
             }
@@ -69,18 +119,21 @@ const SpaceTravelLogic = (() => {
             return { didDock: true, lastStationCollisionMs, damageFlashStartMs };
         }
 
-        if (entranceDot >= config.STATION_ENTRANCE_DOT) {
+        if (entranceDot >= config.STATION_ENTRANCE_DOT && isInEntranceAperture) {
             if (config.DEBUG_STATION_COLLISION) {
                 console.log('[SpaceTravelMap] Entrance approach - collision suppressed', collisionDebug);
             }
             return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
         }
 
-        if (approachingSpeed < config.STATION_COLLISION_MIN_SPEED) {
+        if (approachingSpeed < minCollisionSpeed) {
             const v = playerShip.velocity;
             const dotVN = ThreeDUtils.dotVec(v, toShip);
             if (dotVN > 0) {
                 playerShip.velocity = ThreeDUtils.subVec(v, ThreeDUtils.scaleVec(toShip, dotVN));
+            }
+            if (typeof config.STATION_SLIDE_DAMPING === 'number') {
+                playerShip.velocity = ThreeDUtils.scaleVec(playerShip.velocity, config.STATION_SLIDE_DAMPING);
             }
             playerShip.position = ThreeDUtils.addVec(station.position, ThreeDUtils.scaleVec(toShip, collisionRadius));
             if (config.DEBUG_STATION_COLLISION) {
@@ -156,7 +209,10 @@ const SpaceTravelLogic = (() => {
             : { x: 0, y: 0, z: 0 };
         const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
         const dist = ThreeDUtils.distance(playerShip.position, worldPos);
-        const dockRadius = planet.radiusAU * (config.PLANET_DOCK_RADIUS_MULT || 1);
+        const bodyDockScale = (typeof config.SYSTEM_BODY_PHYSICS_SCALE === 'number' && config.SYSTEM_BODY_PHYSICS_SCALE > 0)
+            ? config.SYSTEM_BODY_PHYSICS_SCALE
+            : 1;
+        const dockRadius = planet.radiusAU * (config.PLANET_DOCK_RADIUS_MULT || 1) * bodyDockScale;
         if (debug && dist <= dockRadius * 1.5) {
             console.log('[SpaceTravelMap] Planet docking check', {
                 planetId: planet.id,
@@ -232,7 +288,7 @@ const SpaceTravelLogic = (() => {
                 viewWidth,
                 viewHeight,
                 config.VIEW_FOV,
-                config.SYSTEM_BODY_SCREEN_SCALE || 1
+                config.STATION_SCREEN_SCALE || 1
             );
             const area = bounds ? bounds.area : 0;
             const visible = area >= 0.01;

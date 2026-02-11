@@ -403,9 +403,16 @@ const SystemGenerator = (() => {
         system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);
 
         const farthestOrbit = planets.length > 0 ? planets[planets.length - 1].orbit.semiMajorAU : SYSTEM_PLANET_ORBIT_MIN_AU;
-        system.stationOrbitAU = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
-        system.stationName = `${system.name} Station`;
-        system.stationSizeAU = 0.000043;
+        const stationOrbit = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
+        const station = new SpaceStation(`${system.name}-STATION`, SPACE_STATION_SIZE_AU);
+        station.name = `${system.name} Station`;
+        station.orbit = {
+            semiMajorAU: stationOrbit,
+            periodDays: Number.POSITIVE_INFINITY,
+            percentOffset: 0,
+            progress: 0
+        };
+        system.station = station;
     }
 
     function assignSystemLevels(system) {

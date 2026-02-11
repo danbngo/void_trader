@@ -3,6 +3,7 @@
  */
 
 const SpaceTravelRender = (() => {
+    let lastCharAspectLogMs = 0;
     function renderSystemBodies({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null, state, config, setLastHoverPick }) {
         const { targetSystem, playerShip, localDestination, currentGameState, currentStation } = state;
         if (!targetSystem || !playerShip) {
@@ -42,6 +43,16 @@ const SpaceTravelRender = (() => {
             GAS: '#d6b27a',
             ICE: '#d7f7ff',
             TERRESTRIAL: '#c4a484'
+        };
+
+        const starPalettes = {
+            [BODY_TYPES.STAR_RED_DWARF.id]: ['#ffb36a', '#ff8a5b', '#ffd2a1'],
+            [BODY_TYPES.STAR_YELLOW_DWARF.id]: ['#fff4b0', '#ffd98a', '#fff7d9'],
+            [BODY_TYPES.STAR_WHITE_DWARF.id]: ['#e7f4ff', '#cfe8ff', '#ffffff'],
+            [BODY_TYPES.STAR_RED_GIANT.id]: ['#ff8a6b', '#ffb38a', '#ffd1b0'],
+            [BODY_TYPES.STAR_BLUE_GIANT.id]: ['#9ad6ff', '#6fb6ff', '#cfe9ff'],
+            [BODY_TYPES.STAR_NEUTRON.id]: ['#b7d9ff', '#e6f2ff', '#c8d6ff'],
+            [BODY_TYPES.STAR_BLACK_HOLE.id]: ['#1a1a1a', '#2a2a2a', '#0a0a0a']
         };
 
         const gasBasePalette = ['#d6b27a', '#c9a06a', '#d1bb8a', '#c08a5a', '#b57a4a'];
@@ -99,16 +110,26 @@ const SpaceTravelRender = (() => {
             }
 
             const shadeT = Math.max(0.2, 1 - (dist / config.SYSTEM_BODY_SHADE_MAX_DISTANCE_AU));
-            let flickerT = 1;
+            let color = SpaceTravelShared.lerpColorHex('#000000', baseColor, shadeT);
             if (body.kind === 'STAR') {
-                const flickerIntervalMs = 500;
-                const flickerStep = Math.floor(timestampMs / flickerIntervalMs);
-                const flickerSeed = `${body.id || body.type}-${flickerStep}`;
-                const flickerHash = SpaceTravelShared.hashString(flickerSeed);
-                const flickerRand = (((flickerHash % 1000) + 1000) % 1000) / 1000;
-                flickerT = 0.1 + (0.7 * flickerRand);
+                const starSeed = SpaceTravelShared.hashString(body.id || body.type || 'STAR');
+                const palette = starPalettes[body.type] || [bodyColors.STAR, '#ffd98a', '#fff7d9'];
+                const cycleMs = 6000;
+                const cycleT = ((timestampMs + (starSeed % cycleMs)) % cycleMs) / cycleMs;
+                const palettePos = cycleT * palette.length;
+                const paletteIndex = Math.floor(palettePos);
+                const nextIndex = (paletteIndex + 1) % palette.length;
+                const localT = palettePos - paletteIndex;
+                const easedT = localT * localT * (3 - (2 * localT));
+                const starBase = SpaceTravelShared.lerpColorHex(palette[paletteIndex], palette[nextIndex], easedT);
+
+                const flickerSpeed = 0.6;
+                const flickerPhase = (timestampMs / 1000) * Math.PI * 2 * flickerSpeed + (starSeed % 100) * 0.1;
+                const flickerT = 0.85 + (0.15 * Math.sin(flickerPhase));
+                const starShadeT = Math.max(0.6, shadeT);
+                const brightness = Math.min(1, Math.max(0, starShadeT * flickerT));
+                color = SpaceTravelShared.lerpColorHex('#000000', starBase, brightness);
             }
-            const color = SpaceTravelShared.lerpColorHex('#000000', baseColor, shadeT * flickerT);
 
             let fillSymbol = '█';
             if (body.kind === 'STAR') {
@@ -120,18 +141,33 @@ const SpaceTravelRender = (() => {
             }
 
             const charDims = UI.getCharDimensions();
+            const aspectFromMetrics = charDims.height / Math.max(0.000001, charDims.width);
+            const aspectOverride = config.CHAR_CELL_ASPECT_RATIO;
+            const resolvedAspect = (typeof aspectOverride === 'number' && Number.isFinite(aspectOverride))
+                ? aspectOverride
+                : aspectFromMetrics;
+            if ((timestampMs - lastCharAspectLogMs) >= 2000) {
+                lastCharAspectLogMs = timestampMs;
+                console.log('[CharAspectDebug]', {
+                    width: charDims.width,
+                    height: charDims.height,
+                    aspectFromMetrics,
+                    aspectOverride,
+                    resolvedAspect
+                });
+            }
             const fovScale = Math.tan(ThreeDUtils.degToRad(config.VIEW_FOV) / 2);
             const viewPixelWidth = viewWidth * charDims.width;
-            const viewPixelHeight = viewHeight * charDims.height;
-            const pixelsPerUnitX = viewPixelWidth / (2 * fovScale * cameraSpace.z);
-            const pixelsPerUnitY = viewPixelHeight / (2 * fovScale * cameraSpace.z);
-            const bodyRadiusAU = (body.radiusAU || 0) * (config.SYSTEM_BODY_SCREEN_SCALE || 1);
-            const radiusPx = bodyRadiusAU * pixelsPerUnitX;
-            const radiusPy = bodyRadiusAU * pixelsPerUnitY;
+            const depth = Math.max(0.000001, dist);
+            const pixelsPerUnit = viewPixelWidth / (2 * fovScale * depth);
+            const bodyRadiusAU = (body.radiusAU || 0);
+            const radiusPx = bodyRadiusAU * pixelsPerUnit;
+            const screenScale = config.SYSTEM_BODY_SCREEN_SCALE || 1;
+            const radiusPxScaled = radiusPx * screenScale;
             const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
-            const charAspect = charDims.height / charDims.width;
-            const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPx / charDims.width));
-            const radiusCharsY = Math.max(minRadiusChars, Math.round((radiusPy / charDims.height) * charAspect));
+            const effectiveCharHeight = charDims.width * resolvedAspect;
+            const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.width));
+            const radiusCharsY = Math.max(minRadiusChars, Math.round(radiusPxScaled / effectiveCharHeight));
             const radiusChars = Math.max(radiusCharsX, radiusCharsY);
 
             const centerX = Math.round(projected.x);
@@ -150,7 +186,9 @@ const SpaceTravelRender = (() => {
                     RasterUtils.plotDepthText(depthBuffer, centerX, centerY, symbolDepth, symbol, color);
                     const labelName = body.name || 'Station';
                     const isDestination = isDestinationBody(localDestination, body);
-                    addDestinationLabel(labels, centerX, centerY, Math.max(radiusCharsX, radiusCharsY), labelName, viewWidth, viewHeight);
+                    if (isDestination) {
+                        addDestinationLabel(labels, centerX, centerY, Math.max(radiusCharsX, radiusCharsY), labelName, viewWidth, viewHeight);
+                    }
                     hoverInfos.push({
                         name: body.name || 'Station',
                         centerX,

@@ -121,20 +121,17 @@ const SpaceTravelMap = (() => {
 
         currentStation = null;
         if (targetSystem) {
-            const stationSize = typeof targetSystem.stationSizeAU === 'number'
-                ? targetSystem.stationSizeAU
-                : 0.000043;
-            currentStation = new SpaceStation('DESTINATION', stationSize);
-            const stationOrbit = typeof targetSystem.stationOrbitAU === 'number'
-                ? targetSystem.stationOrbitAU
-                : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
+            currentStation = targetSystem.station;
+            const stationOrbit = currentStation.orbit.semiMajorAU;
             const stationDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
             currentStation.position = {
                 x: targetSystem.x * config.LY_TO_AU + stationDir.x * stationOrbit,
                 y: targetSystem.y * config.LY_TO_AU + stationDir.y * stationOrbit,
                 z: stationDir.z * stationOrbit
             };
-            currentStation.name = targetSystem.stationName || `${targetSystem.name} Station`;
+            if (!currentStation.name) {
+                currentStation.name = `${targetSystem.name} Station`;
+            }
             currentStation.dataRef = targetSystem.primaryBody || (targetSystem.planets && targetSystem.planets[0]) || null;
             if (currentGameState && currentGameState.date) {
                 const gameSeconds = currentGameState.date.getTime() / 1000;
@@ -142,6 +139,18 @@ const SpaceTravelMap = (() => {
                 const angle = (dayT * Math.PI * 2) + (currentStation.rotationPhase || 0);
                 currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
             }
+        }
+
+        if (!localDestination && currentStation && currentGameState) {
+            currentGameState.localDestination = {
+                type: 'STATION',
+                positionWorld: { ...currentStation.position },
+                id: currentStation.name || 'Station',
+                name: currentStation.name || 'Station',
+                orbit: currentStation.orbit
+            };
+            currentGameState.localDestinationSystemIndex = currentGameState.currentSystemIndex;
+            localDestination = currentGameState.localDestination;
         }
 
         if (resetPosition || !hasPosition) {
@@ -153,9 +162,22 @@ const SpaceTravelMap = (() => {
                 const entranceDir = currentStation.rotation
                     ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, currentStation.rotation)
                     : yawedEntranceDir;
-                const stationRadius = Math.max(0.0001, currentStation.radiusAU ?? currentStation.size ?? 0);
-                const shipRadius = Math.max(0.0001, playerShip.size || 0);
-                const offsetDistance = (stationRadius * 1.1) + shipRadius;
+                const stationRadius = Math.max(0, currentStation.radiusAU ?? currentStation.size ?? 0);
+                const stationVisualScale = config.STATION_SCREEN_SCALE || 1;
+                const stationPhysicsScale = (typeof config.STATION_PHYSICS_SCALE === 'number' && config.STATION_PHYSICS_SCALE > 0)
+                    ? config.STATION_PHYSICS_SCALE
+                    : 1;
+                const stationSpawnScale = Math.max(stationPhysicsScale, stationVisualScale);
+                const spawnMult = typeof config.STATION_SPAWN_DISTANCE_MULT === 'number'
+                    ? config.STATION_SPAWN_DISTANCE_MULT
+                    : 1.1;
+                const minSpawnDistance = typeof config.STATION_SPAWN_MIN_DISTANCE_AU === 'number'
+                    ? config.STATION_SPAWN_MIN_DISTANCE_AU
+                    : 0;
+                const offsetDistance = Math.max(
+                    minSpawnDistance,
+                    stationRadius * stationSpawnScale * spawnMult
+                );
                 const startOffset = ThreeDUtils.scaleVec(entranceDir, offsetDistance);
                 playerShip.position = ThreeDUtils.addVec(currentStation.position, startOffset);
             } else {
@@ -170,8 +192,7 @@ const SpaceTravelMap = (() => {
                 const entranceDir = currentStation.rotation
                     ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, currentStation.rotation)
                     : yawedEntranceDir;
-                const entrancePoint = ThreeDUtils.addVec(currentStation.position, entranceDir);
-                ThreeDUtils.faceToward(playerShip, entrancePoint);
+                ThreeDUtils.faceToward(playerShip, currentStation.position);
             }
         }
 
@@ -694,7 +715,7 @@ const SpaceTravelMap = (() => {
             depthBuffer,
             config.NEAR_PLANE,
             config.STATION_FACE_DEPTH_BIAS,
-            config.SYSTEM_BODY_SCREEN_SCALE || 1
+            config.STATION_SCREEN_SCALE || 1
         );
         const bodyLabels = SpaceTravelRender.renderSystemBodies({
             viewWidth,

@@ -199,3 +199,5 @@ const MODULE_WARHEAD_RANGE = 5 // Splash damage range
 const MODULE_WARHEAD_DAMAGE_RATIO = 0.5 // Splash damage as ratio of base damage
 const MINING_MAX_HULL_DAMAGE = 5
 const MINING_MAX_GOODS_PER_LASER = 0.1
+
+const SPACE_STATION_SIZE_AU = 0.000043 // about 6.45 million km, which is roughly the size of the ISS's orbit around Earth. This is used for collision detection and rendering scale in space travel map and station interiors.

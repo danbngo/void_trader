@@ -116,8 +116,8 @@ function logInitialStationState(gameState) {
         console.log('[IntroScreen] Missing system or player ship for station log.');
         return;
     }
-    const stationOrbit = typeof system.stationOrbitAU === 'number'
-        ? system.stationOrbitAU
+    const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
+        ? system.station.orbit.semiMajorAU
         : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
     const entranceDir = ThreeDUtils.normalizeVec(SpaceTravelConfig.STATION_ENTRANCE_DIR);
     const stationPos = {
@@ -170,7 +170,6 @@ function logInitialBodyScreenRadii(gameState) {
     const fovScale = Math.tan(ThreeDUtils.degToRad(SpaceTravelConfig.VIEW_FOV) / 2);
     const viewPixelWidth = viewWidth * charDims.width;
     const viewPixelHeight = viewHeight * charDims.height;
-    const charAspect = charDims.height / charDims.width;
 
     const systemCenter = {
         x: system.x * SpaceTravelConfig.LY_TO_AU,
@@ -182,12 +181,10 @@ function logInitialBodyScreenRadii(gameState) {
     (system.stars || []).forEach(star => bodies.push({ ...star, kind: 'STAR' }));
     (system.planets || []).forEach(planet => bodies.push({ ...planet, kind: 'PLANET' }));
 
-    const stationOrbit = typeof system.stationOrbitAU === 'number'
-        ? system.stationOrbitAU
+    const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
+        ? system.station.orbit.semiMajorAU
         : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
-    const stationSize = typeof system.stationSizeAU === 'number'
-        ? system.stationSizeAU
-        : 0.000043;
+    const stationSize = system.station?.radiusAU ?? SPACE_STATION_SIZE_AU;
     const entranceDir = ThreeDUtils.normalizeVec(SpaceTravelConfig.STATION_ENTRANCE_DIR);
     const stationPos = {
         x: systemCenter.x + entranceDir.x * stationOrbit,
@@ -195,8 +192,8 @@ function logInitialBodyScreenRadii(gameState) {
         z: entranceDir.z * stationOrbit
     };
     bodies.push({
-        id: system.stationId || 'STATION',
-        name: system.stationName || `${system.name} Station`,
+        id: system.station?.id || 'STATION',
+        name: system.station?.name || `${system.name} Station`,
         kind: 'STATION',
         type: 'STATION',
         radiusAU: stationSize,
@@ -211,14 +208,12 @@ function logInitialBodyScreenRadii(gameState) {
             ? body.positionWorld
             : ThreeDUtils.addVec(systemCenter, orbitOffset);
         const dist = Math.max(1e-6, ThreeDUtils.vecLength(ThreeDUtils.subVec(bodyPos, playerShip.position)));
-        const pixelsPerUnitX = viewPixelWidth / (2 * fovScale * dist);
-        const pixelsPerUnitY = viewPixelHeight / (2 * fovScale * dist);
+            const pixelsPerUnit = viewPixelWidth / (2 * fovScale * dist);
         const bodyRadiusAU = (body.radiusAU || 0) * (SpaceTravelConfig.SYSTEM_BODY_SCREEN_SCALE || 1);
-        const radiusPx = bodyRadiusAU * pixelsPerUnitX;
-        const radiusPy = bodyRadiusAU * pixelsPerUnitY;
+            const radiusPx = bodyRadiusAU * pixelsPerUnit;
         const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
         const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPx / charDims.width));
-        const radiusCharsY = Math.max(minRadiusChars, Math.round((radiusPy / charDims.height) * charAspect));
+            const radiusCharsY = Math.max(minRadiusChars, Math.round(radiusPx / (charDims.width * charAspect)));
 
         return {
             id: body.id,

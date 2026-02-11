@@ -92,6 +92,28 @@ const SpaceStationGfx = (() => {
         return b.every(idx => setA.has(idx));
     }
 
+    function scaleProjectedPoints(projectedPoints, scale) {
+        if (!Array.isArray(projectedPoints) || scale === 1) {
+            return projectedPoints;
+        }
+        const valid = projectedPoints.filter(p => p);
+        if (valid.length === 0) {
+            return projectedPoints;
+        }
+        const centerX = valid.reduce((sum, p) => sum + p.x, 0) / valid.length;
+        const centerY = valid.reduce((sum, p) => sum + p.y, 0) / valid.length;
+        return projectedPoints.map(p => {
+            if (!p) {
+                return p;
+            }
+            return {
+                ...p,
+                x: centerX + (p.x - centerX) * scale,
+                y: centerY + (p.y - centerY) * scale
+            };
+        });
+    }
+
     function stationScreenBoundsChars(station, playerShip, viewWidth, viewHeight, fov = 75, scale = 1) {
         if (!playerShip || !station) {
             return null;
@@ -99,13 +121,14 @@ const SpaceStationGfx = (() => {
 
         const cameraPos = playerShip.position;
         const cameraRot = playerShip.rotation;
-        const sizeOverride = (station.radiusAU ?? station.size ?? 0) * scale;
-        const vertices = buildCuboctahedronGeometry(station, sizeOverride).vertices;
+        const vertices = buildCuboctahedronGeometry(station).vertices;
 
-        const projected = vertices
+        let projected = vertices
             .map(v => ThreeDUtils.rotateVecByQuat(ThreeDUtils.subVec(v, cameraPos), ThreeDUtils.quatConjugate(cameraRot)))
             .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, fov))
             .filter(p => p !== null);
+
+        projected = scaleProjectedPoints(projected, scale);
 
         if (projected.length === 0) {
             return null;
@@ -132,17 +155,26 @@ const SpaceStationGfx = (() => {
         }
 
         stations.forEach(station => {
-            const sizeOverride = (station.radiusAU ?? station.size ?? 0) * scale;
-            const geometry = buildCuboctahedronGeometry(station, sizeOverride);
+            const geometry = buildCuboctahedronGeometry(station);
             const cameraPos = playerShip.position;
             const cameraRot = playerShip.rotation;
+            const stationCameraCenter = ThreeDUtils.rotateVecByQuat(
+                ThreeDUtils.subVec(station.position, cameraPos),
+                ThreeDUtils.quatConjugate(cameraRot)
+            );
 
             const vertices = geometry.vertices;
-            const projectedVertices = vertices.map(v => {
+            let projectedVertices = vertices.map(v => {
                 const cameraSpace = ThreeDUtils.rotateVecByQuat(ThreeDUtils.subVec(v, cameraPos), ThreeDUtils.quatConjugate(cameraRot));
                 const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, 75);
                 return { cameraSpace, projected };
             });
+
+            const scaledProjected = scaleProjectedPoints(projectedVertices.map(p => p.projected), scale);
+            projectedVertices = projectedVertices.map((p, idx) => ({
+                ...p,
+                projected: scaledProjected[idx]
+            }));
 
             const faceDepths = geometry.faces.map(face => {
                 const center = face.reduce((acc, idx) => ThreeDUtils.addVec(acc, projectedVertices[idx].cameraSpace), { x: 0, y: 0, z: 0 });
@@ -158,7 +190,13 @@ const SpaceStationGfx = (() => {
             geometry.faces.forEach((face, faceIndex) => {
                 const isEntrance = geometry.entranceFace && isSameFace(face, geometry.entranceFace);
                 const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
-                const clipped = PolygonUtils.clipPolygonToNearPlane(cameraFace, nearPlane);
+                const scaledCameraFace = scale === 1
+                    ? cameraFace
+                    : cameraFace.map(v => {
+                        const offset = ThreeDUtils.subVec(v, stationCameraCenter);
+                        return ThreeDUtils.addVec(stationCameraCenter, ThreeDUtils.scaleVec(offset, scale));
+                    });
+                const clipped = PolygonUtils.clipPolygonToNearPlane(scaledCameraFace, nearPlane);
                 if (clipped.length < 3) {
                     return;
                 }
@@ -171,19 +209,26 @@ const SpaceStationGfx = (() => {
                 }
                 const basis = PolygonUtils.buildPlaneBasis(normal);
                 const ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
+
+                const projectedFace = ordered
+                    .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, 75))
+                    .filter(p => p !== null);
+                if (projectedFace.length < 3) {
+                    return;
+                }
                 const depthT = 1 - ((faceDepths[faceIndex] - minDepth) / depthRange);
                 const clampedT = Math.max(0, Math.min(1, depthT));
                 const faceColor = lerpColorHex('#000000', '#888888', clampedT);
                 RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '█', faceColor, faceBias, nearPlane, 75);
 
                 if (isEntrance) {
-                    const center = cameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
-                    center.x /= cameraFace.length;
-                    center.y /= cameraFace.length;
-                    center.z /= cameraFace.length;
+                    const center = scaledCameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
+                    center.x /= scaledCameraFace.length;
+                    center.y /= scaledCameraFace.length;
+                    center.z /= scaledCameraFace.length;
 
                     const inset = 0.45;
-                    const insetVerts = cameraFace.map(v => {
+                    const insetVerts = scaledCameraFace.map(v => {
                         const offset = ThreeDUtils.subVec(v, center);
                         return ThreeDUtils.addVec(center, ThreeDUtils.scaleVec(offset, inset));
                     });
@@ -211,17 +256,22 @@ const SpaceStationGfx = (() => {
         }
 
         stations.forEach(station => {
-            const sizeOverride = (station.radiusAU ?? station.size ?? 0) * scale;
-            const geometry = buildCuboctahedronGeometry(station, sizeOverride);
+            const geometry = buildCuboctahedronGeometry(station);
             const cameraPos = playerShip.position;
             const cameraRot = playerShip.rotation;
 
             const vertices = geometry.vertices;
-            const projectedVertices = vertices.map(v => {
+            let projectedVertices = vertices.map(v => {
                 const cameraSpace = ThreeDUtils.rotateVecByQuat(ThreeDUtils.subVec(v, cameraPos), ThreeDUtils.quatConjugate(cameraRot));
                 const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, 75);
                 return { cameraSpace, projected };
             });
+
+            const scaledProjected = scaleProjectedPoints(projectedVertices.map(p => p.projected), scale);
+            projectedVertices = projectedVertices.map((p, idx) => ({
+                ...p,
+                projected: scaledProjected[idx]
+            }));
 
             geometry.edges.forEach(([a, b]) => {
                 const p1 = projectedVertices[a].projected;

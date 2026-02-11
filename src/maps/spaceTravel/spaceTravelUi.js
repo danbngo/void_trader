@@ -14,8 +14,8 @@ const SpaceTravelUi = (() => {
         }
 
         if (pick.bodyRef && pick.bodyRef.type === 'STATION') {
-            const stationOrbit = typeof system.stationOrbitAU === 'number'
-                ? system.stationOrbitAU
+            const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
+                ? system.station.orbit.semiMajorAU
                 : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
             const stationDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
             currentGameState.localDestination = {
@@ -25,8 +25,8 @@ const SpaceTravelUi = (() => {
                     y: system.y * config.LY_TO_AU + stationDir.y * stationOrbit,
                     z: stationDir.z * stationOrbit
                 },
-                id: system.stationName || `${system.name} Station`,
-                name: system.stationName || `${system.name} Station`,
+                id: system.station?.id || `${system.name} Station`,
+                name: system.station?.name || `${system.name} Station`,
                 orbit: {
                     semiMajorAU: stationOrbit,
                     periodDays: Number.POSITIVE_INFINITY,

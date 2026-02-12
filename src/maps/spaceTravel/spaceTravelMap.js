@@ -22,6 +22,7 @@ class SpaceTravelMapClass {
 
         this.inputState = {
             keyState: new Set(),
+            codeState: new Set(),
             keyDownHandler: null,
             keyUpHandler: null,
             mouseMoveHandler: null,
@@ -68,6 +69,10 @@ class SpaceTravelMapClass {
         this.boostTurnMessageTimestampMs = 0;
         this.boostNoFuelTimestampMs = 0;
 
+        // Auto navigation state
+        this.autoNavActive = false;
+        this.autoNavInput = null;
+
         // Damage and collision state
         this.damageFlashStartMs = 0;
         this.lastStationCollisionMs = 0;
@@ -100,11 +105,35 @@ class SpaceTravelMapClass {
         UI.addText(x, y, text, this.applyPauseColor(color));
     }
 
+    getActiveTargetInfo() {
+        return SpaceTravelUi.getActiveTargetInfo({
+            localDestination: this.localDestination,
+            targetSystem: this.targetSystem,
+            currentGameState: this.currentGameState,
+            playerShip: this.playerShip
+        }, this.config);
+    }
+
+    toggleAutoNav() {
+        const targetInfo = this.getActiveTargetInfo();
+        if (!targetInfo) {
+            return;
+        }
+        this.autoNavActive = !this.autoNavActive;
+        if (!this.autoNavActive) {
+            this.autoNavInput = null;
+        }
+        if (this.inputState?.keyState?.clear) {
+            this.inputState.keyState.clear();
+        }
+    }
+
     show(gameState, destination, options = {}) {
         this.stop();
         UI.clear();
         UI.resetSelection();
         UI.clearOutputRow();
+        UI.setButtonNavigationEnabled?.(false);
 
         this.deathTow.reset();
         this.docking.reset();
@@ -263,6 +292,7 @@ class SpaceTravelMapClass {
     stop() {
         this.isActive = false;
         UI.setGameCursorEnabled?.(true);
+        UI.setButtonNavigationEnabled?.(true);
         if (this.animationId !== null) {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
@@ -271,6 +301,8 @@ class SpaceTravelMapClass {
         this.isPaused = false;
         this.pausedByFocus = false;
         this.lastHoverPick = null;
+        this.autoNavActive = false;
+        this.autoNavInput = null;
     }
 
     startLoop() {
@@ -314,6 +346,9 @@ class SpaceTravelMapClass {
         this._updateVisibility();
         this._updateStationRotation();
         SpaceTravelInput.handleInput(this, dt, timestampMs, this.messages);
+        if (this.autoNavActive) {
+            this._updateAutoNav(dt, timestampMs);
+        }
         this._updateMovement(dt, timestampMs);
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
@@ -350,9 +385,17 @@ class SpaceTravelMapClass {
     }
 
     _updateMovement(dt, timestampMs = 0) {
-        const accelerate = this.inputState.keyState.has('w') || this.inputState.keyState.has('W');
-        const brake = this.inputState.keyState.has('s') || this.inputState.keyState.has('S');
-        const boostKey = this.inputState.keyState.has('Shift');
+        const autoNavInput = this.autoNavActive ? this.autoNavInput : null;
+        const codeState = this.inputState.codeState || this.inputState.keyState;
+        const accelerate = autoNavInput
+            ? !!autoNavInput.accelerate
+            : (codeState.has('KeyW') || this.inputState.keyState.has('w') || this.inputState.keyState.has('W'));
+        const brake = autoNavInput
+            ? !!autoNavInput.brake
+            : (codeState.has('KeyS') || this.inputState.keyState.has('s') || this.inputState.keyState.has('S'));
+        const boostKey = autoNavInput
+            ? !!autoNavInput.boost
+            : (codeState.has('ShiftLeft') || codeState.has('ShiftRight') || this.inputState.keyState.has('Shift'));
         const wasBoosting = this.boostActive;
 
         const engine = this.playerShip.engine || 10;
@@ -427,6 +470,105 @@ class SpaceTravelMapClass {
         }
 
         this.playerShip.position = ThreeDUtils.addVec(this.playerShip.position, ThreeDUtils.scaleVec(this.playerShip.velocity, dt));
+    }
+
+    _getAutoNavDesiredDistance(targetInfo) {
+        if (!targetInfo) {
+            return 0;
+        }
+
+        const body = this.localDestination;
+        const type = body?.type || body?.kind || targetInfo.type;
+
+        if (type === 'STAR') {
+            const bodyDockScale = (typeof this.config.SYSTEM_BODY_PHYSICS_SCALE === 'number' && this.config.SYSTEM_BODY_PHYSICS_SCALE > 0)
+                ? this.config.SYSTEM_BODY_PHYSICS_SCALE
+                : 1;
+            const radius = (body?.radiusAU || 0) * bodyDockScale;
+            const maxHeatDist = this.config.STAR_HEAT_MAX_DISTANCE_AU;
+            const heatMargin = Number.isFinite(maxHeatDist) ? Math.max(0.01, maxHeatDist * 0.05) : 0.05;
+            if (Number.isFinite(maxHeatDist)) {
+                return Math.max(radius + heatMargin, maxHeatDist + heatMargin);
+            }
+            return radius + heatMargin;
+        }
+
+        if (type === 'STATION') {
+            const stationRadius = Math.max(0, this.currentStation?.radiusAU ?? this.currentStation?.size ?? 0);
+            const stationDockScale = (typeof this.config.STATION_PHYSICS_SCALE === 'number' && this.config.STATION_PHYSICS_SCALE > 0)
+                ? this.config.STATION_PHYSICS_SCALE
+                : 1;
+            const dockRadius = stationRadius * stationDockScale * (this.config.STATION_DOCK_RADIUS_MULT ?? 0.6);
+            return Math.max(0, dockRadius * 0.7);
+        }
+
+        if (body?.radiusAU) {
+            const bodyDockScale = (typeof this.config.SYSTEM_BODY_PHYSICS_SCALE === 'number' && this.config.SYSTEM_BODY_PHYSICS_SCALE > 0)
+                ? this.config.SYSTEM_BODY_PHYSICS_SCALE
+                : 1;
+            const dockRadius = body.radiusAU * (this.config.PLANET_DOCK_RADIUS_MULT || 1) * bodyDockScale;
+            return Math.max(0, dockRadius * 0.7);
+        }
+
+        return 0;
+    }
+
+    _updateAutoNav(dt, timestampMs = 0) {
+        if (!this.autoNavActive || !this.playerShip) {
+            return;
+        }
+
+        const targetInfo = this.getActiveTargetInfo();
+        if (!targetInfo || !targetInfo.position) {
+            this.autoNavActive = false;
+            this.autoNavInput = null;
+            return;
+        }
+
+        const toTarget = ThreeDUtils.subVec(targetInfo.position, this.playerShip.position);
+        const distance = ThreeDUtils.vecLength(toTarget);
+        if (!Number.isFinite(distance) || distance <= 0.000001) {
+            this.autoNavInput = { accelerate: false, brake: true, boost: false };
+            return;
+        }
+
+        const toTargetDir = ThreeDUtils.normalizeVec(toTarget);
+        SpaceTravelInput.applyAutoNavRotation(this, dt, timestampMs, toTargetDir);
+
+        const engine = this.playerShip.engine || 10;
+        const baseMaxSpeed = this.getBaseMaxSpeed(this.playerShip);
+        const baseAccel = this.playerShip.size * engine * this.config.SHIP_ACCEL_PER_ENGINE * this.config.BASE_ACCEL_MULT;
+        const brakeAccel = baseAccel * 2;
+        const desiredDistance = this._getAutoNavDesiredDistance(targetInfo);
+        const distanceToStop = Math.max(0, distance - desiredDistance);
+        const maxSpeed = this.getMaxSpeed(this.playerShip, false);
+        const desiredSpeed = Math.min(maxSpeed, Math.sqrt(Math.max(0, 2 * brakeAccel * distanceToStop)));
+
+        const forward = ThreeDUtils.getLocalAxes(this.playerShip.rotation).forward;
+        const alignment = ThreeDUtils.dotVec(forward, toTargetDir);
+        const alignedSpeedCap = alignment < 0.5
+            ? Math.min(desiredSpeed, baseMaxSpeed * 0.25)
+            : desiredSpeed;
+
+        const speedNow = ThreeDUtils.vecLength(this.playerShip.velocity);
+        const speedDeadband = Math.max(0.01, baseMaxSpeed * 0.05);
+        const accelerate = alignment > 0.6 && speedNow < (alignedSpeedCap - speedDeadband);
+        const brake = speedNow > (alignedSpeedCap + speedDeadband) || alignment < 0.1;
+
+        const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
+        const hasFuel = (this.playerShip.fuel ?? 0) > 0;
+        const canBoost = hasFuel && this.boostCooldownRemaining <= 0 && boostReady;
+        const boostDistanceMin = baseMaxSpeed * 2;
+        const boostDesired = canBoost
+            && alignment > 0.98
+            && distanceToStop > boostDistanceMin
+            && desiredSpeed > (baseMaxSpeed * 1.1);
+
+        this.autoNavInput = {
+            accelerate,
+            brake,
+            boost: boostDesired
+        };
     }
 
     regenShipStats(dt) {
@@ -526,16 +668,13 @@ class SpaceTravelMapClass {
             ...renderParams,
             baseMaxSpeed: this.getBaseMaxSpeed(this.playerShip),
             maxSpeed: this.getMaxSpeed(this.playerShip, this.boostActive),
+            autoNavActive: this.autoNavActive,
             helpers: {
                 applyPauseColor: (color) => this.applyPauseColor(color),
                 addHudText: (x, y, text, color) => this.addHudText(x, y, text, color),
-                getActiveTargetInfo: () => SpaceTravelUi.getActiveTargetInfo({
-                    localDestination: this.localDestination,
-                    targetSystem: this.targetSystem,
-                    currentGameState: this.currentGameState,
-                    playerShip: this.playerShip
-                }, this.config)
+                getActiveTargetInfo: () => this.getActiveTargetInfo()
             },
+            onAutoNavToggle: () => this.toggleAutoNav(),
             onMenu: () => {
                 this.stop();
                 SpaceTravelMenu.show(this.currentGameState, () => {

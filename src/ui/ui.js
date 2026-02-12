@@ -19,6 +19,7 @@ const UI = (() => {
     let lastSelectedButtonIndex = -1; // Track last selection to detect changes
     let preservedButtonKey = null; // Track button key to preserve selection across re-renders
     let wheelZoomHandler = null; // Handler for mouse wheel zoom
+    let buttonNavigationEnabled = true;
 
     let gameCursorEnabled = true;
     let gameCursorActive = false;
@@ -77,6 +78,7 @@ const UI = (() => {
             },
             draw,
             getWheelZoomHandler: () => wheelZoomHandler,
+            getButtonNavigationEnabled: () => buttonNavigationEnabled,
             handleCursorMove: (gridX, gridY) => {
                 const cursorUpdate = UiCursor.handleMouseMove(gameCursorEnabled, gameCursorPos, gridX, gridY);
                 if (cursorUpdate.didMove) {
@@ -87,6 +89,10 @@ const UI = (() => {
             },
             getRegisteredTableRows: () => registeredTableRows
         });
+    }
+
+    function setButtonNavigationEnabled(enabled) {
+        buttonNavigationEnabled = !!enabled;
     }
     
     /**
@@ -572,6 +578,7 @@ const UI = (() => {
         addClickable,
         setWheelZoomHandler,
         setGameCursorEnabled,
+        setButtonNavigationEnabled,
         calcStatColor: ColorUtils.calcStatColor, // Re-export from ColorUtils for convenience
         startFlashing,
         stopFlashing,

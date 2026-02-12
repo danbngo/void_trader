@@ -13,7 +13,8 @@ const SpaceTravelMessages = (() => {
                 boostCooldownRemaining
             } = mapInstance;
 
-            const boostKey = inputState.keyState.has('Shift');
+            const codeState = inputState.codeState || inputState.keyState;
+            const boostKey = codeState.has('ShiftLeft') || codeState.has('ShiftRight') || inputState.keyState.has('Shift');
             const engine = playerShip.engine || 10;
             const baseMaxSpeed = engine * config.SHIP_SPEED_PER_ENGINE;
             const speedNow = ThreeDUtils.vecLength(playerShip.velocity);

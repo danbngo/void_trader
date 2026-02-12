@@ -3,7 +3,7 @@
  */
 
 const SpaceTravelHud = (() => {
-    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, onMenu }) {
+    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, autoNavActive, onAutoNavToggle, onMenu }) {
         const startY = viewHeight;
         const panelWidth = viewWidth;
 
@@ -151,6 +151,25 @@ const SpaceTravelHud = (() => {
         const buttonText = `[m] ${menuText}`;
         const menuX = Math.max(0, panelWidth - buttonText.length - 1);
         const menuY = startY + Math.max(0, config.PANEL_HEIGHT - 1);
+
+        const autoNavAvailable = !!targetInfo;
+        const autoNavLabel = autoNavActive ? 'Cancel Autonav' : 'Autonavigate';
+        const autoNavText = `[1] ${autoNavLabel}`;
+        const autoNavX = Math.max(0, menuX - autoNavText.length - 2);
+        const autoNavColor = autoNavActive
+            ? COLORS.TEXT_SUCCESS
+            : (autoNavAvailable ? COLORS.CYAN : COLORS.TEXT_DIM);
+
+        if (autoNavAvailable) {
+            UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
+                if (onAutoNavToggle) {
+                    onAutoNavToggle();
+                }
+            }, helpers.applyPauseColor(autoNavColor), '');
+        } else {
+            UI.addText(autoNavX, menuY, autoNavText, helpers.applyPauseColor(autoNavColor));
+        }
+
         UI.addButton(menuX, menuY, 'm', menuText, () => {
             if (onMenu) {
                 onMenu();

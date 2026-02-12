@@ -3,7 +3,7 @@
  */
 
 const SpaceTravelInput = (() => {
-    function setupInput({ keyState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause }) {
+    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause }) {
         handlers.keyDownHandler = (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
@@ -16,9 +16,15 @@ const SpaceTravelInput = (() => {
                 return;
             }
             keyState.add(e.key);
+            if (codeState) {
+                codeState.add(e.code);
+            }
         };
         handlers.keyUpHandler = (e) => {
             keyState.delete(e.key);
+            if (codeState) {
+                codeState.delete(e.code);
+            }
         };
         document.addEventListener('keydown', handlers.keyDownHandler);
         document.addEventListener('keyup', handlers.keyUpHandler);
@@ -127,6 +133,7 @@ const SpaceTravelInput = (() => {
         
         setupInput({
             keyState: inputState.keyState,
+            codeState: inputState.codeState,
             handlers: inputState,
             setPaused: (val, byFocus) => mapInstance.setPaused(val, byFocus),
             getPaused: () => mapInstance.isPaused,
@@ -209,6 +216,9 @@ const SpaceTravelInput = (() => {
         }
         inputState.mouseTargetActive = false;
         inputState.keyState.clear();
+        if (inputState.codeState?.clear) {
+            inputState.codeState.clear();
+        }
     }
 
     function handleInput(mapInstance, dt, timestampMs, messages) {
@@ -219,26 +229,77 @@ const SpaceTravelInput = (() => {
         const viewHeight = grid.height - config.PANEL_HEIGHT;
         const viewWidth = grid.width;
         const mouseState = getMouseTargetState(viewWidth, viewHeight, inputState);
+        const panelScrollRows = Math.max(0, Math.min(config.PANEL_HEIGHT, config.PANEL_CURSOR_SCROLL_ROWS ?? 3));
+        const allowBottomScroll = mouseState.active
+            && mouseState.rawY >= viewHeight
+            && mouseState.rawY < (viewHeight + panelScrollRows);
 
+        const codeState = inputState.codeState || inputState.keyState;
         const keyYawLeft = inputState.keyState.has('ArrowLeft');
         const keyYawRight = inputState.keyState.has('ArrowRight');
-        const keyRollLeft = inputState.keyState.has('a') || inputState.keyState.has('A');
-        const keyRollRight = inputState.keyState.has('d') || inputState.keyState.has('D');
+        const keyRollLeft = codeState.has('KeyA') || inputState.keyState.has('a') || inputState.keyState.has('A');
+        const keyRollRight = codeState.has('KeyD') || inputState.keyState.has('d') || inputState.keyState.has('D');
         const keyPitchUp = inputState.keyState.has('ArrowUp');
         const keyPitchDown = inputState.keyState.has('ArrowDown');
+        const keyForward = codeState.has('KeyW') || inputState.keyState.has('w') || inputState.keyState.has('W');
+        const keyBrake = codeState.has('KeyS') || inputState.keyState.has('s') || inputState.keyState.has('S');
+        const keyBoost = codeState.has('ShiftLeft') || codeState.has('ShiftRight') || inputState.keyState.has('Shift');
 
         const yawLeft = keyYawLeft || mouseState.offLeft;
         const yawRight = keyYawRight || mouseState.offRight;
         const pitchUp = keyPitchUp || mouseState.offTop;
-        const pitchDown = keyPitchDown || mouseState.offBottom;
+        const pitchDown = keyPitchDown || (mouseState.offBottom && allowBottomScroll);
 
-        if (!boostActive && (yawLeft || yawRight || pitchUp || pitchDown || keyRollLeft || keyRollRight)) {
+        const manualInput = keyYawLeft || keyYawRight || keyPitchUp || keyPitchDown || keyRollLeft || keyRollRight || keyForward || keyBrake || keyBoost;
+        if (mapInstance.autoNavActive && manualInput) {
+            mapInstance.autoNavActive = false;
+            mapInstance.autoNavInput = null;
+        }
+
+        if (!mapInstance.autoNavActive && !boostActive && (yawLeft || yawRight || pitchUp || pitchDown || keyRollLeft || keyRollRight)) {
             updateRotation(mapInstance, yawLeft, yawRight, pitchUp, pitchDown, keyRollLeft, keyRollRight, turnRad, rollRad, timestampMs, mouseState);
         }
 
         if (messages) {
             messages.updateBoostMessages(mapInstance, timestampMs, keyYawLeft, keyYawRight, keyPitchUp, keyPitchDown);
         }
+    }
+
+    function applyAutoNavRotation(mapInstance, dt, timestampMs, targetDirection) {
+        const { config, playerShip } = mapInstance;
+        if (!playerShip || !targetDirection) {
+            return;
+        }
+
+        const turnRad = ThreeDUtils.degToRad(config.TURN_DEG_PER_SEC) * dt;
+        const rollRad = ThreeDUtils.degToRad(config.ROLL_DEG_PER_SEC ?? config.TURN_DEG_PER_SEC) * dt;
+        const localDir = ThreeDUtils.rotateVecByQuat(targetDirection, ThreeDUtils.quatConjugate(playerShip.rotation));
+        const deadZone = 0.02;
+
+        const yawLeft = localDir.x < -deadZone;
+        const yawRight = localDir.x > deadZone;
+        const pitchUp = localDir.y > deadZone;
+        const pitchDown = localDir.y < -deadZone;
+
+        updateRotation(
+            mapInstance,
+            yawLeft,
+            yawRight,
+            pitchUp,
+            pitchDown,
+            false,
+            false,
+            turnRad,
+            rollRad,
+            timestampMs,
+            {
+                offLeft: false,
+                offRight: false,
+                offTop: false,
+                offBottom: false,
+                active: false
+            }
+        );
     }
 
     function updateRotation(mapInstance, yawLeft, yawRight, pitchUp, pitchDown, keyRollLeft, keyRollRight, turnRad, rollRad, timestampMs, mouseState) {
@@ -291,6 +352,7 @@ const SpaceTravelInput = (() => {
         getMouseTargetState,
         initializeInputHandlers,
         teardownInputHandlers,
-        handleInput
+        handleInput,
+        applyAutoNavRotation
     };
 })();

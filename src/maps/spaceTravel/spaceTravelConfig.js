@@ -6,6 +6,7 @@ const SpaceTravelConfig = {
     VIEW_FOV: 75,
     NEAR_PLANE: 0.0001,
     PANEL_HEIGHT: 9,
+    PANEL_CURSOR_SCROLL_ROWS: 3,
 
     LY_TO_AU: 63241,
 

@@ -11,36 +11,42 @@ const UiButtons = (() => {
         draw,
         getWheelZoomHandler,
         handleCursorMove,
-        getRegisteredTableRows
+        getRegisteredTableRows,
+        getButtonNavigationEnabled
     }) {
         inputHandler.setKeyPressCallback((key, event) => {
             const registeredButtons = getRegisteredButtons();
             const selectedButtonIndex = getSelectedButtonIndex();
+            const buttonNavEnabled = typeof getButtonNavigationEnabled === 'function'
+                ? getButtonNavigationEnabled()
+                : true;
 
-            if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'Tab') {
-                event.preventDefault();
-                if (registeredButtons.length > 0) {
-                    setSelectedButtonIndex((selectedButtonIndex + 1) % registeredButtons.length);
-                    draw();
+            if (buttonNavEnabled) {
+                if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'Tab') {
+                    event.preventDefault();
+                    if (registeredButtons.length > 0) {
+                        setSelectedButtonIndex((selectedButtonIndex + 1) % registeredButtons.length);
+                        draw();
+                    }
+                    return;
                 }
-                return;
-            }
 
-            if (key === 'ArrowUp' || key === 'ArrowLeft') {
-                event.preventDefault();
-                if (registeredButtons.length > 0) {
-                    setSelectedButtonIndex((selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length);
-                    draw();
+                if (key === 'ArrowUp' || key === 'ArrowLeft') {
+                    event.preventDefault();
+                    if (registeredButtons.length > 0) {
+                        setSelectedButtonIndex((selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length);
+                        draw();
+                    }
+                    return;
                 }
-                return;
-            }
 
-            if (key === 'Enter') {
-                event.preventDefault();
-                if (registeredButtons.length > 0 && registeredButtons[selectedButtonIndex]) {
-                    registeredButtons[selectedButtonIndex].callback();
+                if (key === 'Enter') {
+                    event.preventDefault();
+                    if (registeredButtons.length > 0 && registeredButtons[selectedButtonIndex]) {
+                        registeredButtons[selectedButtonIndex].callback();
+                    }
+                    return;
                 }
-                return;
             }
 
             if (key === 'Escape') {

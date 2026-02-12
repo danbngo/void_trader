@@ -5,6 +5,14 @@
 const SpaceTravelRender = (() => {
     let lastCharAspectLogMs = 0;
     function renderSystemBodies({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null, state, config, setLastHoverPick }) {
+        const starNoise = (x, y, seed, timeMs) => {
+            const t = timeMs * 0.000000125;
+            const v = Math.sin((x * 12.9898) + (y * 78.233) + (seed * 0.01) + t) * 43758.5453;
+            return v - Math.floor(v);
+        };
+        if (config && config.RENDER_SYSTEM_BODIES === false) {
+            return [];
+        }
         const { targetSystem, playerShip, localDestination, currentGameState, currentStation } = state;
         if (!targetSystem || !playerShip) {
             return [];
@@ -85,6 +93,7 @@ const SpaceTravelRender = (() => {
             }
 
             let baseColor = bodyColors.TERRESTRIAL;
+            let starSeed = null;
             let gasStripeLight = null;
             let gasStripeDark = null;
             let spinRad = 0;
@@ -112,23 +121,9 @@ const SpaceTravelRender = (() => {
             const shadeT = Math.max(0.2, 1 - (dist / config.SYSTEM_BODY_SHADE_MAX_DISTANCE_AU));
             let color = SpaceTravelShared.lerpColorHex('#000000', baseColor, shadeT);
             if (body.kind === 'STAR') {
-                const starSeed = SpaceTravelShared.hashString(body.id || body.type || 'STAR');
-                const palette = starPalettes[body.type] || [bodyColors.STAR, '#ffd98a', '#fff7d9'];
-                const cycleMs = 6000;
-                const cycleT = ((timestampMs + (starSeed % cycleMs)) % cycleMs) / cycleMs;
-                const palettePos = cycleT * palette.length;
-                const paletteIndex = Math.floor(palettePos);
-                const nextIndex = (paletteIndex + 1) % palette.length;
-                const localT = palettePos - paletteIndex;
-                const easedT = localT * localT * (3 - (2 * localT));
-                const starBase = SpaceTravelShared.lerpColorHex(palette[paletteIndex], palette[nextIndex], easedT);
-
-                const flickerSpeed = 0.6;
-                const flickerPhase = (timestampMs / 1000) * Math.PI * 2 * flickerSpeed + (starSeed % 100) * 0.1;
-                const flickerT = 0.85 + (0.15 * Math.sin(flickerPhase));
+                starSeed = SpaceTravelShared.hashString(body.id || body.type || 'STAR');
                 const starShadeT = Math.max(0.6, shadeT);
-                const brightness = Math.min(1, Math.max(0, starShadeT * flickerT));
-                color = SpaceTravelShared.lerpColorHex('#000000', starBase, brightness);
+                color = SpaceTravelShared.lerpColorHex('#000000', baseColor, starShadeT);
             }
 
             let fillSymbol = '█';
@@ -296,6 +291,16 @@ const SpaceTravelRender = (() => {
                                 pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#000000', 0.35);
                                 break;
                             }
+                        }
+                    }
+
+                    if (body.kind === 'STAR') {
+                        const noiseT = starNoise(x, y, starSeed || 0, timestampMs);
+                        const jitter = (noiseT - 0.5) * 0.35;
+                        if (jitter > 0) {
+                            pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#ffffff', Math.min(0.25, jitter));
+                        } else {
+                            pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#000000', Math.min(0.25, -jitter));
                         }
                     }
 

@@ -716,7 +716,10 @@ const SpaceTravelMap = (() => {
             config.NEAR_PLANE,
             config.STATION_FACE_DEPTH_BIAS,
             config.STATION_SCREEN_SCALE || 1,
-            config.DEBUG_STATION_RASTER
+            config.DEBUG_STATION_RASTER,
+            config.DEBUG_STATION_FACE_INDEX,
+            config.DEBUG_STATION_FACE_OUTLINE,
+            config.DEBUG_STATION_FACE_FILL_MODE
         );
         const bodyLabels = SpaceTravelRender.renderSystemBodies({
             viewWidth,

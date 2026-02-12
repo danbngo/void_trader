@@ -86,7 +86,9 @@ const UninhabitedSystemMenu = (() => {
             }, color, helpText);
         });
 
-        UI.addButton(5, grid.height - 3, '0', 'Depart', () => onReturn(), COLORS.BUTTON, 'Return to the galaxy map');
+        UI.addButton(5, grid.height - 3, '0', 'Depart', () => {
+            departToSpace(gameState, planet, onReturn);
+        }, COLORS.BUTTON, 'Return to space near the planet');
 
         if (outputMessage) {
             UI.setOutputRow(outputMessage, outputColor);
@@ -246,6 +248,50 @@ const UninhabitedSystemMenu = (() => {
         }
         outputColor = COLORS.TEXT_NORMAL;
         render(gameState, planet, onReturn);
+    }
+
+    function departToSpace(gameState, planet, onReturn) {
+        const system = gameState.getCurrentSystem();
+        const playerShip = gameState.ships && gameState.ships[0];
+        if (!system || !playerShip) {
+            if (onReturn) {
+                onReturn();
+                return;
+            }
+            GalaxyMap.show(gameState);
+            return;
+        }
+
+        const systemCenter = {
+            x: system.x * SpaceTravelConfig.LY_TO_AU,
+            y: system.y * SpaceTravelConfig.LY_TO_AU,
+            z: 0
+        };
+        const orbitOffset = planet?.orbit
+            ? SystemOrbitUtils.getOrbitPosition(planet.orbit, gameState.date)
+            : { x: 0, y: 0, z: 0 };
+        const planetPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+        const rel = ThreeDUtils.subVec(planetPos, systemCenter);
+        const dir = ThreeDUtils.vecLength(rel) > 0
+            ? ThreeDUtils.normalizeVec(rel)
+            : { x: 0, y: 0, z: 1 };
+        const physicsScale = (typeof SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE === 'number' && SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE > 0)
+            ? SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE
+            : 1;
+        const planetRadius = planet?.radiusAU || 0;
+        const dockMult = SpaceTravelConfig.PLANET_DOCK_RADIUS_MULT || 1;
+        const offsetDistance = planetRadius * physicsScale * dockMult * 1.1;
+
+        playerShip.velocity = { x: 0, y: 0, z: 0 };
+        playerShip.position = ThreeDUtils.addVec(planetPos, ThreeDUtils.scaleVec(dir, offsetDistance));
+        ThreeDUtils.faceToward(playerShip, planetPos);
+
+        if (planet) {
+            gameState.localDestination = planet;
+            gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
+        }
+
+        SpaceTravelMap.show(gameState, system, { resetPosition: false, localDestination: gameState.localDestination });
     }
 
     function clamp(value, min, max) {

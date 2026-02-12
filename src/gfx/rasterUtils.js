@@ -3,32 +3,51 @@
  */
 
 class RasterUtils {
-    static _segmentsIntersect(a, b, c, d) {
-        const cross = (p1, p2, p3) => ((p2.x - p1.x) * (p3.y - p1.y)) - ((p2.y - p1.y) * (p3.x - p1.x));
-        const d1 = cross(a, b, c);
-        const d2 = cross(a, b, d);
-        const d3 = cross(c, d, a);
-        const d4 = cross(c, d, b);
-        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0))
-            && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
-            return true;
-        }
-        return false;
-    }
+    static _clipPolygonToRect(polygon, rect) {
+        const clipEdge = (points, inside, intersect) => {
+            if (points.length === 0) {
+                return points;
+            }
+            const output = [];
+            for (let i = 0; i < points.length; i++) {
+                const current = points[i];
+                const prev = points[(i + points.length - 1) % points.length];
+                const currentInside = inside(current);
+                const prevInside = inside(prev);
+                if (currentInside) {
+                    if (!prevInside) {
+                        output.push(intersect(prev, current));
+                    }
+                    output.push(current);
+                } else if (prevInside) {
+                    output.push(intersect(prev, current));
+                }
+            }
+            return output;
+        };
 
-    static _segmentIntersectsRect(p1, p2, rect) {
-        if ((p1.x >= rect.minX && p1.x <= rect.maxX && p1.y >= rect.minY && p1.y <= rect.maxY)
-            || (p2.x >= rect.minX && p2.x <= rect.maxX && p2.y >= rect.minY && p2.y <= rect.maxY)) {
-            return true;
-        }
-        const tl = { x: rect.minX, y: rect.minY };
-        const tr = { x: rect.maxX, y: rect.minY };
-        const br = { x: rect.maxX, y: rect.maxY };
-        const bl = { x: rect.minX, y: rect.maxY };
-        return RasterUtils._segmentsIntersect(p1, p2, tl, tr)
-            || RasterUtils._segmentsIntersect(p1, p2, tr, br)
-            || RasterUtils._segmentsIntersect(p1, p2, br, bl)
-            || RasterUtils._segmentsIntersect(p1, p2, bl, tl);
+        let output = polygon;
+        output = clipEdge(output, p => p.x >= rect.minX, (a, b) => {
+            const dx = b.x - a.x || 0.000001;
+            const t = (rect.minX - a.x) / dx;
+            return { x: rect.minX, y: a.y + (b.y - a.y) * t };
+        });
+        output = clipEdge(output, p => p.x <= rect.maxX, (a, b) => {
+            const dx = b.x - a.x || 0.000001;
+            const t = (rect.maxX - a.x) / dx;
+            return { x: rect.maxX, y: a.y + (b.y - a.y) * t };
+        });
+        output = clipEdge(output, p => p.y >= rect.minY, (a, b) => {
+            const dy = b.y - a.y || 0.000001;
+            const t = (rect.minY - a.y) / dy;
+            return { x: a.x + (b.x - a.x) * t, y: rect.minY };
+        });
+        output = clipEdge(output, p => p.y <= rect.maxY, (a, b) => {
+            const dy = b.y - a.y || 0.000001;
+            const t = (rect.maxY - a.y) / dy;
+            return { x: a.x + (b.x - a.x) * t, y: rect.maxY };
+        });
+        return output;
     }
     static createDepthBuffer(width, height) {
         return {
@@ -42,7 +61,7 @@ class RasterUtils {
 
     static plotDepthText(buffer, x, y, z, symbol, color) {
         if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
-            return;
+            return false;
         }
         const index = y * buffer.width + x;
         const existingDepth = buffer.depth[index];
@@ -51,7 +70,7 @@ class RasterUtils {
             buffer.depth[index] = z;
             buffer.chars[index] = symbol;
             buffer.colors[index] = color;
-            return;
+            return true;
         }
 
         if (existingChar === '░' && symbol !== '░') {
@@ -60,8 +79,11 @@ class RasterUtils {
                 buffer.depth[index] = z;
                 buffer.chars[index] = symbol;
                 buffer.colors[index] = color;
+                return true;
             }
         }
+
+        return false;
     }
 
     static plotDepthOnly(buffer, x, y, z) {
@@ -88,10 +110,12 @@ class RasterUtils {
 
     static fillDepthQuad(buffer, quad, symbol, color, bias = 0) {
         if (quad.length !== 4) {
-            return;
+            return 0;
         }
-        RasterUtils.fillDepthTriangle(buffer, quad[0], quad[1], quad[2], symbol, color, bias);
-        RasterUtils.fillDepthTriangle(buffer, quad[0], quad[2], quad[3], symbol, color, bias);
+        let count = 0;
+        count += RasterUtils.fillDepthTriangle(buffer, quad[0], quad[1], quad[2], symbol, color, bias);
+        count += RasterUtils.fillDepthTriangle(buffer, quad[0], quad[2], quad[3], symbol, color, bias);
+        return count;
     }
 
     static fillDepthTriangle(buffer, v0, v1, v2, symbol, color, bias = 0) {
@@ -102,9 +126,10 @@ class RasterUtils {
 
         const denom = ((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y));
         if (denom === 0) {
-            return;
+            return 0;
         }
 
+        let plotCount = 0;
         for (let y = minY; y <= maxY; y++) {
             for (let x = minX; x <= maxX; x++) {
                 const px = x + 0.5;
@@ -114,10 +139,14 @@ class RasterUtils {
                 const w3 = 1 - w1 - w2;
                 if ((w1 >= 0 && w2 >= 0 && w3 >= 0) || (w1 <= 0 && w2 <= 0 && w3 <= 0)) {
                     const z = (w1 * v0.z + w2 * v1.z + w3 * v2.z) + bias;
-                    RasterUtils.plotDepthText(buffer, x, y, z, symbol, color);
+                    if (RasterUtils.plotDepthText(buffer, x, y, z, symbol, color)) {
+                        plotCount += 1;
+                    }
                 }
             }
         }
+
+        return plotCount;
     }
 
     static screenRayDirection(x, y, viewWidth, viewHeight, fovDeg) {
@@ -140,9 +169,9 @@ class RasterUtils {
         return ThreeDUtils.normalizeVec(dir);
     }
 
-    static rasterizeFaceDepth(buffer, faceVertices, viewWidth, viewHeight, fillSymbol, fillColor, bias = 0, nearPlane = 0.0001, fovDeg = 75) {
+    static rasterizeFaceDepth(buffer, faceVertices, viewWidth, viewHeight, fillSymbol, fillColor, bias = 0, nearPlane = 0.0001, fovDeg = 75, fillMode = 'ray') {
         if (faceVertices.length < 3) {
-            return;
+            return { plotCount: 0, usedFallback: false, inViewCount: 0, fillMode };
         }
 
         const normal = ThreeDUtils.crossVec(
@@ -150,13 +179,13 @@ class RasterUtils {
             ThreeDUtils.subVec(faceVertices[2], faceVertices[0])
         );
         if (ThreeDUtils.vecLength(normal) === 0) {
-            return;
+            return { plotCount: 0, usedFallback: false, inViewCount: 0, fillMode };
         }
 
         const basis = PolygonUtils.buildPlaneBasis(normal);
         const orderedVertices = PolygonUtils.removeDuplicateVertices(faceVertices);
         if (orderedVertices.length < 3) {
-            return;
+            return { plotCount: 0, usedFallback: false, inViewCount: 0, fillMode };
         }
 
         const shrink = 1.0;
@@ -175,46 +204,43 @@ class RasterUtils {
             .filter(p => p !== null);
 
         if (projected.length < 3) {
-            return;
+            return { plotCount: 0, usedFallback: false, inViewCount: 0, fillMode };
         }
 
-        const pad = 2.5;
+        if (fillMode === 'tri') {
+            let plotCount = 0;
+            for (let i = 1; i < projected.length - 1; i++) {
+                plotCount += RasterUtils.fillDepthTriangle(buffer, projected[0], projected[i], projected[i + 1], fillSymbol, fillColor, bias);
+            }
+            return { plotCount, usedFallback: false, inViewCount: 0, fillMode };
+        }
+
+        const inViewCount = projected.filter(p => (
+            p.x >= 0 && p.x < viewWidth && p.y >= 0 && p.y < viewHeight
+        )).length;
+
         const rect = { minX: 0, maxX: viewWidth - 1, minY: 0, maxY: viewHeight - 1 };
-        const inView = projected.some(p => p.x >= rect.minX && p.x <= rect.maxX && p.y >= rect.minY && p.y <= rect.maxY);
-        let intersects = inView;
-        if (!intersects) {
-            for (let i = 0; i < projected.length; i++) {
-                const a = projected[i];
-                const b = projected[(i + 1) % projected.length];
-                if (RasterUtils._segmentIntersectsRect(a, b, rect)) {
-                    intersects = true;
-                    break;
+        const clippedProjected = RasterUtils._clipPolygonToRect(projected, rect);
+        if (clippedProjected.length < 3) {
+            if (inViewCount > 0) {
+                for (let i = 1; i < projected.length - 1; i++) {
+                    RasterUtils.fillDepthTriangle(buffer, projected[0], projected[i], projected[i + 1], fillSymbol, fillColor, bias);
                 }
             }
+            return { plotCount: 0, usedFallback: inViewCount > 0, inViewCount, fillMode };
         }
 
-        let minX = Math.floor(Math.min(...projected.map(p => p.x)) - pad);
-        let maxX = Math.ceil(Math.max(...projected.map(p => p.x)) + pad);
-        let minY = Math.floor(Math.min(...projected.map(p => p.y)) - pad);
-        let maxY = Math.ceil(Math.max(...projected.map(p => p.y)) + pad);
-
-        if (intersects && !inView) {
-            minX = rect.minX;
-            maxX = rect.maxX;
-            minY = rect.minY;
-            maxY = rect.maxY;
-        }
-
-        minX = Math.max(rect.minX, minX);
-        maxX = Math.min(rect.maxX, maxX);
-        minY = Math.max(rect.minY, minY);
-        maxY = Math.min(rect.maxY, maxY);
+        const pad = 0.5;
+        const minX = Math.max(rect.minX, Math.floor(Math.min(...clippedProjected.map(p => p.x)) - pad));
+        const maxX = Math.min(rect.maxX, Math.ceil(Math.max(...clippedProjected.map(p => p.x)) + pad));
+        const minY = Math.max(rect.minY, Math.floor(Math.min(...clippedProjected.map(p => p.y)) - pad));
+        const maxY = Math.min(rect.maxY, Math.ceil(Math.max(...clippedProjected.map(p => p.y)) + pad));
 
         const bboxWidth = Math.max(0, maxX - minX + 1);
         const bboxHeight = Math.max(0, maxY - minY + 1);
         const bboxArea = bboxWidth * bboxHeight;
         if (bboxArea === 0) {
-            return;
+            return { plotCount: 0, usedFallback: false, inViewCount, fillMode };
         }
 
         const polygon2D = insetVertices.map(v => ({
@@ -226,12 +252,21 @@ class RasterUtils {
         const maxSamples = Infinity;
         let sampleCount = 0;
 
+        let plotCount = 0;
         const plotBlock = (x, y, z) => {
-            RasterUtils.plotDepthText(buffer, x, y, z, fillSymbol, fillColor);
+            if (RasterUtils.plotDepthText(buffer, x, y, z, fillSymbol, fillColor)) {
+                plotCount += 1;
+            }
             if (step > 1) {
-                RasterUtils.plotDepthText(buffer, x + 1, y, z, fillSymbol, fillColor);
-                RasterUtils.plotDepthText(buffer, x, y + 1, z, fillSymbol, fillColor);
-                RasterUtils.plotDepthText(buffer, x + 1, y + 1, z, fillSymbol, fillColor);
+                if (RasterUtils.plotDepthText(buffer, x + 1, y, z, fillSymbol, fillColor)) {
+                    plotCount += 1;
+                }
+                if (RasterUtils.plotDepthText(buffer, x, y + 1, z, fillSymbol, fillColor)) {
+                    plotCount += 1;
+                }
+                if (RasterUtils.plotDepthText(buffer, x + 1, y + 1, z, fillSymbol, fillColor)) {
+                    plotCount += 1;
+                }
             }
         };
 
@@ -251,8 +286,8 @@ class RasterUtils {
                 const centerDenom = ThreeDUtils.dotVec(normal, centerRay);
                 if (Math.abs(centerDenom) > 0.000001) {
                     const tCenter = ThreeDUtils.dotVec(normal, insetVertices[0]) / centerDenom;
-                    if (tCenter > nearPlane - 0.00001) {
-                        const centerPoint = ThreeDUtils.scaleVec(centerRay, tCenter);
+                    const centerPoint = ThreeDUtils.scaleVec(centerRay, tCenter);
+                    if (centerPoint.z >= nearPlane - 0.00001) {
                         const center2D = { x: ThreeDUtils.dotVec(centerPoint, basis.u), y: ThreeDUtils.dotVec(centerPoint, basis.v) };
                         if (PolygonUtils.isPointInPolygon2D(center2D, polygon2D)) {
                             centerInside = true;
@@ -261,13 +296,48 @@ class RasterUtils {
                     }
                 }
 
-                if (centerInside) {
+                if (!centerInside) {
+                    const offsets = [
+                        { dx: 0.25, dy: 0.25 },
+                        { dx: 0.75, dy: 0.25 },
+                        { dx: 0.25, dy: 0.75 },
+                        { dx: 0.75, dy: 0.75 }
+                    ];
+                    for (let i = 0; i < offsets.length; i++) {
+                        const sample = offsets[i];
+                        const sampleRay = RasterUtils.screenRayDirection(x + sample.dx, y + sample.dy, viewWidth, viewHeight, fovDeg);
+                        const sampleDenom = ThreeDUtils.dotVec(normal, sampleRay);
+                        if (Math.abs(sampleDenom) <= 0.000001) {
+                            continue;
+                        }
+                        const tSample = ThreeDUtils.dotVec(normal, insetVertices[0]) / sampleDenom;
+                        const samplePoint = ThreeDUtils.scaleVec(sampleRay, tSample);
+                        if (samplePoint.z < nearPlane - 0.00001) {
+                            continue;
+                        }
+                        const sample2D = { x: ThreeDUtils.dotVec(samplePoint, basis.u), y: ThreeDUtils.dotVec(samplePoint, basis.v) };
+                        if (PolygonUtils.isPointInPolygon2D(sample2D, polygon2D)) {
+                            const sampleZ = samplePoint.z;
+                            closestZ = closestZ === null ? sampleZ : Math.min(closestZ, sampleZ);
+                        }
+                    }
+                }
+
+                if (closestZ !== null) {
                     plotBlock(x, y, closestZ + bias);
-                    continue;
                 }
 
             }
         }
+
+        let usedFallback = false;
+        if (plotCount === 0 && inViewCount > 0) {
+            for (let i = 1; i < projected.length - 1; i++) {
+                RasterUtils.fillDepthTriangle(buffer, projected[0], projected[i], projected[i + 1], fillSymbol, fillColor, bias);
+            }
+            usedFallback = true;
+        }
+        return { plotCount, usedFallback, inViewCount, fillMode };
     }
 
     static projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, fovDeg) {

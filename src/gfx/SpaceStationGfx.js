@@ -3,6 +3,13 @@
  */
 
 const SpaceStationGfx = (() => {
+    const FACE_DEBUG_COLORS = [
+        'red', 'green', 'yellow', 'blue',
+        'orange', 'purple', 'cyan', 'magenta',
+        'lime', 'pink', 'teal', 'lavender',
+        'brown', 'beige'
+    ];
+
     function lerpColorHex(a, b, t) {
         const ar = parseInt(a.slice(1, 3), 16);
         const ag = parseInt(a.slice(3, 5), 16);
@@ -14,6 +21,10 @@ const SpaceStationGfx = (() => {
         const rg = Math.round(ag + (bg - ag) * t);
         const rb = Math.round(ab + (bb - ab) * t);
         return `#${rr.toString(16).padStart(2, '0')}${rg.toString(16).padStart(2, '0')}${rb.toString(16).padStart(2, '0')}`;
+    }
+
+    function getFaceDebugColor(faceIndex) {
+        return FACE_DEBUG_COLORS[faceIndex % FACE_DEBUG_COLORS.length];
     }
     function buildCuboctahedronGeometry(station, sizeOverride = null) {
         const baseSize = typeof sizeOverride === 'number'
@@ -149,7 +160,7 @@ const SpaceStationGfx = (() => {
         return bounds ? bounds.area : 0;
     }
 
-    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias, scale = 1, debug = false) {
+    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias, scale = 1, debug = false, debugFaceIndex = null, debugFaceOutline = false, debugFaceFillMode = 'ray') {
         if (stations.length === 0) {
             return;
         }
@@ -189,6 +200,9 @@ const SpaceStationGfx = (() => {
             const depthRange = Math.max(0.000001, maxDepth - minDepth);
 
             geometry.faces.forEach((face, faceIndex) => {
+                if (typeof debugFaceIndex === 'number' && faceIndex !== debugFaceIndex) {
+                    return;
+                }
                 const isEntrance = geometry.entranceFace && isSameFace(face, geometry.entranceFace);
                 const cameraFace = face.map(idx => projectedVertices[idx].cameraSpace);
                 const scaledCameraFace = scale === 1
@@ -197,52 +211,176 @@ const SpaceStationGfx = (() => {
                         const offset = ThreeDUtils.subVec(v, stationCameraCenter);
                         return ThreeDUtils.addVec(stationCameraCenter, ThreeDUtils.scaleVec(offset, scale));
                     });
+                const faceZ = scaledCameraFace.map(v => v.z);
+                const minFaceZ = Math.min(...faceZ);
+                const maxFaceZ = Math.max(...faceZ);
+                const behindCount = faceZ.filter(z => z < nearPlane).length;
+                const debugColor = getFaceDebugColor(faceIndex);
+                const debugClipDistances = faceZ.map(z => z - nearPlane);
+                const debugNearPlane = minFaceZ < nearPlane * 10;
                 const clipped = PolygonUtils.clipPolygonToNearPlane(scaledCameraFace, nearPlane);
                 if (clipped.length < 3) {
+                    if (debug && (debugNearPlane || behindCount > 0)) {
+                        console.log('[StationFaceCullDebug]', {
+                            stationId: station.id,
+                            faceIndex,
+                            reason: 'clipped',
+                            debugColor,
+                            faceZ,
+                            clipDistances: debugClipDistances,
+                            behindCount,
+                            clippedCount: clipped.length,
+                            minFaceZ,
+                            maxFaceZ,
+                            nearPlane
+                        });
+                    }
                     return;
                 }
-                const normal = ThreeDUtils.crossVec(
-                    ThreeDUtils.subVec(clipped[1], clipped[0]),
-                    ThreeDUtils.subVec(clipped[2], clipped[0])
+                const rawNormal = ThreeDUtils.crossVec(
+                    ThreeDUtils.subVec(scaledCameraFace[1], scaledCameraFace[0]),
+                    ThreeDUtils.subVec(scaledCameraFace[2], scaledCameraFace[0])
                 );
-                if (ThreeDUtils.vecLength(normal) === 0) {
+                let normal = rawNormal;
+                let normalSource = 'raw';
+                let normalLen = ThreeDUtils.vecLength(normal);
+                if (normalLen === 0) {
+                    normal = ThreeDUtils.crossVec(
+                        ThreeDUtils.subVec(clipped[1], clipped[0]),
+                        ThreeDUtils.subVec(clipped[2], clipped[0])
+                    );
+                    normalSource = 'clipped';
+                    normalLen = ThreeDUtils.vecLength(normal);
+                }
+                if (normalLen === 0) {
+                    if (debug && (debugNearPlane || behindCount > 0)) {
+                        console.log('[StationFaceCullDebug]', {
+                            stationId: station.id,
+                            faceIndex,
+                            reason: 'degenerate-normal',
+                            debugColor,
+                            faceZ,
+                            clipDistances: debugClipDistances,
+                            behindCount,
+                            clippedCount: clipped.length,
+                            minFaceZ,
+                            maxFaceZ,
+                            normalSource,
+                            nearPlane
+                        });
+                    }
                     return;
                 }
+                let normalUnit = ThreeDUtils.scaleVec(normal, 1 / normalLen);
+                let viewDot = normalUnit.z;
                 const basis = PolygonUtils.buildPlaneBasis(normal);
-                const ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
+                let ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
+                let normalFlipped = false;
+                if (viewDot < 0) {
+                    ordered = ordered.slice().reverse();
+                    normalUnit = ThreeDUtils.scaleVec(normalUnit, -1);
+                    viewDot = -viewDot;
+                    normalFlipped = true;
+                }
 
                 const projectedFace = ordered
                     .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, 75))
                     .filter(p => p !== null);
                 if (projectedFace.length < 3) {
-                    return;
-                }
-                if (debug && edgeDebugCount < 3) {
-                    const inViewCount = projectedFace.filter(p => (
-                        p.x >= 0 && p.x < viewWidth && p.y >= 0 && p.y < viewHeight
-                    )).length;
-                    if (inViewCount > 0 && inViewCount < projectedFace.length) {
-                        edgeDebugCount += 1;
-                        const minX = Math.min(...projectedFace.map(p => p.x));
-                        const maxX = Math.max(...projectedFace.map(p => p.x));
-                        const minY = Math.min(...projectedFace.map(p => p.y));
-                        const maxY = Math.max(...projectedFace.map(p => p.y));
-                        console.log('[StationFaceEdgeDebug]', {
+                    if (debug && (debugNearPlane || behindCount > 0)) {
+                        console.log('[StationFaceCullDebug]', {
                             stationId: station.id,
                             faceIndex,
-                            inViewCount,
+                            reason: 'projected',
+                            debugColor,
+                            faceZ,
+                            clipDistances: debugClipDistances,
+                            behindCount,
+                            clippedCount: clipped.length,
+                            orderedCount: ordered.length,
                             projectedCount: projectedFace.length,
-                            minX,
-                            maxX,
-                            minY,
-                            maxY
+                            normal: normalUnit,
+                            normalFlipped,
+                            normalSource,
+                            viewDot,
+                            minFaceZ,
+                            maxFaceZ,
+                            nearPlane
+                        });
+                    }
+                    return;
+                }
+                const inViewCount = projectedFace.filter(p => (
+                    p.x >= 0 && p.x < viewWidth && p.y >= 0 && p.y < viewHeight
+                )).length;
+                const minX = Math.min(...projectedFace.map(p => p.x));
+                const maxX = Math.max(...projectedFace.map(p => p.x));
+                const minY = Math.min(...projectedFace.map(p => p.y));
+                const maxY = Math.max(...projectedFace.map(p => p.y));
+                if (debugFaceOutline) {
+                    for (let i = 0; i < projectedFace.length; i++) {
+                        const a = projectedFace[i];
+                        const b = projectedFace[(i + 1) % projectedFace.length];
+                        const x1 = Math.round(a.x - 0.5);
+                        const y1 = Math.round(a.y - 0.5);
+                        const x2 = Math.round(b.x - 0.5);
+                        const y2 = Math.round(b.y - 0.5);
+                        const linePoints = LineDrawer.drawLine(x1, y1, x2, y2, true, COLORS.TEXT_NORMAL);
+                        linePoints.forEach(point => {
+                            if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
+                                const total = Math.hypot(x2 - x1, y2 - y1) || 1;
+                                const current = Math.hypot(point.x - x1, point.y - y1);
+                                const t = current / total;
+                                const z = a.z + (b.z - a.z) * t;
+                                RasterUtils.plotDepthText(depthBuffer, point.x, point.y, z - faceBias, point.symbol, point.color);
+                            }
                         });
                     }
                 }
                 const depthT = 1 - ((faceDepths[faceIndex] - minDepth) / depthRange);
                 const clampedT = Math.max(0, Math.min(1, depthT));
-                const faceColor = lerpColorHex('#000000', '#888888', clampedT);
-                RasterUtils.rasterizeFaceDepth(depthBuffer, ordered, viewWidth, viewHeight, '█', faceColor, faceBias, nearPlane, 75);
+                const depthColor = lerpColorHex('#000000', '#888888', clampedT);
+                const faceColor = debug ? debugColor : depthColor;
+                const rasterResult = RasterUtils.rasterizeFaceDepth(
+                    depthBuffer,
+                    ordered,
+                    viewWidth,
+                    viewHeight,
+                    '█',
+                    faceColor,
+                    faceBias,
+                    nearPlane,
+                    75,
+                    debugFaceFillMode
+                );
+                if (debug) {
+                    console.log('[StationFaceDebug]', {
+                        stationId: station.id,
+                        faceIndex,
+                        debugColor,
+                        inViewCount,
+                        projectedCount: projectedFace.length,
+                        clippedCount: clipped.length,
+                        behindCount,
+                        clipDistances: debugClipDistances,
+                        normal: normalUnit,
+                        normalFlipped,
+                        normalSource,
+                        viewDot,
+                        minFaceZ,
+                        maxFaceZ,
+                        nearPlane,
+                        minX,
+                        maxX,
+                        minY,
+                        maxY,
+                        rasterPlotCount: rasterResult.plotCount,
+                        rasterUsedFallback: rasterResult.usedFallback,
+                        rasterInViewCount: rasterResult.inViewCount,
+                        rasterFillMode: rasterResult.fillMode
+                    });
+                }
+
 
                 if (isEntrance) {
                     const center = scaledCameraFace.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });

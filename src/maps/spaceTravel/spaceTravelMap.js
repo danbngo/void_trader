@@ -52,6 +52,49 @@ const SpaceTravelMap = (() => {
     let boostStartTimestampMs = 0;
     let boostBlockMessage = '';
     let boostTurnMessage = '';
+    let lastDamageSource = null;
+    let deathSequenceActive = false;
+    let deathSequenceStartMs = 0;
+
+    function recordDamageSource(source) {
+        if (source) {
+            lastDamageSource = source;
+        }
+    }
+
+    function getDestructionReason() {
+        if (!lastDamageSource) {
+            return 'Your ship is disabled.';
+        }
+        const name = lastDamageSource.name || lastDamageSource.id || 'the hazard';
+        switch (lastDamageSource.type) {
+            case 'STAR_IMPACT':
+                return `You flew into ${name}!`;
+            case 'STAR_HEAT':
+                return `Heat damage from ${name} destroys your ship!`;
+            case 'STATION_COLLISION':
+                return `Your ship is destroyed after colliding with ${name}!`;
+            default:
+                return 'Your ship is disabled.';
+        }
+    }
+
+    function startDeathSequence(timestampMs) {
+        if (deathSequenceActive) {
+            return;
+        }
+        deathSequenceActive = true;
+        deathSequenceStartMs = timestampMs;
+        boostActive = false;
+        playerShip.velocity = { x: 0, y: 0, z: 0 };
+    }
+
+    function isDeathSequenceComplete(timestampMs) {
+        const redSec = Math.max(0.01, config.DEATH_FADE_TO_RED_SEC || 1);
+        const blackSec = Math.max(0.01, config.DEATH_FADE_TO_BLACK_SEC || 1);
+        const elapsedSec = Math.max(0, (timestampMs - deathSequenceStartMs) / 1000);
+        return elapsedSec >= (redSec + blackSec);
+    }
 
     function getNearestPlanet() {
         if (!targetSystem || !currentGameState || !playerShip) {
@@ -81,17 +124,26 @@ const SpaceTravelMap = (() => {
         return nearest || targetSystem.primaryBody || planets[0] || null;
     }
 
-    function handleTowFromSpace() {
+    function handleTowFromSpace(timestampMs = 0) {
         if (!currentGameState || !playerShip || playerShip.hull > 0) {
+            return false;
+        }
+        if (!deathSequenceActive) {
+            startDeathSequence(timestampMs);
+            return false;
+        }
+        if (!isDeathSequenceComplete(timestampMs)) {
             return false;
         }
         const towLocation = getNearestPlanet();
         const towSystemIndex = currentGameState.currentSystemIndex ?? currentGameState.previousSystemIndex;
+        const reason = getDestructionReason();
         stop();
         TowMenu.show(currentGameState, {
             location: towLocation,
             systemIndex: towSystemIndex,
-            systemName: targetSystem?.name
+            systemName: targetSystem?.name,
+            reason
         });
         return true;
     }
@@ -129,6 +181,10 @@ const SpaceTravelMap = (() => {
         UI.clear();
         UI.resetSelection();
         UI.clearOutputRow();
+
+        deathSequenceActive = false;
+        deathSequenceStartMs = 0;
+        lastDamageSource = null;
 
         const resetPosition = options.resetPosition !== false;
 
@@ -285,6 +341,9 @@ const SpaceTravelMap = (() => {
             getPaused: () => isPaused,
             getPausedByFocus: () => pausedByFocus,
             onEscape: () => {
+                if (deathSequenceActive) {
+                    return;
+                }
                 stop();
                 SpaceTravelMenu.show(currentGameState, () => {
                     const destination = targetSystem || SpaceTravelLogic.getNearestSystem(currentGameState);
@@ -294,19 +353,30 @@ const SpaceTravelMap = (() => {
                     });
                 });
             },
-            onTogglePause: togglePause
+            onTogglePause: () => {
+                if (deathSequenceActive) {
+                    return;
+                }
+                togglePause();
+            }
         });
         SpaceTravelInput.setupMouseTargeting({
             handlers: inputState,
             config,
             getLastHoverPick: () => lastHoverPick,
             onPick: (pick) => {
+                if (deathSequenceActive) {
+                    return;
+                }
                 localDestination = SpaceTravelUi.setLocalDestinationFromPick(pick, {
                     currentGameState,
                     localDestination
                 }, config);
             },
             onFire: () => {
+                if (deathSequenceActive) {
+                    return;
+                }
                 fireLaser();
             }
         });
@@ -380,6 +450,13 @@ const SpaceTravelMap = (() => {
         }
 
         if (isPaused) {
+            return;
+        }
+
+        if (deathSequenceActive) {
+            if (handleTowFromSpace(timestampMs)) {
+                return;
+            }
             return;
         }
 
@@ -536,7 +613,7 @@ const SpaceTravelMap = (() => {
         playerShip.position = ThreeDUtils.addVec(playerShip.position, ThreeDUtils.scaleVec(playerShip.velocity, dt));
 
         if (applyStarHazards(dt, timestampMs)) {
-            if (handleTowFromSpace()) {
+            if (handleTowFromSpace(timestampMs)) {
                 return;
             }
         }
@@ -573,6 +650,12 @@ const SpaceTravelMap = (() => {
                 targetSystem,
                 lastStationCollisionMs,
                 damageFlashStartMs,
+                onDamage: ({ station }) => {
+                    recordDamageSource({
+                        type: 'STATION_COLLISION',
+                        name: station?.name || station?.id || 'the station'
+                    });
+                },
                 onStop: stop,
                 onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget }) => {
                     DockingAnimation.show(dockGameState, () => {
@@ -588,7 +671,7 @@ const SpaceTravelMap = (() => {
             }
         }
 
-        if (handleTowFromSpace()) {
+        if (handleTowFromSpace(timestampMs)) {
             return;
         }
 
@@ -702,12 +785,23 @@ const SpaceTravelMap = (() => {
             const orbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
             const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
             const dist = ThreeDUtils.distance(playerShip.position, worldPos);
-            const radius = star.radiusAU || 0;
+            const bodyDockScale = (typeof config.SYSTEM_BODY_PHYSICS_SCALE === 'number' && config.SYSTEM_BODY_PHYSICS_SCALE > 0)
+                ? config.SYSTEM_BODY_PHYSICS_SCALE
+                : 1;
+            const radius = (star.radiusAU || 0) * bodyDockScale;
 
             if (radius > 0 && dist <= radius) {
+                const toShip = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(playerShip.position, worldPos));
+                playerShip.position = ThreeDUtils.addVec(worldPos, ThreeDUtils.scaleVec(toShip, radius));
+                playerShip.velocity = { x: 0, y: 0, z: 0 };
                 playerShip.shields = 0;
                 playerShip.hull = 0;
+                recordDamageSource({
+                    type: 'STAR_IMPACT',
+                    name: star.name || star.id || 'the star'
+                });
                 damageFlashStartMs = timestampMs;
+                startDeathSequence(timestampMs);
                 return true;
             }
 
@@ -716,7 +810,10 @@ const SpaceTravelMap = (() => {
                 const t = 1 - Math.min(1, (dist - radius) / Math.max(0.000001, heatRange - radius));
                 const damage = config.STAR_HEAT_DAMAGE_PER_SEC * t * dt;
                 if (damage > 0) {
-                    applyDamageToPlayer(damage);
+                    applyDamageToPlayer(damage, {
+                        type: 'STAR_HEAT',
+                        name: star.name || star.id || 'the star'
+                    });
                     tookDamage = true;
                 }
             }
@@ -731,7 +828,7 @@ const SpaceTravelMap = (() => {
         return false;
     }
 
-    function applyDamageToPlayer(damage) {
+    function applyDamageToPlayer(damage, source = null) {
         let remaining = damage;
         if (playerShip.shields > 0) {
             const shieldDamage = Math.min(playerShip.shields, remaining);
@@ -740,6 +837,9 @@ const SpaceTravelMap = (() => {
         }
         if (remaining > 0) {
             playerShip.hull = Math.max(0, playerShip.hull - remaining);
+            if (source) {
+                recordDamageSource(source);
+            }
         }
     }
 
@@ -927,6 +1027,33 @@ const SpaceTravelMap = (() => {
                 ctx.fillStyle = '#ff0000';
                 ctx.fillRect(0, 0, rect.width, rect.height);
                 ctx.restore();
+            }
+        }
+
+        if (deathSequenceActive) {
+            const redSec = Math.max(0.01, config.DEATH_FADE_TO_RED_SEC || 1);
+            const blackSec = Math.max(0.01, config.DEATH_FADE_TO_BLACK_SEC || 1);
+            const elapsedSec = Math.max(0, (timestampMs - deathSequenceStartMs) / 1000);
+            const redT = Math.min(1, elapsedSec / redSec);
+            const blackT = Math.min(1, Math.max(0, (elapsedSec - redSec) / blackSec));
+            const ctx = UI.getContext?.();
+            const canvas = UI.getCanvas?.();
+            if (ctx && canvas) {
+                const rect = canvas.getBoundingClientRect();
+                if (redT > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = redT;
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(0, 0, rect.width, rect.height);
+                    ctx.restore();
+                }
+                if (blackT > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = blackT;
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, rect.width, rect.height);
+                    ctx.restore();
+                }
             }
         }
 

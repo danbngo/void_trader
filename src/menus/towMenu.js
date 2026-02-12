@@ -39,14 +39,16 @@ const TowMenu = (() => {
         const towSystemName = towContext?.systemName || previousSystem?.name || 'the previous system';
         const towLocationName = towContext?.location?.name || null;
         const towText = towLocationName ? `${towLocationName}` : towSystemName;
+        const reasonText = towContext?.reason || null;
         
-        UI.addText(10, y++, `You call for a tow ship...`, COLORS.TEXT);
-        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.TEXT);
+        if (reasonText) {
+            UI.addText(10, y++, reasonText, COLORS.TEXT_ERROR);
+            y += 1;
+        }
+        UI.addText(10, y++, `A tow ship recovers your fleet.`, COLORS.TEXT);
         UI.addText(10, y++, `You are towed back to ${towText}.`, COLORS.TEXT);
-        UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
-        y += 1;
-        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.TEXT);
-        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.TEXT);
+        UI.addText(10, y++, `Your weakest vessel is patched to 1 hull.`, COLORS.TEXT);
+        UI.addText(10, y++, `All cargo is lost.`, COLORS.TEXT_ERROR);
         y += 1;
         
         const buttonY = grid.height - 3;

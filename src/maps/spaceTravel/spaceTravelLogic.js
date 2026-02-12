@@ -11,6 +11,7 @@ const SpaceTravelLogic = (() => {
         targetSystem,
         lastStationCollisionMs,
         damageFlashStartMs,
+        onDamage,
         onStop,
         onDock,
         config
@@ -180,6 +181,14 @@ const SpaceTravelLogic = (() => {
             playerShip.hull = Math.max(0, (playerShip.hull ?? 0) - damage);
             lastStationCollisionMs = timestampMs;
             damageFlashStartMs = timestampMs;
+            if (onDamage) {
+                onDamage({
+                    type: 'STATION_COLLISION',
+                    station,
+                    damage,
+                    hullAfter: playerShip.hull
+                });
+            }
             if (config.DEBUG_STATION_COLLISION) {
                 console.log('[SpaceTravelMap] Collision damage', {
                     ...collisionDebug,

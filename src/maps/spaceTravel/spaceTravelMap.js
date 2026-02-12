@@ -35,6 +35,8 @@ class SpaceTravelMapClass {
         this.lastHoverPick = null;
         this.isPaused = false;
         this.pausedByFocus = false;
+        this.pauseTimestampMs = 0;
+        this.pausedDurationMs = 0;
 
         // Animation and rendering state
         this.isActive = false;
@@ -42,6 +44,7 @@ class SpaceTravelMapClass {
         this.lastTimestamp = 0;
         this.lastAsciiLogTimestamp = 0;
         this.lastRollLogMs = 0;
+        this.lastAutoNavLogMs = 0;
 
         // Particle and visual state
         this.starSystems = [];
@@ -73,14 +76,40 @@ class SpaceTravelMapClass {
         this.autoNavActive = false;
         this.autoNavInput = null;
 
+        // Portal / warp state
+        this.portalActive = false;
+        this.portalPosition = null;
+        this.portalRadius = 0;
+        this.portalOpenTimestampMs = 0;
+        this.portalCloseTimestampMs = 0;
+        this.portalTargetSystem = null;
+        this.warpFadeOutStartMs = 0;
+
         // Damage and collision state
         this.damageFlashStartMs = 0;
         this.lastStationCollisionMs = 0;
     }
 
     setPaused(nextPaused, byFocus = false) {
+        const now = performance.now();
+        if (nextPaused && !this.isPaused) {
+            this.pauseTimestampMs = now;
+        }
+        if (!nextPaused && this.isPaused) {
+            if (this.pauseTimestampMs) {
+                this.pausedDurationMs += (now - this.pauseTimestampMs);
+            }
+            this.pauseTimestampMs = 0;
+        }
         this.isPaused = nextPaused;
         this.pausedByFocus = nextPaused && byFocus;
+    }
+
+    _getRenderTimestampMs(timestampMs) {
+        if (this.isPaused) {
+            return this.pauseTimestampMs || timestampMs;
+        }
+        return Math.max(0, timestampMs - this.pausedDurationMs);
     }
 
     togglePause() {
@@ -112,6 +141,22 @@ class SpaceTravelMapClass {
             currentGameState: this.currentGameState,
             playerShip: this.playerShip
         }, this.config);
+    }
+
+    openTravelPortal(targetSystem, timestampMs = performance.now()) {
+        if (!this.playerShip || !targetSystem) {
+            return;
+        }
+        const forward = ThreeDUtils.getLocalAxes(this.playerShip.rotation).forward;
+        const distance = this.config.PORTAL_DISTANCE_AU;
+        const position = ThreeDUtils.addVec(this.playerShip.position, ThreeDUtils.scaleVec(forward, distance));
+
+        this.portalActive = true;
+        this.portalPosition = position;
+        this.portalRadius = this.config.PORTAL_RADIUS_AU;
+        this.portalOpenTimestampMs = timestampMs;
+        this.portalCloseTimestampMs = timestampMs + (this.config.PORTAL_DURATION_MS || 5000);
+        this.portalTargetSystem = targetSystem;
     }
 
     toggleAutoNav() {
@@ -155,6 +200,15 @@ class SpaceTravelMapClass {
         this._positionPlayerShip(resetPosition);
         this._initializeStarfield();
         this._updateVisibility();
+
+        this.portalActive = false;
+        this.portalPosition = null;
+        this.portalTargetSystem = null;
+        this.warpFadeOutStartMs = options.warpFadeOut ? performance.now() : 0;
+
+        if (options.openPortalTargetSystem) {
+            this.openTravelPortal(options.openPortalTargetSystem, performance.now());
+        }
 
         SpaceTravelInput.initializeInputHandlers(this);
         this.isActive = true;
@@ -303,6 +357,10 @@ class SpaceTravelMapClass {
         this.lastHoverPick = null;
         this.autoNavActive = false;
         this.autoNavInput = null;
+        this.portalActive = false;
+        this.portalPosition = null;
+        this.portalTargetSystem = null;
+        this.warpFadeOutStartMs = 0;
     }
 
     startLoop() {
@@ -350,6 +408,7 @@ class SpaceTravelMapClass {
             this._updateAutoNav(dt, timestampMs);
         }
         this._updateMovement(dt, timestampMs);
+        if (this._updatePortal(timestampMs)) return;
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
         this.docking.checkDocking(this);
@@ -472,6 +531,97 @@ class SpaceTravelMapClass {
         this.playerShip.position = ThreeDUtils.addVec(this.playerShip.position, ThreeDUtils.scaleVec(this.playerShip.velocity, dt));
     }
 
+    _updatePortal(timestampMs) {
+        if (!this.portalActive || !this.portalPosition || !this.portalTargetSystem) {
+            return false;
+        }
+
+        if (timestampMs >= this.portalCloseTimestampMs) {
+            this.portalActive = false;
+            this.portalPosition = null;
+            this.portalTargetSystem = null;
+            return false;
+        }
+
+        const distance = ThreeDUtils.distance(this.playerShip.position, this.portalPosition);
+        if (distance <= this.portalRadius) {
+            this._startWarp(this.portalTargetSystem);
+            return true;
+        }
+
+        return false;
+    }
+
+    _startWarp(targetSystem) {
+        if (!targetSystem || !this.currentGameState) {
+            return;
+        }
+
+        const gameState = this.currentGameState;
+        const previousIndex = gameState.currentSystemIndex;
+
+        this.portalActive = false;
+        this.portalPosition = null;
+        this.portalTargetSystem = null;
+        this.autoNavActive = false;
+        this.autoNavInput = null;
+
+        this.stop();
+
+        WarpAnimation.show(gameState, targetSystem, (state, destination) => {
+            const targetIndex = state.systems.findIndex(system => system === destination || system.name === destination?.name);
+            if (targetIndex >= 0) {
+                if (typeof state.setCurrentSystem === 'function') {
+                    state.setCurrentSystem(targetIndex);
+                } else {
+                    state.currentSystemIndex = targetIndex;
+                }
+            }
+            state.previousSystemIndex = previousIndex;
+            state.destination = null;
+            state.localDestination = null;
+            state.localDestinationSystemIndex = null;
+
+            SpaceTravelMap.show(state, destination, {
+                resetPosition: true,
+                warpFadeOut: true
+            });
+        });
+    }
+
+    _renderPortal(depthBuffer, viewWidth, viewHeight) {
+        if (!this.portalActive || !this.portalPosition) {
+            return;
+        }
+
+        const relative = ThreeDUtils.subVec(this.portalPosition, this.playerShip.position);
+        const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(this.playerShip.rotation));
+        if (cameraSpace.z <= this.config.NEAR_PLANE) {
+            return;
+        }
+
+        const segments = Math.max(8, this.config.PORTAL_SEGMENTS || 32);
+        const radius = this.portalRadius;
+        const step = (Math.PI * 2) / segments;
+        for (let i = 0; i < segments; i++) {
+            const angle = i * step;
+            const point = {
+                x: cameraSpace.x + Math.cos(angle) * radius,
+                y: cameraSpace.y + Math.sin(angle) * radius,
+                z: cameraSpace.z
+            };
+            const projected = RasterUtils.projectCameraSpacePointRaw(point, viewWidth, viewHeight, this.config.VIEW_FOV);
+            if (!projected) {
+                continue;
+            }
+            const x = Math.round(projected.x);
+            const y = Math.round(projected.y);
+            if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
+                RasterUtils.plotDepthText(depthBuffer, x, y, point.z, 'o', COLORS.CYAN);
+            }
+        }
+    }
+
     _getAutoNavDesiredDistance(targetInfo) {
         if (!targetInfo) {
             return 0;
@@ -533,7 +683,9 @@ class SpaceTravelMapClass {
         }
 
         const toTargetDir = ThreeDUtils.normalizeVec(toTarget);
-        SpaceTravelInput.applyAutoNavRotation(this, dt, timestampMs, toTargetDir);
+        if (!this.boostActive) {
+            SpaceTravelInput.applyAutoNavRotation(this, dt, timestampMs, toTargetDir);
+        }
 
         const engine = this.playerShip.engine || 10;
         const baseMaxSpeed = this.getBaseMaxSpeed(this.playerShip);
@@ -542,33 +694,67 @@ class SpaceTravelMapClass {
         const desiredDistance = this._getAutoNavDesiredDistance(targetInfo);
         const distanceToStop = Math.max(0, distance - desiredDistance);
         const maxSpeed = this.getMaxSpeed(this.playerShip, false);
-        const desiredSpeed = Math.min(maxSpeed, Math.sqrt(Math.max(0, 2 * brakeAccel * distanceToStop)));
+        const speedNow = ThreeDUtils.vecLength(this.playerShip.velocity);
+        const stoppingDistance = brakeAccel > 0 ? (speedNow * speedNow) / (2 * brakeAccel) : Number.POSITIVE_INFINITY;
+        const brakeBuffer = 1.15;
+        const shouldCruise = distanceToStop > (stoppingDistance * brakeBuffer);
+        const desiredSpeed = shouldCruise
+            ? maxSpeed
+            : Math.min(maxSpeed, Math.sqrt(Math.max(0, 2 * brakeAccel * distanceToStop)));
 
         const forward = ThreeDUtils.getLocalAxes(this.playerShip.rotation).forward;
         const alignment = ThreeDUtils.dotVec(forward, toTargetDir);
-        const alignedSpeedCap = alignment < 0.5
-            ? Math.min(desiredSpeed, baseMaxSpeed * 0.25)
+        const alignedSpeedCap = alignment < 0.2
+            ? Math.min(desiredSpeed, baseMaxSpeed * 0.2)
             : desiredSpeed;
 
-        const speedNow = ThreeDUtils.vecLength(this.playerShip.velocity);
-        const speedDeadband = Math.max(0.01, baseMaxSpeed * 0.05);
-        const accelerate = alignment > 0.6 && speedNow < (alignedSpeedCap - speedDeadband);
-        const brake = speedNow > (alignedSpeedCap + speedDeadband) || alignment < 0.1;
+        const speedDeadband = Math.max(0.0002, baseMaxSpeed * 0.01);
+        const accelerate = alignment > 0.3 && (shouldCruise
+            ? speedNow < alignedSpeedCap
+            : speedNow < (alignedSpeedCap - speedDeadband));
+        const brake = shouldCruise
+            ? (speedNow > alignedSpeedCap + speedDeadband && alignment < 0.95)
+            : (speedNow > (alignedSpeedCap + speedDeadband) || alignment < -0.1);
 
         const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
         const hasFuel = (this.playerShip.fuel ?? 0) > 0;
         const canBoost = hasFuel && this.boostCooldownRemaining <= 0 && boostReady;
+        const boostMaxSpeed = this.getMaxSpeed(this.playerShip, true);
         const boostDistanceMin = baseMaxSpeed * 2;
-        const boostDesired = canBoost
+        const wantsBoostSpeed = shouldCruise && boostMaxSpeed > (baseMaxSpeed * 1.05);
+        const keepBoosting = this.boostActive
+            && canBoost
+            && distanceToStop > boostDistanceMin
+            && alignment > 0.6
+            && !brake;
+        const boostDesired = keepBoosting || (canBoost
             && alignment > 0.98
             && distanceToStop > boostDistanceMin
-            && desiredSpeed > (baseMaxSpeed * 1.1);
+            && wantsBoostSpeed);
 
         this.autoNavInput = {
             accelerate,
             brake,
             boost: boostDesired
         };
+
+        if (timestampMs && (timestampMs - this.lastAutoNavLogMs) >= 250) {
+            console.log('[AutoNav]', {
+                distance: Number(distance.toFixed(4)),
+                distanceToStop: Number(distanceToStop.toFixed(4)),
+                desiredDistance: Number(desiredDistance.toFixed(4)),
+                alignment: Number(alignment.toFixed(3)),
+                speedNow: Number(speedNow.toFixed(4)),
+                desiredSpeed: Number(desiredSpeed.toFixed(4)),
+                maxSpeed: Number(maxSpeed.toFixed(4)),
+                boostReady,
+                wantsBoostSpeed,
+                boostDesired,
+                accelerate,
+                brake
+            });
+            this.lastAutoNavLogMs = timestampMs;
+        }
     }
 
     regenShipStats(dt) {
@@ -599,6 +785,7 @@ class SpaceTravelMapClass {
         if (!this.isActive) {
             return;
         }
+        const renderTimestampMs = this._getRenderTimestampMs(timestampMs);
         UI.setGameCursorEnabled?.(!this.isPaused);
         UI.clear();
         UI.clearOutputRow();
@@ -608,13 +795,13 @@ class SpaceTravelMapClass {
         const viewWidth = grid.width;
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
-        this._renderSceneDepthBuffer(depthBuffer, timestampMs, viewWidth, viewHeight);
-        this._addDebugMessages(timestampMs, viewWidth, viewHeight);
+        this._renderSceneDepthBuffer(depthBuffer, renderTimestampMs, viewWidth, viewHeight);
+        this._addDebugMessages(renderTimestampMs, viewWidth, viewHeight);
 
         UI.draw();
 
         // Render visual effects AFTER UI.draw() so they appear on top
-        this._renderVisualEffects(depthBuffer, timestampMs);
+        this._renderVisualEffects(depthBuffer, renderTimestampMs);
 
         if (this.config.ASCII_LOG_INTERVAL_MS && (!this.lastAsciiLogTimestamp || (Date.now() - this.lastAsciiLogTimestamp) >= this.config.ASCII_LOG_INTERVAL_MS)) {
             this.lastAsciiLogTimestamp = Date.now();
@@ -641,6 +828,8 @@ class SpaceTravelMapClass {
             ...renderParams,
             setLastHoverPick: (pick) => { this.lastHoverPick = pick; }
         });
+
+        this._renderPortal(depthBuffer, viewWidth, viewHeight);
 
         SpaceTravelParticles.renderStars(renderParams);
 
@@ -724,6 +913,7 @@ class SpaceTravelMapClass {
         this.animation.renderDamageFlash(this, timestampMs);
         this._renderDockingFade(timestampMs);
         this.animation.renderDeathSequence(this, timestampMs);
+        this.animation.renderWarpFade(this, timestampMs);
     }
 
     _renderDockingFade(timestampMs) {

@@ -8,6 +8,14 @@ const SpaceTravelConfig = {
     PANEL_HEIGHT: 9,
     PANEL_CURSOR_SCROLL_ROWS: 3,
 
+    PORTAL_DISTANCE_AU: 0.01,
+    PORTAL_RADIUS_AU: 0.0025,
+    PORTAL_DURATION_MS: 5000,
+    PORTAL_SEGMENTS: 32,
+    WARP_ANIM_DURATION_MS: 4000,
+    WARP_TINT_RAMP_MS: 3000,
+    WARP_FADE_OUT_MS: 1000,
+
     LY_TO_AU: 63241,
 
     SHIP_SPEED_PER_ENGINE: 1 / 600, // In AU per second per engine level. This means a ship with 10 engine level would move at 1/60 AU/s, or about 1 AU per minute.

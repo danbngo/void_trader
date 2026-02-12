@@ -89,6 +89,9 @@ const SpaceTravelInput = (() => {
                     onPick(pick);
                     return;
                 }
+                if (gridY >= viewHeight) {
+                    return;
+                }
                 if (typeof onFire === 'function') {
                     onFire();
                 }

@@ -606,7 +606,10 @@ const GalaxyMap = (() => {
                 } else {
                     outputMessage = '';
                     gameState.previousSystemIndex = gameState.currentSystemIndex;
-                    SpaceTravelMap.show(gameState, targetSystem, { resetPosition: false });
+                    SpaceTravelMap.show(gameState, currentSystem, {
+                        resetPosition: false,
+                        openPortalTargetSystem: targetSystem
+                    });
                 }
             }
         }, travelColor, travelHelpText);

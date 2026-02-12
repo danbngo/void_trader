@@ -110,10 +110,36 @@ const SpaceTravelAnimation = (() => {
             }
         }
 
+        function renderWarpFade(mapInstance, timestampMs) {
+            const startMs = mapInstance.warpFadeOutStartMs;
+            if (!startMs) return;
+
+            const duration = Math.max(1, config.WARP_FADE_OUT_MS || 1000);
+            const elapsed = timestampMs - startMs;
+            const t = Math.min(1, Math.max(0, elapsed / duration));
+            const alpha = 1 - t;
+
+            if (alpha <= 0) {
+                mapInstance.warpFadeOutStartMs = 0;
+                return;
+            }
+
+            const ctx = UI.getContext?.();
+            const canvas = UI.getCanvas?.();
+            if (!ctx || !canvas) return;
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#00ccff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+        }
+
         return {
             renderBoostTint,
             renderDamageFlash,
-            renderDeathSequence
+            renderDeathSequence,
+            renderWarpFade
         };
     }
 

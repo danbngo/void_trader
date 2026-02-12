@@ -3,7 +3,7 @@
  */
 
 const SpaceTravelHud = (() => {
-    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, autoNavActive, onAutoNavToggle, onMenu }) {
+    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, autoNavActive, onAutoNavToggle, onMenu, suppressButtons, hideDestination, hideDistance, hideTime, speedOverrideText, speedOverrideColor }) {
         const startY = viewHeight;
         const panelWidth = viewWidth;
 
@@ -32,9 +32,12 @@ const SpaceTravelHud = (() => {
                 ? COLORS.TEXT_DIM
                 : (speed >= maxSpeed ? COLORS.ORANGE : UI.calcStatColor(speedRatio)));
         const speedArrow = getVelocityArrow(ship);
-        const speedValueText = speedArrow
-            ? `${speedPerMinute.toFixed(2)} AU/m ${speedArrow}`
-            : `${speedPerMinute.toFixed(2)} AU/m`;
+        const speedValueText = speedOverrideText
+            ? speedOverrideText
+            : (speedArrow
+                ? `${speedPerMinute.toFixed(2)} AU/m ${speedArrow}`
+                : `${speedPerMinute.toFixed(2)} AU/m`);
+        const speedValueColorFinal = speedOverrideColor || speedValueColor;
 
         const targetInfo = helpers.getActiveTargetInfo();
         const destinationLabel = targetInfo && targetInfo.name
@@ -89,32 +92,40 @@ const SpaceTravelHud = (() => {
                 label: 'Speed:',
                 value: speedValueText,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
-                valueColor: helpers.applyPauseColor(speedValueColor)
+                valueColor: helpers.applyPauseColor(speedValueColorFinal)
             }
         ];
 
         TableRenderer.renderKeyValueList(2, startY + 1, leftRows);
 
-        TableRenderer.renderKeyValueList(rightColumnX, startY + 1, [
-            {
+        const rightRows = [];
+        if (!hideDestination) {
+            rightRows.push({
                 label: 'Destination:',
                 value: destinationLabel,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(destinationColor)
-            },
-            {
+            });
+        }
+        if (!hideDistance) {
+            rightRows.push({
                 label: 'Distance:',
                 value: distanceLabel,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
-            },
-            {
+            });
+        }
+        if (!hideTime) {
+            rightRows.push({
                 label: 'Time:',
                 value: gameTimeLabel,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
                 valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
-            }
-        ]);
+            });
+        }
+        if (rightRows.length > 0) {
+            TableRenderer.renderKeyValueList(rightColumnX, startY + 1, rightRows);
+        }
 
         {
             const speedLabel = 'Speed:';
@@ -147,34 +158,36 @@ const SpaceTravelHud = (() => {
 
         renderCompass(viewWidth, viewHeight, startY, playerShip, helpers);
 
-        const menuText = 'MENU';
-        const buttonText = `[m] ${menuText}`;
-        const menuX = Math.max(0, panelWidth - buttonText.length - 1);
-        const menuY = startY + Math.max(0, config.PANEL_HEIGHT - 1);
+        if (!suppressButtons) {
+            const menuText = 'MENU';
+            const buttonText = `[m] ${menuText}`;
+            const menuX = Math.max(0, panelWidth - buttonText.length - 1);
+            const menuY = startY + Math.max(0, config.PANEL_HEIGHT - 1);
 
-        const autoNavAvailable = !!targetInfo;
-        const autoNavLabel = autoNavActive ? 'Cancel Autonav' : 'Autonavigate';
-        const autoNavText = `[1] ${autoNavLabel}`;
-        const autoNavX = Math.max(0, menuX - autoNavText.length - 2);
-        const autoNavColor = autoNavActive
-            ? COLORS.TEXT_SUCCESS
-            : (autoNavAvailable ? COLORS.CYAN : COLORS.TEXT_DIM);
+            const autoNavAvailable = !!targetInfo;
+            const autoNavLabel = autoNavActive ? 'Cancel Autonav' : 'Autonavigate';
+            const autoNavText = `[1] ${autoNavLabel}`;
+            const autoNavX = Math.max(0, menuX - autoNavText.length - 2);
+            const autoNavColor = autoNavActive
+                ? COLORS.TEXT_SUCCESS
+                : (autoNavAvailable ? COLORS.CYAN : COLORS.TEXT_DIM);
 
-        if (autoNavAvailable) {
-            UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
-                if (onAutoNavToggle) {
-                    onAutoNavToggle();
-                }
-            }, helpers.applyPauseColor(autoNavColor), '');
-        } else {
-            UI.addText(autoNavX, menuY, autoNavText, helpers.applyPauseColor(autoNavColor));
-        }
-
-        UI.addButton(menuX, menuY, 'm', menuText, () => {
-            if (onMenu) {
-                onMenu();
+            if (autoNavAvailable) {
+                UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
+                    if (onAutoNavToggle) {
+                        onAutoNavToggle();
+                    }
+                }, helpers.applyPauseColor(autoNavColor), '');
+            } else {
+                UI.addText(autoNavX, menuY, autoNavText, helpers.applyPauseColor(autoNavColor));
             }
-        }, helpers.applyPauseColor(COLORS.CYAN), '');
+
+            UI.addButton(menuX, menuY, 'm', menuText, () => {
+                if (onMenu) {
+                    onMenu();
+                }
+            }, helpers.applyPauseColor(COLORS.CYAN), '');
+        }
     }
 
     function formatGameTime(date) {

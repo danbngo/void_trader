@@ -12,6 +12,7 @@ const SpaceTravelConfig = {
     SHIP_SPEED_PER_ENGINE: 1 / 600, // In AU per second per engine level. This means a ship with 10 engine level would move at 1/60 AU/s, or about 1 AU per minute.
     SHIP_ACCEL_PER_ENGINE: 1 / 60, // In AU/s² per engine level. This means a ship with 10 engine level would have an acceleration of 0.00005 AU/s², allowing it to reach its top speed in about 20 seconds.
     TURN_DEG_PER_SEC: 90,
+    ROLL_DEG_PER_SEC: 90,
 
     TIME_SCALE_GAME_SECONDS_PER_REAL_SECOND: 60,
     GAME_SECONDS_PER_DAY: 86400,
@@ -52,6 +53,7 @@ const SpaceTravelConfig = {
     DEBUG_STATION_FACE_INDEX: null,
     DEBUG_STATION_FACE_OUTLINE: false,
     DEBUG_STATION_FACE_FILL_MODE: 'tri',
+    DEBUG_ROLL_LOG: true,
     RENDER_SYSTEM_BODIES: true,
     STATION_FACE_DEPTH_BIAS: 0.0005,
     STATION_EDGE_DEPTH_BIAS: 0.0005,
@@ -71,6 +73,7 @@ const SpaceTravelConfig = {
     DAMAGE_FLASH_ALPHA: 0.5,
     DEATH_FADE_TO_RED_SEC: 1,
     DEATH_FADE_TO_BLACK_SEC: 1,
+    DOCK_FADE_TO_BLACK_SEC: 1,
     SYSTEM_BODY_SHADE_MAX_DISTANCE_AU: 50,
     SYSTEM_BODY_LABEL_DISTANCE_AU: 8,
 
@@ -80,6 +83,7 @@ const SpaceTravelConfig = {
     BOOST_FUEL_PER_SEC: 0.1,
     BOOST_TINT_MAX: 0.25,
     BOOST_TINT_RAMP_SEC: 4,
+    BOOST_TINT_FADE_SEC: 2.5,
     BOOST_COOLDOWN_SEC: 5,
     BOOST_TINT_MIN: 0,
     BOOST_STREAK_DELAY_MS: 2000,
@@ -96,7 +100,17 @@ const SpaceTravelConfig = {
     LASER_DEPTH: 0.00005,
 
     STAR_HEAT_DAMAGE_PER_SEC: 10,
-    STAR_HEAT_RANGE_MULT: 4,
+    STAR_HEAT_RANGE_MULT: 10,
+    STAR_HEAT_MAX_DISTANCE_AU: null,
+    STAR_LUMINOSITY_BY_TYPE: {
+        STAR_RED_DWARF: 0.02,
+        STAR_YELLOW_DWARF: 1,
+        STAR_WHITE_DWARF: 0.1,
+        STAR_RED_GIANT: 1000,
+        STAR_BLUE_GIANT: 10000,
+        STAR_NEUTRON: 0.05,
+        STAR_BLACK_HOLE: 0
+    },
 
     ASCII_LOG_INTERVAL_MS: 2000,
 

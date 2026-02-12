@@ -122,9 +122,175 @@ const SpaceTravelInput = (() => {
         };
     }
 
+    function initializeInputHandlers(mapInstance) {
+        const { inputState, config, deathTow } = mapInstance;
+        
+        setupInput({
+            keyState: inputState.keyState,
+            handlers: inputState,
+            setPaused: (val, byFocus) => mapInstance.setPaused(val, byFocus),
+            getPaused: () => mapInstance.isPaused,
+            getPausedByFocus: () => mapInstance.pausedByFocus,
+            onEscape: () => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                mapInstance.stop();
+                SpaceTravelMenu.show(mapInstance.currentGameState, () => {
+                    const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(mapInstance.currentGameState);
+                    mapInstance.show(mapInstance.currentGameState, destination, {
+                        resetPosition: false,
+                        localDestination: mapInstance.localDestination
+                    });
+                });
+            },
+            onTogglePause: () => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                mapInstance.togglePause();
+            }
+        });
+        setupMouseTargeting({
+            handlers: inputState,
+            config,
+            getLastHoverPick: () => mapInstance.lastHoverPick,
+            onPick: (pick) => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                mapInstance.localDestination = SpaceTravelUi.setLocalDestinationFromPick(pick, {
+                    currentGameState: mapInstance.currentGameState,
+                    localDestination: mapInstance.localDestination
+                }, config);
+            },
+            onFire: () => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                const result = mapInstance.laser.fireLaser({
+                    playerShip: mapInstance.playerShip,
+                    isPaused: mapInstance.isPaused,
+                    lastHoverPick: mapInstance.lastHoverPick,
+                    config,
+                    inputState
+                });
+                if (result?.laserEmptyTimestampMs) {
+                    mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;
+                }
+            }
+        });
+    }
+
+    function teardownInputHandlers(inputState) {
+        if (inputState.keyDownHandler) {
+            document.removeEventListener('keydown', inputState.keyDownHandler);
+            inputState.keyDownHandler = null;
+        }
+        if (inputState.keyUpHandler) {
+            document.removeEventListener('keyup', inputState.keyUpHandler);
+            inputState.keyUpHandler = null;
+        }
+        if (inputState.windowBlurHandler) {
+            window.removeEventListener('blur', inputState.windowBlurHandler);
+            inputState.windowBlurHandler = null;
+        }
+        if (inputState.windowFocusHandler) {
+            window.removeEventListener('focus', inputState.windowFocusHandler);
+            inputState.windowFocusHandler = null;
+        }
+        if (inputState.mouseMoveHandler) {
+            document.removeEventListener('mousemove', inputState.mouseMoveHandler);
+            inputState.mouseMoveHandler = null;
+        }
+        if (inputState.mouseDownHandler) {
+            document.removeEventListener('mousedown', inputState.mouseDownHandler);
+            inputState.mouseDownHandler = null;
+        }
+        inputState.mouseTargetActive = false;
+        inputState.keyState.clear();
+    }
+
+    function handleInput(mapInstance, dt, timestampMs, messages) {
+        const { config, inputState, playerShip, boostActive } = mapInstance;
+        const turnRad = ThreeDUtils.degToRad(config.TURN_DEG_PER_SEC) * dt;
+        const rollRad = ThreeDUtils.degToRad(config.ROLL_DEG_PER_SEC ?? config.TURN_DEG_PER_SEC) * dt;
+        const grid = UI.getGridSize();
+        const viewHeight = grid.height - config.PANEL_HEIGHT;
+        const viewWidth = grid.width;
+        const mouseState = getMouseTargetState(viewWidth, viewHeight, inputState);
+
+        const keyYawLeft = inputState.keyState.has('ArrowLeft');
+        const keyYawRight = inputState.keyState.has('ArrowRight');
+        const keyRollLeft = inputState.keyState.has('a') || inputState.keyState.has('A');
+        const keyRollRight = inputState.keyState.has('d') || inputState.keyState.has('D');
+        const keyPitchUp = inputState.keyState.has('ArrowUp');
+        const keyPitchDown = inputState.keyState.has('ArrowDown');
+
+        const yawLeft = keyYawLeft || mouseState.offLeft;
+        const yawRight = keyYawRight || mouseState.offRight;
+        const pitchUp = keyPitchUp || mouseState.offTop;
+        const pitchDown = keyPitchDown || mouseState.offBottom;
+
+        if (!boostActive && (yawLeft || yawRight || pitchUp || pitchDown || keyRollLeft || keyRollRight)) {
+            updateRotation(mapInstance, yawLeft, yawRight, pitchUp, pitchDown, keyRollLeft, keyRollRight, turnRad, rollRad, timestampMs, mouseState);
+        }
+
+        if (messages) {
+            messages.updateBoostMessages(mapInstance, timestampMs, keyYawLeft, keyYawRight, keyPitchUp, keyPitchDown);
+        }
+    }
+
+    function updateRotation(mapInstance, yawLeft, yawRight, pitchUp, pitchDown, keyRollLeft, keyRollRight, turnRad, rollRad, timestampMs, mouseState) {
+        const { config, playerShip } = mapInstance;
+        let newRotation = playerShip.rotation;
+        const debugRoll = config.DEBUG_ROLL_LOG && (keyRollLeft || keyRollRight);
+        const rollForwardBefore = debugRoll ? ThreeDUtils.getLocalAxes(newRotation).forward : null;
+
+        if (yawLeft) newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, -turnRad));
+        if (yawRight) newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, turnRad));
+        if (pitchUp) newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 1, y: 0, z: 0 }, -turnRad));
+        if (pitchDown) newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 1, y: 0, z: 0 }, turnRad));
+        if (keyRollLeft || keyRollRight) {
+            const rollDir = keyRollLeft ? 1 : -1;
+            const rollQuat = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, rollRad * rollDir);
+            newRotation = ThreeDUtils.quatMultiply(newRotation, rollQuat);
+        }
+
+        playerShip.rotation = ThreeDUtils.quatNormalize(newRotation);
+
+        if (debugRoll && rollForwardBefore) {
+            const now = timestampMs || performance.now();
+            if (now - mapInstance.lastRollLogMs >= 250) {
+                const rollForwardAfter = ThreeDUtils.getLocalAxes(playerShip.rotation).forward;
+                const dot = Math.max(-1, Math.min(1, ThreeDUtils.dotVec(rollForwardBefore, rollForwardAfter)));
+                const angleDeg = Math.acos(dot) * 180 / Math.PI;
+                console.log('[SpaceTravelInput] Roll debug', {
+                    dot,
+                    angleDeg: Number.isFinite(angleDeg) ? angleDeg.toFixed(4) : 'n/a',
+                    yawLeft,
+                    yawRight,
+                    pitchUp,
+                    pitchDown,
+                    keyRollLeft,
+                    keyRollRight,
+                    mouseOffLeft: mouseState.offLeft,
+                    mouseOffRight: mouseState.offRight,
+                    mouseOffTop: mouseState.offTop,
+                    mouseOffBottom: mouseState.offBottom,
+                    mouseActive: mouseState.active
+                });
+                mapInstance.lastRollLogMs = now;
+            }
+        }
+    }
+
     return {
         setupInput,
         setupMouseTargeting,
-        getMouseTargetState
+        getMouseTargetState,
+        initializeInputHandlers,
+        teardownInputHandlers,
+        handleInput
     };
 })();

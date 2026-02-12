@@ -28,9 +28,11 @@ const SpaceTravelHud = (() => {
             const baseMaxSpeed = state.baseMaxSpeed ?? (ship.engine || 10) * config.SHIP_SPEED_PER_ENGINE;
             const maxSpeed = state.maxSpeed ?? (baseMaxSpeed * (state.boostActive ? config.BOOST_MAX_SPEED_MULT : 1));
         const speedRatio = maxSpeed > 0 ? (Math.min(1, speed / maxSpeed) * 2) : 0;
-        const speedValueColor = speed <= 0
-            ? COLORS.TEXT_DIM
-            : (speed >= maxSpeed ? COLORS.ORANGE : UI.calcStatColor(speedRatio));
+        const speedValueColor = state.boostActive
+            ? COLORS.ORANGE
+            : (speed <= 0
+                ? COLORS.TEXT_DIM
+                : (speed >= maxSpeed ? COLORS.ORANGE : UI.calcStatColor(speedRatio)));
         const speedArrow = getVelocityArrow(ship);
         const speedValueText = speedArrow
             ? `${speedPerMinute.toFixed(2)} AU/m ${speedArrow}`
@@ -40,6 +42,7 @@ const SpaceTravelHud = (() => {
         const destinationLabel = targetInfo && targetInfo.name
             ? (targetInfo.symbol ? `${targetInfo.symbol} ${targetInfo.name}` : targetInfo.name)
             : '--';
+        const destinationColor = targetInfo?.color || COLORS.TEXT_NORMAL;
         const distanceToTarget = targetInfo ? ThreeDUtils.vecLength(ThreeDUtils.subVec(targetInfo.position, ship.position)) : null;
         const distanceLabel = targetInfo
             ? (targetInfo.isLocal
@@ -48,18 +51,29 @@ const SpaceTravelHud = (() => {
             : '--';
         const rightColumnX = Math.max(2, panelWidth - 32);
 
+        const nowMs = state.timestampMs || 0;
+        const fuelFlickerActive = nowMs > 0 && (nowMs - (state.boostNoFuelTimestampMs || 0)) <= 1000;
+        const laserFlickerActive = nowMs > 0 && (nowMs - (state.laserEmptyTimestampMs || 0)) <= 1000;
+        const flickerColor = (timestamp) => (Math.floor(timestamp / 200) % 2 === 0 ? COLORS.DARK_RED : COLORS.DARK_GRAY);
+        const fuelValueColor = fuelFlickerActive
+            ? flickerColor(nowMs)
+            : UI.calcStatColor(fuelRatio, true);
+        const laserValueColor = laserFlickerActive
+            ? flickerColor(nowMs)
+            : UI.calcStatColor(laserRatio, true);
+
         const leftRows = [
             {
                 label: 'Fuel:',
                 value: `${Math.floor(ship.fuel)}/${Math.floor(ship.maxFuel)}`,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
-                valueColor: helpers.applyPauseColor(UI.calcStatColor(fuelRatio, true))
+                valueColor: helpers.applyPauseColor(fuelValueColor)
             },
             {
                 label: 'Lasers:',
                 value: `${laserCurrent}/${laserMax}`,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
-                valueColor: helpers.applyPauseColor(UI.calcStatColor(laserRatio, true))
+                valueColor: helpers.applyPauseColor(laserValueColor)
             },
             {
                 label: 'Shields:',
@@ -88,7 +102,7 @@ const SpaceTravelHud = (() => {
                 label: 'Destination:',
                 value: destinationLabel,
                 labelColor: helpers.applyPauseColor(COLORS.TEXT_DIM),
-                valueColor: helpers.applyPauseColor(COLORS.TEXT_NORMAL)
+                valueColor: helpers.applyPauseColor(destinationColor)
             },
             {
                 label: 'Distance:',

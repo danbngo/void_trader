@@ -432,6 +432,9 @@ const TravelMenu = (() => {
      * Consume fuel based on current progress (used for encounters/defeats)
      */
     function consumeFuelForProgress() {
+        if (!currentGameState || !Array.isArray(currentGameState.ships) || currentGameState.ships.length === 0) {
+            return;
+        }
         // Deduct proportional fuel based on progress
         currentGameState.ships.forEach((ship, index) => {
             const fuelToConsume = shipFuelCosts[index] * progress;
@@ -490,6 +493,9 @@ const TravelMenu = (() => {
      * Player is towed back to origin, but fuel is consumed based on progress made
      */
     function handleTowedBack() {
+        if (!currentGameState || !Array.isArray(currentGameState.ships) || currentGameState.ships.length === 0) {
+            return;
+        }
         // Consume fuel proportional to progress made before defeat
         consumeFuelForProgress();
         

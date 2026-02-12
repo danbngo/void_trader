@@ -3,918 +3,503 @@
  * 3D space view used during travel (initial prototype)
  */
 
-const SpaceTravelMap = (() => {
-    const config = SpaceTravelConfig;
+class SpaceTravelMapClass {
+    constructor() {
+        this.config = SpaceTravelConfig;
+        this.deathTow = SpaceTravelDeathTow.create(this.config);
+        this.docking = SpaceTravelDocking.create(this.config);
+        this.laser = SpaceTravelLaser.create();
+        this.hazards = SpaceTravelHazards.create(this.config);
+        this.animation = SpaceTravelAnimation.create(this.config);
+        this.messages = SpaceTravelMessages.create(this.config);
 
-    // === State ===
-    let currentGameState = null;
-    let targetSystem = null;
-    let localDestination = null;
-    let playerShip = null;
-    let currentStation = null;
+        // === State ===
+        this.currentGameState = null;
+        this.targetSystem = null;
+        this.localDestination = null;
+        this.playerShip = null;
+        this.currentStation = null;
 
-    let starSystems = [];
-    let starfield = [];
-    let dustParticles = [];
-    let possibleStations = [];
-    let visibleStations = [];
-
-    let lastTimestamp = 0;
-    let lastAsciiLogTimestamp = 0;
-    let animationId = null;
-    let isActive = false;
-    let lastStationCollisionMs = -Infinity;
-    let damageFlashStartMs = -Infinity;
-    let laserFireUntilMs = 0;
-    let laserFireStartMs = 0;
-    let laserTarget = { x: 0, y: 0 };
-    let laserTargetWorldDir = { x: 0, y: 0, z: 1 };
-    let laserRegenTimer = 0;
-    let shieldRegenTimer = 0;
-
-    const inputState = {
-        keyState: new Set(),
-        keyDownHandler: null,
-        keyUpHandler: null,
-        mouseMoveHandler: null,
-        mouseDownHandler: null,
-        mouseTarget: { x: 0, y: 0 },
-        mouseTargetActive: false,
-        windowBlurHandler: null,
-        windowFocusHandler: null
-    };
-    let lastHoverPick = null;
-    let isPaused = false;
-    let pausedByFocus = false;
-    let boostActive = false;
-    let boostCooldownRemaining = 0;
-    let boostCooldownStartSpeed = 0;
-    let boostStartTimestampMs = 0;
-    let boostBlockMessage = '';
-    let boostTurnMessage = '';
-    let lastDamageSource = null;
-    let deathSequenceActive = false;
-    let deathSequenceStartMs = 0;
-
-    function recordDamageSource(source) {
-        if (source) {
-            lastDamageSource = source;
-        }
-    }
-
-    function getDestructionReason() {
-        if (!lastDamageSource) {
-            return 'Your ship is disabled.';
-        }
-        const name = lastDamageSource.name || lastDamageSource.id || 'the hazard';
-        switch (lastDamageSource.type) {
-            case 'STAR_IMPACT':
-                return `You flew into ${name}!`;
-            case 'STAR_HEAT':
-                return `Heat damage from ${name} destroys your ship!`;
-            case 'STATION_COLLISION':
-                return `Your ship is destroyed after colliding with ${name}!`;
-            default:
-                return 'Your ship is disabled.';
-        }
-    }
-
-    function startDeathSequence(timestampMs) {
-        if (deathSequenceActive) {
-            return;
-        }
-        deathSequenceActive = true;
-        deathSequenceStartMs = timestampMs;
-        boostActive = false;
-        playerShip.velocity = { x: 0, y: 0, z: 0 };
-    }
-
-    function isDeathSequenceComplete(timestampMs) {
-        const redSec = Math.max(0.01, config.DEATH_FADE_TO_RED_SEC || 1);
-        const blackSec = Math.max(0.01, config.DEATH_FADE_TO_BLACK_SEC || 1);
-        const elapsedSec = Math.max(0, (timestampMs - deathSequenceStartMs) / 1000);
-        return elapsedSec >= (redSec + blackSec);
-    }
-
-    function getNearestPlanet() {
-        if (!targetSystem || !currentGameState || !playerShip) {
-            return null;
-        }
-        const planets = Array.isArray(targetSystem.planets) ? targetSystem.planets : [];
-        if (planets.length === 0) {
-            return targetSystem.primaryBody || null;
-        }
-        const systemCenter = {
-            x: targetSystem.x * config.LY_TO_AU,
-            y: targetSystem.y * config.LY_TO_AU,
-            z: 0
+        this.inputState = {
+            keyState: new Set(),
+            keyDownHandler: null,
+            keyUpHandler: null,
+            mouseMoveHandler: null,
+            mouseDownHandler: null,
+            mouseTarget: { x: 0, y: 0 },
+            mouseTargetActive: false,
+            windowBlurHandler: null,
+            windowFocusHandler: null
         };
-        let nearest = null;
-        let nearestDist = Infinity;
-        for (let i = 0; i < planets.length; i++) {
-            const planet = planets[i];
-            const orbitOffset = planet.orbit ? SystemOrbitUtils.getOrbitPosition(planet.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
-            const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
-            const dist = ThreeDUtils.distance(playerShip.position, worldPos);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearest = planet;
-            }
-        }
-        return nearest || targetSystem.primaryBody || planets[0] || null;
+        this.lastHoverPick = null;
+        this.isPaused = false;
+        this.pausedByFocus = false;
+
+        // Animation and rendering state
+        this.isActive = false;
+        this.animationId = null;
+        this.lastTimestamp = 0;
+        this.lastAsciiLogTimestamp = 0;
+        this.lastRollLogMs = 0;
+
+        // Particle and visual state
+        this.starSystems = [];
+        this.starfield = [];
+        this.dustParticles = [];
+        this.possibleStations = [];
+        this.visibleStations = [];
+
+        // Laser state
+        this.laserEmptyTimestampMs = 0;
+        this.laserRegenTimer = 0;
+
+        // Shield state
+        this.shieldRegenTimer = 0;
+
+        // Boost state
+        this.boostActive = false;
+        this.boostStartTimestampMs = 0;
+        this.boostEndTimestampMs = 0;
+        this.boostCooldownRemaining = 0;
+        this.boostCooldownStartSpeed = 0;
+        this.boostBlockMessage = '';
+        this.boostTurnMessage = '';
+        this.boostBlockMessageTimestampMs = 0;
+        this.boostTurnMessageTimestampMs = 0;
+        this.boostNoFuelTimestampMs = 0;
+
+        // Damage and collision state
+        this.damageFlashStartMs = 0;
+        this.lastStationCollisionMs = 0;
     }
 
-    function handleTowFromSpace(timestampMs = 0) {
-        if (!currentGameState || !playerShip || playerShip.hull > 0) {
-            return false;
-        }
-        if (!deathSequenceActive) {
-            startDeathSequence(timestampMs);
-            return false;
-        }
-        if (!isDeathSequenceComplete(timestampMs)) {
-            return false;
-        }
-        const towLocation = getNearestPlanet();
-        const towSystemIndex = currentGameState.currentSystemIndex ?? currentGameState.previousSystemIndex;
-        const reason = getDestructionReason();
-        stop();
-        TowMenu.show(currentGameState, {
-            location: towLocation,
-            systemIndex: towSystemIndex,
-            systemName: targetSystem?.name,
-            reason
-        });
-        return true;
-    }
-    let boostEndTimestampMs = 0;
-
-    function setPaused(nextPaused, byFocus = false) {
-        isPaused = nextPaused;
-        pausedByFocus = nextPaused && byFocus;
+    setPaused(nextPaused, byFocus = false) {
+        this.isPaused = nextPaused;
+        this.pausedByFocus = nextPaused && byFocus;
     }
 
-    function togglePause() {
-        setPaused(!isPaused, false);
+    togglePause() {
+        this.setPaused(!this.isPaused, false);
     }
 
-    function applyPauseColor(color) {
-        return isPaused ? ColorUtils.toMonochrome(color) : color;
+    applyPauseColor(color) {
+        return this.isPaused ? ColorUtils.toMonochrome(color) : color;
     }
 
-    function getBaseMaxSpeed(ship) {
+    getBaseMaxSpeed(ship) {
         const engine = ship?.engine || 10;
-        return engine * config.SHIP_SPEED_PER_ENGINE;
+        return engine * this.config.SHIP_SPEED_PER_ENGINE;
     }
 
-    function getMaxSpeed(ship, isBoosting) {
-        const baseMaxSpeed = getBaseMaxSpeed(ship);
-        return baseMaxSpeed * (isBoosting ? config.BOOST_MAX_SPEED_MULT : 1);
+    getMaxSpeed(ship, isBoosting) {
+        const baseMaxSpeed = this.getBaseMaxSpeed(ship);
+        return baseMaxSpeed * (isBoosting ? this.config.BOOST_MAX_SPEED_MULT : 1);
     }
 
-    function addHudText(x, y, text, color) {
-        UI.addText(x, y, text, applyPauseColor(color));
+    addHudText(x, y, text, color) {
+        UI.addText(x, y, text, this.applyPauseColor(color));
     }
 
-    function show(gameState, destination, options = {}) {
-        stop();
+    show(gameState, destination, options = {}) {
+        this.stop();
         UI.clear();
         UI.resetSelection();
         UI.clearOutputRow();
 
-        deathSequenceActive = false;
-        deathSequenceStartMs = 0;
-        lastDamageSource = null;
+        this.deathTow.reset();
+        this.docking.reset();
+        this.laser.reset();
 
         const resetPosition = options.resetPosition !== false;
 
-        currentGameState = gameState;
-        targetSystem = destination || SpaceTravelLogic.getNearestSystem(gameState);
-        localDestination = options.localDestination || gameState.localDestination || null;
-        if (localDestination && gameState.localDestinationSystemIndex !== null
+        this.currentGameState = gameState;
+        this.targetSystem = destination || SpaceTravelLogic.getNearestSystem(gameState);
+        this.localDestination = options.localDestination || gameState.localDestination || null;
+        if (this.localDestination && gameState.localDestinationSystemIndex !== null
             && gameState.localDestinationSystemIndex !== gameState.currentSystemIndex) {
-            localDestination = null;
+            this.localDestination = null;
         }
-        playerShip = gameState.ships[0];
+        this.playerShip = gameState.ships[0];
 
-        if (!Array.isArray(playerShip.lasers)) {
-            const laserMax = Ship.getLaserMax(playerShip);
-            Ship.setLaserMax(playerShip, laserMax);
-            Ship.setLaserCurrent(playerShip, laserMax);
+        this._initializePlayerShip();
+        this._initializeStation();
+        this._positionPlayerShip(resetPosition);
+        this._initializeStarfield();
+        this._updateVisibility();
+
+        SpaceTravelInput.initializeInputHandlers(this);
+        this.isActive = true;
+        this.startLoop();
+    }
+
+    _initializePlayerShip() {
+        if (!Array.isArray(this.playerShip.lasers)) {
+            const laserMax = Ship.getLaserMax(this.playerShip);
+            Ship.setLaserMax(this.playerShip, laserMax);
+            Ship.setLaserCurrent(this.playerShip, laserMax);
+        }
+        if (!this.playerShip.size || this.playerShip.size <= 0) {
+            this.playerShip.size = Ship.DEFAULT_SIZE_AU;
+        }
+    }
+
+    _initializeStation() {
+        this.currentStation = null;
+        if (!this.targetSystem) return;
+
+        this.currentStation = this.targetSystem.station;
+        const stationOrbit = this.currentStation.orbit.semiMajorAU;
+        const stationDir = ThreeDUtils.normalizeVec(this.config.STATION_ENTRANCE_DIR);
+        this.currentStation.position = {
+            x: this.targetSystem.x * this.config.LY_TO_AU + stationDir.x * stationOrbit,
+            y: this.targetSystem.y * this.config.LY_TO_AU + stationDir.y * stationOrbit,
+            z: stationDir.z * stationOrbit
+        };
+        if (!this.currentStation.name) {
+            this.currentStation.name = `${this.targetSystem.name} Station`;
+        }
+        this.currentStation.dataRef = this.targetSystem.primaryBody || (this.targetSystem.planets && this.targetSystem.planets[0]) || null;
+        
+        if (this.currentGameState && this.currentGameState.date) {
+            const gameSeconds = this.currentGameState.date.getTime() / 1000;
+            const dayT = (gameSeconds % this.config.GAME_SECONDS_PER_DAY) / this.config.GAME_SECONDS_PER_DAY;
+            const angle = (dayT * Math.PI * 2) + (this.currentStation.rotationPhase || 0);
+            this.currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
         }
 
-        if (!playerShip.size || playerShip.size <= 0) {
-            playerShip.size = Ship.DEFAULT_SIZE_AU;
+        if (!this.localDestination && this.currentStation && this.currentGameState) {
+            this.currentGameState.localDestination = {
+                type: 'STATION',
+                positionWorld: { ...this.currentStation.position },
+                id: this.currentStation.name || 'Station',
+                name: this.currentStation.name || 'Station',
+                orbit: this.currentStation.orbit
+            };
+            this.currentGameState.localDestinationSystemIndex = this.currentGameState.currentSystemIndex;
+            this.localDestination = this.currentGameState.localDestination;
         }
+    }
 
-        const currentSystem = gameState.getCurrentSystem();
+    _positionPlayerShip(resetPosition) {
+        const currentSystem = this.currentGameState.getCurrentSystem();
         const currentSystemPos = {
-            x: currentSystem.x * config.LY_TO_AU,
-            y: currentSystem.y * config.LY_TO_AU,
+            x: currentSystem.x * this.config.LY_TO_AU,
+            y: currentSystem.y * this.config.LY_TO_AU,
             z: 0
         };
 
-        const hasPosition = playerShip.position && typeof playerShip.position.x === 'number';
+        const hasPosition = this.playerShip.position && typeof this.playerShip.position.x === 'number';
         if (resetPosition || !hasPosition) {
-            playerShip.velocity = { x: 0, y: 0, z: 0 };
-        }
-
-        currentStation = null;
-        if (targetSystem) {
-            currentStation = targetSystem.station;
-            const stationOrbit = currentStation.orbit.semiMajorAU;
-            const stationDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
-            currentStation.position = {
-                x: targetSystem.x * config.LY_TO_AU + stationDir.x * stationOrbit,
-                y: targetSystem.y * config.LY_TO_AU + stationDir.y * stationOrbit,
-                z: stationDir.z * stationOrbit
-            };
-            if (!currentStation.name) {
-                currentStation.name = `${targetSystem.name} Station`;
-            }
-            currentStation.dataRef = targetSystem.primaryBody || (targetSystem.planets && targetSystem.planets[0]) || null;
-            if (currentGameState && currentGameState.date) {
-                const gameSeconds = currentGameState.date.getTime() / 1000;
-                const dayT = (gameSeconds % config.GAME_SECONDS_PER_DAY) / config.GAME_SECONDS_PER_DAY;
-                const angle = (dayT * Math.PI * 2) + (currentStation.rotationPhase || 0);
-                currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
-            }
-        }
-
-        if (!localDestination && currentStation && currentGameState) {
-            currentGameState.localDestination = {
-                type: 'STATION',
-                positionWorld: { ...currentStation.position },
-                id: currentStation.name || 'Station',
-                name: currentStation.name || 'Station',
-                orbit: currentStation.orbit
-            };
-            currentGameState.localDestinationSystemIndex = currentGameState.currentSystemIndex;
-            localDestination = currentGameState.localDestination;
+            this.playerShip.velocity = { x: 0, y: 0, z: 0 };
         }
 
         if (resetPosition || !hasPosition) {
-            if (currentStation) {
-                const baseEntranceDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
-                const entranceYaw = ThreeDUtils.degToRad(config.STATION_ENTRANCE_YAW_DEG || 0);
+            if (this.currentStation) {
+                const baseEntranceDir = ThreeDUtils.normalizeVec(this.config.STATION_ENTRANCE_DIR);
+                const entranceYaw = ThreeDUtils.degToRad(this.config.STATION_ENTRANCE_YAW_DEG || 0);
                 const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
                 const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(baseEntranceDir, yawRot);
-                const entranceDir = currentStation.rotation
-                    ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, currentStation.rotation)
+                const entranceDir = this.currentStation.rotation
+                    ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, this.currentStation.rotation)
                     : yawedEntranceDir;
-                const stationRadius = Math.max(0, currentStation.radiusAU ?? currentStation.size ?? 0);
-                const stationVisualScale = config.STATION_SCREEN_SCALE || 1;
-                const stationPhysicsScale = (typeof config.STATION_PHYSICS_SCALE === 'number' && config.STATION_PHYSICS_SCALE > 0)
-                    ? config.STATION_PHYSICS_SCALE
+                const stationRadius = Math.max(0, this.currentStation.radiusAU ?? this.currentStation.size ?? 0);
+                const stationVisualScale = this.config.STATION_SCREEN_SCALE || 1;
+                const stationPhysicsScale = (typeof this.config.STATION_PHYSICS_SCALE === 'number' && this.config.STATION_PHYSICS_SCALE > 0)
+                    ? this.config.STATION_PHYSICS_SCALE
                     : 1;
                 const stationSpawnScale = Math.max(stationPhysicsScale, stationVisualScale);
-                const spawnMult = typeof config.STATION_SPAWN_DISTANCE_MULT === 'number'
-                    ? config.STATION_SPAWN_DISTANCE_MULT
+                const spawnMult = typeof this.config.STATION_SPAWN_DISTANCE_MULT === 'number'
+                    ? this.config.STATION_SPAWN_DISTANCE_MULT
                     : 1.1;
-                const minSpawnDistance = typeof config.STATION_SPAWN_MIN_DISTANCE_AU === 'number'
-                    ? config.STATION_SPAWN_MIN_DISTANCE_AU
+                const minSpawnDistance = typeof this.config.STATION_SPAWN_MIN_DISTANCE_AU === 'number'
+                    ? this.config.STATION_SPAWN_MIN_DISTANCE_AU
                     : 0;
                 const offsetDistance = Math.max(
                     minSpawnDistance,
                     stationRadius * stationSpawnScale * spawnMult
                 );
                 const startOffset = ThreeDUtils.scaleVec(entranceDir, offsetDistance);
-                playerShip.position = ThreeDUtils.addVec(currentStation.position, startOffset);
+                this.playerShip.position = ThreeDUtils.addVec(this.currentStation.position, startOffset);
+                ThreeDUtils.faceToward(this.playerShip, this.currentStation.position);
             } else {
-                playerShip.position = currentSystemPos;
-            }
-
-            if (currentStation) {
-                const baseEntranceDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
-                const entranceYaw = ThreeDUtils.degToRad(config.STATION_ENTRANCE_YAW_DEG || 0);
-                const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
-                const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(baseEntranceDir, yawRot);
-                const entranceDir = currentStation.rotation
-                    ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, currentStation.rotation)
-                    : yawedEntranceDir;
-                ThreeDUtils.faceToward(playerShip, currentStation.position);
+                this.playerShip.position = currentSystemPos;
             }
         }
+    }
 
-        starSystems = gameState.systems.map(system => ({
+    _initializeStarfield() {
+        this.starSystems = this.currentGameState.systems.map(system => ({
             id: system.name,
-            position: {
-                x: system.x * config.LY_TO_AU,
-                y: system.y * config.LY_TO_AU,
-                z: 0
-            }
+            x: system.x,
+            y: system.y,
+            z: 0
         }));
-
-        starfield = ThreeDUtils.buildStarfield(config.STARFIELD_COUNT);
-        dustParticles = [];
-
-        possibleStations = [];
-        visibleStations = [];
-        lastTimestamp = 0;
-        lastAsciiLogTimestamp = 0;
-        laserFireUntilMs = 0;
-        laserFireStartMs = 0;
-        laserTarget = { x: 0, y: 0 };
-        laserTargetWorldDir = { x: 0, y: 0, z: 1 };
-        laserRegenTimer = 0;
-        shieldRegenTimer = 0;
-
-        {
-            const grid = UI.getGridSize();
-            const viewHeight = grid.height - config.PANEL_HEIGHT;
-            const viewWidth = grid.width;
-            const visibility = SpaceTravelLogic.updateStationVisibility({
-                currentStation,
-                playerShip,
-                viewWidth,
-                viewHeight,
-                config
-            });
-            possibleStations = visibility.possibleStations;
-            visibleStations = visibility.visibleStations;
-        }
-
-        SpaceTravelInput.setupInput({
-            keyState: inputState.keyState,
-            handlers: inputState,
-            setPaused,
-            getPaused: () => isPaused,
-            getPausedByFocus: () => pausedByFocus,
-            onEscape: () => {
-                if (deathSequenceActive) {
-                    return;
-                }
-                stop();
-                SpaceTravelMenu.show(currentGameState, () => {
-                    const destination = targetSystem || SpaceTravelLogic.getNearestSystem(currentGameState);
-                    show(currentGameState, destination, {
-                        resetPosition: false,
-                        localDestination
-                    });
-                });
-            },
-            onTogglePause: () => {
-                if (deathSequenceActive) {
-                    return;
-                }
-                togglePause();
-            }
-        });
-        SpaceTravelInput.setupMouseTargeting({
-            handlers: inputState,
-            config,
-            getLastHoverPick: () => lastHoverPick,
-            onPick: (pick) => {
-                if (deathSequenceActive) {
-                    return;
-                }
-                localDestination = SpaceTravelUi.setLocalDestinationFromPick(pick, {
-                    currentGameState,
-                    localDestination
-                }, config);
-            },
-            onFire: () => {
-                if (deathSequenceActive) {
-                    return;
-                }
-                fireLaser();
-            }
-        });
-        isActive = true;
-        startLoop();
+        this.starfield = ThreeDUtils.buildStarfield(this.config.STARFIELD_COUNT);
+        this.dustParticles = [];
+        this.possibleStations = [];
+        this.visibleStations = [];
+        this.lastTimestamp = 0;
+        this.lastAsciiLogTimestamp = 0;
+        this.laserEmptyTimestampMs = 0;
+        this.laserRegenTimer = 0;
+        this.shieldRegenTimer = 0;
     }
 
-    function stop() {
-        isActive = false;
-        UI.setGameCursorEnabled?.(true);
-        if (animationId !== null) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        if (inputState.keyDownHandler) {
-            document.removeEventListener('keydown', inputState.keyDownHandler);
-            inputState.keyDownHandler = null;
-        }
-        if (inputState.keyUpHandler) {
-            document.removeEventListener('keyup', inputState.keyUpHandler);
-            inputState.keyUpHandler = null;
-        }
-        if (inputState.windowBlurHandler) {
-            window.removeEventListener('blur', inputState.windowBlurHandler);
-            inputState.windowBlurHandler = null;
-        }
-        if (inputState.windowFocusHandler) {
-            window.removeEventListener('focus', inputState.windowFocusHandler);
-            inputState.windowFocusHandler = null;
-        }
-        if (inputState.mouseMoveHandler) {
-            document.removeEventListener('mousemove', inputState.mouseMoveHandler);
-            inputState.mouseMoveHandler = null;
-        }
-        if (inputState.mouseDownHandler) {
-            document.removeEventListener('mousedown', inputState.mouseDownHandler);
-            inputState.mouseDownHandler = null;
-        }
-        inputState.mouseTargetActive = false;
-        isPaused = false;
-        pausedByFocus = false;
-        inputState.keyState.clear();
-        lastHoverPick = null;
-    }
-
-    function startLoop() {
-        const loop = (timestamp) => {
-            if (!isActive) {
-                return;
-            }
-            if (!lastTimestamp) {
-                lastTimestamp = timestamp;
-            }
-            const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
-            lastTimestamp = timestamp;
-
-            update(dt, timestamp);
-            if (!isActive) {
-                return;
-            }
-            render(timestamp);
-
-            animationId = requestAnimationFrame(loop);
-        };
-        animationId = requestAnimationFrame(loop);
-    }
-
-    function update(dt, timestampMs = 0) {
-        if (!playerShip) {
-            return;
-        }
-
-        if (isPaused) {
-            return;
-        }
-
-        if (deathSequenceActive) {
-            if (handleTowFromSpace(timestampMs)) {
-                return;
-            }
-            return;
-        }
-
-        if (currentGameState && currentGameState.date) {
-            const gameSecondsAdvance = dt * config.TIME_SCALE_GAME_SECONDS_PER_REAL_SECOND;
-            currentGameState.date = new Date(currentGameState.date.getTime() + (gameSecondsAdvance * 1000));
-            currentGameState.timeSinceDock = (currentGameState.timeSinceDock || 0) + (gameSecondsAdvance * 1000);
-        }
-
-        {
-            const grid = UI.getGridSize();
-            const viewHeight = grid.height - config.PANEL_HEIGHT;
-            const viewWidth = grid.width;
-            const visibility = SpaceTravelLogic.updateStationVisibility({
-                currentStation,
-                playerShip,
-                viewWidth,
-                viewHeight,
-                config
-            });
-            possibleStations = visibility.possibleStations;
-            visibleStations = visibility.visibleStations;
-        }
-
-        if (currentStation && currentGameState && currentGameState.date) {
-            const gameSeconds = currentGameState.date.getTime() / 1000;
-            const dayT = (gameSeconds % config.GAME_SECONDS_PER_DAY) / config.GAME_SECONDS_PER_DAY;
-            const angle = (dayT * Math.PI * 2) + (currentStation.rotationPhase || 0);
-            currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
-        }
-
-        const turnRad = ThreeDUtils.degToRad(config.TURN_DEG_PER_SEC) * dt;
+    _updateVisibility() {
         const grid = UI.getGridSize();
-        const viewHeight = grid.height - config.PANEL_HEIGHT;
+        const viewHeight = grid.height - this.config.PANEL_HEIGHT;
         const viewWidth = grid.width;
-        const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
-        const keyYawLeft = inputState.keyState.has('a') || inputState.keyState.has('A') || inputState.keyState.has('ArrowLeft');
-        const keyYawRight = inputState.keyState.has('d') || inputState.keyState.has('D') || inputState.keyState.has('ArrowRight');
-        const keyPitchUp = inputState.keyState.has('ArrowUp');
-        const keyPitchDown = inputState.keyState.has('ArrowDown');
+        const visibility = SpaceTravelLogic.updateStationVisibility({
+            currentStation: this.currentStation,
+            playerShip: this.playerShip,
+            viewWidth,
+            viewHeight,
+            config: this.config
+        });
+        this.possibleStations = visibility.possibleStations;
+        this.visibleStations = visibility.visibleStations;
+    }
 
-        const yawLeft = keyYawLeft || mouseState.offLeft;
-        const yawRight = keyYawRight || mouseState.offRight;
-        const pitchUp = keyPitchUp || mouseState.offTop;
-        const pitchDown = keyPitchDown || mouseState.offBottom;
+    stop() {
+        this.isActive = false;
+        UI.setGameCursorEnabled?.(true);
+        if (this.animationId !== null) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        SpaceTravelInput.teardownInputHandlers(this.inputState);
+        this.isPaused = false;
+        this.pausedByFocus = false;
+        this.lastHoverPick = null;
+    }
 
-        const accelerate = inputState.keyState.has('w') || inputState.keyState.has('W');
-        const brake = inputState.keyState.has('s') || inputState.keyState.has('S');
-        const boostKey = inputState.keyState.has('Shift');
-        const wasBoosting = boostActive;
+    startLoop() {
+        const loop = (timestamp) => {
+            if (!this.isActive) {
+                return;
+            }
+            if (!this.lastTimestamp) {
+                this.lastTimestamp = timestamp;
+            }
+            const dt = Math.min(0.05, (timestamp - this.lastTimestamp) / 1000);
+            this.lastTimestamp = timestamp;
 
-        const engine = playerShip.engine || 10;
-        const baseMaxSpeed = getBaseMaxSpeed(playerShip);
-        const baseAccel = playerShip.size * engine * config.SHIP_ACCEL_PER_ENGINE * config.BASE_ACCEL_MULT;
-        const speedNow = ThreeDUtils.vecLength(playerShip.velocity);
-        const hasFuel = (playerShip.fuel ?? 0) > 0;
-        const boostReady = speedNow >= (baseMaxSpeed * config.BOOST_READY_SPEED_RATIO);
-        const boostAvailable = hasFuel && boostCooldownRemaining <= 0 && boostReady;
-        const requestedBoost = boostKey;
-        boostActive = requestedBoost && boostAvailable;
-        if (boostActive && !wasBoosting) {
-            boostStartTimestampMs = timestampMs;
-            boostEndTimestampMs = 0;
+            this.update(dt, timestamp);
+            if (!this.isActive) {
+                return;
+            }
+            this.render(timestamp);
+
+            this.animationId = requestAnimationFrame(loop);
+        };
+        this.animationId = requestAnimationFrame(loop);
+    }
+
+    update(dt, timestampMs = 0) {
+        if (!this.playerShip || this.isPaused) {
+            return;
         }
 
-        boostBlockMessage = '';
-        boostTurnMessage = '';
-        if (boostKey && !boostActive) {
-            if (boostCooldownRemaining > 0 || wasBoosting) {
-                boostBlockMessage = 'BOOSTER DISABLED: COOLDOWN';
-            } else if (!hasFuel) {
-                boostBlockMessage = 'BOOSTER DISABLED: NO FUEL';
-            } else if (!boostReady) {
-                boostBlockMessage = 'BOOSTER DISABLED: MAX SPEED REQUIRED';
-            }
-        }
-        if (boostActive && (keyYawLeft || keyYawRight || keyPitchUp || keyPitchDown)) {
-            boostTurnMessage = 'BOOSTING: TURNING DISABLED';
+        if (this.docking.isDockSequenceActive()) {
+            this.docking.updateDocking(this, timestampMs);
+            return;
         }
 
-        if (!boostActive && (yawLeft || yawRight || pitchUp || pitchDown)) {
-            let newRotation = playerShip.rotation;
-
-            if (yawLeft) {
-                newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, -turnRad));
-            }
-            if (yawRight) {
-                newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, turnRad));
-            }
-            if (pitchUp) {
-                newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 1, y: 0, z: 0 }, -turnRad));
-            }
-            if (pitchDown) {
-                newRotation = ThreeDUtils.quatMultiply(newRotation, ThreeDUtils.quatFromAxisAngle({ x: 1, y: 0, z: 0 }, turnRad));
-            }
-
-            playerShip.rotation = ThreeDUtils.quatNormalize(newRotation);
+        if (this.deathTow.isDeathSequenceActive()) {
+            if (this._handleDeathSequence(timestampMs)) return;
+            return;
         }
 
-        const pendingCooldown = (!boostActive && wasBoosting) ? config.BOOST_COOLDOWN_SEC : boostCooldownRemaining;
-        const inBoostCooldown = !boostActive && pendingCooldown > 0;
-        const accel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : 1);
-        const brakeAccel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : (inBoostCooldown ? config.BOOST_BRAKE_MULT : 2));
-        const maxSpeed = getMaxSpeed(playerShip, boostActive);
+        this._advanceTime(dt);
+        this._updateVisibility();
+        this._updateStationRotation();
+        SpaceTravelInput.handleInput(this, dt, timestampMs, this.messages);
+        this._updateMovement(dt);
+        const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
+        if (killed && this._handleDeathSequence(timestampMs)) return;
+        this.docking.checkDocking(this);
+        SpaceTravelParticles.updateParticles(this);
+        this.regenShipStats(dt);
+    }
 
-        const forward = ThreeDUtils.getLocalAxes(playerShip.rotation).forward;
+    _handleDeathSequence(timestampMs) {
+        return this.deathTow.handleTowFromSpace({
+            ...this,
+            timestampMs,
+            stop: () => this.stop(),
+            TowMenu,
+            onCancelBoost: () => { this.boostActive = false; }
+        });
+    }
 
-        if (boostActive) {
-            playerShip.velocity = PhysicsUtils.applyAcceleration(playerShip.velocity, forward, accel, dt);
+    _advanceTime(dt) {
+        if (this.currentGameState && this.currentGameState.date) {
+            const gameSecondsAdvance = dt * this.config.TIME_SCALE_GAME_SECONDS_PER_REAL_SECOND;
+            this.currentGameState.date = new Date(this.currentGameState.date.getTime() + (gameSecondsAdvance * 1000));
+            this.currentGameState.timeSinceDock = (this.currentGameState.timeSinceDock || 0) + (gameSecondsAdvance * 1000);
+        }
+    }
+
+    _updateStationRotation() {
+        if (this.currentStation && this.currentGameState && this.currentGameState.date) {
+            const gameSeconds = this.currentGameState.date.getTime() / 1000;
+            const dayT = (gameSeconds % this.config.GAME_SECONDS_PER_DAY) / this.config.GAME_SECONDS_PER_DAY;
+            const angle = (dayT * Math.PI * 2) + (this.currentStation.rotationPhase || 0);
+            this.currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
+        }
+    }
+
+    _updateMovement(dt) {
+        const accelerate = this.inputState.keyState.has('w') || this.inputState.keyState.has('W');
+        const brake = this.inputState.keyState.has('s') || this.inputState.keyState.has('S');
+        const boostKey = this.inputState.keyState.has('Shift');
+        const wasBoosting = this.boostActive;
+
+        const engine = this.playerShip.engine || 10;
+        const baseMaxSpeed = this.getBaseMaxSpeed(this.playerShip);
+        const baseAccel = this.playerShip.size * engine * this.config.SHIP_ACCEL_PER_ENGINE * this.config.BASE_ACCEL_MULT;
+        const speedNow = ThreeDUtils.vecLength(this.playerShip.velocity);
+        const hasFuel = (this.playerShip.fuel ?? 0) > 0;
+        const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
+
+        this.boostActive = boostKey && hasFuel && this.boostCooldownRemaining <= 0 && boostReady;
+
+        const pendingCooldown = (!this.boostActive && wasBoosting) ? this.config.BOOST_COOLDOWN_SEC : this.boostCooldownRemaining;
+        const inBoostCooldown = !this.boostActive && pendingCooldown > 0;
+        const accel = baseAccel * (this.boostActive ? this.config.BOOST_ACCEL_MULT : 1);
+        const brakeAccel = baseAccel * (this.boostActive ? this.config.BOOST_ACCEL_MULT : (inBoostCooldown ? this.config.BOOST_BRAKE_MULT : 2));
+        const maxSpeed = this.getMaxSpeed(this.playerShip, this.boostActive);
+        const forward = ThreeDUtils.getLocalAxes(this.playerShip.rotation).forward;
+
+        if (this.boostActive) {
+            this.playerShip.velocity = PhysicsUtils.applyAcceleration(this.playerShip.velocity, forward, accel, dt);
         } else {
             if (accelerate && !inBoostCooldown) {
-                playerShip.velocity = PhysicsUtils.applyAcceleration(playerShip.velocity, forward, accel, dt);
+                this.playerShip.velocity = PhysicsUtils.applyAcceleration(this.playerShip.velocity, forward, accel, dt);
             }
             if (brake) {
-                playerShip.velocity = PhysicsUtils.applyBrake(playerShip.velocity, brakeAccel, dt);
+                this.playerShip.velocity = PhysicsUtils.applyBrake(this.playerShip.velocity, brakeAccel, dt);
             }
         }
 
-        if (boostActive) {
-            playerShip.fuel = Math.max(0, (playerShip.fuel ?? 0) - (config.BOOST_FUEL_PER_SEC * dt));
-            if (playerShip.fuel <= 0) {
-                playerShip.fuel = 0;
-                boostActive = false;
+        if (this.boostActive) {
+            this.playerShip.fuel = Math.max(0, (this.playerShip.fuel ?? 0) - (this.config.BOOST_FUEL_PER_SEC * dt));
+            if (this.playerShip.fuel <= 0) {
+                this.playerShip.fuel = 0;
+                this.boostActive = false;
             }
         }
 
-        if (!boostActive && wasBoosting) {
-            boostCooldownRemaining = config.BOOST_COOLDOWN_SEC;
-            boostCooldownStartSpeed = ThreeDUtils.vecLength(playerShip.velocity);
-            boostEndTimestampMs = timestampMs;
+        if (!this.boostActive && wasBoosting) {
+            this.boostCooldownRemaining = this.config.BOOST_COOLDOWN_SEC;
+            this.boostCooldownStartSpeed = ThreeDUtils.vecLength(this.playerShip.velocity);
         }
 
-        const effectiveMaxSpeed = (!boostActive && boostCooldownRemaining > 0)
-            ? Math.max(baseMaxSpeed, boostCooldownStartSpeed)
+        const effectiveMaxSpeed = (!this.boostActive && this.boostCooldownRemaining > 0)
+            ? Math.max(baseMaxSpeed, this.boostCooldownStartSpeed)
             : maxSpeed;
-        playerShip.velocity = PhysicsUtils.clampSpeed(playerShip.velocity, effectiveMaxSpeed);
+        this.playerShip.velocity = PhysicsUtils.clampSpeed(this.playerShip.velocity, effectiveMaxSpeed);
 
-        if (!boostActive && boostCooldownRemaining > 0) {
-            boostCooldownRemaining = Math.max(0, boostCooldownRemaining - dt);
-            const elapsedCooldown = config.BOOST_COOLDOWN_SEC - boostCooldownRemaining;
-            const decelT = config.BOOST_COOLDOWN_DECEL_SEC > 0
-                ? Math.min(1, elapsedCooldown / config.BOOST_COOLDOWN_DECEL_SEC)
+        if (!this.boostActive && this.boostCooldownRemaining > 0) {
+            this.boostCooldownRemaining = Math.max(0, this.boostCooldownRemaining - dt);
+            const elapsedCooldown = this.config.BOOST_COOLDOWN_SEC - this.boostCooldownRemaining;
+            const decelT = this.config.BOOST_COOLDOWN_DECEL_SEC > 0
+                ? Math.min(1, elapsedCooldown / this.config.BOOST_COOLDOWN_DECEL_SEC)
                 : 1;
-            const targetSpeed = boostCooldownStartSpeed * (1 - decelT);
-            const speedNowCooldown = ThreeDUtils.vecLength(playerShip.velocity);
+            const targetSpeed = this.boostCooldownStartSpeed * (1 - decelT);
+            const speedNowCooldown = ThreeDUtils.vecLength(this.playerShip.velocity);
             if (speedNowCooldown > targetSpeed && speedNowCooldown > 0) {
-                playerShip.velocity = ThreeDUtils.scaleVec(playerShip.velocity, targetSpeed / speedNowCooldown);
+                this.playerShip.velocity = ThreeDUtils.scaleVec(this.playerShip.velocity, targetSpeed / speedNowCooldown);
             }
-            if (ThreeDUtils.vecLength(playerShip.velocity) <= (baseMaxSpeed * config.BOOST_COOLDOWN_END_SPEED_MULT)) {
-                boostCooldownRemaining = 0;
-            }
-        }
-
-        playerShip.position = ThreeDUtils.addVec(playerShip.position, ThreeDUtils.scaleVec(playerShip.velocity, dt));
-
-        if (applyStarHazards(dt, timestampMs)) {
-            if (handleTowFromSpace(timestampMs)) {
-                return;
+            if (ThreeDUtils.vecLength(this.playerShip.velocity) <= (baseMaxSpeed * this.config.BOOST_COOLDOWN_END_SPEED_MULT)) {
+                this.boostCooldownRemaining = 0;
             }
         }
 
-        if (targetSystem && Array.isArray(targetSystem.planets)) {
-            for (let i = 0; i < targetSystem.planets.length; i++) {
-                const planet = targetSystem.planets[i];
-                const dockingResult = SpaceTravelLogic.checkPlanetDocking({
-                    planet,
-                    playerShip,
-                    currentGameState,
-                    targetSystem,
-                    onStop: stop,
-                    onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget, planet: dockPlanet }) => {
-                        DockingAnimation.show(dockGameState, () => {
-                            handleDock({ dockGameState, dockTarget, location: dockPlanet });
-                        });
-                    },
-                    config,
-                    debug: true
-                });
-                if (dockingResult.didDock) {
-                    return;
-                }
-            }
-        }
-
-        if (currentStation) {
-            const dockingResult = SpaceTravelLogic.checkStationDocking({
-                station: currentStation,
-                timestampMs,
-                playerShip,
-                currentGameState,
-                targetSystem,
-                lastStationCollisionMs,
-                damageFlashStartMs,
-                onDamage: ({ station }) => {
-                    recordDamageSource({
-                        type: 'STATION_COLLISION',
-                        name: station?.name || station?.id || 'the station'
-                    });
-                },
-                onStop: stop,
-                onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget }) => {
-                    DockingAnimation.show(dockGameState, () => {
-                        handleDock({ dockGameState, dockTarget, location: currentStation });
-                    });
-                },
-                config
-            });
-            lastStationCollisionMs = dockingResult.lastStationCollisionMs;
-            damageFlashStartMs = dockingResult.damageFlashStartMs;
-            if (dockingResult.didDock) {
-                return;
-            }
-        }
-
-        if (handleTowFromSpace(timestampMs)) {
-            return;
-        }
-
-        dustParticles = SpaceTravelParticles.updateDustParticles({
-            playerShip,
-            dustParticles,
-            config,
-            getVelocityWorldDirection
-        });
-
-        if (config.DEBUG_STATION_LOG) {
-            SpaceTravelLogic.logNearestStationDebug({ playerShip });
-        }
-
-        regenShipStats(dt);
+        this.playerShip.position = ThreeDUtils.addVec(this.playerShip.position, ThreeDUtils.scaleVec(this.playerShip.velocity, dt));
     }
 
-    function handleDock({ dockGameState, dockTarget, location }) {
-        if (dockGameState && dockTarget) {
-            const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
-            if (systemIndex >= 0) {
-                dockGameState.setCurrentSystem(systemIndex);
-            }
-            dockGameState.destination = null;
-            dockGameState.localDestination = null;
-            dockGameState.localDestinationSystemIndex = null;
-        }
-        if (dockGameState && typeof dockGameState.setCurrentLocation === 'function') {
-            dockGameState.setCurrentLocation(location || dockGameState.getCurrentLocation());
-        } else if (dockGameState) {
-            dockGameState.currentLocation = location || dockGameState.currentLocation;
-        }
-        DockMenu.show(dockGameState, location);
-    }
-
-    function regenShipStats(dt) {
-        const laserMax = Ship.getLaserMax(playerShip);
-        const laserCurrent = Ship.getLaserCurrent(playerShip);
+    regenShipStats(dt) {
+        const laserMax = Ship.getLaserMax(this.playerShip);
+        const laserCurrent = Ship.getLaserCurrent(this.playerShip);
         if (laserCurrent < laserMax) {
-            laserRegenTimer += dt;
-            while (laserRegenTimer >= config.LASER_REGEN_SEC) {
-                Ship.setLaserCurrent(playerShip, Ship.getLaserCurrent(playerShip) + 1);
-                laserRegenTimer -= config.LASER_REGEN_SEC;
+            this.laserRegenTimer += dt;
+            while (this.laserRegenTimer >= this.config.LASER_REGEN_SEC) {
+                Ship.setLaserCurrent(this.playerShip, Ship.getLaserCurrent(this.playerShip) + 1);
+                this.laserRegenTimer -= this.config.LASER_REGEN_SEC;
             }
         } else {
-            laserRegenTimer = 0;
+            this.laserRegenTimer = 0;
         }
 
-        if (playerShip.maxShields > 0 && playerShip.shields < playerShip.maxShields) {
-            shieldRegenTimer += dt;
-            while (shieldRegenTimer >= config.SHIELD_REGEN_SEC) {
-                playerShip.shields = Math.min(playerShip.maxShields, playerShip.shields + 1);
-                shieldRegenTimer -= config.SHIELD_REGEN_SEC;
+        if (this.playerShip.maxShields > 0 && this.playerShip.shields < this.playerShip.maxShields) {
+            this.shieldRegenTimer += dt;
+            while (this.shieldRegenTimer >= this.config.SHIELD_REGEN_SEC) {
+                this.playerShip.shields = Math.min(this.playerShip.maxShields, this.playerShip.shields + 1);
+                this.shieldRegenTimer -= this.config.SHIELD_REGEN_SEC;
             }
         } else {
-            shieldRegenTimer = 0;
+            this.shieldRegenTimer = 0;
         }
     }
 
-    function fireLaser() {
-        if (!playerShip || isPaused) {
+    render(timestampMs = 0) {
+        if (!this.isActive) {
             return;
         }
-        const currentLaser = Ship.getLaserCurrent(playerShip);
-        if (currentLaser <= 0) {
-            return;
-        }
-
-        const now = performance.now();
-        laserFireStartMs = now;
-        laserFireUntilMs = now + config.LASER_FIRE_DURATION_MS;
-        laserTarget = getLaserTarget();
-        laserTargetWorldDir = getLaserTargetWorldDirection(laserTarget);
-        Ship.setLaserCurrent(playerShip, 0);
-
-        if (lastHoverPick && lastHoverPick.bodyRef) {
-            const target = lastHoverPick.bodyRef;
-            const damage = Ship.getLaserMax(playerShip);
-            if (typeof target.shields === 'number' && target.shields > 0) {
-                const remaining = Math.max(0, target.shields - damage);
-                const overflow = Math.max(0, damage - target.shields);
-                target.shields = remaining;
-                if (overflow > 0 && typeof target.hull === 'number') {
-                    target.hull = Math.max(0, target.hull - overflow);
-                }
-            } else if (typeof target.hull === 'number') {
-                target.hull = Math.max(0, target.hull - damage);
-            }
-        }
-    }
-
-    function applyStarHazards(dt, timestampMs) {
-        if (!targetSystem || !playerShip) {
-            return false;
-        }
-        const stars = Array.isArray(targetSystem.stars) ? targetSystem.stars : [];
-        if (stars.length === 0) {
-            return false;
-        }
-
-        const systemCenter = {
-            x: targetSystem.x * config.LY_TO_AU,
-            y: targetSystem.y * config.LY_TO_AU,
-            z: 0
-        };
-
-        let tookDamage = false;
-
-        for (let i = 0; i < stars.length; i++) {
-            const star = { ...stars[i], kind: 'STAR' };
-            const orbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
-            const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
-            const dist = ThreeDUtils.distance(playerShip.position, worldPos);
-            const bodyDockScale = (typeof config.SYSTEM_BODY_PHYSICS_SCALE === 'number' && config.SYSTEM_BODY_PHYSICS_SCALE > 0)
-                ? config.SYSTEM_BODY_PHYSICS_SCALE
-                : 1;
-            const radius = (star.radiusAU || 0) * bodyDockScale;
-
-            if (radius > 0 && dist <= radius) {
-                const toShip = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(playerShip.position, worldPos));
-                playerShip.position = ThreeDUtils.addVec(worldPos, ThreeDUtils.scaleVec(toShip, radius));
-                playerShip.velocity = { x: 0, y: 0, z: 0 };
-                playerShip.shields = 0;
-                playerShip.hull = 0;
-                recordDamageSource({
-                    type: 'STAR_IMPACT',
-                    name: star.name || star.id || 'the star'
-                });
-                damageFlashStartMs = timestampMs;
-                startDeathSequence(timestampMs);
-                return true;
-            }
-
-            const heatRange = radius * config.STAR_HEAT_RANGE_MULT;
-            if (radius > 0 && dist <= heatRange && config.STAR_HEAT_DAMAGE_PER_SEC > 0) {
-                const t = 1 - Math.min(1, (dist - radius) / Math.max(0.000001, heatRange - radius));
-                const damage = config.STAR_HEAT_DAMAGE_PER_SEC * t * dt;
-                if (damage > 0) {
-                    applyDamageToPlayer(damage, {
-                        type: 'STAR_HEAT',
-                        name: star.name || star.id || 'the star'
-                    });
-                    tookDamage = true;
-                }
-            }
-        }
-
-        if (tookDamage) {
-            if ((timestampMs - damageFlashStartMs) > config.DAMAGE_FLASH_DURATION_MS) {
-                damageFlashStartMs = timestampMs;
-            }
-        }
-
-        return false;
-    }
-
-    function applyDamageToPlayer(damage, source = null) {
-        let remaining = damage;
-        if (playerShip.shields > 0) {
-            const shieldDamage = Math.min(playerShip.shields, remaining);
-            playerShip.shields -= shieldDamage;
-            remaining -= shieldDamage;
-        }
-        if (remaining > 0) {
-            playerShip.hull = Math.max(0, playerShip.hull - remaining);
-            if (source) {
-                recordDamageSource(source);
-            }
-        }
-    }
-
-    function render(timestampMs = 0) {
-        if (!isActive) {
-            return;
-        }
-        UI.setGameCursorEnabled?.(!isPaused);
+        UI.setGameCursorEnabled?.(!this.isPaused);
         UI.clear();
         UI.clearOutputRow();
 
         const grid = UI.getGridSize();
-        const viewHeight = grid.height - config.PANEL_HEIGHT;
+        const viewHeight = grid.height - this.config.PANEL_HEIGHT;
         const viewWidth = grid.width;
-
-
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
-        const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
-        SpaceStationGfx.renderStationOccluders(
-            visibleStations,
-            playerShip,
+        this._renderSceneDepthBuffer(depthBuffer, timestampMs, viewWidth, viewHeight);
+        this._renderVisualEffects(depthBuffer, timestampMs);
+        this._addDebugMessages(timestampMs, viewWidth, viewHeight);
+
+        UI.draw();
+
+        if (this.config.ASCII_LOG_INTERVAL_MS && (!this.lastAsciiLogTimestamp || (Date.now() - this.lastAsciiLogTimestamp) >= this.config.ASCII_LOG_INTERVAL_MS)) {
+            this.lastAsciiLogTimestamp = Date.now();
+            UI.logScreenToConsole();
+        }
+    }
+
+    _renderSceneDepthBuffer(depthBuffer, timestampMs, viewWidth, viewHeight) {
+        const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, this.inputState);
+        
+        // Consolidated render params: spread this + additional transient params
+        const renderParams = {
+            ...this,
+            depthBuffer,
+            timestampMs,
             viewWidth,
             viewHeight,
-            depthBuffer,
-            config.NEAR_PLANE,
-            config.STATION_FACE_DEPTH_BIAS,
-            config.STATION_SCREEN_SCALE || 1,
-            config.DEBUG_STATION_RASTER,
-            config.DEBUG_STATION_FACE_INDEX,
-            config.DEBUG_STATION_FACE_OUTLINE,
-            config.DEBUG_STATION_FACE_FILL_MODE
-        );
+            mouseState
+        };
+
+        SpaceStationGfx.renderStationOccluders(renderParams);
+
         const bodyLabels = SpaceTravelRender.renderSystemBodies({
-            viewWidth,
-            viewHeight,
-            depthBuffer,
-            timestampMs,
-            mouseState,
-            state: {
-                targetSystem,
-                playerShip,
-                localDestination,
-                currentGameState,
-                currentStation
-            },
-            config,
-            setLastHoverPick: (pick) => {
-                lastHoverPick = pick;
-            }
+            ...renderParams,
+            setLastHoverPick: (pick) => { this.lastHoverPick = pick; }
         });
-        SpaceTravelParticles.renderStars({
-            viewWidth,
-            viewHeight,
-            depthBuffer,
-            timestampMs,
-            playerShip,
-            starfield,
-            boostActive,
-            boostStartTimestampMs,
-            config
-        });
-        if (!boostActive) {
+
+        SpaceTravelParticles.renderStars(renderParams);
+
+        if (!this.boostActive) {
             SpaceTravelParticles.renderDust({
-                viewWidth,
-                viewHeight,
-                depthBuffer,
-                playerShip,
-                dustParticles,
-                config,
-                getVelocityCameraSpace
+                ...renderParams,
+                getVelocityCameraSpace: () => this.getVelocityCameraSpace()
             });
         }
-        renderLaserFire(depthBuffer, viewWidth, viewHeight, timestampMs);
-        if (isPaused) {
+
+        this.laser.renderLaserFire(renderParams);
+
+        if (this.isPaused) {
             for (let i = 0; i < depthBuffer.colors.length; i++) {
                 const color = depthBuffer.colors[i];
                 if (color) {
@@ -922,243 +507,93 @@ const SpaceTravelMap = (() => {
                 }
             }
         }
+
         RasterUtils.flushDepthBuffer(depthBuffer);
+
         SpaceTravelHud.renderHud({
-            viewWidth,
-            viewHeight,
-            state: {
-                playerShip,
-                boostActive,
-                boostCooldownRemaining,
-                currentGameState,
-                baseMaxSpeed: getBaseMaxSpeed(playerShip),
-                maxSpeed: getMaxSpeed(playerShip, boostActive)
-            },
-            config,
+            ...renderParams,
+            baseMaxSpeed: this.getBaseMaxSpeed(this.playerShip),
+            maxSpeed: this.getMaxSpeed(this.playerShip, this.boostActive),
             helpers: {
-                applyPauseColor,
-                addHudText,
+                applyPauseColor: (color) => this.applyPauseColor(color),
+                addHudText: (x, y, text, color) => this.addHudText(x, y, text, color),
                 getActiveTargetInfo: () => SpaceTravelUi.getActiveTargetInfo({
-                    localDestination,
-                    targetSystem,
-                    currentGameState
-                }, config)
+                    localDestination: this.localDestination,
+                    targetSystem: this.targetSystem,
+                    currentGameState: this.currentGameState,
+                    playerShip: this.playerShip
+                }, this.config)
             },
             onMenu: () => {
-                stop();
-                SpaceTravelMenu.show(currentGameState, () => {
-                    const destination = targetSystem || SpaceTravelLogic.getNearestSystem(currentGameState);
-                    show(currentGameState, destination, {
+                this.stop();
+                SpaceTravelMenu.show(this.currentGameState, () => {
+                    const destination = this.targetSystem || SpaceTravelLogic.getNearestSystem(this.currentGameState);
+                    this.show(this.currentGameState, destination, {
                         resetPosition: false,
-                        localDestination
+                        localDestination: this.localDestination
                     });
                 });
             }
         });
-        SpaceTravelRender.renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, addHudText);
-        SpaceTravelRender.renderDestinationIndicator(
-            viewWidth,
-            viewHeight,
-            { playerShip },
-            config,
-            addHudText,
-            () => SpaceTravelUi.getActiveTargetInfo({
-                localDestination,
-                targetSystem,
-                currentGameState
-            }, config)
-        );
 
-        if (isPaused) {
+        SpaceTravelRender.renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, (x, y, text, color) => this.addHudText(x, y, text, color));
+        SpaceTravelRender.renderDestinationIndicator({
+            ...renderParams,
+            addHudText: (x, y, text, color) => this.addHudText(x, y, text, color),
+            getActiveTargetInfo: () => SpaceTravelUi.getActiveTargetInfo({
+                localDestination: this.localDestination,
+                targetSystem: this.targetSystem,
+                currentGameState: this.currentGameState,
+                playerShip: this.playerShip
+            }, this.config)
+        });
+    }
+
+    _addDebugMessages(timestampMs, viewWidth, viewHeight) {
+        if (this.isPaused) {
             const label = '=== PAUSED ===';
             const x = Math.floor((viewWidth - label.length) / 2);
             const y = Math.floor(viewHeight / 2);
             UI.addText(x, y, label, COLORS.TEXT_NORMAL);
-        } else if (boostTurnMessage || boostBlockMessage) {
-            const message = boostTurnMessage || boostBlockMessage;
+        } else if (this.boostTurnMessage || this.boostBlockMessage) {
+            const message = this.boostTurnMessage || this.boostBlockMessage;
+            const messageTimestampMs = this.boostTurnMessage
+                ? this.boostTurnMessageTimestampMs
+                : this.boostBlockMessageTimestampMs;
+            const flashPhase = Math.floor((timestampMs - messageTimestampMs) / 250) % 2;
+            const messageColor = flashPhase === 0 ? COLORS.ORANGE : COLORS.WHITE;
             const x = Math.floor((viewWidth - message.length) / 2);
             const y = Math.floor(viewHeight / 2);
-            UI.addText(x, y, message, COLORS.ORANGE);
-        }
-
-        UI.draw();
-
-        if (boostActive || boostEndTimestampMs > 0) {
-            const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
-            const fadeSec = Math.max(0.1, config.BOOST_COOLDOWN_SEC || 1);
-            let alpha = 0;
-            if (boostActive) {
-                const elapsedSec = Math.max(0, (timestampMs - boostStartTimestampMs) / 1000);
-                const timeRatio = Math.min(1, elapsedSec / rampSec);
-                alpha = config.BOOST_TINT_MAX * timeRatio;
-                alpha = Math.max(alpha, config.BOOST_TINT_MIN);
-            } else {
-                const elapsedFade = Math.max(0, (timestampMs - boostEndTimestampMs) / 1000);
-                const fadeT = Math.max(0, 1 - (elapsedFade / fadeSec));
-                alpha = config.BOOST_TINT_MAX * fadeT;
-                if (fadeT <= 0) {
-                    boostEndTimestampMs = 0;
-                }
-            }
-            const ctx = UI.getContext?.();
-            const canvas = UI.getCanvas?.();
-            if (ctx && canvas && alpha > 0) {
-                const rect = canvas.getBoundingClientRect();
-                ctx.save();
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = '#ff8a00';
-                ctx.fillRect(0, 0, rect.width, rect.height);
-                ctx.restore();
-            }
-        }
-
-        const flashElapsed = timestampMs - damageFlashStartMs;
-        if (flashElapsed >= 0 && flashElapsed <= config.DAMAGE_FLASH_DURATION_MS) {
-            const t = flashElapsed / config.DAMAGE_FLASH_DURATION_MS;
-            const alpha = t < 0.5
-                ? (config.DAMAGE_FLASH_ALPHA * (t / 0.5))
-                : (config.DAMAGE_FLASH_ALPHA * (1 - ((t - 0.5) / 0.5)));
-            const ctx = UI.getContext?.();
-            const canvas = UI.getCanvas?.();
-            if (ctx && canvas) {
-                const rect = canvas.getBoundingClientRect();
-                ctx.save();
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(0, 0, rect.width, rect.height);
-                ctx.restore();
-            }
-        }
-
-        if (deathSequenceActive) {
-            const redSec = Math.max(0.01, config.DEATH_FADE_TO_RED_SEC || 1);
-            const blackSec = Math.max(0.01, config.DEATH_FADE_TO_BLACK_SEC || 1);
-            const elapsedSec = Math.max(0, (timestampMs - deathSequenceStartMs) / 1000);
-            const redT = Math.min(1, elapsedSec / redSec);
-            const blackT = Math.min(1, Math.max(0, (elapsedSec - redSec) / blackSec));
-            const ctx = UI.getContext?.();
-            const canvas = UI.getCanvas?.();
-            if (ctx && canvas) {
-                const rect = canvas.getBoundingClientRect();
-                if (redT > 0) {
-                    ctx.save();
-                    ctx.globalAlpha = redT;
-                    ctx.fillStyle = '#ff0000';
-                    ctx.fillRect(0, 0, rect.width, rect.height);
-                    ctx.restore();
-                }
-                if (blackT > 0) {
-                    ctx.save();
-                    ctx.globalAlpha = blackT;
-                    ctx.fillStyle = '#000000';
-                    ctx.fillRect(0, 0, rect.width, rect.height);
-                    ctx.restore();
-                }
-            }
-        }
-
-        const now = Date.now();
-        if (!lastAsciiLogTimestamp || (now - lastAsciiLogTimestamp) >= config.ASCII_LOG_INTERVAL_MS) {
-            lastAsciiLogTimestamp = now;
-            UI.logScreenToConsole();
+            UI.addText(x, y, message, messageColor);
         }
     }
 
-
-    function renderLaserFire(depthBuffer, viewWidth, viewHeight, timestampMs) {
-        if (timestampMs < laserFireStartMs || timestampMs > laserFireUntilMs) {
-            return;
-        }
-        const duration = Math.max(1, config.LASER_FIRE_DURATION_MS);
-        const progress = Math.min(1, Math.max(0, (timestampMs - laserFireStartMs) / duration));
-        const targetScreen = getLaserTargetScreenPosition(viewWidth, viewHeight);
-        const targetX = Math.max(0, Math.min(viewWidth - 1, Math.floor(targetScreen.x)));
-        const targetY = Math.max(0, Math.min(viewHeight - 1, Math.floor(targetScreen.y)));
-        let pulseT = 0;
-        if (progress >= 0.25 && progress < 0.5) {
-            pulseT = (progress - 0.25) / 0.25;
-        } else if (progress >= 0.5 && progress < 0.75) {
-            pulseT = 1 - ((progress - 0.5) / 0.25);
-        }
-        const laserColor = SpaceTravelShared.lerpColorHex(config.LASER_COLOR, '#ffffff', pulseT);
-
-        const leftPoints = LineDrawer.drawLine(0, viewHeight - 1, targetX, targetY, true, config.LASER_COLOR);
-        const rightPoints = LineDrawer.drawLine(viewWidth - 1, viewHeight - 1, targetX, targetY, true, config.LASER_COLOR);
-
-        const renderPoints = (points) => {
-            if (points.length === 0) {
-                return;
-            }
-            if (progress < 0.5) {
-                const growT = progress / 0.5;
-                const endIndex = Math.max(0, Math.floor(points.length * growT) - 1);
-                for (let i = 0; i <= endIndex; i++) {
-                    const point = points[i];
-                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
-                }
-            } else {
-                const shrinkT = (progress - 0.5) / 0.5;
-                const startIndex = Math.min(points.length, Math.floor(points.length * shrinkT));
-                for (let i = startIndex; i < points.length; i++) {
-                    const point = points[i];
-                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
-                }
-            }
-        };
-
-        renderPoints(leftPoints);
-        renderPoints(rightPoints);
+    _renderVisualEffects(depthBuffer, timestampMs) {
+        this.animation.renderBoostTint(this, timestampMs);
+        this.animation.renderDamageFlash(this, timestampMs);
+        this._renderDockingFade(timestampMs);
+        this.animation.renderDeathSequence(this, timestampMs);
     }
 
-    function getLaserTarget() {
-        const grid = UI.getGridSize();
-        const viewWidth = grid.width;
-        const viewHeight = grid.height - config.PANEL_HEIGHT;
-        const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
-        if (mouseState && mouseState.active) {
-            return { x: mouseState.displayX, y: mouseState.displayY };
+    _renderDockingFade(timestampMs) {
+        if (this.docking.isDockSequenceActive()) {
+            this.docking.renderDockFade(timestampMs);
         }
-        return {
-            x: Math.floor(viewWidth / 2),
-            y: Math.floor(viewHeight / 2)
-        };
     }
 
-    function getLaserTargetWorldDirection(target) {
-        const grid = UI.getGridSize();
-        const viewWidth = grid.width;
-        const viewHeight = grid.height - config.PANEL_HEIGHT;
-        const cameraDir = RasterUtils.screenRayDirection(target.x, target.y, viewWidth, viewHeight, config.VIEW_FOV);
-        return ThreeDUtils.rotateVecByQuat(cameraDir, playerShip.rotation);
-    }
-
-    function getLaserTargetScreenPosition(viewWidth, viewHeight) {
-        if (!laserTargetWorldDir) {
-            return laserTarget;
-        }
-        const cameraDir = ThreeDUtils.rotateVecByQuat(laserTargetWorldDir, ThreeDUtils.quatConjugate(playerShip.rotation));
-        const projected = RasterUtils.projectCameraSpacePointRaw(cameraDir, viewWidth, viewHeight, config.VIEW_FOV);
-        if (!projected) {
-            return { x: viewWidth / 2, y: viewHeight / 2 };
-        }
-        return { x: projected.x, y: projected.y };
-    }
-
-    function getVelocityWorldDirection() {
-        const speed = ThreeDUtils.vecLength(playerShip.velocity);
+    getVelocityWorldDirection() {
+        const speed = ThreeDUtils.vecLength(this.playerShip.velocity);
         if (speed > 0.000001) {
-            return ThreeDUtils.normalizeVec(playerShip.velocity);
+            return ThreeDUtils.normalizeVec(this.playerShip.velocity);
         }
-        return ThreeDUtils.getLocalAxes(playerShip.rotation).forward;
+        return ThreeDUtils.getLocalAxes(this.playerShip.rotation).forward;
     }
 
-    function getVelocityCameraSpace() {
-        const relativeVelocity = ThreeDUtils.scaleVec(playerShip.velocity, -1);
-        return ThreeDUtils.rotateVecByQuat(relativeVelocity, ThreeDUtils.quatConjugate(playerShip.rotation));
+    getVelocityCameraSpace() {
+        const relativeVelocity = ThreeDUtils.scaleVec(this.playerShip.velocity, -1);
+        return ThreeDUtils.rotateVecByQuat(relativeVelocity, ThreeDUtils.quatConjugate(this.playerShip.rotation));
     }
+}
 
-    return {
-        show,
-        stop
-    };
-})();
+// Create singleton instance and export as SpaceTravelMap for backward compatibility
+const SpaceTravelMap = new SpaceTravelMapClass();

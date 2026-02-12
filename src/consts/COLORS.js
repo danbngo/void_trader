@@ -25,6 +25,7 @@ const COLORS = {
     LIGHT_CYAN: '#E0FFFF',
     LIGHT_MAGENTA: '#FF69B4',
     DARK_MAGENTA: '#8B008B',
+    DARK_RED: '#660000',
     
     // Grays
     DARK_GRAY: '#444444',

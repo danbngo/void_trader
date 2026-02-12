@@ -154,9 +154,27 @@ const SpaceTravelParticles = (() => {
         return nextParticles;
     }
 
+    function updateParticles(mapInstance) {
+        mapInstance.dustParticles = updateDustParticles({
+            ...mapInstance,
+            getVelocityWorldDirection: () => {
+                const speed = ThreeDUtils.vecLength(mapInstance.playerShip.velocity);
+                if (speed > 0.000001) {
+                    return ThreeDUtils.normalizeVec(mapInstance.playerShip.velocity);
+                }
+                return ThreeDUtils.getLocalAxes(mapInstance.playerShip.rotation).forward;
+            }
+        });
+
+        if (mapInstance.config.DEBUG_STATION_LOG) {
+            SpaceTravelLogic.logNearestStationDebug({ playerShip: mapInstance.playerShip });
+        }
+    }
+
     return {
         renderStars,
         renderDust,
-        updateDustParticles
+        updateDustParticles,
+        updateParticles
     };
 })();

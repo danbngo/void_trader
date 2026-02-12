@@ -52,6 +52,7 @@ const SpaceTravelMap = (() => {
     let boostStartTimestampMs = 0;
     let boostBlockMessage = '';
     let boostTurnMessage = '';
+    let boostEndTimestampMs = 0;
 
     function setPaused(nextPaused, byFocus = false) {
         isPaused = nextPaused;
@@ -398,6 +399,7 @@ const SpaceTravelMap = (() => {
         boostActive = requestedBoost && boostAvailable;
         if (boostActive && !wasBoosting) {
             boostStartTimestampMs = timestampMs;
+            boostEndTimestampMs = 0;
         }
 
         boostBlockMessage = '';
@@ -464,6 +466,7 @@ const SpaceTravelMap = (() => {
         if (!boostActive && wasBoosting) {
             boostCooldownRemaining = config.BOOST_COOLDOWN_SEC;
             boostCooldownStartSpeed = ThreeDUtils.vecLength(playerShip.velocity);
+            boostEndTimestampMs = timestampMs;
         }
 
         const effectiveMaxSpeed = (!boostActive && boostCooldownRemaining > 0)
@@ -831,24 +834,22 @@ const SpaceTravelMap = (() => {
 
         UI.draw();
 
-        if (boostActive || boostCooldownRemaining > 0) {
-            const baseMaxSpeed = getBaseMaxSpeed(playerShip);
-            const maxSpeed = baseMaxSpeed * config.BOOST_MAX_SPEED_MULT;
-            const speedRatio = maxSpeed > 0 ? Math.min(1, ThreeDUtils.vecLength(playerShip.velocity) / maxSpeed) : 0;
-            const cooldownFactor = boostActive
-                ? 1
-                : (config.BOOST_COOLDOWN_SEC > 0
-                    ? Math.min(1, (boostCooldownRemaining / config.BOOST_COOLDOWN_SEC) * 2)
-                    : 0);
-            let timeRatio = 1;
+        if (boostActive || boostEndTimestampMs > 0) {
+            const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
+            const fadeSec = Math.max(0.1, config.BOOST_COOLDOWN_SEC || 1);
+            let alpha = 0;
             if (boostActive) {
-                const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
                 const elapsedSec = Math.max(0, (timestampMs - boostStartTimestampMs) / 1000);
-                timeRatio = Math.min(1, elapsedSec / rampSec);
-            }
-            let alpha = config.BOOST_TINT_MAX * timeRatio * cooldownFactor;
-            if (boostActive) {
+                const timeRatio = Math.min(1, elapsedSec / rampSec);
+                alpha = config.BOOST_TINT_MAX * timeRatio;
                 alpha = Math.max(alpha, config.BOOST_TINT_MIN);
+            } else {
+                const elapsedFade = Math.max(0, (timestampMs - boostEndTimestampMs) / 1000);
+                const fadeT = Math.max(0, 1 - (elapsedFade / fadeSec));
+                alpha = config.BOOST_TINT_MAX * fadeT;
+                if (fadeT <= 0) {
+                    boostEndTimestampMs = 0;
+                }
             }
             const ctx = UI.getContext?.();
             const canvas = UI.getCanvas?.();

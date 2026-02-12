@@ -86,40 +86,6 @@ class RasterUtils {
         return false;
     }
 
-    static plotDepthTextSubPixel(buffer, x, y, z, symbol, color, directionX = 0, directionY = 0) {
-        // directionX/Y are optional: if provided (non-zero), use them (-1, 0, 1)
-        // to determine which half-block to use. If both are 0, treat as center point (full block).
-        
-        const xi = Math.floor(x);
-        const yi = Math.floor(y);
-
-        if (xi < 0 || yi < 0 || xi >= buffer.width || yi >= buffer.height) {
-            return false;
-        }
-
-        let finalSymbol = symbol;
-        if (symbol === '█' || symbol === '▓' || symbol === '▒' || symbol === '░') {
-            // If direction is provided, use it to pick half-blocks pointing toward center
-            if (directionX !== 0 || directionY !== 0) {
-                if (directionX < 0) {
-                    finalSymbol = '▐'; // Right half (points toward center on right)
-                } else if (directionX > 0) {
-                    finalSymbol = '▌'; // Left half (points toward center on left)
-                }
-                
-                // Vertical has priority for alignment
-                if (directionY < 0) {
-                    finalSymbol = '▄'; // Bottom half (points toward center below)
-                } else if (directionY > 0) {
-                    finalSymbol = '▀'; // Top half (points toward center above)
-                }
-            }
-            // else: keep original symbol for center points
-        }
-
-        return RasterUtils.plotDepthText(buffer, xi, yi, z, finalSymbol, color);
-    }
-
     static plotDepthOnly(buffer, x, y, z) {
         if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
             return;

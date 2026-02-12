@@ -29,23 +29,33 @@ const SpaceTravelMessages = (() => {
                 mapInstance.boostTurnMessage = '';
             }
 
+            const setBoostBlockMessage = (message) => {
+                if (mapInstance.boostBlockMessage !== message) {
+                    mapInstance.boostBlockMessage = message;
+                    mapInstance.boostBlockMessageTimestampMs = timestampMs;
+                }
+            };
+
+            const setBoostTurnMessage = (message) => {
+                if (mapInstance.boostTurnMessage !== message) {
+                    mapInstance.boostTurnMessage = message;
+                    mapInstance.boostTurnMessageTimestampMs = timestampMs;
+                }
+            };
+
             if (boostKey && !boostActive) {
                 if (boostCooldownRemaining > 0) {
-                    mapInstance.boostBlockMessage = 'BOOSTER DISABLED: COOLDOWN';
-                    mapInstance.boostBlockMessageTimestampMs = timestampMs;
+                    setBoostBlockMessage('BOOSTER DISABLED: COOLDOWN');
                 } else if (!hasFuel) {
-                    mapInstance.boostBlockMessage = 'BOOSTER DISABLED: NO FUEL';
-                    mapInstance.boostBlockMessageTimestampMs = timestampMs;
+                    setBoostBlockMessage('BOOSTER DISABLED: NO FUEL');
                     mapInstance.boostNoFuelTimestampMs = timestampMs;
                 } else if (!boostReady) {
-                    mapInstance.boostBlockMessage = 'BOOSTER DISABLED: MAX SPEED REQUIRED';
-                    mapInstance.boostBlockMessageTimestampMs = timestampMs;
+                    setBoostBlockMessage('BOOSTER DISABLED: MAX SPEED REQUIRED');
                 }
             }
 
             if (boostActive && (keyYawLeft || keyYawRight || keyPitchUp || keyPitchDown)) {
-                mapInstance.boostTurnMessage = 'BOOSTING: TURNING DISABLED';
-                mapInstance.boostTurnMessageTimestampMs = timestampMs;
+                setBoostTurnMessage('BOOSTING: TURNING DISABLED');
             }
         }
 

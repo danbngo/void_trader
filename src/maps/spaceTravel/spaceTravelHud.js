@@ -3,20 +3,20 @@
  */
 
 const SpaceTravelHud = (() => {
-    function renderHud({ viewWidth, viewHeight, state, config, helpers, onMenu }) {
+    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, onMenu }) {
         const startY = viewHeight;
         const panelWidth = viewWidth;
 
         helpers.addHudText(0, startY, '─'.repeat(panelWidth), COLORS.GRAY);
 
-        const ship = state.playerShip;
+        const ship = playerShip;
         if (!ship) {
             return;
         }
 
         const laserCurrent = Ship.getLaserCurrent(ship);
         const laserMax = Ship.getLaserMax(ship);
-        const gameTimeLabel = formatGameTime(state.currentGameState?.date);
+        const gameTimeLabel = formatGameTime(currentGameState?.date);
 
         const fuelRatio = ship.fuel / ship.maxFuel;
         const shieldRatio = ship.maxShields ? (ship.shields / ship.maxShields) : 0;
@@ -25,10 +25,8 @@ const SpaceTravelHud = (() => {
 
         const speed = ThreeDUtils.vecLength(ship.velocity);
         const speedPerMinute = speed * 60;
-            const baseMaxSpeed = state.baseMaxSpeed ?? (ship.engine || 10) * config.SHIP_SPEED_PER_ENGINE;
-            const maxSpeed = state.maxSpeed ?? (baseMaxSpeed * (state.boostActive ? config.BOOST_MAX_SPEED_MULT : 1));
         const speedRatio = maxSpeed > 0 ? (Math.min(1, speed / maxSpeed) * 2) : 0;
-        const speedValueColor = state.boostActive
+        const speedValueColor = boostActive
             ? COLORS.ORANGE
             : (speed <= 0
                 ? COLORS.TEXT_DIM
@@ -51,9 +49,9 @@ const SpaceTravelHud = (() => {
             : '--';
         const rightColumnX = Math.max(2, panelWidth - 32);
 
-        const nowMs = state.timestampMs || 0;
-        const fuelFlickerActive = nowMs > 0 && (nowMs - (state.boostNoFuelTimestampMs || 0)) <= 1000;
-        const laserFlickerActive = nowMs > 0 && (nowMs - (state.laserEmptyTimestampMs || 0)) <= 1000;
+        const nowMs = timestampMs || 0;
+        const fuelFlickerActive = nowMs > 0 && (nowMs - (boostNoFuelTimestampMs || 0)) <= 1000;
+        const laserFlickerActive = nowMs > 0 && (nowMs - (laserEmptyTimestampMs || 0)) <= 1000;
         const flickerColor = (timestamp) => (Math.floor(timestamp / 200) % 2 === 0 ? COLORS.DARK_RED : COLORS.DARK_GRAY);
         const fuelValueColor = fuelFlickerActive
             ? flickerColor(nowMs)
@@ -123,14 +121,14 @@ const SpaceTravelHud = (() => {
             const speedValue = speedValueText;
             let boostTag = '';
             let boostColor = COLORS.TEXT_NORMAL;
-            if (state.boostActive) {
+            if (boostActive) {
                 boostTag = ' [BOOST]';
                 boostColor = COLORS.ORANGE;
-            } else if (!state.boostActive && state.boostCooldownRemaining > 0) {
+            } else if (!boostActive && boostCooldownRemaining > 0) {
                 boostTag = ' [COOLDOWN]';
                 boostColor = COLORS.TEXT_WARNING;
-            } else if (!state.boostActive
-                && state.boostCooldownRemaining <= 0
+            } else if (!boostActive
+                && boostCooldownRemaining <= 0
                 && (ship.fuel ?? 0) > 0
                 && speed >= (baseMaxSpeed * config.BOOST_READY_SPEED_RATIO)) {
                 boostTag = ' [READY]';
@@ -147,7 +145,7 @@ const SpaceTravelHud = (() => {
             }
         }
 
-        renderCompass(viewWidth, viewHeight, startY, state, helpers);
+        renderCompass(viewWidth, viewHeight, startY, playerShip, helpers);
 
         const menuText = 'MENU';
         const buttonText = `[m] ${menuText}`;
@@ -172,18 +170,18 @@ const SpaceTravelHud = (() => {
         return `${month} ${day} ${hours}:${minutes}`;
     }
 
-    function renderCompass(viewWidth, viewHeight, startY, state, helpers) {
+    function renderCompass(viewWidth, viewHeight, startY, playerShip, helpers) {
         const targetInfo = helpers.getActiveTargetInfo();
-        if (!state.playerShip || !targetInfo) {
+        if (!playerShip || !targetInfo) {
             return;
         }
-        const toTarget = ThreeDUtils.subVec(targetInfo.position, state.playerShip.position);
+        const toTarget = ThreeDUtils.subVec(targetInfo.position, playerShip.position);
         const distanceToTarget = ThreeDUtils.vecLength(toTarget);
         if (distanceToTarget <= 0.000001) {
             return;
         }
 
-        const cameraSpaceDir = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(state.playerShip.rotation));
+        const cameraSpaceDir = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(playerShip.rotation));
         const screenDx = cameraSpaceDir.x;
         const screenDy = cameraSpaceDir.z;
 

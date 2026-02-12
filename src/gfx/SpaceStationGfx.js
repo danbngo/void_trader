@@ -160,7 +160,12 @@ const SpaceStationGfx = (() => {
         return bounds ? bounds.area : 0;
     }
 
-    function renderStationOccluders(stations, playerShip, viewWidth, viewHeight, depthBuffer, nearPlane, faceBias, scale = 1, debug = false, debugFaceIndex = null, debugFaceOutline = false, debugFaceFillMode = 'ray') {
+    function renderStationOccluders({ visibleStations, playerShip, viewWidth, viewHeight, depthBuffer, config, debug = false, debugFaceIndex = null, debugFaceOutline = false, debugFaceFillMode = 'ray', fillMode = 'tri' }) {
+        const stations = visibleStations || [];
+        const nearPlane = config.NEAR_PLANE;
+        const faceBias = config.STATION_FACE_DEPTH_BIAS;
+        const scale = config.STATION_SCREEN_SCALE;
+        
         if (stations.length === 0) {
             return;
         }
@@ -351,7 +356,7 @@ const SpaceStationGfx = (() => {
                     faceBias,
                     nearPlane,
                     75,
-                    debugFaceFillMode
+                    debug ? debugFaceFillMode : fillMode
                 );
                 if (debug) {
                     console.log('[StationFaceDebug]', {

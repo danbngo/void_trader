@@ -314,7 +314,7 @@ class SpaceTravelMapClass {
         this._updateVisibility();
         this._updateStationRotation();
         SpaceTravelInput.handleInput(this, dt, timestampMs, this.messages);
-        this._updateMovement(dt);
+        this._updateMovement(dt, timestampMs);
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
         this.docking.checkDocking(this);
@@ -349,7 +349,7 @@ class SpaceTravelMapClass {
         }
     }
 
-    _updateMovement(dt) {
+    _updateMovement(dt, timestampMs = 0) {
         const accelerate = this.inputState.keyState.has('w') || this.inputState.keyState.has('W');
         const brake = this.inputState.keyState.has('s') || this.inputState.keyState.has('S');
         const boostKey = this.inputState.keyState.has('Shift');
@@ -363,6 +363,9 @@ class SpaceTravelMapClass {
         const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
 
         this.boostActive = boostKey && hasFuel && this.boostCooldownRemaining <= 0 && boostReady;
+
+        if (this.boostActive && !wasBoosting) this.boostStartTimestampMs = timestampMs;
+        if (!this.boostActive && wasBoosting) this.boostEndTimestampMs = timestampMs;
 
         const pendingCooldown = (!this.boostActive && wasBoosting) ? this.config.BOOST_COOLDOWN_SEC : this.boostCooldownRemaining;
         const inBoostCooldown = !this.boostActive && pendingCooldown > 0;
@@ -387,6 +390,7 @@ class SpaceTravelMapClass {
             if (this.playerShip.fuel <= 0) {
                 this.playerShip.fuel = 0;
                 this.boostActive = false;
+                this.boostEndTimestampMs = timestampMs;
             }
         }
 

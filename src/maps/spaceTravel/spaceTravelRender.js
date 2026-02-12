@@ -4,7 +4,7 @@
 
 const SpaceTravelRender = (() => {
     let lastCharAspectLogMs = 0;
-    function renderSystemBodies({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null, state, config, setLastHoverPick }) {
+    function renderSystemBodies({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null, targetSystem, playerShip, localDestination, currentGameState, currentStation, config, setLastHoverPick }) {
         const starNoise = (x, y, seed, timeMs) => {
             const t = timeMs * 0.000000125;
             const v = Math.sin((x * 12.9898) + (y * 78.233) + (seed * 0.01) + t) * 43758.5453;
@@ -13,7 +13,6 @@ const SpaceTravelRender = (() => {
         if (config && config.RENDER_SYSTEM_BODIES === false) {
             return [];
         }
-        const { targetSystem, playerShip, localDestination, currentGameState, currentStation } = state;
         if (!targetSystem || !playerShip) {
             return [];
         }
@@ -401,9 +400,8 @@ const SpaceTravelRender = (() => {
         });
     }
 
-    function renderDestinationIndicator(viewWidth, viewHeight, state, config, addHudText, getActiveTargetInfo) {
+    function renderDestinationIndicator({ viewWidth, viewHeight, playerShip, localDestination, config, addHudText, getActiveTargetInfo }) {
         const targetInfo = getActiveTargetInfo();
-        const { playerShip } = state;
         if (!targetInfo || !playerShip) {
             return;
         }

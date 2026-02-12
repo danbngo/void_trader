@@ -37,7 +37,9 @@ const SpaceTravelHud = (() => {
             : `${speedPerMinute.toFixed(2)} AU/m`;
 
         const targetInfo = helpers.getActiveTargetInfo();
-        const destinationLabel = targetInfo && targetInfo.name ? targetInfo.name : '--';
+        const destinationLabel = targetInfo && targetInfo.name
+            ? (targetInfo.symbol ? `${targetInfo.symbol} ${targetInfo.name}` : targetInfo.name)
+            : '--';
         const distanceToTarget = targetInfo ? ThreeDUtils.vecLength(ThreeDUtils.subVec(targetInfo.position, ship.position)) : null;
         const distanceLabel = targetInfo
             ? (targetInfo.isLocal

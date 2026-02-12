@@ -44,6 +44,25 @@ const SpaceTravelUi = (() => {
     }
 
     function getActiveTargetInfo(state, config) {
+        const normalizeName = (raw) => {
+            if (!raw || typeof raw !== 'string') {
+                return 'Destination';
+            }
+            return raw
+                .replace(/-(STAR|PLANET)-\d+$/i, '')
+                .replace(/-STATION$/i, '');
+        };
+        const buildTargetInfo = (body, position, isLocal) => {
+            const name = normalizeName(body?.name || body?.id || body?.type || 'Destination');
+            const symbol = body ? SpaceTravelShared.getLocalMapBodySymbol(body) : null;
+            return {
+                position,
+                isLocal,
+                name,
+                symbol,
+                type: body?.type || body?.kind || 'LOCAL'
+            };
+        };
         const { localDestination, targetSystem, currentGameState } = state;
         if (localDestination && targetSystem) {
             const systemCenter = {
@@ -53,33 +72,28 @@ const SpaceTravelUi = (() => {
             };
             let rel = { x: 0, y: 0, z: 0 };
             if (localDestination.type === 'STATION' && localDestination.positionWorld) {
-                return {
-                    position: localDestination.positionWorld,
-                    isLocal: true,
-                    name: localDestination.id || localDestination.name || localDestination.type || 'Destination',
-                    type: localDestination.type || 'LOCAL'
-                };
+                return buildTargetInfo(localDestination, localDestination.positionWorld, true);
             }
             if (localDestination.orbit) {
                 rel = SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date);
             }
-            return {
-                position: ThreeDUtils.addVec(systemCenter, rel),
-                isLocal: true,
-                name: localDestination.id || localDestination.name || localDestination.type || 'Destination',
-                type: localDestination.type || 'LOCAL'
-            };
+            return buildTargetInfo(localDestination, ThreeDUtils.addVec(systemCenter, rel), true);
         }
 
         if (targetSystem) {
+            const position = {
+                x: targetSystem.x * config.LY_TO_AU,
+                y: targetSystem.y * config.LY_TO_AU,
+                z: 0
+            };
+            const systemBody = targetSystem.primaryBody || (targetSystem.stars && targetSystem.stars[0]) || null;
+            const name = normalizeName(targetSystem.name || systemBody?.name || systemBody?.id || 'Destination');
+            const symbol = systemBody ? SpaceTravelShared.getLocalMapBodySymbol(systemBody) : null;
             return {
-                position: {
-                    x: targetSystem.x * config.LY_TO_AU,
-                    y: targetSystem.y * config.LY_TO_AU,
-                    z: 0
-                },
+                position,
                 isLocal: false,
-                name: targetSystem.name,
+                name,
+                symbol,
                 type: 'SYSTEM'
             };
         }

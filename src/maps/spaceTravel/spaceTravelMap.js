@@ -52,6 +52,49 @@ const SpaceTravelMap = (() => {
     let boostStartTimestampMs = 0;
     let boostBlockMessage = '';
     let boostTurnMessage = '';
+
+    function getNearestPlanet() {
+        if (!targetSystem || !currentGameState || !playerShip) {
+            return null;
+        }
+        const planets = Array.isArray(targetSystem.planets) ? targetSystem.planets : [];
+        if (planets.length === 0) {
+            return targetSystem.primaryBody || null;
+        }
+        const systemCenter = {
+            x: targetSystem.x * config.LY_TO_AU,
+            y: targetSystem.y * config.LY_TO_AU,
+            z: 0
+        };
+        let nearest = null;
+        let nearestDist = Infinity;
+        for (let i = 0; i < planets.length; i++) {
+            const planet = planets[i];
+            const orbitOffset = planet.orbit ? SystemOrbitUtils.getOrbitPosition(planet.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
+            const worldPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+            const dist = ThreeDUtils.distance(playerShip.position, worldPos);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = planet;
+            }
+        }
+        return nearest || targetSystem.primaryBody || planets[0] || null;
+    }
+
+    function handleTowFromSpace() {
+        if (!currentGameState || !playerShip || playerShip.hull > 0) {
+            return false;
+        }
+        const towLocation = getNearestPlanet();
+        const towSystemIndex = currentGameState.currentSystemIndex ?? currentGameState.previousSystemIndex;
+        stop();
+        TowMenu.show(currentGameState, {
+            location: towLocation,
+            systemIndex: towSystemIndex,
+            systemName: targetSystem?.name
+        });
+        return true;
+    }
     let boostEndTimestampMs = 0;
 
     function setPaused(nextPaused, byFocus = false) {
@@ -439,7 +482,7 @@ const SpaceTravelMap = (() => {
         const pendingCooldown = (!boostActive && wasBoosting) ? config.BOOST_COOLDOWN_SEC : boostCooldownRemaining;
         const inBoostCooldown = !boostActive && pendingCooldown > 0;
         const accel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : 1);
-        const brakeAccel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : (inBoostCooldown ? config.BOOST_BRAKE_MULT : 1));
+        const brakeAccel = baseAccel * (boostActive ? config.BOOST_ACCEL_MULT : (inBoostCooldown ? config.BOOST_BRAKE_MULT : 2));
         const maxSpeed = getMaxSpeed(playerShip, boostActive);
 
         const forward = ThreeDUtils.getLocalAxes(playerShip.rotation).forward;
@@ -493,7 +536,9 @@ const SpaceTravelMap = (() => {
         playerShip.position = ThreeDUtils.addVec(playerShip.position, ThreeDUtils.scaleVec(playerShip.velocity, dt));
 
         if (applyStarHazards(dt, timestampMs)) {
-            return;
+            if (handleTowFromSpace()) {
+                return;
+            }
         }
 
         if (targetSystem && Array.isArray(targetSystem.planets)) {
@@ -541,6 +586,10 @@ const SpaceTravelMap = (() => {
             if (dockingResult.didDock) {
                 return;
             }
+        }
+
+        if (handleTowFromSpace()) {
+            return;
         }
 
         dustParticles = SpaceTravelParticles.updateDustParticles({

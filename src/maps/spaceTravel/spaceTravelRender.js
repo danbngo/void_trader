@@ -300,7 +300,7 @@ const SpaceTravelRender = (() => {
                         if (jitter > 0) {
                             pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#ffffff', Math.min(0.25, jitter));
                         } else {
-                            const darkAmount = Math.min(0.25, -jitter) * 0.5;
+                            const darkAmount = Math.min(0.25, -jitter) * 0.25;
                             pixelColor = SpaceTravelShared.lerpColorHex(pixelColor, '#000000', darkAmount);
                         }
                     }

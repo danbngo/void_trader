@@ -177,7 +177,7 @@ const SpaceTravelRender = (() => {
                 if (isOnScreen) {
                     const symbol = SpaceTravelShared.getLocalMapBodySymbol(body);
                     const symbolDepth = projected.z - (config.STATION_FACE_DEPTH_BIAS || 0.0005);
-                    RasterUtils.plotDepthText(depthBuffer, centerX, centerY, symbolDepth, symbol, color);
+                    RasterUtils.plotDepthTextSubPixel(depthBuffer, centerX, centerY, symbolDepth, symbol, color);
                     const labelName = body.name || 'Station';
                     const isDestination = isDestinationBody(localDestination, body);
                     if (isDestination) {
@@ -201,7 +201,7 @@ const SpaceTravelRender = (() => {
 
             if (radiusCharsX === 0 && radiusCharsY === 0) {
                 const symbol = SpaceTravelShared.getLocalMapBodySymbol(body);
-                RasterUtils.plotDepthText(depthBuffer, centerX, centerY, projected.z, symbol, color);
+                RasterUtils.plotDepthTextSubPixel(depthBuffer, centerX, centerY, projected.z, symbol, color);
                 if (isOnScreen) {
                     const isDestination = isDestinationBody(localDestination, body);
                     if (isDestination) {
@@ -305,7 +305,23 @@ const SpaceTravelRender = (() => {
                     }
 
                     const plotZ = projected.z + (body.kind === 'STAR' ? 0.0001 : 0);
-                    RasterUtils.plotDepthText(depthBuffer, x, y, plotZ, fillSymbol, pixelColor);
+                    
+                    // Edge detection: measure distance to circle boundary
+                    // A pixel is on the edge if it's very close to where the circle boundary is
+                    let isEdge = false;
+                    const distNormX = radiusCharsX > 0 ? (dx / radiusCharsX) : 0;
+                    const distNormY = radiusCharsY > 0 ? (dy / radiusCharsY) : 0;
+                    const distFromCenterSq = distNormX * distNormX + distNormY * distNormY;
+                    
+                    // Tight edge detection: only pixels within 0.05 units of boundary
+                    // This creates a 1-character thick anti-aliased edge
+                    if (distFromCenterSq > 0.95 && distFromCenterSq < 1.05) {
+                        isEdge = true;
+                    }
+
+                    const dirX = isEdge ? Math.sign(dx) : 0;
+                    const dirY = isEdge ? Math.sign(dy) : 0;
+                    RasterUtils.plotDepthTextSubPixel(depthBuffer, x, y, plotZ, fillSymbol, pixelColor, dirX, dirY);
                 }
             }
 

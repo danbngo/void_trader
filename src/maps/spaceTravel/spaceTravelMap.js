@@ -364,8 +364,14 @@ class SpaceTravelMapClass {
 
         this.boostActive = boostKey && hasFuel && this.boostCooldownRemaining <= 0 && boostReady;
 
-        if (this.boostActive && !wasBoosting) this.boostStartTimestampMs = timestampMs;
-        if (!this.boostActive && wasBoosting) this.boostEndTimestampMs = timestampMs;
+        if (this.boostActive && !wasBoosting) {
+            this.boostStartTimestampMs = timestampMs;
+            console.log('[SpaceTravel] Boost started:', { timestampMs, boostStartTimestampMs: this.boostStartTimestampMs });
+        }
+        if (!this.boostActive && wasBoosting) {
+            this.boostEndTimestampMs = timestampMs;
+            console.log('[SpaceTravel] Boost ended:', { timestampMs, boostEndTimestampMs: this.boostEndTimestampMs });
+        }
 
         const pendingCooldown = (!this.boostActive && wasBoosting) ? this.config.BOOST_COOLDOWN_SEC : this.boostCooldownRemaining;
         const inBoostCooldown = !this.boostActive && pendingCooldown > 0;
@@ -461,10 +467,12 @@ class SpaceTravelMapClass {
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
         this._renderSceneDepthBuffer(depthBuffer, timestampMs, viewWidth, viewHeight);
-        this._renderVisualEffects(depthBuffer, timestampMs);
         this._addDebugMessages(timestampMs, viewWidth, viewHeight);
 
         UI.draw();
+
+        // Render visual effects AFTER UI.draw() so they appear on top
+        this._renderVisualEffects(depthBuffer, timestampMs);
 
         if (this.config.ASCII_LOG_INTERVAL_MS && (!this.lastAsciiLogTimestamp || (Date.now() - this.lastAsciiLogTimestamp) >= this.config.ASCII_LOG_INTERVAL_MS)) {
             this.lastAsciiLogTimestamp = Date.now();

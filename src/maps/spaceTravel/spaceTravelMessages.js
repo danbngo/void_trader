@@ -20,8 +20,14 @@ const SpaceTravelMessages = (() => {
             const hasFuel = (playerShip.fuel ?? 0) > 0;
             const boostReady = speedNow >= (baseMaxSpeed * config.BOOST_READY_SPEED_RATIO);
 
-            mapInstance.boostBlockMessage = '';
-            mapInstance.boostTurnMessage = '';
+            // Clear messages only if expired, otherwise keep them visible for 500ms
+            const msgDuration = 500;
+            if (mapInstance.boostBlockMessage && timestampMs - mapInstance.boostBlockMessageTimestampMs > msgDuration) {
+                mapInstance.boostBlockMessage = '';
+            }
+            if (mapInstance.boostTurnMessage && timestampMs - mapInstance.boostTurnMessageTimestampMs > msgDuration) {
+                mapInstance.boostTurnMessage = '';
+            }
 
             if (boostKey && !boostActive) {
                 if (boostCooldownRemaining > 0) {

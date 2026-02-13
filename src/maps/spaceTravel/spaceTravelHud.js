@@ -185,7 +185,7 @@ const SpaceTravelHud = (() => {
                     UI.setOutputRow('Must select a destination to use autonav', COLORS.TEXT_WARNING);
                     UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
                 }
-            }, helpers.applyPauseColor(autoNavColor), autoNavAvailable ? '' : 'Must select a destination to use autonav');
+            }, helpers.applyPauseColor(autoNavColor), '');
 
             const speed = ThreeDUtils.vecLength(playerShip.velocity);
             const isMoving = speed > 0.001;
@@ -199,7 +199,7 @@ const SpaceTravelHud = (() => {
                 } else if (onMenu) {
                     onMenu();
                 }
-            }, helpers.applyPauseColor(menuColor), isMoving ? 'Must brake before opening menu' : '');
+            }, helpers.applyPauseColor(menuColor), '');
         }
     }
 

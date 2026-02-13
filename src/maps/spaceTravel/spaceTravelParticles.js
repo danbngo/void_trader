@@ -38,53 +38,58 @@ const SpaceTravelParticles = (() => {
 
             const baseX = Math.round(projected.x);
             const baseY = Math.round(projected.y);
-            if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
-                const starSeed = Math.abs(Math.floor((star.direction.x * 100000) + (star.direction.y * 310000) + (star.direction.z * 730000) + (starIndex * 1997)));
-                const starSymbol = (starSeed % 2 === 0) ? '·' : '.';
-                if (boostActive) {
-                    // Calculate brightness variation for this star (same as non-boost)
-                    const brightnessSeed = starSeed;
-                    const brightnessVariance = (Math.sin(brightnessSeed * 0.001 + timestampMs * 0.0003) + 1) / 2;
-                    const minBrightness = 0.15;
-                    const maxBrightness = 1.0;
-                    const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
-                    const starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
-                    
-                    const offsetMs = starSeed % config.BOOST_STREAK_GROWTH_MS;
-                    const delayMs = config.BOOST_STREAK_DELAY_MS + (starSeed % config.BOOST_STREAK_DELAY_MS);
-                    if ((timestampMs - boostStartTimestampMs) < delayMs) {
+            
+            const starSeed = Math.abs(Math.floor((star.direction.x * 100000) + (star.direction.y * 310000) + (star.direction.z * 730000) + (starIndex * 1997)));
+            const starSymbol = (starSeed % 2 === 0) ? '·' : '.';
+            const brightnessSeed = starSeed;
+            const brightnessVariance = (Math.sin(brightnessSeed * 0.001 + timestampMs * 0.0003) + 1) / 2;
+            const minBrightness = 0.15;
+            const maxBrightness = 1.0;
+            const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
+            const starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
+            
+            if (boostActive) {
+                // Boost mode: draw streak even if center is off-screen
+                const offsetMs = starSeed % config.BOOST_STREAK_GROWTH_MS;
+                const delayMs = config.BOOST_STREAK_DELAY_MS + (starSeed % config.BOOST_STREAK_DELAY_MS);
+                if ((timestampMs - boostStartTimestampMs) < delayMs) {
+                    // Still in delay period, draw only center if visible
+                    if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
                         RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
                         drawn++;
-                        continue;
                     }
-                    const centerX = (viewWidth - 1) / 2;
-                    const centerY = (viewHeight - 1) / 2;
-                    const dx = baseX - centerX;
-                    const dy = baseY - centerY;
-                    const mag = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const dirX = dx / mag;
-                    const dirY = dy / mag;
-                    const symbol = SpaceTravelShared.getLineSymbolFromDirection(dirX, -dirY);
-                    const streakElapsed = Math.max(0, timestampMs - boostStartTimestampMs - delayMs);
-                    const length = 1 + Math.floor(Math.max(0, streakElapsed - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
-                    for (let i = 0; i < length; i++) {
-                        const sx = Math.round(baseX + dirX * i);
-                        const sy = Math.round(baseY + dirY * i);
-                        if (sx >= 0 && sx < viewWidth && sy >= 0 && sy < viewHeight) {
-                            RasterUtils.plotDepthText(depthBuffer, sx, sy, projected.z, symbol, starColor);
-                        }
-                    }
-                } else {
-                    // Add significant brightness variation to background stars (not local system stars)
-                    const brightnessSeed = starSeed;
-                    const brightnessVariance = (Math.sin(brightnessSeed * 0.001 + timestampMs * 0.0003) + 1) / 2;
-                    const minBrightness = 0.15; // Much dimmer minimum
-                    const maxBrightness = 1.0;   // Full brightness maximum
-                    const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
-                    const starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
-                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
+                    continue;
                 }
-                drawn++;
+                
+                // Draw streak from center outward toward screen center
+                const centerX = (viewWidth - 1) / 2;
+                const centerY = (viewHeight - 1) / 2;
+                const dx = baseX - centerX;
+                const dy = baseY - centerY;
+                const mag = Math.sqrt(dx * dx + dy * dy) || 1;
+                const dirX = dx / mag;
+                const dirY = dy / mag;
+                const symbol = SpaceTravelShared.getLineSymbolFromDirection(dirX, -dirY);
+                const streakElapsed = Math.max(0, timestampMs - boostStartTimestampMs - delayMs);
+                const length = 1 + Math.floor(Math.max(0, streakElapsed - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
+                let streakDrawn = false;
+                for (let i = 0; i < length; i++) {
+                    const sx = Math.round(baseX + dirX * i);
+                    const sy = Math.round(baseY + dirY * i);
+                    if (sx >= 0 && sx < viewWidth && sy >= 0 && sy < viewHeight) {
+                        RasterUtils.plotDepthText(depthBuffer, sx, sy, projected.z, symbol, starColor);
+                        streakDrawn = true;
+                    }
+                }
+                if (streakDrawn) {
+                    drawn++;
+                }
+            } else {
+                // Normal mode: draw star only if center is visible
+                if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
+                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
+                    drawn++;
+                }
             }
         }
     }
@@ -185,11 +190,6 @@ const SpaceTravelParticles = (() => {
                     // Deep space (>1000 AU) - very dark blueish-white
                     dustColor = SpaceTravelShared.lerpColorHex('#50555a', '#585d62', dustColorVariance);
                     colorType = 'blueish-white';
-                }
-                
-                if (!loggedOnce) {
-                    console.log('[DustParticle] Color:', dustColor, 'Type:', colorType, 'DistanceToStar:', minDistanceToStar.toFixed(2), 'AU');
-                    loggedOnce = true;
                 }
                 
                 RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpacePos.z, symbol, dustColor);

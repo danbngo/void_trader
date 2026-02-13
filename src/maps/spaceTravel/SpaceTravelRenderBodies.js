@@ -158,9 +158,10 @@ const SpaceTravelRenderBodies = (() => {
             const radiusCharsY = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.height));
             const radiusChars = Math.max(radiusCharsX, radiusCharsY); // Use max for hover detection
             
-            // Log body rendering details occasionally for debugging
-            if (Math.random() < 0.001 || body.name === 'Sol') {
-                console.log('[RenderBodies] Rendering', body.name, ':', {
+            // Log body rendering details occasionally for debugging, especially multi-char bodies
+            const isMultiChar = radiusChars > 0;
+            if ((Math.random() < 0.001 || body.name === 'Sol' || isMultiChar) && (Math.random() < 0.05 || body.name === 'Sol')) {
+                console.log('[RenderBodies] Processing', body.name, ':', {
                     kind: body.kind,
                     bodyRadiusAU,
                     radiusPx: radiusPx.toFixed(2),
@@ -170,74 +171,95 @@ const SpaceTravelRenderBodies = (() => {
                     radiusCharsX,
                     radiusCharsY,
                     screenPos: {x, y},
+                    centerOnScreen: (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight),
+                    isMultiChar,
                     dist: dist.toFixed(4)
                 });
             }
 
-            if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
-                const bodyType = Object.values(BODY_TYPES).find(bt => bt.id === body.type);
-                let char = bodyType?.symbol || '●';
-                let color = baseColor;
+            // For single-character bodies, only render if center is on-screen
+            const centerOnScreen = x >= 0 && x < viewWidth && y >= 0 && y < viewHeight;
+            if (radiusChars === 0 && !centerOnScreen) {
+                return;
+            }
 
-                // Check if mouse is hovering over body (consider radius for larger bodies)
-                const hoverRadius = Math.max(1, radiusChars);
-                const isPick = hoverActive && Math.abs(mouseState.x - x) <= hoverRadius && Math.abs(mouseState.y - y) <= hoverRadius;
-                if (isPick) {
-                    console.log('[RenderBodies] Body hovered:', body.name, 'kind:', body.kind, {
-                        mousePos: mouseState,
-                        bodyCenter: {x, y},
-                        hoverRadius,
+            // Now handle rendering (multi-char bodies will render even if center is off-screen)
+            const bodyType = Object.values(BODY_TYPES).find(bt => bt.id === body.type);
+            let char = bodyType?.symbol || '●';
+            let color = baseColor;
+
+            // Check if mouse is hovering over body (consider radius for larger bodies)
+            const hoverRadius = Math.max(1, radiusChars);
+            const isPick = hoverActive && Math.abs(mouseState.x - x) <= hoverRadius && Math.abs(mouseState.y - y) <= hoverRadius;
+            if (isPick) {
+                console.log('[RenderBodies] Body hovered:', body.name, 'kind:', body.kind, {
+                    mousePos: mouseState,
+                    bodyCenter: {x, y},
+                    hoverRadius,
+                    radiusCharsX,
+                    radiusCharsY,
+                    bodyType: body.type
+                });
+                depthAtCursor = cameraSpace.z;
+                hoverInfos.push({ body, dist, x, y });
+            }
+
+            if (body.kind === 'STATION') {
+                char = '□';
+                color = COLORS.CYAN;
+            } else if (body.kind === 'STAR') {
+                // Stars use flickering colors from palette
+                const palette = starPalettes[body.type];
+                if (palette && palette.length > 0) {
+                    // Use starNoise to pick from palette for flickering effect
+                    const noiseVal = starNoise(x, y, body.id?.charCodeAt(0) || 0, timestampMs);
+                    const paletteIndex = Math.floor(noiseVal * palette.length);
+                    color = palette[paletteIndex];
+                }
+            } else if (body.kind === 'PLANET') {
+                // Only use stripe rendering for larger planets (>2x2 on screen)
+                const isLargeOnScreen = radiusChars > 1;
+                if (starSeed !== null && gasStripeLight && isLargeOnScreen) {
+                    const stripeFreq = 25;
+                    const stripePhase = (timestampMs * 0.001) % 4;
+                    const pattern = (x + stripePhase) % stripeFreq;
+                    color = pattern < 13 ? gasStripeLight : gasStripeDark;
+                    const variantSymbol = bodyType?.symbol || '●';
+                    char = starNoise(x, y, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                }
+            }
+
+            // Render based on size
+            if (radiusChars === 0) {
+                // Single character - use the body's symbol
+                RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, char, color);
+            } else {
+                // Multi-character - render as ellipse with proper aspect ratio
+                // Even if center is off-screen, parts of the body may be visible
+                const blockChar = '█';
+                
+                // Log when rendering multi-char bodies that are partially off-screen
+                if (!(x >= 0 && x < viewWidth && y >= 0 && y < viewHeight)) {
+                    console.log('[RenderBodies] Multi-char body', body.name, 'center OFF-SCREEN, will render ellipse:', {
+                        centerPos: {x, y},
+                        radiusChars,
                         radiusCharsX,
                         radiusCharsY,
-                        bodyType: body.type
+                        viewBounds: {width: viewWidth, height: viewHeight},
+                        expectedPixels: (2 * radiusCharsX + 1) * (2 * radiusCharsY + 1)
                     });
-                    depthAtCursor = cameraSpace.z;
-                    hoverInfos.push({ body, dist, x, y });
                 }
-
-                if (body.kind === 'STATION') {
-                    char = '□';
-                    color = COLORS.CYAN;
-                } else if (body.kind === 'STAR') {
-                    // Stars use flickering colors from palette
-                    const palette = starPalettes[body.type];
-                    if (palette && palette.length > 0) {
-                        // Use starNoise to pick from palette for flickering effect
-                        const noiseVal = starNoise(x, y, body.id?.charCodeAt(0) || 0, timestampMs);
-                        const paletteIndex = Math.floor(noiseVal * palette.length);
-                        color = palette[paletteIndex];
-                    }
-                } else if (body.kind === 'PLANET') {
-                    // Only use stripe rendering for larger planets (>2x2 on screen)
-                    const isLargeOnScreen = radiusChars > 1;
-                    if (starSeed !== null && gasStripeLight && isLargeOnScreen) {
-                        const stripeFreq = 25;
-                        const stripePhase = (timestampMs * 0.001) % 4;
-                        const pattern = (x + stripePhase) % stripeFreq;
-                        color = pattern < 13 ? gasStripeLight : gasStripeDark;
-                        const variantSymbol = bodyType?.symbol || '●';
-                        char = starNoise(x, y, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
-                    }
+                
+                // Find star position for shading (if planet)
+                let starWorldPos = null;
+                if (body.kind === 'PLANET' && targetSystem.stars && targetSystem.stars.length > 0) {
+                    const star = targetSystem.stars[0];
+                    const starOrbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
+                    starWorldPos = ThreeDUtils.addVec(systemCenter, starOrbitOffset);
                 }
-
-                // Render based on size
-                if (radiusChars === 0) {
-                    // Single character - use the body's symbol
-                    RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, char, color);
-                } else {
-                    // Multi-character - render as ellipse with proper aspect ratio
-                    const blockChar = '█';
-                    
-                    // Find star position for shading (if planet)
-                    let starWorldPos = null;
-                    if (body.kind === 'PLANET' && targetSystem.stars && targetSystem.stars.length > 0) {
-                        const star = targetSystem.stars[0];
-                        const starOrbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
-                        starWorldPos = ThreeDUtils.addVec(systemCenter, starOrbitOffset);
-                    }
-                    
-                    for (let dy = -radiusCharsY; dy <= radiusCharsY; dy++) {
-                        for (let dx = -radiusCharsX; dx <= radiusCharsX; dx++) {
+                
+                for (let dy = -radiusCharsY; dy <= radiusCharsY; dy++) {
+                    for (let dx = -radiusCharsX; dx <= radiusCharsX; dx++) {
                             // Check if within elliptical radius (account for aspect ratio)
                             const normalizedX = dx / radiusCharsX;
                             const normalizedY = dy / radiusCharsY;
@@ -246,6 +268,20 @@ const SpaceTravelRenderBodies = (() => {
                                 const px = x + dx;
                                 const py = y + dy;
                                 if (px >= 0 && px < viewWidth && py >= 0 && py < viewHeight) {
+                                    // Check hover detection for multi-character bodies
+                                    // For each visible pixel, check if mouse is over it
+                                    if (hoverActive && mouseState.x === px && mouseState.y === py) {
+                                        console.log('[RenderBodies] Multi-char body hover detected:', body.name, 'kind:', body.kind, {
+                                            pixelPos: {px, py},
+                                            bodyCenter: {x, y},
+                                            centerOnScreen: (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight),
+                                            mousePos: mouseState
+                                        });
+                                        if (!hoverInfos.some(h => h.body === body)) {
+                                            hoverInfos.push({ body, dist, x: px, y: py });
+                                            depthAtCursor = cameraSpace.z;
+                                        }
+                                    }
                                     let renderChar = blockChar;
                                     let renderColor = color;
                                     
@@ -294,13 +330,12 @@ const SpaceTravelRenderBodies = (() => {
                                         }
                                     }
                                     
-                                    RasterUtils.plotDepthText(depthBuffer, px, py, cameraSpace.z, renderChar, renderColor);
+                                            RasterUtils.plotDepthText(depthBuffer, px, py, cameraSpace.z, renderChar, renderColor);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
-            }
 
             const bodyName = body.name;
             const bodyLabel = SpaceTravelRenderBodies.getBodyLabel(body);

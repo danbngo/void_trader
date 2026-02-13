@@ -16,8 +16,10 @@ const SpaceTravelDocking = (() => {
 
         function startDockSequence({ payload, timestampMs, playerShip, inputState }) {
             if (dockSequenceActive) {
+                console.log('[Docking] Dock sequence already active, ignoring new request');
                 return;
             }
+            console.log('[Docking] START DOCK SEQUENCE', { payload, timestampMs });
             dockSequenceActive = true;
             dockSequenceStartMs = timestampMs;
             dockSequencePayload = payload;
@@ -40,7 +42,17 @@ const SpaceTravelDocking = (() => {
         function isDockSequenceComplete(timestampMs) {
             const blackSec = Math.max(0.01, config.DOCK_FADE_TO_BLACK_SEC || 1);
             const elapsedSec = Math.max(0, (timestampMs - dockSequenceStartMs) / 1000);
-            return elapsedSec >= blackSec;
+            const isComplete = elapsedSec >= blackSec;
+            if (timestampMs % 100 < 20) {  // Log every ~100ms
+                console.log('[Docking.isDockSequenceComplete]', {
+                    timestampMs,
+                    dockSequenceStartMs,
+                    elapsedSec: elapsedSec.toFixed(3),
+                    blackSec,
+                    isComplete
+                });
+            }
+            return isComplete;
         }
 
         function isDockSequenceActive() {
@@ -52,21 +64,27 @@ const SpaceTravelDocking = (() => {
                 return false;
             }
             if (isDockSequenceComplete(timestampMs)) {
+                console.log('[Docking] DOCK SEQUENCE COMPLETE, elapsed time reached threshold');
                 const payload = dockSequencePayload;
                 dockSequenceActive = false;
                 dockSequenceStartMs = 0;
                 dockSequencePayload = null;
                 if (payload) {
                     if (typeof stop === 'function') {
+                        console.log('[Docking] Calling stop()');
                         stop();
                     }
+                    console.log('[Docking] DockingAnimation available:', !!DockingAnimation, 'has show:', DockingAnimation?.show ? true : false);
                     if (DockingAnimation && typeof DockingAnimation.show === 'function') {
+                        console.log('[Docking] Showing DockingAnimation');
                         DockingAnimation.show(payload.dockGameState, () => {
+                            console.log('[Docking] DockingAnimation callback - calling onDock');
                             if (typeof onDock === 'function') {
                                 onDock(payload);
                             }
                         });
                     } else if (typeof onDock === 'function') {
+                        console.log('[Docking] DockingAnimation unavailable, calling onDock directly');
                         onDock(payload);
                     }
                 }
@@ -94,6 +112,7 @@ const SpaceTravelDocking = (() => {
         }
 
         function handleDock({ payload, DockMenu }) {
+            console.log('[Docking] HANDLE DOCK', { payload, DockMenuAvailable: !!DockMenu, hasShow: DockMenu?.show ? true : false });
             const { dockGameState, dockTarget, location } = payload || {};
             if (dockGameState && dockTarget) {
                 const systemIndex = dockGameState.systems.findIndex(system => system === dockTarget || system.name === dockTarget.name);
@@ -110,7 +129,10 @@ const SpaceTravelDocking = (() => {
                 dockGameState.currentLocation = location || dockGameState.currentLocation;
             }
             if (DockMenu && typeof DockMenu.show === 'function') {
+                console.log('[Docking] Showing DockMenu');
                 DockMenu.show(dockGameState, location);
+            } else {
+                console.log('[Docking] ERROR: DockMenu not available or show method missing!', { DockMenuType: typeof DockMenu });
             }
         }
 
@@ -131,6 +153,7 @@ const SpaceTravelDocking = (() => {
                 ...mapInstance,
                 onStop: null,
                 onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget, planet: dockPlanet }) => {
+                    console.log('[Docking.checkDocking] Dock condition MET! Starting dock sequence for', dockPlanet?.name || currentStation?.name);
                     startDockSequence({
                         payload: { dockGameState, dockTarget, location: dockPlanet || currentStation },
                         timestampMs,

@@ -77,31 +77,54 @@ const SpaceTravelInput = (() => {
                 const gridX = Math.floor(pixelX / charDims.width);
                 const gridY = Math.floor(pixelY / charDims.height);
                 const pick = getLastHoverPick();
-                console.log('[SpaceTravelInput] Left click', {
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                    gridX,
-                    gridY,
-                    pick
-                });
+                const clickLog = {
+                    timestamp: Date.now(),
+                    clientPos: {x: e.clientX, y: e.clientY},
+                    canvasPos: {x: pixelX, y: pixelY},
+                    gridPos: {x: gridX, y: gridY},
+                    hasPickData: !!pick,
+                    pickType: pick ? pick.kind : 'none'
+                };
+                console.log('[SpaceTravelInput] LEFT CLICK:', clickLog);
+                
                 if (pick) {
-                    console.log('[SpaceTravelInput] Picked object:', pick);
+                    console.log('[SpaceTravelInput] ACTION: onPick() called with', {
+                        pickKind: pick.kind,
+                        pickName: pick.name,
+                        pickBody: pick.body ? pick.body.type : 'N/A'
+                    });
                     onPick(pick);
                     return;
                 }
+                
                 if (gridY >= viewHeight) {
+                    console.log('[SpaceTravelInput] BLOCKED: Click in UI area (gridY >= viewHeight)');
                     return;
                 }
+                
                 if (typeof onFire === 'function') {
+                    console.log('[SpaceTravelInput] ACTION: onFire() called (no pick)');
                     onFire();
+                } else {
+                    console.log('[SpaceTravelInput] BLOCKED: onFire not available');
                 }
                 return;
             }
             if (e.button === 2) {
                 const pick = getLastHoverPick();
+                console.log('[SpaceTravelInput] RIGHT CLICK:', {
+                    hasPickData: !!pick,
+                    pickType: pick ? pick.kind : 'none'
+                });
                 if (pick) {
-                    console.log('[SpaceTravelInput] Picked object:', pick);
+                    console.log('[SpaceTravelInput] ACTION: onPick() called with (right-click)', {
+                        pickKind: pick.kind,
+                        pickName: pick.name,
+                        pickBody: pick.body ? pick.body.type : 'N/A'
+                    });
                     onPick(pick);
+                } else {
+                    console.log('[SpaceTravelInput] RIGHT CLICK: No pick object found');
                 }
             }
         };
@@ -167,18 +190,34 @@ const SpaceTravelInput = (() => {
             getLastHoverPick: () => mapInstance.lastHoverPick,
             onPick: (pick) => {
                 if (deathTow.isDeathSequenceActive()) {
+                    console.log('[SpaceTravelInput] onPick BLOCKED: Death sequence active');
                     return;
                 }
-                mapInstance.localDestination = SpaceTravelUi.setLocalDestinationFromPick(pick, {
+                console.log('[SpaceTravelInput] onPick CALLED:', {
+                    pickKind: pick.kind,
+                    pickName: pick.name,
+                    pickHasBody: !!pick.body
+                });
+                const result = SpaceTravelUi.setLocalDestinationFromPick(pick, {
                     currentGameState: mapInstance.currentGameState,
                     localDestination: mapInstance.localDestination,
                     mapInstance: mapInstance
                 }, config);
+                mapInstance.localDestination = result;
+                console.log('[SpaceTravelInput] onPick RESULT:', {
+                    newDestination: result ? {kind: result.kind, name: result.name} : null
+                });
             },
             onFire: () => {
                 if (deathTow.isDeathSequenceActive()) {
+                    console.log('[SpaceTravelInput] onFire BLOCKED: Death sequence active');
                     return;
                 }
+                console.log('[SpaceTravelInput] onFire CALLED:', {
+                    hasLastHoverPick: !!mapInstance.lastHoverPick,
+                    isPaused: mapInstance.isPaused,
+                    pickType: mapInstance.lastHoverPick ? mapInstance.lastHoverPick.kind : 'none'
+                });
                 const result = mapInstance.laser.fireLaser({
                     playerShip: mapInstance.playerShip,
                     isPaused: mapInstance.isPaused,
@@ -186,6 +225,11 @@ const SpaceTravelInput = (() => {
                     config,
                     inputState,
                     boostActive: mapInstance.boostActive
+                });
+                console.log('[SpaceTravelInput] onFire RESULT:', {
+                    fired: !!result,
+                    laserEmpty: result?.laserEmptyTimestampMs !== undefined,
+                    hitTarget: result?.hitTarget !== undefined
                 });
                 if (result?.laserEmptyTimestampMs) {
                     mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;

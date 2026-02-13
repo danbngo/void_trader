@@ -394,6 +394,7 @@ class SpaceTravelMapClass {
     }
 
     update(dt, timestampMs = 0) {
+        this.timestampMs = timestampMs;
         if (!this.playerShip || this.isPaused) {
             return;
         }

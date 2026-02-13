@@ -33,6 +33,17 @@ const SpaceTravelShared = (() => {
         };
     }
 
+    function getCharacterAspectRatio(config) {
+        // Central source of truth for character aspect ratio (width/height, typically < 1)
+        // Most fonts have taller characters than they are wide
+        const charDims = UI.getCharDimensions?.();
+        if (!charDims || charDims.width <= 0 || charDims.height <= 0) {
+            return 1; // Fallback to square
+        }
+        // Return width/height ratio (not height/width)
+        return charDims.width / charDims.height;
+    }
+
     function isGasPlanet(typeId) {
         return typeId === BODY_TYPES.PLANET_GAS_GIANT.id
             || typeId === BODY_TYPES.PLANET_GAS_DWARF.id;
@@ -102,6 +113,7 @@ const SpaceTravelShared = (() => {
         lerpColorHex,
         hashString,
         makeRng,
+        getCharacterAspectRatio,
         isGasPlanet,
         isTerrestrialPlanet,
         getLocalMapBodySymbol,

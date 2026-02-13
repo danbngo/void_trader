@@ -106,16 +106,15 @@ const SpaceTravelPortal = {
             return;
         }
 
+        const aspectRatio = SpaceTravelShared.getCharacterAspectRatio(params.config);
         const charDims = UI.getCharDimensions();
-        const aspectFromMetrics = charDims.height / Math.max(0.000001, charDims.width);
-        const aspectOverride = params.config.CHAR_CELL_ASPECT_RATIO;
-        const resolvedAspect = (typeof aspectOverride === 'number' && Number.isFinite(aspectOverride))
-            ? aspectOverride
-            : aspectFromMetrics;
+        const expectedRadiusY = params.portalRadius / aspectRatio;  // INVERT: divide to make taller in character space
+        const expectedRadiusYIfInverted = params.portalRadius * aspectRatio;
+        console.log('[Portal] portalRadius:', params.portalRadius.toFixed(6), 'charDims:', charDims, 'aspectRatio (w/h):', aspectRatio.toFixed(3), 'radiusX:', params.portalRadius.toFixed(6), 'radiusY (inverted w/h):', expectedRadiusY.toFixed(6), 'radiusY (w/h):', expectedRadiusYIfInverted.toFixed(6),'radiusX/radiusY ratio:', (params.portalRadius / expectedRadiusY).toFixed(3));
 
         const segments = Math.max(8, params.config.PORTAL_SEGMENTS || 32);
         const radiusX = params.portalRadius;
-        const radiusY = params.portalRadius / resolvedAspect;
+        const radiusY = params.portalRadius / aspectRatio;  // INVERT: divide instead of multiply
         const step = (Math.PI * 2) / segments;
         
         // Rotation speed in radians per millisecond
@@ -136,19 +135,25 @@ const SpaceTravelPortal = {
             const x = Math.round(projected.x);
             const y = Math.round(projected.y);
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
-                // Calculate color based on angle
-                // Cyan at top/bottom (0° and 180°), blue at left/right (90° and 270°)
+                // Calculate smooth color gradient: cyan at 0°/180°, blue at 90°/270°
                 const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
                 const angleDeg = (normalizedAngle * 180 / Math.PI) % 360;
                 
+                // Use simplified angle (0-180°) due to symmetry
+                const simpleAngle = angleDeg < 180 ? angleDeg : (360 - angleDeg);
+                
+                // Smooth interpolation: 0°=CYAN, 90°=BLUE, 180°=CYAN
+                // Use continuous fade from cyan->blue->cyan
                 let color = COLORS.CYAN;
-                // Smooth gradient: 0-45°=cyan, 45-90°=cyan→blue, 90-135°=blue, 135-180°=blue→cyan, etc.
-                const intervalAngle = (angleDeg % 180); // 0-180 range (due to symmetry)
-                if (intervalAngle > 45 && intervalAngle < 135) {
-                    // Interpolate between cyan and blue
-                    const t = (intervalAngle - 45) / 90; // 0-1
-                    const midpoint = Math.abs(t - 0.5);
-                    color = midpoint < 0.25 ? COLORS.BLUE : COLORS.CYAN;
+                if (simpleAngle > 0 && simpleAngle < 180) {
+                    const t = simpleAngle / 180; // 0 to 1 across 0-180°
+                    const distFromPeak = Math.abs(t - 0.5) * 2; // 0 at 90°, 1 at edges
+                    // Smooth step: more blue in middle (90°), more cyan at edges
+                    const blueAmount = Math.cos(distFromPeak * Math.PI / 2); // Smooth cosine curve
+                    // Use blue if blueAmount > 0.5, creating smooth transition
+                    if (blueAmount > 0.3) {
+                        color = blueAmount > 0.7 ? COLORS.BLUE : COLORS.CYAN;
+                    }
                 }
                 
                 RasterUtils.plotDepthText(depthBuffer, x, y, point.z, 'o', color);

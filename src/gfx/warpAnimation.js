@@ -11,14 +11,14 @@ const WarpAnimation = (() => {
     let stochasticStreaks = [];
 
     const STREAK_COUNT = 320; // 2x more frequent
-    const BASE_SPEED = 36; // 2x faster
-    const SPEED_RAMP = 96; // 2x faster ramp
+    const BASE_SPEED = 72; // 2x faster (doubled)
+    const SPEED_RAMP = 192; // 2x faster ramp (doubled)
     const BASE_LENGTH = 2;
     const LENGTH_RAMP = 8;
     
     const STOCHASTIC_STREAK_COUNT = 200; // Random background lines
-    const STOCHASTIC_BASE_SPEED = 72; // 2x faster than circle lines
-    const STOCHASTIC_SPEED_RAMP = 192;
+    const STOCHASTIC_BASE_SPEED = 144; // 2x faster than circle lines (doubled)
+    const STOCHASTIC_SPEED_RAMP = 384; // (doubled)
 
     function show(gameState, targetSystem, onComplete) {
         stop();
@@ -107,6 +107,8 @@ const WarpAnimation = (() => {
         const centerX = (viewWidth - 1) / 2;
         const centerY = (viewHeight - 1) / 2;
         const maxRadius = Math.max(2, Math.min(viewWidth, viewHeight) / 2);
+        const aspectRatio = SpaceTravelShared.getCharacterAspectRatio(SpaceTravelConfig);
+        console.log('[WarpAnimation] circles aspectRatio:', aspectRatio.toFixed(3), 'viewWidth:', viewWidth, 'viewHeight:', viewHeight, 'maxRadiusX:', maxRadius.toFixed(2), 'maxRadiusY (inverted):', (maxRadius / aspectRatio).toFixed(2));
 
         if (!lastTimestamp) {
             lastTimestamp = elapsedMs;
@@ -134,9 +136,9 @@ const WarpAnimation = (() => {
             }
 
             const length = streak.length + lengthScale;
-            const startX = centerX + dirX * streak.offset;
+            const startX = centerX + dirX * streak.offset / aspectRatio;  // INVERT: divide
             const startY = centerY + dirY * streak.offset;
-            const endX = centerX + dirX * (streak.offset + length);
+            const endX = centerX + dirX * (streak.offset + length) / aspectRatio;  // INVERT: divide
             const endY = centerY + dirY * (streak.offset + length);
 
             const points = LineDrawer.drawLine(Math.round(startX), Math.round(startY), Math.round(endX), Math.round(endY), true, COLORS.TEXT_DIM);
@@ -161,9 +163,9 @@ const WarpAnimation = (() => {
             }
 
             const length = streak.length + lengthScale;
-            const startX = centerX + dirX * streak.offset;
+            const startX = centerX + dirX * streak.offset / aspectRatio;  // INVERT: divide
             const startY = centerY + dirY * streak.offset;
-            const endX = centerX + dirX * (streak.offset + length);
+            const endX = centerX + dirX * (streak.offset + length) / aspectRatio;  // INVERT: divide
             const endY = centerY + dirY * (streak.offset + length);
 
             const points = LineDrawer.drawLine(Math.round(startX), Math.round(startY), Math.round(endX), Math.round(endY), true, COLORS.CYAN);

@@ -58,7 +58,10 @@ const SpaceTravelRender = (() => {
             }
         });
 
-        SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
+        // Only render portal if not paused
+        if (!params.isPaused) {
+            SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
+        }
 
         SpaceTravelParticles.renderStars(renderParams);
 
@@ -102,7 +105,15 @@ const SpaceTravelRender = (() => {
             helpers: {
                 applyPauseColor: (color) => params.applyPauseColor?.(color) || color,
                 addHudText: (x, y, text, color) => params.addHudText?.(x, y, text, color),
-                getActiveTargetInfo: () => params.getActiveTargetInfo?.()
+                getActiveTargetInfo: () => params.getActiveTargetInfo?.(),
+                setErrorMessage: (text) => {
+                    if (params.mapInstance) {
+                        params.mapInstance.lastErrorMessage = text;
+                        params.mapInstance.lastErrorTimestampMs = performance.now();
+                    }
+                },
+                lastErrorMessage: params.mapInstance?.lastErrorMessage || null,
+                lastErrorTimestampMs: params.mapInstance?.lastErrorTimestampMs || 0
             },
             onAutoNavToggle: () => params.toggleAutoNav?.(),
             onUnpause: () => params.setPaused?.(false, false),

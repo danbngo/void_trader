@@ -7,6 +7,11 @@ const SpaceTravelHud = (() => {
         const startY = viewHeight;
         const panelWidth = viewWidth;
 
+        // Display error message if one was recently set (persists for 3 seconds)
+        if (helpers.lastErrorMessage && timestampMs - helpers.lastErrorTimestampMs < 3000) {
+            UI.setOutputRow(helpers.lastErrorMessage, COLORS.TEXT_WARNING);
+        }
+
         helpers.addHudText(0, startY, '─'.repeat(panelWidth), COLORS.GRAY);
 
         const ship = playerShip;
@@ -181,9 +186,9 @@ const SpaceTravelHud = (() => {
                     }
                     onAutoNavToggle();
                 } else if (!autoNavAvailable) {
-                    // Flash error message when trying to use AutoNav without destination
-                    UI.setOutputRow('Must select a destination to use autonav', COLORS.TEXT_WARNING);
-                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
+                    // Store error message to persist across HUD renders
+                    helpers.setErrorMessage?.('Must select a destination to use autonav');
+                    console.log('[SpaceTravelHud] AutoNav button clicked without destination - storing error message');
                 }
             }, helpers.applyPauseColor(autoNavColor), '');
 
@@ -193,10 +198,11 @@ const SpaceTravelHud = (() => {
             
             UI.addButton(menuX, menuY, 'm', menuText, () => {
                 if (isMoving) {
-                    // Flash error message when trying to open menu while moving
-                    UI.setOutputRow('Must brake before opening menu', COLORS.TEXT_WARNING);
-                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
+                    // Store error message to persist across HUD renders
+                    helpers.setErrorMessage?.('Must brake before opening menu');
+                    console.log('[SpaceTravelHud] Menu button clicked while moving - storing error message');
                 } else if (onMenu) {
+                    console.log('[SpaceTravelHud] Menu button clicked while not moving - opening menu');
                     onMenu();
                 }
             }, helpers.applyPauseColor(menuColor), '');

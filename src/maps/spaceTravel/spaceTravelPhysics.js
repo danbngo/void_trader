@@ -271,7 +271,7 @@ const SpaceTravelPhysics = {
             return false;
         }
 
-        const EMERGENCE_MOMENTUM_DURATION_MS = 3000;
+        const EMERGENCE_MOMENTUM_DURATION_MS = 1500;
         const elapsed = timestampMs - params.emergenceMomentumStartMs;
 
         if (elapsed >= EMERGENCE_MOMENTUM_DURATION_MS) {
@@ -303,7 +303,7 @@ const SpaceTravelPhysics = {
         if (!params.emergenceMomentumActive) {
             return 0;
         }
-        const EMERGENCE_MOMENTUM_DURATION_MS = 3000;
+        const EMERGENCE_MOMENTUM_DURATION_MS = 1500;
         const elapsed = performance.now() - params.emergenceMomentumStartMs;
         return Math.max(0, EMERGENCE_MOMENTUM_DURATION_MS - elapsed);
     }

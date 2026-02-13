@@ -97,6 +97,10 @@ class SpaceTravelMapClass {
         const EMERGENCE_MOMENTUM_DURATION_MS = 3000;
         const EMERGENCE_MOMENTUM_MULTIPLIER = 10;
 
+        // Error message state (for displaying transient errors like menu-while-moving)
+        this.lastErrorMessage = null;
+        this.lastErrorTimestampMs = 0;
+
         // Damage and collision state
         this.damageFlashStartMs = 0;
         this.lastStationCollisionMs = 0;
@@ -358,6 +362,8 @@ class SpaceTravelMapClass {
         this.portalPosition = null;
         this.portalTargetSystem = null;
         this.warpFadeOutStartMs = 0;
+        this.lastErrorMessage = null;
+        this.lastErrorTimestampMs = 0;
     }
 
     startLoop() {
@@ -476,6 +482,7 @@ class SpaceTravelMapClass {
             getActiveTargetInfo: () => this.getActiveTargetInfo(),  // Override stale spread copy with fresh method
             stop: () => this.stop(), // Explicitly pass method since spread doesn't copy prototype methods
             setPaused: (paused, byFocus) => this.setPaused(paused, byFocus),
+            toggleAutoNav: () => this.toggleAutoNav(),  // Pass toggleAutoNav callback
             mapInstance: this  // Pass mapInstance reference for callbacks to use
         };
         SpaceTravelRender.render(renderParams);

@@ -320,50 +320,7 @@ const LocalSystemMap = (() => {
     }
 
     function getBodySymbol(body, isSelected) {
-        if (!body) {
-            return isSelected ? '●' : '•';
-        }
-        if (body.type === 'STATION') {
-            return '⧳';
-        }
-        const starTypeId = BODY_TYPES?.STAR?.id;
-        if ((typeof starTypeId !== 'undefined' && body.type === starTypeId) || body.type === 'STAR') {
-            return '★';
-        }
-        if (body.type === BODY_TYPES.STAR_RED_GIANT.id || body.type === BODY_TYPES.STAR_BLUE_GIANT.id) {
-            return '𖤐';
-        }
-        if (body.type === BODY_TYPES.STAR_NEUTRON.id) {
-            return '✮';
-        }
-        if (body.type === BODY_TYPES.STAR_BLACK_HOLE.id) {
-            return '𖦹';
-        }
-        if (body.type === BODY_TYPES.STAR_RED_DWARF.id
-            || body.type === BODY_TYPES.STAR_YELLOW_DWARF.id
-            || body.type === BODY_TYPES.STAR_WHITE_DWARF.id) {
-            return '★';
-        }
-        const hasRing = Array.isArray(body.features)
-            ? body.features.includes('RING') || body.features.includes(PLANET_FEATURES?.RING?.id)
-            : false;
-        switch (body.type) {
-            case BODY_TYPES.PLANET_GAS_GIANT.id:
-                return hasRing ? '⦵' : '〇';
-            case BODY_TYPES.PLANET_GAS_DWARF.id:
-                return '○';
-            case BODY_TYPES.PLANET_ICE_GIANT.id:
-                return hasRing ? '⦸' : '⊛';
-            case BODY_TYPES.PLANET_ICE_DWARF.id:
-                return '◌';
-            case BODY_TYPES.PLANET_EARTHLIKE.id:
-            case BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id:
-                return '●';
-            case BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id:
-                return '•';
-            default:
-                return isSelected ? '●' : '•';
-        }
+        return SpaceTravelShared.getLocalMapBodySymbol(body);
     }
 
     function formatDate(date) {

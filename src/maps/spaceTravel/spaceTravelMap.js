@@ -45,6 +45,8 @@ class SpaceTravelMapClass {
         this.lastAsciiLogTimestamp = 0;
         this.lastRollLogMs = 0;
         this.lastAutoNavLogMs = 0;
+        this.lastAutoNavBoostDesired = null;
+        this.lastAutoNavBoostActive = null;
 
         // Particle and visual state
         this.starSystems = [];
@@ -84,6 +86,14 @@ class SpaceTravelMapClass {
         this.portalCloseTimestampMs = 0;
         this.portalTargetSystem = null;
         this.warpFadeOutStartMs = 0;
+
+        // Emergence momentum state (when warping into a system)
+        this.emergenceMomentumActive = false;
+        this.emergenceMomentumStartMs = 0;
+        this.emergenceMomentumDirection = null;
+        this.emergenceMomentumMaxSpeed = 0;
+        const EMERGENCE_MOMENTUM_DURATION_MS = 3000;
+        const EMERGENCE_MOMENTUM_MULTIPLIER = 10;
 
         // Damage and collision state
         this.damageFlashStartMs = 0;
@@ -171,6 +181,9 @@ class SpaceTravelMapClass {
         if (this.inputState?.keyState?.clear) {
             this.inputState.keyState.clear();
         }
+        if (this.inputState?.codeState?.clear) {
+            this.inputState.codeState.clear();
+        }
     }
 
     show(gameState, destination, options = {}) {
@@ -197,9 +210,14 @@ class SpaceTravelMapClass {
 
         this._initializePlayerShip();
         this._initializeStation();
-        this._positionPlayerShip(resetPosition);
+        this._positionPlayerShip(resetPosition, options.warpFadeOut);
         this._initializeStarfield();
         this._updateVisibility();
+
+        // Initialize emergence momentum if warping in
+        if (options.warpFadeOut) {
+            this._initializeEmergenceMomentum();
+        }
 
         this.portalActive = false;
         this.portalPosition = null;
@@ -263,7 +281,7 @@ class SpaceTravelMapClass {
         }
     }
 
-    _positionPlayerShip(resetPosition) {
+    _positionPlayerShip(resetPosition, isWarpArrival = false) {
         const currentSystem = this.currentGameState.getCurrentSystem();
         const currentSystemPos = {
             x: currentSystem.x * this.config.LY_TO_AU,
@@ -294,12 +312,14 @@ class SpaceTravelMapClass {
                 const spawnMult = typeof this.config.STATION_SPAWN_DISTANCE_MULT === 'number'
                     ? this.config.STATION_SPAWN_DISTANCE_MULT
                     : 1.1;
+                // Apply extra distance for warp arrival
+                const warpDistanceMult = isWarpArrival ? 3 : 1;
                 const minSpawnDistance = typeof this.config.STATION_SPAWN_MIN_DISTANCE_AU === 'number'
                     ? this.config.STATION_SPAWN_MIN_DISTANCE_AU
                     : 0;
                 const offsetDistance = Math.max(
                     minSpawnDistance,
-                    stationRadius * stationSpawnScale * spawnMult
+                    stationRadius * stationSpawnScale * spawnMult * warpDistanceMult
                 );
                 const startOffset = ThreeDUtils.scaleVec(entranceDir, offsetDistance);
                 this.playerShip.position = ThreeDUtils.addVec(this.currentStation.position, startOffset);
@@ -308,6 +328,62 @@ class SpaceTravelMapClass {
                 this.playerShip.position = currentSystemPos;
             }
         }
+    }
+
+    _initializeEmergenceMomentum() {
+        if (!this.currentStation || !this.playerShip) {
+            return;
+        }
+
+        const towards = ThreeDUtils.subVec(this.currentStation.position, this.playerShip.position);
+        const direction = ThreeDUtils.normalizeVec(towards);
+        const maxSpeed = Ship.getMaxSpeed(this.playerShip) || this.config.SHIP_MAX_SPEED_AU_PER_MS || 0;
+        const momentumSpeed = maxSpeed * 10; // 10x max speed
+
+        this.emergenceMomentumActive = true;
+        this.emergenceMomentumStartMs = performance.now();
+        this.emergenceMomentumDirection = direction;
+        this.emergenceMomentumMaxSpeed = momentumSpeed;
+        
+        // Apply initial velocity
+        this.playerShip.velocity = ThreeDUtils.scaleVec(direction, momentumSpeed);
+    }
+
+    _updateEmergenceMomentum(timestampMs) {
+        if (!this.emergenceMomentumActive) {
+            return false;
+        }
+
+        const EMERGENCE_MOMENTUM_DURATION_MS = 3000;
+        const elapsed = timestampMs - this.emergenceMomentumStartMs;
+
+        if (elapsed >= EMERGENCE_MOMENTUM_DURATION_MS) {
+            this.emergenceMomentumActive = false;
+            this.emergenceMomentumDirection = null;
+            this.emergenceMomentumMaxSpeed = 0;
+            return false;
+        }
+
+        // Taper off momentum (similar to boost cooldown deceleration)
+        const remaining = EMERGENCE_MOMENTUM_DURATION_MS - elapsed;
+        const progress = 1 - (remaining / EMERGENCE_MOMENTUM_DURATION_MS);
+        const tapering = Math.pow(1 - progress, 2); // Smooth taper
+        const speed = this.emergenceMomentumMaxSpeed * tapering;
+
+        if (this.emergenceMomentumDirection) {
+            this.playerShip.velocity = ThreeDUtils.scaleVec(this.emergenceMomentumDirection, speed);
+        }
+
+        return true;
+    }
+
+    _getEmergenceMomentumCooldownRemaining() {
+        if (!this.emergenceMomentumActive) {
+            return 0;
+        }
+        const EMERGENCE_MOMENTUM_DURATION_MS = 3000;
+        const elapsed = performance.now() - this.emergenceMomentumStartMs;
+        return Math.max(0, EMERGENCE_MOMENTUM_DURATION_MS - elapsed);
     }
 
     _initializeStarfield() {
@@ -408,6 +484,7 @@ class SpaceTravelMapClass {
             this._updateAutoNav(dt, timestampMs);
         }
         this._updateMovement(dt, timestampMs);
+        this._updateEmergenceMomentum(timestampMs);
         if (this._updatePortal(timestampMs)) return;
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
@@ -446,15 +523,19 @@ class SpaceTravelMapClass {
     _updateMovement(dt, timestampMs = 0) {
         const autoNavInput = this.autoNavActive ? this.autoNavInput : null;
         const codeState = this.inputState.codeState || this.inputState.keyState;
-        const accelerate = autoNavInput
-            ? !!autoNavInput.accelerate
-            : (codeState.has('KeyW') || this.inputState.keyState.has('w') || this.inputState.keyState.has('W'));
+        const accelerate = (this.emergenceMomentumActive) // Block acceleration during emergence
+            ? false
+            : (autoNavInput
+                ? !!autoNavInput.accelerate
+                : (codeState.has('KeyW') || this.inputState.keyState.has('w') || this.inputState.keyState.has('W')));
         const brake = autoNavInput
             ? !!autoNavInput.brake
             : (codeState.has('KeyS') || this.inputState.keyState.has('s') || this.inputState.keyState.has('S'));
-        const boostKey = autoNavInput
-            ? !!autoNavInput.boost
-            : (codeState.has('ShiftLeft') || codeState.has('ShiftRight') || this.inputState.keyState.has('Shift'));
+        const boostKey = (this.emergenceMomentumActive) // Block boost during emergence
+            ? false
+            : (autoNavInput
+                ? !!autoNavInput.boost
+                : (codeState.has('ShiftLeft') || codeState.has('ShiftRight') || this.inputState.keyState.has('Shift')));
         const wasBoosting = this.boostActive;
 
         const engine = this.playerShip.engine || 10;
@@ -536,12 +617,13 @@ class SpaceTravelMapClass {
             return false;
         }
 
-        if (timestampMs >= this.portalCloseTimestampMs) {
-            this.portalActive = false;
-            this.portalPosition = null;
-            this.portalTargetSystem = null;
-            return false;
-        }
+        // Portal is now persistent - doesn't expire after duration
+        // if (timestampMs >= this.portalCloseTimestampMs) {
+        //     this.portalActive = false;
+        //     this.portalPosition = null;
+        //     this.portalTargetSystem = null;
+        //     return false;
+        // }
 
         const distance = ThreeDUtils.distance(this.playerShip.position, this.portalPosition);
         if (distance <= this.portalRadius) {
@@ -589,7 +671,7 @@ class SpaceTravelMapClass {
         });
     }
 
-    _renderPortal(depthBuffer, viewWidth, viewHeight) {
+    _renderPortal(depthBuffer, viewWidth, viewHeight, timestampMs = performance.now()) {
         if (!this.portalActive || !this.portalPosition) {
             return;
         }
@@ -600,14 +682,27 @@ class SpaceTravelMapClass {
             return;
         }
 
+        const charDims = UI.getCharDimensions();
+        const aspectFromMetrics = charDims.height / Math.max(0.000001, charDims.width);
+        const aspectOverride = this.config.CHAR_CELL_ASPECT_RATIO;
+        const resolvedAspect = (typeof aspectOverride === 'number' && Number.isFinite(aspectOverride))
+            ? aspectOverride
+            : aspectFromMetrics;
+
         const segments = Math.max(8, this.config.PORTAL_SEGMENTS || 32);
-        const radius = this.portalRadius;
+        const radiusX = this.portalRadius;
+        const radiusY = this.portalRadius / resolvedAspect;
         const step = (Math.PI * 2) / segments;
+        
+        // Rotation speed in radians per millisecond
+        const rotationSpeed = Math.PI / 3000; // Full rotation in ~3 seconds
+        const rotationOffset = (timestampMs % 6000) * rotationSpeed; // Loop every 6 seconds
+        
         for (let i = 0; i < segments; i++) {
-            const angle = i * step;
+            const angle = i * step + rotationOffset;
             const point = {
-                x: cameraSpace.x + Math.cos(angle) * radius,
-                y: cameraSpace.y + Math.sin(angle) * radius,
+                x: cameraSpace.x + Math.cos(angle) * radiusX,
+                y: cameraSpace.y + Math.sin(angle) * radiusY,
                 z: cameraSpace.z
             };
             const projected = RasterUtils.projectCameraSpacePointRaw(point, viewWidth, viewHeight, this.config.VIEW_FOV);
@@ -617,7 +712,22 @@ class SpaceTravelMapClass {
             const x = Math.round(projected.x);
             const y = Math.round(projected.y);
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
-                RasterUtils.plotDepthText(depthBuffer, x, y, point.z, 'o', COLORS.CYAN);
+                // Calculate color based on angle
+                // Cyan at top/bottom (0° and 180°), blue at left/right (90° and 270°)
+                const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                const angleDeg = (normalizedAngle * 180 / Math.PI) % 360;
+                
+                let color = COLORS.CYAN;
+                // Smooth gradient: 0-45°=cyan, 45-90°=cyan→blue, 90-135°=blue, 135-180°=blue→cyan, etc.
+                const intervalAngle = (angleDeg % 180); // 0-180 range (due to symmetry)
+                if (intervalAngle > 45 && intervalAngle < 135) {
+                    // Interpolate between cyan and blue
+                    const t = (intervalAngle - 45) / 90; // 0-1
+                    const midpoint = Math.abs(t - 0.5);
+                    color = midpoint < 0.25 ? COLORS.BLUE : COLORS.CYAN;
+                }
+                
+                RasterUtils.plotDepthText(depthBuffer, x, y, point.z, 'o', color);
             }
         }
     }
@@ -694,20 +804,31 @@ class SpaceTravelMapClass {
         const desiredDistance = this._getAutoNavDesiredDistance(targetInfo);
         const distanceToStop = Math.max(0, distance - desiredDistance);
         const maxSpeed = this.getMaxSpeed(this.playerShip, false);
+        const boostMaxSpeed = this.getMaxSpeed(this.playerShip, true);
         const speedNow = ThreeDUtils.vecLength(this.playerShip.velocity);
-        const stoppingDistance = brakeAccel > 0 ? (speedNow * speedNow) / (2 * brakeAccel) : Number.POSITIVE_INFINITY;
+        
+        // Calculate stopping distance with realistic physics
+        let stoppingDistance = brakeAccel > 0 ? (speedNow * speedNow) / (2 * brakeAccel) : Number.POSITIVE_INFINITY;
+        
         const brakeBuffer = 1.15;
         const shouldCruise = distanceToStop > (stoppingDistance * brakeBuffer);
-        const desiredSpeed = shouldCruise
-            ? maxSpeed
-            : Math.min(maxSpeed, Math.sqrt(Math.max(0, 2 * brakeAccel * distanceToStop)));
 
         const forward = ThreeDUtils.getLocalAxes(this.playerShip.rotation).forward;
         const alignment = ThreeDUtils.dotVec(forward, toTargetDir);
+
+        const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
+        const hasFuel = (this.playerShip.fuel ?? 0) > 0;
+        const canBoost = hasFuel && this.boostCooldownRemaining <= 0;
+        const boostDistanceMin = 2.0; // Maintain boost until within 2 AU of target
+        const wantsBoostSpeed = shouldCruise && boostMaxSpeed > (baseMaxSpeed * 1.05);
+        const cruiseMaxSpeed = wantsBoostSpeed ? boostMaxSpeed : maxSpeed;
+        const desiredSpeed = shouldCruise
+            ? cruiseMaxSpeed
+            : Math.min(maxSpeed, Math.sqrt(Math.max(0, 2 * brakeAccel * distanceToStop)));
+
         const alignedSpeedCap = alignment < 0.2
             ? Math.min(desiredSpeed, baseMaxSpeed * 0.2)
             : desiredSpeed;
-
         const speedDeadband = Math.max(0.0002, baseMaxSpeed * 0.01);
         const accelerate = alignment > 0.3 && (shouldCruise
             ? speedNow < alignedSpeedCap
@@ -715,20 +836,15 @@ class SpaceTravelMapClass {
         const brake = shouldCruise
             ? (speedNow > alignedSpeedCap + speedDeadband && alignment < 0.95)
             : (speedNow > (alignedSpeedCap + speedDeadband) || alignment < -0.1);
-
-        const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
-        const hasFuel = (this.playerShip.fuel ?? 0) > 0;
-        const canBoost = hasFuel && this.boostCooldownRemaining <= 0 && boostReady;
-        const boostMaxSpeed = this.getMaxSpeed(this.playerShip, true);
-        const boostDistanceMin = baseMaxSpeed * 2;
-        const wantsBoostSpeed = shouldCruise && boostMaxSpeed > (baseMaxSpeed * 1.05);
         const keepBoosting = this.boostActive
             && canBoost
             && distanceToStop > boostDistanceMin
             && alignment > 0.6
             && !brake;
+        // Allow boost desire when well-aligned and far away, even if still accelerating to readiness
+        // The actual boost engagement gate happens in _updateMovement based on current speed
         const boostDesired = keepBoosting || (canBoost
-            && alignment > 0.98
+            && alignment > 0.9
             && distanceToStop > boostDistanceMin
             && wantsBoostSpeed);
 
@@ -737,6 +853,27 @@ class SpaceTravelMapClass {
             brake,
             boost: boostDesired
         };
+
+        const boostStateChanged = (this.lastAutoNavBoostDesired !== boostDesired)
+            || (this.lastAutoNavBoostActive !== this.boostActive);
+        if (boostStateChanged) {
+            console.log('[AutoNavBoost]', {
+                boostActive: this.boostActive,
+                boostDesired,
+                keepBoosting,
+                canBoost,
+                boostReady,
+                wantsBoostSpeed,
+                alignment: Number(alignment.toFixed(3)),
+                distanceToStop: Number(distanceToStop.toFixed(4)),
+                speedNow: Number(speedNow.toFixed(4)),
+                desiredSpeed: Number(desiredSpeed.toFixed(4)),
+                maxSpeed: Number(maxSpeed.toFixed(4)),
+                inCooldown: this.boostCooldownRemaining > 0
+            });
+            this.lastAutoNavBoostDesired = boostDesired;
+            this.lastAutoNavBoostActive = this.boostActive;
+        }
 
         if (timestampMs && (timestampMs - this.lastAutoNavLogMs) >= 250) {
             console.log('[AutoNav]', {
@@ -829,7 +966,7 @@ class SpaceTravelMapClass {
             setLastHoverPick: (pick) => { this.lastHoverPick = pick; }
         });
 
-        this._renderPortal(depthBuffer, viewWidth, viewHeight);
+        this._renderPortal(depthBuffer, viewWidth, viewHeight, timestampMs);
 
         SpaceTravelParticles.renderStars(renderParams);
 
@@ -853,11 +990,18 @@ class SpaceTravelMapClass {
 
         RasterUtils.flushDepthBuffer(depthBuffer);
 
+        const emergenceCooldownMs = this._getEmergenceMomentumCooldownRemaining();
+        const emergenceSpeedOverride = this.emergenceMomentumActive
+            ? `${(ThreeDUtils.vecLength(this.playerShip.velocity) * 60).toFixed(2)} AU/m [Cooldown]`
+            : null;
+
         SpaceTravelHud.renderHud({
             ...renderParams,
             baseMaxSpeed: this.getBaseMaxSpeed(this.playerShip),
             maxSpeed: this.getMaxSpeed(this.playerShip, this.boostActive),
             autoNavActive: this.autoNavActive,
+            speedOverrideText: emergenceSpeedOverride,
+            speedOverrideColor: emergenceSpeedOverride ? COLORS.TEXT_DIM : undefined,
             helpers: {
                 applyPauseColor: (color) => this.applyPauseColor(color),
                 addHudText: (x, y, text, color) => this.addHudText(x, y, text, color),

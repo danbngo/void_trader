@@ -123,6 +123,10 @@ const SpaceTravelRender = (() => {
                 starSeed = SpaceTravelShared.hashString(body.id || body.type || 'STAR');
                 const starShadeT = Math.max(0.6, shadeT);
                 color = SpaceTravelShared.lerpColorHex('#000000', baseColor, starShadeT);
+            } else if (body.kind === 'PLANET') {
+                // Ensure planets remain visible at distance by increasing minimum brightness
+                const planetShadeT = Math.max(0.45, shadeT);
+                color = SpaceTravelShared.lerpColorHex('#000000', baseColor, planetShadeT);
             }
 
             let fillSymbol = '█';

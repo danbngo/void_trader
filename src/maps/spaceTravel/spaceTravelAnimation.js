@@ -8,17 +8,6 @@ const SpaceTravelAnimation = (() => {
         function renderBoostTint(mapInstance, timestampMs) {
             const { boostActive, boostEndTimestampMs, boostStartTimestampMs } = mapInstance;
             
-            // DEBUG: Log boost tint state
-            if (boostActive || (boostEndTimestampMs && boostEndTimestampMs > 0)) {
-                console.log('[BoostTint]', {
-                    boostActive,
-                    boostStartTimestampMs,
-                    boostEndTimestampMs,
-                    timestampMs,
-                    shouldRender: !boostActive && boostEndTimestampMs > 0 ? true : boostActive
-                });
-            }
-            
             if (!boostActive && (!boostEndTimestampMs || boostEndTimestampMs <= 0)) return;
 
             const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
@@ -37,22 +26,15 @@ const SpaceTravelAnimation = (() => {
                 if (fadeT <= 0) mapInstance.boostEndTimestampMs = 0;
             }
 
-            console.log('[BoostTint-Alpha]', { alpha, boostActive, configMax: config.BOOST_TINT_MAX, configMin: config.BOOST_TINT_MIN });
-
             if (alpha > 0) {
                 const ctx = UI.getContext?.();
                 const canvas = UI.getCanvas?.();
-                console.log('[BoostTint-Canvas]', { hasCtx: !!ctx, hasCanvas: !!canvas });
-                
                 if (ctx && canvas) {
-                    console.log('[BoostTint-Drawing]', { alpha, canvasSize: { width: canvas.width, height: canvas.height } });
                     ctx.save();
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = '#ff8a00';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.restore();
-                } else {
-                    console.log('[BoostTint-NO_CANVAS]', 'Cannot render - missing ctx or canvas');
                 }
             }
         }

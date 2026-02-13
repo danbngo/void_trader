@@ -580,7 +580,7 @@ const GalaxyMap = (() => {
         
         const travelColor = canTravel ? COLORS.GREEN : COLORS.TEXT_DIM;
         
-        UI.addButton(middleX, buttonY, '4', 'Travel', () => {
+        UI.addButton(middleX, buttonY, '4', 'Warp', () => {
             if (nearbySystems.length > 0 && selectedIndex < nearbySystems.length) {
                 // Check if retirement time has passed (50 years)
                 if (gameState.hasRetirementTimePassed()) {

@@ -24,8 +24,16 @@ const SpaceTravelDocking = (() => {
             if (playerShip) {
                 playerShip.velocity = { x: 0, y: 0, z: 0 };
             }
+            const keyStateSize = inputState?.keyState?.size || 0;
+            const codeStateSize = inputState?.codeState?.size || 0;
+            if (keyStateSize > 0 || codeStateSize > 0) {
+                console.log('[Docking] Clearing input state:', { keyStateSize, codeStateSize, keys: Array.from(inputState.keyState || []), codes: Array.from(inputState.codeState || []) });
+            }
             if (inputState?.keyState?.clear) {
                 inputState.keyState.clear();
+            }
+            if (inputState?.codeState?.clear) {
+                inputState.codeState.clear();
             }
         }
 

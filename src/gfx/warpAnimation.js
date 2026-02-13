@@ -8,12 +8,17 @@ const WarpAnimation = (() => {
     let lastTimestamp = 0;
     let isActive = false;
     let streaks = [];
+    let stochasticStreaks = [];
 
-    const STREAK_COUNT = 160;
-    const BASE_SPEED = 18;
-    const SPEED_RAMP = 48;
+    const STREAK_COUNT = 320; // 2x more frequent
+    const BASE_SPEED = 36; // 2x faster
+    const SPEED_RAMP = 96; // 2x faster ramp
     const BASE_LENGTH = 2;
     const LENGTH_RAMP = 8;
+    
+    const STOCHASTIC_STREAK_COUNT = 200; // Random background lines
+    const STOCHASTIC_BASE_SPEED = 72; // 2x faster than circle lines
+    const STOCHASTIC_SPEED_RAMP = 192;
 
     function show(gameState, targetSystem, onComplete) {
         stop();
@@ -21,6 +26,7 @@ const WarpAnimation = (() => {
         startTimestamp = 0;
         lastTimestamp = 0;
         streaks = buildStreaks(STREAK_COUNT);
+        stochasticStreaks = buildStochasticStreaks(STOCHASTIC_STREAK_COUNT);
 
         const totalDuration = SpaceTravelConfig.WARP_ANIM_DURATION_MS || 4000;
 
@@ -65,11 +71,29 @@ const WarpAnimation = (() => {
         return streakData;
     }
 
+    function buildStochasticStreaks(count) {
+        const streakData = [];
+        for (let i = 0; i < count; i++) {
+            streakData.push(spawnStochasticStreak());
+        }
+        return streakData;
+    }
+
     function spawnStreak() {
         return {
             angle: Math.random() * Math.PI * 2,
             offset: Math.random() * 0.5,
-            length: BASE_LENGTH + Math.random() * 2
+            length: BASE_LENGTH + Math.random() * 2,
+            depth: 0
+        };
+    }
+
+    function spawnStochasticStreak() {
+        return {
+            angle: Math.random() * Math.PI * 2,
+            offset: Math.random() * 0.5,
+            length: BASE_LENGTH + Math.random() * 3,
+            depth: Math.random() * 0.5 - 0.25 // Random depth, not aligned
         };
     }
 
@@ -92,10 +116,40 @@ const WarpAnimation = (() => {
 
         const t = Math.min(1, elapsedMs / totalDuration);
         const speed = BASE_SPEED + (SPEED_RAMP * t * t);
+        const stochasticSpeed = STOCHASTIC_BASE_SPEED + (STOCHASTIC_SPEED_RAMP * t * t);
         const lengthScale = BASE_LENGTH + (LENGTH_RAMP * t);
 
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
+        // Render stochastic lines first (underneath)
+        stochasticStreaks.forEach(streak => {
+            const dirX = Math.cos(streak.angle);
+            const dirY = Math.sin(streak.angle);
+            streak.offset += stochasticSpeed * dt;
+            if (streak.offset > (maxRadius + 20)) {
+                streak.angle = Math.random() * Math.PI * 2;
+                streak.offset = Math.random() * 2;
+                streak.length = BASE_LENGTH + Math.random() * 3;
+                streak.depth = Math.random() * 0.5 - 0.25;
+            }
+
+            const length = streak.length + lengthScale;
+            const startX = centerX + dirX * streak.offset;
+            const startY = centerY + dirY * streak.offset;
+            const endX = centerX + dirX * (streak.offset + length);
+            const endY = centerY + dirY * (streak.offset + length);
+
+            const points = LineDrawer.drawLine(Math.round(startX), Math.round(startY), Math.round(endX), Math.round(endY), true, COLORS.TEXT_DIM);
+            const symbol = SpaceTravelShared.getLineSymbolFromDirection(dirX, -dirY);
+            for (let i = 0; i < points.length; i++) {
+                const point = points[i];
+                if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
+                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, streak.depth + 1, symbol, COLORS.TEXT_DIM);
+                }
+            }
+        });
+
+        // Render ordered circle lines on top
         streaks.forEach(streak => {
             const dirX = Math.cos(streak.angle);
             const dirY = Math.sin(streak.angle);

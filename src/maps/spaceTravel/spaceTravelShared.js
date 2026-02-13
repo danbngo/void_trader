@@ -52,37 +52,17 @@ const SpaceTravelShared = (() => {
             return '□';
         }
         if (body.kind === 'STAR') {
-            if (body.type === BODY_TYPES.STAR_RED_GIANT.id || body.type === BODY_TYPES.STAR_BLUE_GIANT.id) {
-                return '☼';
-            }
-            if (body.type === BODY_TYPES.STAR_NEUTRON.id) {
-                return '+';
-            }
-            if (body.type === BODY_TYPES.STAR_BLACK_HOLE.id) {
-                return '@';
-            }
-            return '⋆';
+            const bodyType = Object.values(BODY_TYPES).find(bt => bt.id === body.type);
+            return bodyType?.symbol || '⋆';
         }
         const hasRing = Array.isArray(body.features)
             ? body.features.includes('RING') || body.features.includes(PLANET_FEATURES?.RING?.id)
             : false;
-        switch (body.type) {
-            case BODY_TYPES.PLANET_GAS_GIANT.id:
-                return hasRing ? 'Ø' : 'O';
-            case BODY_TYPES.PLANET_GAS_DWARF.id:
-                return '○';
-            case BODY_TYPES.PLANET_ICE_GIANT.id:
-                return hasRing ? 'ʘ' : '⓿';
-            case BODY_TYPES.PLANET_ICE_DWARF.id:
-                return '*';
-            case BODY_TYPES.PLANET_EARTHLIKE.id:
-            case BODY_TYPES.PLANET_TERRESTRIAL_GIANT.id:
-                return '●';
-            case BODY_TYPES.PLANET_TERRESTRIAL_DWARF.id:
-                return '•';
-            default:
-                return '•';
+        const bodyType = Object.values(BODY_TYPES).find(bt => bt.id === body.type);
+        if (bodyType) {
+            return hasRing && bodyType.symbolRing ? bodyType.symbolRing : bodyType.symbol;
         }
+        return '•';
     }
 
     function getLineSymbolFromDirection(dx, dy) {

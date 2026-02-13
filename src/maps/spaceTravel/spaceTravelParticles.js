@@ -8,16 +8,6 @@ const SpaceTravelParticles = (() => {
             return;
         }
 
-        // DEBUG: Log boost streak state
-        if (boostActive) {
-            console.log('[StarStreaks]', {
-                boostActive,
-                boostStartTimestampMs,
-                timestampMs,
-                elapsedMs: timestampMs - (boostStartTimestampMs || 0)
-            });
-        }
-
         const maxStars = 1000;
         let drawn = 0;
 

@@ -153,14 +153,29 @@ const SpaceTravelRenderBodies = (() => {
             const radiusPxScaled = radiusPx * screenScale;
             const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
             const radiusChars = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.width));
+            
+            // Log body rendering details occasionally for debugging
+            if (Math.random() < 0.001) {
+                console.log('[RenderBodies]', body.name, ':', {
+                    bodyRadiusAU,
+                    radiusPx: radiusPx.toFixed(2),
+                    screenScale,
+                    radiusPxScaled: radiusPxScaled.toFixed(2),
+                    radiusChars,
+                    dist: dist.toFixed(4)
+                });
+            }
 
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
                 const bodyType = Object.values(BODY_TYPES).find(bt => bt.id === body.type);
                 let char = bodyType?.symbol || '●';
                 let color = baseColor;
 
-                const isPick = hoverActive && Math.abs(mouseState.x - x) <= 1 && Math.abs(mouseState.y - y) <= 1;
+                // Check if mouse is hovering over body (consider radius for larger bodies)
+                const hoverRadius = Math.max(1, radiusChars);
+                const isPick = hoverActive && Math.abs(mouseState.x - x) <= hoverRadius && Math.abs(mouseState.y - y) <= hoverRadius;
                 if (isPick) {
+                    console.log('[RenderBodies] Body hovered:', body.name, 'kind:', body.kind, 'mousePos:', mouseState, 'bodyCenter:', {x, y}, 'radius:', hoverRadius);
                     depthAtCursor = cameraSpace.z;
                     hoverInfos.push({ body, dist, x, y });
                 }
@@ -169,10 +184,13 @@ const SpaceTravelRenderBodies = (() => {
                     char = '□';
                     color = COLORS.CYAN;
                 } else if (body.kind === 'STAR') {
-                    // Use star palette color without animation (local system star)
+                    // Stars use flickering colors from palette
                     const palette = starPalettes[body.type];
                     if (palette && palette.length > 0) {
-                        color = palette[0]; // Use base color from palette
+                        // Use starNoise to pick from palette for flickering effect
+                        const noiseVal = starNoise(x, y, body.id?.charCodeAt(0) || 0, timestampMs);
+                        const paletteIndex = Math.floor(noiseVal * palette.length);
+                        color = palette[paletteIndex];
                     }
                 } else if (body.kind === 'PLANET') {
                     // Only use stripe rendering for larger planets (>2x2 on screen)
@@ -187,7 +205,50 @@ const SpaceTravelRenderBodies = (() => {
                     }
                 }
 
-                RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, char, color);
+                // Render based on size
+                if (radiusChars === 0) {
+                    // Single character - use the body's symbol
+                    RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, char, color);
+                } else {
+                    // Multi-character - render as circle
+                    const blockChar = '█';
+                    const rad = radiusChars;
+                    for (let dy = -rad; dy <= rad; dy++) {
+                        for (let dx = -rad; dx <= rad; dx++) {
+                            // Check if within circular radius
+                            const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+                            if (distFromCenter <= rad) {
+                                const px = x + dx;
+                                const py = y + dy;
+                                if (px >= 0 && px < viewWidth && py >= 0 && py < viewHeight) {
+                                    let renderChar = blockChar;
+                                    let renderColor = color;
+                                    
+                                    // For stars, vary color per pixel for flickering texture
+                                    if (body.kind === 'STAR') {
+                                        const palette = starPalettes[body.type];
+                                        if (palette && palette.length > 0) {
+                                            const noiseVal = starNoise(px, py, body.id?.charCodeAt(0) || 0, timestampMs);
+                                            const paletteIndex = Math.floor(noiseVal * palette.length);
+                                            renderColor = palette[paletteIndex];
+                                        }
+                                    }
+                                    // For gas planets with stripes, use the varied character and color
+                                    else if (body.kind === 'PLANET' && radiusChars > 1 && starSeed !== null && gasStripeLight) {
+                                        const stripeFreq = 25;
+                                        const stripePhase = (timestampMs * 0.001) % 4;
+                                        const pattern = (px + stripePhase) % stripeFreq;
+                                        renderColor = pattern < 13 ? gasStripeLight : gasStripeDark;
+                                        const variantSymbol = bodyType?.symbol || '●';
+                                        renderChar = starNoise(px, py, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                                    }
+                                    
+                                    RasterUtils.plotDepthText(depthBuffer, px, py, cameraSpace.z, renderChar, renderColor);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             const bodyName = body.name;
@@ -212,6 +273,7 @@ const SpaceTravelRenderBodies = (() => {
                     screenY: mouseState.y,
                     distance: hoverTarget.dist
                 };
+                console.log('[RenderBodies] Setting hover pick:', pickData.bodyRef.name, 'kind:', pickData.bodyRef.kind);
                 setLastHoverPick(pickData);
             }
         }

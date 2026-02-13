@@ -176,8 +176,12 @@ const SpaceTravelHud = (() => {
             UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
                 if (autoNavAvailable && onAutoNavToggle) {
                     onAutoNavToggle();
+                } else if (!autoNavAvailable) {
+                    // Flash error message when trying to use AutoNav without destination
+                    UI.setOutputRow('Select a destination first', COLORS.TEXT_ERROR);
+                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
                 }
-            }, helpers.applyPauseColor(autoNavColor), autoNavAvailable ? '' : 'Need a destination to autonavigate');
+            }, helpers.applyPauseColor(autoNavColor), autoNavAvailable ? '' : 'Select a destination first');
 
             UI.addButton(menuX, menuY, 'm', menuText, () => {
                 if (onMenu) {

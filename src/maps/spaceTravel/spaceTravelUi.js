@@ -4,14 +4,18 @@
 
 const SpaceTravelUi = (() => {
     function setLocalDestinationFromPick(pick, state, config) {
+        console.log('[SpaceTravelUi] setLocalDestinationFromPick called with pick:', pick);
         const { currentGameState } = state;
         if (!currentGameState) {
+            console.log('[SpaceTravelUi] No currentGameState, returning existing localDestination');
             return state.localDestination;
         }
         const system = currentGameState.getCurrentSystem();
         if (!system) {
+            console.log('[SpaceTravelUi] No current system, returning existing localDestination');
             return state.localDestination;
         }
+        console.log('[SpaceTravelUi] Current system:', system.name, 'Pick bodyRef:', pick.bodyRef);
 
         if (pick.bodyRef && pick.bodyRef.type === 'STATION') {
             const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
@@ -35,11 +39,13 @@ const SpaceTravelUi = (() => {
                 }
             };
         } else if (pick.bodyRef) {
+            console.log('[SpaceTravelUi] Setting localDestination to bodyRef:', pick.bodyRef.name, pick.bodyRef.type);
             currentGameState.localDestination = pick.bodyRef;
         }
 
         currentGameState.localDestinationSystemIndex = currentGameState.currentSystemIndex;
         state.localDestination = currentGameState.localDestination;
+        console.log('[SpaceTravelUi] Final localDestination:', state.localDestination);
         return state.localDestination;
     }
 

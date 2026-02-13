@@ -429,6 +429,15 @@ const UI = (() => {
     }
     
     /**
+     * Set the selected button index (useful for overriding the default selection)
+     * @param {number} index - The button index to select
+     */
+    function setSelectedButtonIndex(index) {
+        selectedButtonIndex = index;
+        lastSelectedButtonIndex = -1;
+    }
+    
+    /**
      * Set output row text (for action results, not helpText)
      * @param {string} text - Text to display
      * @param {string} color - Color of the text
@@ -577,6 +586,7 @@ const UI = (() => {
         getContext,
         testMonospaceFont,
         resetSelection,
+        setSelectedButtonIndex,
         setOutputRow,
         clearOutputRow,
         getOutputRow,

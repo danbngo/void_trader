@@ -21,6 +21,7 @@ class GameState {
         this.reputation = 0; // Player's reputation (-100 to 100)
         this.bounty = 0; // Player's bounty (credits)
         this.visitedSystems = []; // Array of visited system indices
+        this.visitedPlanets = []; // Array of visited planet IDs
         this.date = new Date(3000, 0, 1); // Game date set to January 1, 3000 AD
         this.encounterShips = []; // Ships involved in current encounter
         this.encounter = false; // Whether an encounter is active
@@ -119,6 +120,13 @@ class GameState {
             const targetBody = location && location.dataRef ? location.dataRef : location;
             if (targetBody) {
                 system.setPrimaryBody(targetBody);
+            }
+        }
+        
+        // Mark planet as visited if it has an id
+        if (location && location.id) {
+            if (!this.visitedPlanets.includes(location.id)) {
+                this.visitedPlanets.push(location.id);
             }
         }
     }

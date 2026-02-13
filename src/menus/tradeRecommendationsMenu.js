@@ -1,6 +1,6 @@
 /**
  * Trade Recommendations Menu
- * Shows best trade opportunities for different cargo types across nearby systems
+ * Shows best trade opportunities for different cargo types across planets in current system
  */
 
 const TradeRecommendationsMenu = (() => {
@@ -8,7 +8,7 @@ const TradeRecommendationsMenu = (() => {
     let currentGameState = null;
     let selectedCargoIndex = 0;
     let currentPage = 0;
-    const SYSTEMS_PER_PAGE = 10;
+    const PLANETS_PER_PAGE = 10;
     
     /**
      * Show the trade recommendations menu
@@ -43,7 +43,6 @@ const TradeRecommendationsMenu = (() => {
         const grid = UI.getGridSize();
         const currentSystem = currentGameState.getCurrentSystem();
         const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
-        const hasEnoughVisits = (currentGameState.visitedSystems || []).length > 1;
         
         // Title
         UI.addTitleLineCentered(0, 'Trade Recommendations');
@@ -52,19 +51,6 @@ const TradeRecommendationsMenu = (() => {
             UI.addTextCentered(4, 'No cargo types available.', COLORS.TEXT_DIM);
             UI.addTextCentered(6, 'Unlock cargo perks to view trade recommendations.', COLORS.TEXT_DIM);
             UI.addButton(25, grid.height - 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
-            UI.draw();
-            return;
-        }
-
-        if (!hasEnoughVisits) {
-            UI.addTextCentered(4, 'Visit more systems to receive trade recommendations.', COLORS.TEXT_ERROR);
-            UI.addTextCentered(6, 'Explore at least two systems to unlock this page.', COLORS.TEXT_DIM);
-
-            const buttonY = grid.height - 6;
-            const disabledHelp = 'Visit more systems to receive trade recommendations';
-            UI.addButton(5, buttonY, '1', 'Next Cargo', () => {}, COLORS.TEXT_DIM, disabledHelp);
-            UI.addButton(5, buttonY + 1, '2', 'Prev Cargo', () => {}, COLORS.TEXT_DIM, disabledHelp);
-            UI.addButton(25, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
             UI.draw();
             return;
         }
@@ -88,18 +74,17 @@ const TradeRecommendationsMenu = (() => {
         ]);
         y++;
         
-        // Get reachable systems
-        const reachableSystems = getReachableSystems();
+        // Get planets in current system
+        const reachablePlanets = getReachablePlanets();
         
-        if (reachableSystems.length === 0) {
-            UI.addTextCentered(y + 2, 'No reachable systems found!', COLORS.TEXT_ERROR);
-            UI.addTextCentered(y + 3, 'Refuel your ships to explore trade routes.', COLORS.TEXT_DIM);
+        if (reachablePlanets.length === 0) {
+            UI.addTextCentered(y + 2, 'No planets found in this system!', COLORS.TEXT_ERROR);
         } else {
             // Pagination
-            const totalPages = Math.ceil(reachableSystems.length / SYSTEMS_PER_PAGE);
-            const startIdx = currentPage * SYSTEMS_PER_PAGE;
-            const endIdx = Math.min(startIdx + SYSTEMS_PER_PAGE, reachableSystems.length);
-            const pageData = reachableSystems.slice(startIdx, endIdx);
+            const totalPages = Math.ceil(reachablePlanets.length / PLANETS_PER_PAGE);
+            const startIdx = currentPage * PLANETS_PER_PAGE;
+            const endIdx = Math.min(startIdx + PLANETS_PER_PAGE, reachablePlanets.length);
+            const pageData = reachablePlanets.slice(startIdx, endIdx);
             
             // Display page info if there are multiple pages
             if (totalPages > 1) {
@@ -108,22 +93,18 @@ const TradeRecommendationsMenu = (() => {
             }
             
             // Table header
-            const headers = ['System', 'Dist', 'ETA (days)', 'Fuel', 'Visited', 'Stock', 'Buy $', 'Sell $'];
-            const rows = pageData.map(systemData => {
-                const systemIndex = currentGameState.systems.indexOf(systemData.system);
-                const isVisited = currentGameState.visitedSystems.includes(systemIndex);
+            const headers = ['Planet', 'Visited', 'Stock', 'Buy $', 'Sell $'];
+            const rows = pageData.map(planetData => {
+                const isVisited = currentGameState.visitedPlanets.includes(planetData.planet.id);
                 
-                const buyPrice = systemData.buyPrice;
-                const sellPrice = systemData.sellPrice;
-                const stock = systemData.stock;
+                const buyPrice = planetData.buyPrice;
+                const sellPrice = planetData.sellPrice;
+                const stock = planetData.stock;
                 
-                // Show ? for unvisited systems
+                // Show ? for unvisited planets
                 if (!isVisited) {
                     return [
-                        { text: systemData.system.name, color: COLORS.TEXT_NORMAL },
-                        { text: systemData.distance.toFixed(1), color: COLORS.TEXT_DIM },
-                        { text: systemData.eta.toFixed(1), color: COLORS.TEXT_DIM },
-                        { text: String(systemData.fuelCost), color: COLORS.TEXT_DIM },
+                        { text: planetData.planet.name, color: COLORS.TEXT_NORMAL },
                         { text: 'No', color: COLORS.TEXT_DIM },
                         { text: '?', color: COLORS.TEXT_DIM },
                         { text: '?', color: COLORS.TEXT_DIM },
@@ -139,14 +120,8 @@ const TradeRecommendationsMenu = (() => {
                 const sellColor = UI.calcStatColor(sellRatio);
                 const stockColor = stock > 0 ? COLORS.TEXT_NORMAL : COLORS.TEXT_DIM;
                 
-                // Format ETA
-                const etaText = systemData.eta.toFixed(1);
-                
                 return [
-                    { text: systemData.system.name, color: COLORS.TEXT_NORMAL },
-                    { text: systemData.distance.toFixed(1), color: COLORS.TEXT_DIM },
-                    { text: etaText, color: COLORS.TEXT_DIM },
-                    { text: String(systemData.fuelCost), color: COLORS.TEXT_DIM },
+                    { text: planetData.planet.name, color: COLORS.TEXT_NORMAL },
                     { text: 'Yes', color: COLORS.GREEN },
                     { text: String(stock), color: stockColor },
                     { text: String(buyPrice), color: buyColor },
@@ -176,8 +151,8 @@ const TradeRecommendationsMenu = (() => {
                     xOffset += 'Buy '.length;
                     UI.addText(xOffset, y, recommendation.cargoName, recommendation.cargoColor);
                     xOffset += recommendation.cargoName.length;
-                    UI.addText(xOffset, y, ` here and sell at ${recommendation.targetSystem.name} `, COLORS.TEXT_NORMAL);
-                    xOffset += ` here and sell at ${recommendation.targetSystem.name} `.length;
+                    UI.addText(xOffset, y, ` here and sell at ${recommendation.targetPlanet.name} `, COLORS.TEXT_NORMAL);
+                    xOffset += ` here and sell at ${recommendation.targetPlanet.name} `.length;
                     UI.addText(xOffset, y, `(+${recommendation.profitPerUnit} profit/unit)`, COLORS.GREEN);
                 }
                 y++;
@@ -194,16 +169,16 @@ const TradeRecommendationsMenu = (() => {
         UI.addButton(5, buttonY + 1, '2', 'Prev Cargo', prevCargo, COLORS.BUTTON, 'View previous cargo type');
         
         // Pagination buttons
-        if (reachableSystems.length > SYSTEMS_PER_PAGE) {
-            const totalPages = Math.ceil(reachableSystems.length / SYSTEMS_PER_PAGE);
+        if (reachablePlanets.length > PLANETS_PER_PAGE) {
+            const totalPages = Math.ceil(reachablePlanets.length / PLANETS_PER_PAGE);
             const canNextPage = currentPage < totalPages - 1;
             const canPrevPage = currentPage > 0;
             
             const nextPageColor = canNextPage ? COLORS.BUTTON : COLORS.TEXT_DIM;
             const prevPageColor = canPrevPage ? COLORS.BUTTON : COLORS.TEXT_DIM;
             
-            UI.addButton(25, buttonY, '8', 'Next Page', nextPage, nextPageColor, canNextPage ? 'View next page of systems' : 'Already on last page');
-            UI.addButton(25, buttonY + 1, '9', 'Prev Page', prevPage, prevPageColor, canPrevPage ? 'View previous page of systems' : 'Already on first page');
+            UI.addButton(25, buttonY, '8', 'Next Page', nextPage, nextPageColor, canNextPage ? 'View next page of planets' : 'Already on last page');
+            UI.addButton(25, buttonY + 1, '9', 'Prev Page', prevPage, prevPageColor, canPrevPage ? 'View previous page of planets' : 'Already on first page');
         }
         
         UI.addButton(25, buttonY + 3, '0', 'Back', () => { if (returnCallback) returnCallback(); }, COLORS.BUTTON);
@@ -212,83 +187,52 @@ const TradeRecommendationsMenu = (() => {
     }
     
     /**
-     * Get all reachable systems with trade data
-     * @returns {Array} Array of system data objects
+     * Get all planets in the current system with trade data
+     * @returns {Array} Array of planet data objects
      */
-    function getReachableSystems() {
+    function getReachablePlanets() {
         const currentSystem = currentGameState.getCurrentSystem();
         const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
-        const reachableSystems = [];
+        const reachablePlanets = [];
         
-        // Get first ship for engine calculation
-        const activeShip = currentGameState.ships[0];
-        const engineMultiplier = AVERAGE_SHIP_ENGINE / activeShip.engine;
-        
-        // Check all systems
-        for (let i = 0; i < currentGameState.systems.length; i++) {
-            const system = currentGameState.systems[i];
-            if (!SystemUtils.isHabitedSystem(system)) continue;
-            
-            // Skip conquered systems
-            if (system.conqueredByAliens) continue;
-            
-            const distance = currentSystem.distanceTo(system);
-            const navigationLevel = getMaxCrewSkill(currentGameState, 'navigation');
-            const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length, navigationLevel);
-            const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
-            
-            // Include current system (distance 0) or reachable systems (based on max fuel)
-            if (i === currentGameState.currentSystemIndex || maxFuel >= fuelCost) {
-                // Calculate ETA (days)
-                const eta = distance * AVERAGE_JOURNEY_DAYS_PER_LY * engineMultiplier;
-                
-                // Calculate prices with fees
-                const basePrice = selectedCargoType.baseValue * system.cargoPriceModifier[selectedCargoType.id];
-                const buyPrice = Math.floor(basePrice * (1 + system.fees));
-                const sellPrice = Math.floor(basePrice / (1 + system.fees));
-                const stock = system.cargoStock[selectedCargoType.id];
-                
-                reachableSystems.push({
-                    system: system,
-                    distance: distance,
-                    fuelCost: fuelCost,
-                    eta: eta,
-                    buyPrice: buyPrice,
-                    sellPrice: sellPrice,
-                    stock: stock,
-                    isCurrent: i === currentGameState.currentSystemIndex
-                });
-            }
+        if (!currentSystem || !currentSystem.planets) {
+            return reachablePlanets;
         }
         
-        // Sort by distance (closest first), but ensure current system is always first
-        reachableSystems.sort((a, b) => {
-            if (a.isCurrent) return -1;
-            if (b.isCurrent) return 1;
-            return a.distance - b.distance;
-        });
+        // Get all planets in current system
+        for (const planet of currentSystem.planets) {
+            if (!planet) continue;
+            
+            // Calculate prices with fees
+            const basePrice = selectedCargoType.baseValue * currentSystem.cargoPriceModifier[selectedCargoType.id];
+            const buyPrice = Math.floor(basePrice * (1 + currentSystem.fees));
+            const sellPrice = Math.floor(basePrice / (1 + currentSystem.fees));
+            const stock = currentSystem.cargoStock[selectedCargoType.id];
+            
+            reachablePlanets.push({
+                planet: planet,
+                buyPrice: buyPrice,
+                sellPrice: sellPrice,
+                stock: stock
+            });
+        }
         
-        return reachableSystems;
+        return reachablePlanets;
     }
     
     /**
      * Get the best trade recommendation from current location
      * Prioritizes selling cargo the player already has where sell price > base value
-     * Only considers visited systems for recommendations
+     * Only considers visited planets in the current system
      * @returns {Object|null} Best trade opportunity or null if none found
      */
     function getBestTradeRecommendation() {
         const currentSystem = currentGameState.getCurrentSystem();
-        const currentSystemIndex = currentGameState.currentSystemIndex;
         const enabledCargoIds = currentGameState.enabledCargoTypes.map(ct => ct.id);
         const fleetCargo = Ship.getFleetCargo(currentGameState.ships);
         
-        // Check if player has visited at least 2 systems (need current + 1 other for trading)
-        if (currentGameState.visitedSystems.length < 2) {
-            return {
-                type: 'nodata',
-                text: 'Visit more systems to gather info and enable recommendations'
-            };
+        if (!currentSystem || !currentSystem.planets || currentSystem.planets.length === 0) {
+            return null;
         }
         
         let bestSaleProfit = -Infinity;
@@ -333,11 +277,7 @@ const TradeRecommendationsMenu = (() => {
             return bestSale;
         }
         
-        // Second priority: Find best buy-and-sell opportunity (only among visited systems)
-        const activeShip = currentGameState.ships[0];
-        const engineMultiplier = AVERAGE_SHIP_ENGINE / activeShip.engine;
-        const maxFuel = currentGameState.ships.reduce((sum, ship) => sum + ship.maxFuel, 0);
-        
+        // Second priority: Find best buy-and-sell opportunity (only among visited planets in current system)
         // Check each enabled cargo type
         for (const cargoType of ALL_CARGO_TYPES) {
             if (!enabledCargoIds.includes(cargoType.id)) continue;
@@ -350,25 +290,16 @@ const TradeRecommendationsMenu = (() => {
             const currentStock = currentSystem.cargoStock[cargoType.id];
             if (currentStock <= 0) continue;
             
-            // Check all VISITED reachable systems for best sell price
-            for (let i = 0; i < currentGameState.systems.length; i++) {
-                if (i === currentSystemIndex) continue; // Skip current system
-                if (!SystemUtils.isHabitedSystem(currentGameState.systems[i])) continue;
+            // Check all VISITED planets in current system for best sell price
+            for (const targetPlanet of currentSystem.planets) {
+                if (!targetPlanet) continue;
                 
-                // Only consider visited systems
-                if (!currentGameState.visitedSystems.includes(i)) continue;
+                // Only consider visited planets
+                if (!currentGameState.visitedPlanets.includes(targetPlanet.id)) continue;
                 
-                const targetSystem = currentGameState.systems[i];
-                const distance = currentSystem.distanceTo(targetSystem);
-                const navigationLevel = getMaxCrewSkill(currentGameState, 'navigation');
-                const fuelCost = Ship.calculateFleetFuelCost(distance, currentGameState.ships.length, navigationLevel);
-                
-                // Only consider reachable systems
-                if (maxFuel < fuelCost) continue;
-                
-                // Calculate sell price at target system
-                const targetBasePrice = cargoType.baseValue * targetSystem.cargoPriceModifier[cargoType.id];
-                const targetSellPrice = Math.floor(targetBasePrice / (1 + targetSystem.fees));
+                // Calculate sell price at target planet
+                const targetBasePrice = cargoType.baseValue * currentSystem.cargoPriceModifier[cargoType.id];
+                const targetSellPrice = Math.floor(targetBasePrice / (1 + currentSystem.fees));
                 
                 // Calculate profit
                 const profit = targetSellPrice - currentBuyPrice;
@@ -379,13 +310,13 @@ const TradeRecommendationsMenu = (() => {
                     bestBuy = {
                         type: 'buy',
                         cargoType: cargoType,
-                        targetSystem: targetSystem,
+                        targetPlanet: targetPlanet,
                         buyPrice: currentBuyPrice,
                         sellPrice: targetSellPrice,
                         profitPerUnit: profit,
                         cargoName: cargoType.name,
                         cargoColor: cargoType.color,
-                        text: `Buy ${cargoType.name} here and sell at ${targetSystem.name} (+${profit} profit/unit)`
+                        text: `Buy ${cargoType.name} here and sell at ${targetPlanet.name} (+${profit} profit/unit)`
                     };
                 }
             }
@@ -433,8 +364,8 @@ const TradeRecommendationsMenu = (() => {
      * Go to next page
      */
     function nextPage() {
-        const reachableSystems = getReachableSystems();
-        const totalPages = Math.ceil(reachableSystems.length / SYSTEMS_PER_PAGE);
+        const reachablePlanets = getReachablePlanets();
+        const totalPages = Math.ceil(reachablePlanets.length / PLANETS_PER_PAGE);
         if (currentPage < totalPages - 1) {
             currentPage++;
             render();
@@ -451,27 +382,7 @@ const TradeRecommendationsMenu = (() => {
         }
     }
 
-    /**
-     * Get maximum skill level from all crew members (captain + subordinates)
-     * @param {GameState} gameState
-     * @param {string} skillName
-     * @returns {number}
-     */
-    function getMaxCrewSkill(gameState, skillName) {
-        let maxSkill = 0;
-        if (gameState.captain && gameState.captain.skills[skillName]) {
-            maxSkill = Math.max(maxSkill, gameState.captain.skills[skillName]);
-        }
-        if (gameState.subordinates) {
-            gameState.subordinates.forEach(officer => {
-                if (officer.skills[skillName]) {
-                    maxSkill = Math.max(maxSkill, officer.skills[skillName]);
-                }
-            });
-        }
-        return maxSkill;
-    }
-    
+
     return {
         show,
         getBestTradeRecommendation: function(gameState) {

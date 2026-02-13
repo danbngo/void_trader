@@ -42,10 +42,18 @@ const SpaceTravelParticles = (() => {
                 const starSeed = Math.abs(Math.floor((star.direction.x * 100000) + (star.direction.y * 310000) + (star.direction.z * 730000) + (starIndex * 1997)));
                 const starSymbol = (starSeed % 2 === 0) ? '·' : '.';
                 if (boostActive) {
+                    // Calculate brightness variation for this star (same as non-boost)
+                    const brightnessSeed = starSeed;
+                    const brightnessVariance = (Math.sin(brightnessSeed * 0.001 + timestampMs * 0.0003) + 1) / 2;
+                    const minBrightness = 0.15;
+                    const maxBrightness = 1.0;
+                    const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
+                    const starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
+                    
                     const offsetMs = starSeed % config.BOOST_STREAK_GROWTH_MS;
                     const delayMs = config.BOOST_STREAK_DELAY_MS + (starSeed % config.BOOST_STREAK_DELAY_MS);
                     if ((timestampMs - boostStartTimestampMs) < delayMs) {
-                        RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, COLORS.TEXT_DIM);
+                        RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
                         drawn++;
                         continue;
                     }
@@ -63,7 +71,7 @@ const SpaceTravelParticles = (() => {
                         const sx = Math.round(baseX + dirX * i);
                         const sy = Math.round(baseY + dirY * i);
                         if (sx >= 0 && sx < viewWidth && sy >= 0 && sy < viewHeight) {
-                            RasterUtils.plotDepthText(depthBuffer, sx, sy, projected.z, symbol, COLORS.TEXT_DIM);
+                            RasterUtils.plotDepthText(depthBuffer, sx, sy, projected.z, symbol, starColor);
                         }
                     }
                 } else {

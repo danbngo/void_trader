@@ -24,7 +24,10 @@ const SpaceTravelLaser = (() => {
             }
             // Prevent firing while boosting
             if (boostActive) {
-                return { laserEmptyTimestampMs: null };
+                return { 
+                    laserEmptyTimestampMs: null,
+                    flashMessage: 'Cannot fire lasers while boosting'
+                };
             }
             const currentLaser = Ship.getLaserCurrent(playerShip);
             if (currentLaser <= 0) {

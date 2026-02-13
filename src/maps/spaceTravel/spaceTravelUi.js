@@ -5,7 +5,7 @@
 const SpaceTravelUi = (() => {
     function setLocalDestinationFromPick(pick, state, config) {
         console.log('[SpaceTravelUi] setLocalDestinationFromPick called with pick:', pick);
-        const { currentGameState } = state;
+        const { currentGameState, mapInstance } = state;
         if (!currentGameState) {
             console.log('[SpaceTravelUi] No currentGameState, returning existing localDestination');
             return state.localDestination;
@@ -16,6 +16,19 @@ const SpaceTravelUi = (() => {
             return state.localDestination;
         }
         console.log('[SpaceTravelUi] Current system:', system.name, 'Pick bodyRef:', pick.bodyRef);
+
+        // Cancel autonav and stop boost when setting a new destination
+        if (mapInstance) {
+            if (mapInstance.autoNavActive) {
+                console.log('[SpaceTravelUi] Cancelling autonav due to new destination');
+                mapInstance.autoNavActive = false;
+                mapInstance.autoNavInput = null;
+            }
+            if (mapInstance.boostActive) {
+                console.log('[SpaceTravelUi] Stopping boost due to new destination');
+                mapInstance.boostActive = false;
+            }
+        }
 
         if (pick.bodyRef && pick.bodyRef.type === 'STATION') {
             const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'

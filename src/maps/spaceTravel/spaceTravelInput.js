@@ -171,7 +171,8 @@ const SpaceTravelInput = (() => {
                 }
                 mapInstance.localDestination = SpaceTravelUi.setLocalDestinationFromPick(pick, {
                     currentGameState: mapInstance.currentGameState,
-                    localDestination: mapInstance.localDestination
+                    localDestination: mapInstance.localDestination,
+                    mapInstance: mapInstance
                 }, config);
             },
             onFire: () => {
@@ -188,6 +189,10 @@ const SpaceTravelInput = (() => {
                 });
                 if (result?.laserEmptyTimestampMs) {
                     mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;
+                }
+                if (result?.flashMessage) {
+                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
+                    UI.setOutputRow(result.flashMessage, COLORS.TEXT_WARN);
                 }
             }
         });

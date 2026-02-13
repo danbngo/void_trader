@@ -186,7 +186,7 @@ const SpaceTravelRenderBodies = (() => {
 
             if (body.kind === 'STATION') {
                 char = '□';
-                color = COLORS.CYAN;
+                color = (radiusChars === 0) ? COLORS.GRAY : COLORS.CYAN;
             } else if (body.kind === 'STAR') {
                 // Stars use flickering colors from palette
                 const palette = starPalettes[body.type];
@@ -260,11 +260,16 @@ const SpaceTravelRenderBodies = (() => {
                                     else if (body.kind === 'PLANET') {
                                         // Calculate shading based on star direction
                                         if (starWorldPos) {
-                                            const toStar = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(starWorldPos, worldPos));
-                                            // Normal at this point on the sphere (in world space)
-                                            const normal = ThreeDUtils.normalizeVec({ x: dx * charAspect, y: dy, z: 0 });
+                                            const toStarWorld = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(starWorldPos, worldPos));
+                                            const toStarCamera = ThreeDUtils.normalizeVec(ThreeDUtils.rotateVecByQuat(toStarWorld, ThreeDUtils.quatConjugate(playerShip.rotation)));
+                                            const nx = normalizedX;
+                                            const ny = normalizedY;
+                                            const nz = Math.sqrt(Math.max(0, 1 - (nx * nx) - (ny * ny)));
+                                            const normalCamera = ThreeDUtils.normalizeVec({ x: nx, y: ny, z: nz });
                                             // Dot product: positive = facing star, negative = away from star
-                                            const lightDot = toStar.x * normal.x + toStar.y * normal.y;
+                                            const lightDot = (toStarCamera.x * normalCamera.x)
+                                                + (toStarCamera.y * normalCamera.y)
+                                                + (toStarCamera.z * normalCamera.z);
                                             // Apply shading: 50% darker on far side
                                             const shadeFactor = 0.5 + (lightDot * 0.5); // Maps -1..1 to 0..1, then 0.5..1
                                             
@@ -301,7 +306,7 @@ const SpaceTravelRenderBodies = (() => {
 
             const bodyName = body.name;
             const bodyLabel = SpaceTravelRenderBodies.getBodyLabel(body);
-            if (body.kind !== 'STATION' && bodyName && bodyLabel) {
+            if (bodyName && bodyLabel) {
                 labels.push({ body, name: bodyName, char: bodyLabel, x, y, dist });
             }
         });

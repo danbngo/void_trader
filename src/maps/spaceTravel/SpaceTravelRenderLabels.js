@@ -5,6 +5,7 @@
 
 const SpaceTravelRenderLabels = (() => {
     function renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, addHudText) {
+        let renderedCount = 0;
         bodyLabels.forEach(({ body, name, char, x, y, dist }) => {
             if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
                 return;
@@ -13,8 +14,10 @@ const SpaceTravelRenderLabels = (() => {
             const labelRadius = Math.max(8, Math.floor(Math.sqrt(dist) * 0.5));
             addDestinationLabel([], x, y, labelRadius, name, viewWidth, viewHeight).forEach(label => {
                 addHudText(label.x, label.y, label.text, label.color);
+                renderedCount += 1;
             });
         });
+        return renderedCount;
     }
 
     function addDestinationLabel(labels, centerX, centerY, radiusChars, name, viewWidth, viewHeight) {

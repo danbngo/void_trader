@@ -472,12 +472,50 @@ const DockMenu = (() => {
 
     function beginSpaceTravel(gameState) {
         const destination = gameState.getCurrentSystem() || getNearestSystem(gameState);
-        if (destination) {
-            gameState.previousSystemIndex = gameState.currentSystemIndex;
-            SpaceTravelMap.show(gameState, destination, { resetPosition: true });
-        } else {
+        if (!destination) {
             GalaxyMap.show(gameState);
+            return;
         }
+
+        const dockLocation = getDockLocation(gameState);
+        const isStationDock = dockLocation?.type === 'STATION';
+        if (dockLocation && !isStationDock && dockLocation.orbit && gameState.ships && gameState.ships[0]) {
+            const systemCenter = {
+                x: destination.x * SpaceTravelConfig.LY_TO_AU,
+                y: destination.y * SpaceTravelConfig.LY_TO_AU,
+                z: 0
+            };
+            const orbitOffset = SystemOrbitUtils.getOrbitPosition(dockLocation.orbit, gameState.date);
+            const planetPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+            const rel = ThreeDUtils.subVec(planetPos, systemCenter);
+            const dir = ThreeDUtils.vecLength(rel) > 0
+                ? ThreeDUtils.normalizeVec(rel)
+                : { x: 0, y: 0, z: 1 };
+            const physicsScale = (typeof SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE === 'number' && SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE > 0)
+                ? SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE
+                : 1;
+            const planetRadius = dockLocation.radiusAU || 0;
+            const dockMult = SpaceTravelConfig.PLANET_DOCK_RADIUS_MULT || 1;
+            const offsetDistance = planetRadius * physicsScale * dockMult * 1.1;
+
+            const playerShip = gameState.ships[0];
+            playerShip.velocity = { x: 0, y: 0, z: 0 };
+            playerShip.position = ThreeDUtils.addVec(planetPos, ThreeDUtils.scaleVec(dir, offsetDistance));
+            ThreeDUtils.faceToward(playerShip, planetPos);
+
+            gameState.localDestination = dockLocation;
+            gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
+
+            gameState.previousSystemIndex = gameState.currentSystemIndex;
+            SpaceTravelMap.show(gameState, destination, {
+                resetPosition: false,
+                localDestination: gameState.localDestination
+            });
+            return;
+        }
+
+        gameState.previousSystemIndex = gameState.currentSystemIndex;
+        SpaceTravelMap.show(gameState, destination, { resetPosition: true });
     }
 
     function getNearestSystem(gameState) {

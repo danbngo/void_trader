@@ -79,6 +79,10 @@ class SpaceTravelMapClass {
         this.autoNavActive = false;
         this.autoNavInput = null;
         this.autoNavBoostBreakpointDistance = 0; // Fixed boost engagement distance, calculated once when starting autonav
+        this.autoNavBoostStopDistance = 0;
+        this.autoNavBoostDisabled = false;
+        this.lastIndicatorLogMs = 0;
+        this.lastLabelLogMs = 0;
 
         // Portal / warp state
         this.portalActive = false;
@@ -87,6 +91,10 @@ class SpaceTravelMapClass {
         this.portalOpenTimestampMs = 0;
         this.portalCloseTimestampMs = 0;
         this.portalTargetSystem = null;
+        this.portalBlockMessage = '';
+        this.portalBlockMessageTimestampMs = 0;
+        this.portalPausedTimestampMs = 0;
+        this.portalTintLastLogMs = 0;
         this.warpFadeOutStartMs = 0;
 
         // Emergence momentum state (when warping into a system)
@@ -110,12 +118,14 @@ class SpaceTravelMapClass {
         const now = performance.now();
         if (nextPaused && !this.isPaused) {
             this.pauseTimestampMs = now;
+            this.portalPausedTimestampMs = this.pauseTimestampMs;
         }
         if (!nextPaused && this.isPaused) {
             if (this.pauseTimestampMs) {
                 this.pausedDurationMs += (now - this.pauseTimestampMs);
             }
             this.pauseTimestampMs = 0;
+            this.portalPausedTimestampMs = 0;
             
             // Adjust boost timing when unpausing to maintain proper fade timing
             if (this.boostStartTimestampMs > 0) {
@@ -224,9 +234,22 @@ class SpaceTravelMapClass {
         this.portalActive = false;
         this.portalPosition = null;
         this.portalTargetSystem = null;
+        this.portalRadius = 0;
+        this.portalOpenTimestampMs = 0;
+        this.portalCloseTimestampMs = 0;
+        this.portalBlockMessage = '';
+        this.portalBlockMessageTimestampMs = 0;
         this.warpFadeOutStartMs = options.warpFadeOut ? performance.now() : 0;
 
-        if (options.openPortalTargetSystem) {
+        if (options.portalState && options.portalState.portalActive) {
+            this.portalActive = true;
+            this.portalPosition = options.portalState.portalPosition;
+            this.portalRadius = options.portalState.portalRadius;
+            this.portalOpenTimestampMs = options.portalState.portalOpenTimestampMs;
+            this.portalCloseTimestampMs = options.portalState.portalCloseTimestampMs;
+            this.portalTargetSystem = options.portalState.portalTargetSystem;
+            this.portalPausedTimestampMs = options.portalState.portalPausedTimestampMs || 0;
+        } else if (options.openPortalTargetSystem) {
             SpaceTravelPortal.open(this, options.openPortalTargetSystem, performance.now());
         }
 
@@ -343,7 +366,7 @@ class SpaceTravelMapClass {
         this.visibleStations = visibility.visibleStations;
     }
 
-    stop() {
+    stop(preservePortal = false) {
         this.isActive = false;
         UI.setGameCursorEnabled?.(true);
         UI.setButtonNavigationEnabled?.(true);
@@ -358,10 +381,18 @@ class SpaceTravelMapClass {
         this.lastHoverPick = null;
         this.autoNavActive = false;
         this.autoNavInput = null;
-        this.portalActive = false;
-        this.portalPosition = null;
-        this.portalTargetSystem = null;
-        this.warpFadeOutStartMs = 0;
+        if (!preservePortal) {
+            this.portalActive = false;
+            this.portalPosition = null;
+            this.portalRadius = 0;
+            this.portalOpenTimestampMs = 0;
+            this.portalCloseTimestampMs = 0;
+            this.portalTargetSystem = null;
+            this.portalBlockMessage = '';
+            this.portalBlockMessageTimestampMs = 0;
+            this.portalPausedTimestampMs = 0;
+            this.warpFadeOutStartMs = 0;
+        }
         this.lastErrorMessage = null;
         this.lastErrorTimestampMs = 0;
     }
@@ -480,7 +511,7 @@ class SpaceTravelMapClass {
             timestampMs,
             localDestination: this.localDestination,  // Override stale spread copy with fresh value
             getActiveTargetInfo: () => this.getActiveTargetInfo(),  // Override stale spread copy with fresh method
-            stop: () => this.stop(), // Explicitly pass method since spread doesn't copy prototype methods
+            stop: (preservePortal) => this.stop(preservePortal), // Explicitly pass method since spread doesn't copy prototype methods
             setPaused: (paused, byFocus) => this.setPaused(paused, byFocus),
             toggleAutoNav: () => this.toggleAutoNav(),  // Pass toggleAutoNav callback
             mapInstance: this  // Pass mapInstance reference for callbacks to use

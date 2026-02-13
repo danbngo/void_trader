@@ -324,12 +324,12 @@ const LocalSystemMap = (() => {
             }, 100);
         }, COLORS.CYAN, 'Set destination and activate auto-navigation');
 
-        UI.addButton(clampButtonX(middleX, '5', 'Zoom In'), buttonY + 1, '5', 'Zoom In', () => {
+        UI.addButton(clampButtonX(middleX, '5', 'Zoom In'), buttonY + 2, '5', 'Zoom In', () => {
             mapZoom = Math.min(3, mapZoom * 1.2);
             render(gameState);
         }, COLORS.BUTTON, 'Zoom in');
 
-        UI.addButton(clampButtonX(middleX, '6', 'Zoom Out'), buttonY + 2, '6', 'Zoom Out', () => {
+        UI.addButton(clampButtonX(middleX, '6', 'Zoom Out'), buttonY + 3, '6', 'Zoom Out', () => {
             mapZoom = Math.max(0.5, mapZoom / 1.2);
             render(gameState);
         }, COLORS.BUTTON, 'Zoom out');

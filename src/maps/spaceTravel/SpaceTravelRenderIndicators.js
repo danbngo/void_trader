@@ -1,12 +1,16 @@
-/**
- * Space Travel Render Indicators
- * Renders destination and navigation indicators
- */
-
 const SpaceTravelRenderIndicators = (() => {
-    function renderDestinationIndicator({ viewWidth, viewHeight, playerShip, localDestination, currentgameState, config, addHudText, getActiveTargetInfo }) {
+    function renderDestinationIndicator({ viewWidth, viewHeight, playerShip, localDestination, currentgameState, config, addHudText, getActiveTargetInfo, timestampMs, mapInstance }) {
+        const logNow = timestampMs || performance.now();
         const targetInfo = getActiveTargetInfo();
         if (!targetInfo || !targetInfo.position) {
+            if (mapInstance && logNow - (mapInstance.lastIndicatorLogMs || 0) >= 1000) {
+                console.log('[NavIndicator]', {
+                    status: 'no-target',
+                    hasTargetInfo: !!targetInfo,
+                    hasPosition: !!targetInfo?.position
+                });
+                mapInstance.lastIndicatorLogMs = logNow;
+            }
             return;
         }
 
@@ -43,23 +47,36 @@ const SpaceTravelRenderIndicators = (() => {
             alignmentColor = COLORS.RED;
         }
 
-        const alignmentX = viewWidth - alignmentText.length - 2;
+        const alignmentX = Math.max(0, viewWidth - alignmentText.length - 2);
         const alignmentY = 1;
         addHudText(alignmentX, alignmentY, alignmentText, alignmentColor);
 
         const directionForward = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(playerShip.rotation));
         const arrow = SpaceTravelShared.getDirectionalArrow(directionForward.x, directionForward.y);
 
-        const arrowX = Math.max(0, viewWidth - 3);
+        const arrowX = Math.max(0, Math.min(viewWidth - 1, viewWidth - 3));
         const arrowY = alignmentY - 1;
-        if (arrowY >= 0) {
+        if (arrowY >= 0 && arrowX < viewWidth) {
             addHudText(arrowX, arrowY, arrow, alignmentColor);
         }
 
         const distanceText = distance < 1 ? `${(distance * 1000).toFixed(0)} km` : `${distance.toFixed(2)} AU`;
         const distanceX = Math.max(0, viewWidth - Math.max(distanceText.length, alignmentText.length) - 2);
         const distanceY = alignmentY + 1;
-        addHudText(distanceX, distanceY, distanceText, COLORS.TEXT_NORMAL);
+        if (distanceY < viewHeight) {
+            addHudText(distanceX, distanceY, distanceText, COLORS.TEXT_NORMAL);
+        }
+
+        if (mapInstance && logNow - (mapInstance.lastIndicatorLogMs || 0) >= 1000) {
+            console.log('[NavIndicator]', {
+                status: 'rendered',
+                alignment: Number(alignment.toFixed(3)),
+                arrow,
+                alignmentText,
+                positions: { alignmentX, alignmentY, arrowX, arrowY, distanceX, distanceY }
+            });
+            mapInstance.lastIndicatorLogMs = logNow;
+        }
     }
 
     return {

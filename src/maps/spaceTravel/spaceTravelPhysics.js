@@ -139,7 +139,13 @@ const SpaceTravelPhysics = {
         const hasFuel = (params.playerShip.fuel ?? 0) > 0;
         const boostReady = speedNow >= (baseMaxSpeed * params.config.BOOST_READY_SPEED_RATIO);
 
-        params.boostActive = boostKey && hasFuel && params.boostCooldownRemaining <= 0 && boostReady;
+        // During auto-nav, enforce a minimum re-engagement delay to prevent rapid oscillation
+        // This is shorter than the normal cooldown but prevents boost from toggling every frame
+        const boostMinReengageDelayMs = 150; // 150ms minimum between boost disengages and re-engages
+        const timeSinceBoostEnded = timestampMs - (params.boostEndTimestampMs || 0);
+        const boostReengageLocked = params.autoNavActive && timeSinceBoostEnded < boostMinReengageDelayMs;
+
+        params.boostActive = boostKey && hasFuel && params.boostCooldownRemaining <= 0 && boostReady && !boostReengageLocked;
 
         if (params.boostActive && !wasBoosting) {
             params.boostStartTimestampMs = timestampMs;
@@ -177,7 +183,7 @@ const SpaceTravelPhysics = {
             }
         }
 
-        if (!params.boostActive && wasBoosting) {
+        if (!params.boostActive && wasBoosting && !params.autoNavActive) {
             params.boostCooldownRemaining = params.config.BOOST_COOLDOWN_SEC;
             params.boostCooldownStartSpeed = ThreeDUtils.vecLength(params.playerShip.velocity);
         }
@@ -187,7 +193,7 @@ const SpaceTravelPhysics = {
             : maxSpeed;
         params.playerShip.velocity = PhysicsUtils.clampSpeed(params.playerShip.velocity, effectiveMaxSpeed);
 
-        if (!params.boostActive && params.boostCooldownRemaining > 0) {
+        if (!params.boostActive && params.boostCooldownRemaining > 0 && !params.autoNavActive) {
             params.boostCooldownRemaining = Math.max(0, params.boostCooldownRemaining - dt);
             const elapsedCooldown = params.config.BOOST_COOLDOWN_SEC - params.boostCooldownRemaining;
             const decelT = params.config.BOOST_COOLDOWN_DECEL_SEC > 0

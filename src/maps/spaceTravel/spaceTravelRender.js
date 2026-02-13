@@ -47,8 +47,14 @@ const SpaceTravelRender = (() => {
 
         SpaceStationGfx.renderStationOccluders(renderParams);
 
+        // Get effective timestamp that respects pause state
+        const effectiveRenderTimestampMs = params.isPaused && params.portalPausedTimestampMs
+            ? params.portalPausedTimestampMs
+            : renderTimestampMs;
+
         const bodyLabels = SpaceTravelRenderBodies.render({
             ...renderParams,
+            timestampMs: effectiveRenderTimestampMs,
             setLastHoverPick: (pick) => { 
                 renderParams.lastHoverPick = pick;
                 // Also set directly on mapInstance to handle async clicks between render and update
@@ -58,10 +64,8 @@ const SpaceTravelRender = (() => {
             }
         });
 
-        // Only render portal if not paused
-        if (!params.isPaused) {
-            SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
-        }
+        // Render portal (even when paused)
+        SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
 
         SpaceTravelParticles.renderStars(renderParams);
 
@@ -75,6 +79,8 @@ const SpaceTravelRender = (() => {
         }
 
         params.laser?.renderLaserFire(renderParams);
+
+        SpaceTravelPortal.applyTint(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
 
         if (params.isPaused) {
             for (let i = 0; i < depthBuffer.colors.length; i++) {
@@ -118,18 +124,29 @@ const SpaceTravelRender = (() => {
             onAutoNavToggle: () => params.toggleAutoNav?.(),
             onUnpause: () => params.setPaused?.(false, false),
             onMenu: () => {
-                params.stop?.();
+                const portalState = SpaceTravelPortal.getState(params.mapInstance);
+                params.stop?.(true);
                 SpaceTravelMenu.show(params.currentGameState, () => {
                     const destination = params.targetSystem || SpaceTravelLogic.getNearestSystem(params.currentGameState);
                     SpaceTravelMap.show(params.currentGameState, destination, {
                         resetPosition: false,
-                        localDestination: params.localDestination
+                        localDestination: params.localDestination,
+                        portalState
                     });
                 });
             }
         });
 
-        SpaceTravelRenderLabels.renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, (x, y, text, color) => params.addHudText?.(x, y, text, color));
+        const labelCount = SpaceTravelRenderLabels.renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, (x, y, text, color) => params.addHudText?.(x, y, text, color));
+        if (params.mapInstance && renderTimestampMs - (params.mapInstance.lastLabelLogMs || 0) >= 1000) {
+            console.log('[LabelRender]', {
+                bodyLabels: bodyLabels.length,
+                labelsDrawn: labelCount,
+                viewWidth,
+                viewHeight
+            });
+            params.mapInstance.lastLabelLogMs = renderTimestampMs;
+        }
         
         SpaceTravelRenderIndicators.renderDestinationIndicator({
             ...renderParams,
@@ -148,6 +165,20 @@ const SpaceTravelRender = (() => {
             const x = Math.floor((viewWidth - label.length) / 2);
             const y = Math.floor(viewHeight / 2);
             UI.addText(x, y, label, COLORS.TEXT_NORMAL);
+        } else if (params.portalBlockMessage) {
+            const message = params.portalBlockMessage;
+            const messageTimestampMs = params.portalBlockMessageTimestampMs;
+            const msgDuration = 2000; // Flash for 2 seconds
+            if (timestampMs - messageTimestampMs > msgDuration) {
+                params.portalBlockMessage = '';
+                params.portalBlockMessageTimestampMs = 0;
+                return;
+            }
+            const flashPhase = Math.floor((timestampMs - messageTimestampMs) / 250) % 2;
+            const messageColor = flashPhase === 0 ? COLORS.CYAN : COLORS.WHITE;
+            const x = Math.floor((viewWidth - message.length) / 2);
+            const y = Math.floor(viewHeight / 2);
+            UI.addText(x, y, message, messageColor);
         } else if (params.boostTurnMessage || params.boostBlockMessage) {
             const message = params.boostTurnMessage || params.boostBlockMessage;
             const messageTimestampMs = params.boostTurnMessage

@@ -46,7 +46,19 @@ const SpaceTravelParticles = (() => {
             const minBrightness = 0.15;
             const maxBrightness = 1.0;
             const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
-            const starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
+            let starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
+            
+            // Apply redshift during boost (4x the orange tint intensity)
+            if (boostActive && boostStartTimestampMs) {
+                const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
+                const elapsedSec = Math.max(0, (timestampMs - boostStartTimestampMs) / 1000);
+                const timeRatio = Math.min(1, elapsedSec / rampSec);
+                // Redshift is 4x the original tint amount (0.25), but at current tint's ramp: 0.25 * timeRatio
+                const redshiftAmount = config.BOOST_TINT_MAX * 4 * timeRatio;  // 4x the current subtle tint
+                if (redshiftAmount > 0) {
+                    starColor = SpaceTravelShared.lerpColorHex(starColor, '#ff0000', redshiftAmount);
+                }
+            }
             
             if (boostActive) {
                 // Boost mode: draw streak even if center is off-screen

@@ -140,12 +140,14 @@ const SpaceTravelInput = (() => {
                 if (deathTow.isDeathSequenceActive()) {
                     return;
                 }
-                mapInstance.stop();
+                const portalState = SpaceTravelPortal.getState(mapInstance);
+                mapInstance.stop(true);
                 SpaceTravelMenu.show(mapInstance.currentGameState, () => {
                     const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(mapInstance.currentGameState);
                     mapInstance.show(mapInstance.currentGameState, destination, {
                         resetPosition: false,
-                        localDestination: mapInstance.localDestination
+                        localDestination: mapInstance.localDestination,
+                        portalState
                     });
                 });
             },
@@ -252,6 +254,7 @@ const SpaceTravelInput = (() => {
 
     function handleInput(mapInstance, dt, timestampMs, messages) {
         const { config, inputState, playerShip, boostActive } = mapInstance;
+
         const turnRad = ThreeDUtils.degToRad(config.TURN_DEG_PER_SEC) * dt;
         const rollRad = ThreeDUtils.degToRad(config.ROLL_DEG_PER_SEC ?? config.TURN_DEG_PER_SEC) * dt;
         const grid = UI.getGridSize();

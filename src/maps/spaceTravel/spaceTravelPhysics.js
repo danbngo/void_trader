@@ -139,13 +139,7 @@ const SpaceTravelPhysics = {
         const hasFuel = (params.playerShip.fuel ?? 0) > 0;
         const boostReady = speedNow >= (baseMaxSpeed * params.config.BOOST_READY_SPEED_RATIO);
 
-        // During auto-nav, enforce a minimum re-engagement delay to prevent rapid oscillation
-        // This is shorter than the normal cooldown but prevents boost from toggling every frame
-        const boostMinReengageDelayMs = 150; // 150ms minimum between boost disengages and re-engages
-        const timeSinceBoostEnded = timestampMs - (params.boostEndTimestampMs || 0);
-        const boostReengageLocked = params.autoNavActive && timeSinceBoostEnded < boostMinReengageDelayMs;
-
-        params.boostActive = boostKey && hasFuel && params.boostCooldownRemaining <= 0 && boostReady && !boostReengageLocked;
+        params.boostActive = boostKey && hasFuel && params.boostCooldownRemaining <= 0 && boostReady;
 
         if (params.boostActive && !wasBoosting) {
             params.boostStartTimestampMs = timestampMs;

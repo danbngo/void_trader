@@ -81,6 +81,7 @@ class SpaceTravelMapClass {
         this.autoNavBoostBreakpointDistance = 0; // Fixed boost engagement distance, calculated once when starting autonav
         this.autoNavBoostStopDistance = 0;
         this.autoNavBoostDisabled = false;
+        this.autoNavBoostEngagedOnce = false; // Track if boost has ever been engaged during this journey
         this.lastIndicatorLogMs = 0;
         this.lastLabelLogMs = 0;
 

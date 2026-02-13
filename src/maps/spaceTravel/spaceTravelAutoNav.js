@@ -23,6 +23,7 @@ const SpaceTravelAutoNav = {
             params.autoNavBoostBreakpointDistance = 0;
             params.autoNavBoostStopDistance = 0;
             params.autoNavBoostDisabled = false;
+            params.autoNavBoostEngagedOnce = false;
         } else {
             // Calculate boost breakpoint distance once when activating auto-nav
             // This prevents oscillation caused by dynamic stopping distance recalculation
@@ -42,6 +43,7 @@ const SpaceTravelAutoNav = {
                 params.autoNavBoostBreakpointDistance = desiredDistance + boostStoppingDist;
                 params.autoNavBoostStopDistance = params.autoNavBoostBreakpointDistance;
                 params.autoNavBoostDisabled = false;
+                params.autoNavBoostEngagedOnce = false;
             }
         }
 
@@ -106,10 +108,6 @@ const SpaceTravelAutoNav = {
         const hasFuel = (params.playerShip.fuel ?? 0) > 0;
         const canBoost = hasFuel && params.boostCooldownRemaining <= 0;
         
-        // Check if boost is in re-engagement lockout (anti-oscillation gate)
-        const boostMinReengageDelayMs = 150;
-        const timeSinceBoostEnded = timestampMs - (params.boostEndTimestampMs || 0);
-        const boostReengageLocked = timeSinceBoostEnded < boostMinReengageDelayMs && (params.lastAutoNavBoostActive !== params.boostActive);
         const wantsBoostSpeed = shouldCruise && boostMaxSpeed > (baseMaxSpeed * 1.05);
         const boostStopSpeedMult = typeof params.config.AUTO_NAV_BOOST_STOP_SPEED_MULT === 'number'
             ? params.config.AUTO_NAV_BOOST_STOP_SPEED_MULT
@@ -131,25 +129,37 @@ const SpaceTravelAutoNav = {
             ? (speedNow > alignedSpeedCap + speedDeadband && alignment < 0.95)
             : (speedNow > (alignedSpeedCap + speedDeadband) || alignment < -0.1);
         
-        // Boost when speed is high and aligned, stop when distance to brake point reached
-        // Once boost is engaged, keep it on until we're close enough to brake
+        // Boost when speed is high and aligned, stop only when distance to brake point reached
         const boostStopDistance = params.autoNavBoostStopDistance || params.autoNavBoostBreakpointDistance || 0;
-        const isCloseEnoughToStop = distanceToStop <= boostStopDistance;
+        const isCloseEnoughToStop = boostStopDistance > 0 && distanceToStop <= boostStopDistance;
         
-        // Stop boost if we're close enough to brake, mark as disabled to prevent re-engagement
-        if (params.boostActive && isCloseEnoughToStop) {
-            params.autoNavBoostDisabled = true;
+        // Mark when boost has been engaged at least once
+        if (params.boostActive && !params.autoNavBoostEngagedOnce) {
+            params.autoNavBoostEngagedOnce = true;
         }
         
-        // Start boost when: aligned, speed near max, fuel available, still far away, and not disabled/locked
-        // Keep boost on if already active (until isCloseEnoughToStop above disables it)
+        // Once we reach the stopping distance, permanently disable boost for this journey
+        if (!params.autoNavBoostDisabled && isCloseEnoughToStop) {
+            params.autoNavBoostDisabled = true;
+            console.log('[AutoNav] Reached boost breakpoint, disabling boost:', {
+                distanceToStop: Number(distanceToStop.toFixed(4)),
+                boostStopDistance: Number(boostStopDistance.toFixed(4))
+            });
+        }
+        
+        // Boost desired:
+        // - Initial engagement: when speed is high, aligned, fuel available, not braking
+        // - Continue: while boost is already active (ignore brake signal while boosting)
+        // - Stop: only when reaching breakpoint distance (isCloseEnoughToStop)
         const boostDesired = !params.autoNavBoostDisabled
             && canBoost
-            && !boostReengageLocked
             && alignment > 0.6
-            && !brake
-            && (speedNow >= maxSpeed * 0.95 || params.boostActive)
-            && (params.boostActive || !isCloseEnoughToStop);
+            && (
+                // Start condition: high speed, not braking, not yet engaged
+                (speedNow >= maxSpeed * 0.95 && !brake && !params.autoNavBoostEngagedOnce)
+                // Continue condition: already boosting (ignore brake while boosting)
+                || params.boostActive
+            );
 
         params.autoNavInput = {
             accelerate,
@@ -163,17 +173,16 @@ const SpaceTravelAutoNav = {
             console.log('[AutoNavBoost]', {
                 boostActive: params.boostActive,
                 boostDesired,
+                boostEngagedOnce: params.autoNavBoostEngagedOnce,
                 canBoost,
                 boostReady,
-                boostReengageLocked,
-                timeSinceBoostEnded: Number(timeSinceBoostEnded.toFixed(1)),
                 wantsBoostSpeed,
+                boostDisabled: params.autoNavBoostDisabled,
                 alignment: Number(alignment.toFixed(3)),
                 distanceToStop: Number(distanceToStop.toFixed(4)),
                 breakpointDistance: Number(params.autoNavBoostBreakpointDistance.toFixed(4)),
                 stopDistance: Number(boostStopDistance.toFixed(4)),
                 isCloseEnoughToStop,
-                boostDisabled: params.autoNavBoostDisabled,
                 speedNow: Number(speedNow.toFixed(4)),
                 maxSpeedThreshold: Number((maxSpeed * 0.95).toFixed(4)),
                 speedReadyCheck: speedNow >= maxSpeed * 0.95,

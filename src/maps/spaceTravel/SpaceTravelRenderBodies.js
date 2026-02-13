@@ -168,7 +168,7 @@ const SpaceTravelRenderBodies = (() => {
             });
             if (setLastHoverPick) {
                 const pickData = {
-                    body: hoverTarget.body,
+                    bodyRef: hoverTarget.body,
                     x: hoverTarget.x,
                     y: hoverTarget.y,
                     screenX: mouseState.x,

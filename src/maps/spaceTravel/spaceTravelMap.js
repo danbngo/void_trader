@@ -436,7 +436,7 @@ class SpaceTravelMapClass {
 
     render(timestampMs = 0) {
         // Delegated to SpaceTravelRender
-        SpaceTravelRender.render(this);
+        SpaceTravelRender.render({ ...this, timestampMs });
     }
 
     getVelocityWorldDirection() {

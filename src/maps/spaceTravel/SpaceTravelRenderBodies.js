@@ -163,25 +163,7 @@ const SpaceTravelRenderBodies = (() => {
             const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.width));
             const radiusCharsY = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.height));
             const radiusChars = Math.max(radiusCharsX, radiusCharsY); // Use max for hover detection
-            
-            // Log body rendering details occasionally for debugging, especially multi-char bodies
             const isMultiChar = radiusChars > 0;
-            if ((Math.random() < 0.001 || body.name === 'Sol' || isMultiChar) && (Math.random() < 0.05 || body.name === 'Sol')) {
-                console.log('[RenderBodies] Processing', body.name, ':', {
-                    kind: body.kind,
-                    bodyRadiusAU,
-                    radiusPx: radiusPx.toFixed(2),
-                    screenScale,
-                    radiusPxScaled: radiusPxScaled.toFixed(2),
-                    radiusChars,
-                    radiusCharsX,
-                    radiusCharsY,
-                    screenPos: {x, y},
-                    centerOnScreen: (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight),
-                    isMultiChar,
-                    dist: dist.toFixed(4)
-                });
-            }
 
             // For single-character bodies, only render if center is on-screen
             const centerOnScreen = x >= 0 && x < viewWidth && y >= 0 && y < viewHeight;
@@ -198,14 +180,6 @@ const SpaceTravelRenderBodies = (() => {
             const hoverRadius = Math.max(1, radiusChars);
             const isPick = hoverActive && Math.abs(mouseState.x - x) <= hoverRadius && Math.abs(mouseState.y - y) <= hoverRadius;
             if (isPick) {
-                console.log('[RenderBodies] Body hovered:', body.name, 'kind:', body.kind, {
-                    mousePos: mouseState,
-                    bodyCenter: {x, y},
-                    hoverRadius,
-                    radiusCharsX,
-                    radiusCharsY,
-                    bodyType: body.type
-                });
                 depthAtCursor = cameraSpace.z;
                 hoverInfos.push({ body, dist, x, y });
             }
@@ -244,18 +218,6 @@ const SpaceTravelRenderBodies = (() => {
                 // Even if center is off-screen, parts of the body may be visible
                 const blockChar = '█';
                 
-                // Log when rendering multi-char bodies that are partially off-screen
-                if (!(x >= 0 && x < viewWidth && y >= 0 && y < viewHeight)) {
-                    console.log('[RenderBodies] Multi-char body', body.name, 'center OFF-SCREEN, will render ellipse:', {
-                        centerPos: {x, y},
-                        radiusChars,
-                        radiusCharsX,
-                        radiusCharsY,
-                        viewBounds: {width: viewWidth, height: viewHeight},
-                        expectedPixels: (2 * radiusCharsX + 1) * (2 * radiusCharsY + 1)
-                    });
-                }
-                
                 // Find star position for shading (if planet)
                 let starWorldPos = null;
                 if (body.kind === 'PLANET' && targetSystem.stars && targetSystem.stars.length > 0) {
@@ -277,12 +239,6 @@ const SpaceTravelRenderBodies = (() => {
                                     // Check hover detection for multi-character bodies
                                     // For each visible pixel, check if mouse is over it
                                     if (hoverActive && mouseState.x === px && mouseState.y === py) {
-                                        console.log('[RenderBodies] Multi-char body hover detected:', body.name, 'kind:', body.kind, {
-                                            pixelPos: {px, py},
-                                            bodyCenter: {x, y},
-                                            centerOnScreen: (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight),
-                                            mousePos: mouseState
-                                        });
                                         if (!hoverInfos.some(h => h.body === body)) {
                                             hoverInfos.push({ body, dist, x: px, y: py });
                                             depthAtCursor = cameraSpace.z;
@@ -358,6 +314,7 @@ const SpaceTravelRenderBodies = (() => {
             });
             if (setLastHoverPick) {
                 const pickData = {
+                    kind: hoverTarget.body.kind,  // Add the kind property
                     bodyRef: hoverTarget.body,
                     x: hoverTarget.x,
                     y: hoverTarget.y,
@@ -365,7 +322,6 @@ const SpaceTravelRenderBodies = (() => {
                     screenY: mouseState.y,
                     distance: hoverTarget.dist
                 };
-                console.log('[RenderBodies] Setting hover pick:', pickData.bodyRef.name, 'kind:', pickData.bodyRef.kind);
                 setLastHoverPick(pickData);
             }
         }

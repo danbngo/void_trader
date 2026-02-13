@@ -142,7 +142,6 @@ const SystemGenerator = (() => {
             for (const star of system.stars) {
                 const heatDist = getHeatDamageDistance(star);
                 if (planet.orbit && planet.orbit.semiMajorAU < heatDist) {
-                    console.log(`[SystemGenerator] Removing planet ${planet.name} from ${system.name} - too close to star (${planet.orbit.semiMajorAU.toFixed(4)} AU < heat threshold ${heatDist.toFixed(4)} AU)`);
                     return false;  // Remove it
                 }
             }

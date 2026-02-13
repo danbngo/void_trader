@@ -199,11 +199,19 @@ class SpaceTravelMapClass {
 
         this.currentGameState = gameState;
         this.targetSystem = destination || SpaceTravelLogic.getNearestSystem(gameState);
+        console.log('[SpaceTravelMap.show] Options localDestination:', options.localDestination?.name || 'undefined');
+        console.log('[SpaceTravelMap.show] GameState localDestination:', gameState.localDestination?.name || 'null');
         this.localDestination = options.localDestination || gameState.localDestination || null;
+        console.log('[SpaceTravelMap.show] Assigned localDestination (after OR chain):', this.localDestination?.name || 'null', '(type:', typeof this.localDestination, 'bool:', !!this.localDestination, ') full:', JSON.stringify(this.localDestination));
         if (this.localDestination && gameState.localDestinationSystemIndex !== null
             && gameState.localDestinationSystemIndex !== gameState.currentSystemIndex) {
+            console.log('[SpaceTravelMap.show] Clearing stale localDestination (different system)');
             this.localDestination = null;
+            console.log('[SpaceTravelMap.show] After clearing - localDestination:', this.localDestination?.name || 'null');
+        } else {
+            console.log('[SpaceTravelMap.show] NOT clearing - either no destination OR same system OR no system index');
         }
+        console.log('[SpaceTravelMap.show] Before _initializePlayerShip - localDestination:', this.localDestination?.name || 'null', 'full:', JSON.stringify(this.localDestination));
         this.playerShip = gameState.ships[0];
 
         this._initializePlayerShip();
@@ -300,7 +308,14 @@ class SpaceTravelMapClass {
         this.currentStation.rotation = ThreeDUtils.quatMultiply(radialRotation, tipRotation);
         console.log('  station rotation quaternion:', this.currentStation.rotation);
 
+        console.log('[SpaceTravelMap._initializeStation] Checking destination setup:');
+        console.log('  this.localDestination:', this.localDestination?.name || 'null', '(bool:', !!this.localDestination, ') full object:', JSON.stringify(this.localDestination));
+        console.log('  this.currentStation:', this.currentStation?.name || 'null', '(bool:', !!this.currentStation, ')');
+        console.log('  this.currentGameState:', !!this.currentGameState);
+        console.log('  Condition (!localDest && station && gameState):', (!this.localDestination && this.currentStation && this.currentGameState));
+        
         if (!this.localDestination && this.currentStation && this.currentGameState) {
+            console.log('[SpaceTravelMap._initializeStation] Setting default station destination:', this.currentStation.name);
             this.currentGameState.localDestination = {
                 type: 'STATION',
                 positionWorld: { ...this.currentStation.position },
@@ -310,6 +325,9 @@ class SpaceTravelMapClass {
             };
             this.currentGameState.localDestinationSystemIndex = this.currentGameState.currentSystemIndex;
             this.localDestination = this.currentGameState.localDestination;
+            console.log('[SpaceTravelMap._initializeStation] localDestination now set to:', this.localDestination.name);
+        } else {
+            console.log('[SpaceTravelMap._initializeStation] NOT setting default station');
         }
     }
 
@@ -400,6 +418,14 @@ class SpaceTravelMapClass {
 
     update(dt, timestampMs = 0) {
         this.timestampMs = timestampMs;
+        
+        // SYNC HOVER PICK BEFORE PROCESSING INPUT
+        // This captures the fresh hover data from the render that just completed
+        if (this._lastHoverPickForSync !== undefined) {
+            this.lastHoverPick = this._lastHoverPickForSync;  // Can be null or a pick object
+            this._lastHoverPickForSync = undefined;
+        }
+        
         if (!this.playerShip || this.isPaused) {
             return;
         }
@@ -481,10 +507,9 @@ class SpaceTravelMapClass {
         };
         SpaceTravelRender.render(renderParams);
         
-        // Sync lastHoverPick back from renderParams (set by callback in render)
-        if (renderParams.lastHoverPick) {
-            this.lastHoverPick = renderParams.lastHoverPick;
-        }
+        // Store hover pick DIRECTLY from mapInstance (NOT from renderParams which is stale)
+        // Must do this AFTER render so callback has time to set mapInstance.lastHoverPick
+        this._lastHoverPickForSync = this.lastHoverPick;
         
         // Check ASCII log interval after render (must be here so this.lastAsciiLogTimestamp persists)
         if (this.config.ASCII_LOG_INTERVAL_MS && (!this.lastAsciiLogTimestamp || (Date.now() - this.lastAsciiLogTimestamp) >= this.config.ASCII_LOG_INTERVAL_MS)) {

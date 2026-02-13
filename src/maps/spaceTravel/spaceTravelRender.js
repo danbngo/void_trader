@@ -49,7 +49,13 @@ const SpaceTravelRender = (() => {
 
         const bodyLabels = SpaceTravelRenderBodies.render({
             ...renderParams,
-            setLastHoverPick: (pick) => { params.lastHoverPick = pick; }
+            setLastHoverPick: (pick) => { 
+                renderParams.lastHoverPick = pick;
+                // Also set directly on mapInstance to handle async clicks between render and update
+                if (params.mapInstance) {
+                    params.mapInstance.lastHoverPick = pick;
+                }
+            }
         });
 
         SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
@@ -87,6 +93,7 @@ const SpaceTravelRender = (() => {
 
         SpaceTravelHud.renderHud({
             ...renderParams,
+            localDestination: params.localDestination,  // CRITICAL: Pass fresh localDestination, not stale spread copy
             baseMaxSpeed: Ship.getBaseMaxSpeed(params.playerShip, params.config.SHIP_SPEED_PER_ENGINE) || 0,
             maxSpeed: Ship.getMaxSpeed(params.playerShip, params.boostActive, params.config.SHIP_SPEED_PER_ENGINE, params.config.BOOST_MAX_SPEED_MULT) || 0,
             autoNavActive: params.autoNavActive,
@@ -112,8 +119,10 @@ const SpaceTravelRender = (() => {
         });
 
         SpaceTravelRenderLabels.renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, (x, y, text, color) => params.addHudText?.(x, y, text, color));
+        
         SpaceTravelRenderIndicators.renderDestinationIndicator({
             ...renderParams,
+            localDestination: params.localDestination,  // CRITICAL: Pass fresh localDestination, not stale spread copy
             addHudText: (x, y, text, color) => params.addHudText?.(x, y, text, color),
             getActiveTargetInfo: () => params.getActiveTargetInfo?.()
         });

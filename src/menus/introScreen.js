@@ -259,9 +259,6 @@ function logInitialBodyScreenRadii(gameState) {
         bodyCount: results.length
     });
     console.table(results);
-    results.forEach(entry => {
-        console.log('[IntroScreen] Body screen radius', entry);
-    });
 }
 
 

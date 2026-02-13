@@ -22,7 +22,7 @@ const UiButtons = (() => {
                 : true;
 
             if (buttonNavEnabled) {
-                if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'Tab') {
+                if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'Tab' || key === 'PageDown') {
                     event.preventDefault();
                     if (registeredButtons.length > 0) {
                         setSelectedButtonIndex((selectedButtonIndex + 1) % registeredButtons.length);
@@ -31,7 +31,7 @@ const UiButtons = (() => {
                     return;
                 }
 
-                if (key === 'ArrowUp' || key === 'ArrowLeft') {
+                if (key === 'ArrowUp' || key === 'ArrowLeft' || key === 'PageUp') {
                     event.preventDefault();
                     if (registeredButtons.length > 0) {
                         setSelectedButtonIndex((selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length);
@@ -59,10 +59,13 @@ const UiButtons = (() => {
             }
 
             if (key === 'PageUp' || key === 'PageDown') {
-                const wheelZoomHandler = getWheelZoomHandler();
-                if (wheelZoomHandler) {
-                    event.preventDefault();
-                    wheelZoomHandler(key === 'PageUp' ? -100 : 100);
+                // Only handle for zoom if button nav is disabled
+                if (!buttonNavEnabled) {
+                    const wheelZoomHandler = getWheelZoomHandler();
+                    if (wheelZoomHandler) {
+                        event.preventDefault();
+                        wheelZoomHandler(key === 'PageUp' ? -100 : 100);
+                    }
                 }
                 return;
             }

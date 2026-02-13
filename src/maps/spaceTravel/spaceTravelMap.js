@@ -77,6 +77,7 @@ class SpaceTravelMapClass {
         // Auto navigation state
         this.autoNavActive = false;
         this.autoNavInput = null;
+        this.autoNavBoostBreakpointDistance = 0; // Fixed boost engagement distance, calculated once when starting autonav
 
         // Portal / warp state
         this.portalActive = false;
@@ -177,6 +178,21 @@ class SpaceTravelMapClass {
         this.autoNavActive = !this.autoNavActive;
         if (!this.autoNavActive) {
             this.autoNavInput = null;
+            this.autoNavBoostBreakpointDistance = 0;
+        } else {
+            // Calculate boost breakpoint distance once when activating auto-nav
+            // This prevents oscillation caused by dynamic stopping distance recalculation
+            if (this.playerShip) {
+                const engine = this.playerShip.engine || 10;
+                const baseAccel = this.playerShip.size * engine * this.config.SHIP_ACCEL_PER_ENGINE * this.config.BASE_ACCEL_MULT;
+                const brakeAccel = baseAccel * 2;
+                const boostMaxSpeed = this.getMaxSpeed(this.playerShip, true);
+                const desiredDistance = this._getAutoNavDesiredDistance(targetInfo);
+                
+                // Calculate stopping distance at boost speed
+                const boostStoppingDist = (boostMaxSpeed * boostMaxSpeed) / (2 * brakeAccel);
+                this.autoNavBoostBreakpointDistance = desiredDistance + boostStoppingDist;
+            }
         }
         if (this.inputState?.keyState?.clear) {
             this.inputState.keyState.clear();
@@ -191,7 +207,7 @@ class SpaceTravelMapClass {
         UI.clear();
         UI.resetSelection();
         UI.clearOutputRow();
-        UI.setButtonNavigationEnabled?.(false);
+        UI.setButtonNavigationEnabled?.(true);
 
         this.deathTow.reset();
         this.docking.reset();
@@ -337,7 +353,7 @@ class SpaceTravelMapClass {
 
         const towards = ThreeDUtils.subVec(this.currentStation.position, this.playerShip.position);
         const direction = ThreeDUtils.normalizeVec(towards);
-        const maxSpeed = Ship.getMaxSpeed(this.playerShip) || this.config.SHIP_MAX_SPEED_AU_PER_MS || 0;
+        const maxSpeed = this.getMaxSpeed(this.playerShip, false) || this.config.SHIP_MAX_SPEED_AU_PER_MS || 0;
         const momentumSpeed = maxSpeed * 10; // 10x max speed
 
         this.emergenceMomentumActive = true;
@@ -819,7 +835,6 @@ class SpaceTravelMapClass {
         const boostReady = speedNow >= (baseMaxSpeed * this.config.BOOST_READY_SPEED_RATIO);
         const hasFuel = (this.playerShip.fuel ?? 0) > 0;
         const canBoost = hasFuel && this.boostCooldownRemaining <= 0;
-        const boostDistanceMin = 2.0; // Maintain boost until within 2 AU of target
         const wantsBoostSpeed = shouldCruise && boostMaxSpeed > (baseMaxSpeed * 1.05);
         const cruiseMaxSpeed = wantsBoostSpeed ? boostMaxSpeed : maxSpeed;
         const desiredSpeed = shouldCruise
@@ -836,17 +851,13 @@ class SpaceTravelMapClass {
         const brake = shouldCruise
             ? (speedNow > alignedSpeedCap + speedDeadband && alignment < 0.95)
             : (speedNow > (alignedSpeedCap + speedDeadband) || alignment < -0.1);
-        const keepBoosting = this.boostActive
-            && canBoost
-            && distanceToStop > boostDistanceMin
+        // Boost as soon as max speed is reached, stop at breakpoint
+        // Don't require strict alignment change during boost engagement vs maintenance
+        const boostDesired = canBoost
             && alignment > 0.6
-            && !brake;
-        // Allow boost desire when well-aligned and far away, even if still accelerating to readiness
-        // The actual boost engagement gate happens in _updateMovement based on current speed
-        const boostDesired = keepBoosting || (canBoost
-            && alignment > 0.9
-            && distanceToStop > boostDistanceMin
-            && wantsBoostSpeed);
+            && distanceToStop > this.autoNavBoostBreakpointDistance
+            && !brake
+            && (speedNow >= maxSpeed * 0.95 || this.boostActive);
 
         this.autoNavInput = {
             accelerate,
@@ -860,7 +871,6 @@ class SpaceTravelMapClass {
             console.log('[AutoNavBoost]', {
                 boostActive: this.boostActive,
                 boostDesired,
-                keepBoosting,
                 canBoost,
                 boostReady,
                 wantsBoostSpeed,

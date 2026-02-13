@@ -98,6 +98,7 @@ const SpaceTravelRender = (() => {
                 getActiveTargetInfo: () => params.getActiveTargetInfo?.()
             },
             onAutoNavToggle: () => params.toggleAutoNav?.(),
+            onUnpause: () => params.setPaused?.(false, false),
             onMenu: () => {
                 params.stop?.();
                 SpaceTravelMenu.show(params.currentGameState, () => {

@@ -175,19 +175,31 @@ const SpaceTravelHud = (() => {
             // Always add AutoNav as a button (even when disabled) so users can cycle between buttons
             UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
                 if (autoNavAvailable && onAutoNavToggle) {
+                    // If paused, unpause before starting autonav
+                    if (isPaused && onUnpause) {
+                        onUnpause();
+                    }
                     onAutoNavToggle();
                 } else if (!autoNavAvailable) {
                     // Flash error message when trying to use AutoNav without destination
-                    UI.setOutputRow('Select a destination first', COLORS.TEXT_ERROR);
+                    UI.setOutputRow('Must select a destination to use autonav', COLORS.TEXT_WARNING);
                     UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
                 }
-            }, helpers.applyPauseColor(autoNavColor), autoNavAvailable ? '' : 'Select a destination first');
+            }, helpers.applyPauseColor(autoNavColor), autoNavAvailable ? '' : 'Must select a destination to use autonav');
 
+            const speed = ThreeDUtils.vecLength(playerShip.velocity);
+            const isMoving = speed > 0.001;
+            const menuColor = isMoving ? COLORS.TEXT_DIM : COLORS.CYAN;
+            
             UI.addButton(menuX, menuY, 'm', menuText, () => {
-                if (onMenu) {
+                if (isMoving) {
+                    // Flash error message when trying to open menu while moving
+                    UI.setOutputRow('Must brake before opening menu', COLORS.TEXT_WARNING);
+                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
+                } else if (onMenu) {
                     onMenu();
                 }
-            }, helpers.applyPauseColor(COLORS.CYAN), '');
+            }, helpers.applyPauseColor(menuColor), isMoving ? 'Must brake before opening menu' : '');
         }
     }
 

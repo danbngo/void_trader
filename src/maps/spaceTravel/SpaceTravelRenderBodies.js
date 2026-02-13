@@ -8,7 +8,7 @@ const SpaceTravelRenderBodies = (() => {
 
     function render({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null, targetSystem, playerShip, localDestination, currentGameState, currentStation, config, setLastHoverPick }) {
         const starNoise = (x, y, seed, timeMs) => {
-            const t = timeMs * 0.000000125;
+            const t = timeMs * 0.0000000625; // Slowed down from 0.000000125 (2x slower)
             const v = Math.sin((x * 12.9898) + (y * 78.233) + (seed * 0.01) + t) * 43758.5453;
             return v - Math.floor(v);
         };
@@ -143,6 +143,7 @@ const SpaceTravelRenderBodies = (() => {
 
             // Calculate body radius in characters for size-based rendering decisions
             const charDims = UI.getCharDimensions();
+            const charAspect = charDims.height / charDims.width; // Height/width ratio (typically > 1)
             const fovScale = Math.tan(ThreeDUtils.degToRad(config.VIEW_FOV) / 2);
             const viewPixelWidth = viewWidth * charDims.width;
             const depth = Math.max(0.000001, dist);
@@ -152,16 +153,23 @@ const SpaceTravelRenderBodies = (() => {
             const screenScale = config.SYSTEM_BODY_SCREEN_SCALE || 1;
             const radiusPxScaled = radiusPx * screenScale;
             const minRadiusChars = body.kind === 'STAR' ? 1 : 0;
-            const radiusChars = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.width));
+            // Calculate radius in both dimensions to account for non-square characters
+            const radiusCharsX = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.width));
+            const radiusCharsY = Math.max(minRadiusChars, Math.round(radiusPxScaled / charDims.height));
+            const radiusChars = Math.max(radiusCharsX, radiusCharsY); // Use max for hover detection
             
             // Log body rendering details occasionally for debugging
-            if (Math.random() < 0.001) {
-                console.log('[RenderBodies]', body.name, ':', {
+            if (Math.random() < 0.001 || body.name === 'Sol') {
+                console.log('[RenderBodies] Rendering', body.name, ':', {
+                    kind: body.kind,
                     bodyRadiusAU,
                     radiusPx: radiusPx.toFixed(2),
                     screenScale,
                     radiusPxScaled: radiusPxScaled.toFixed(2),
                     radiusChars,
+                    radiusCharsX,
+                    radiusCharsY,
+                    screenPos: {x, y},
                     dist: dist.toFixed(4)
                 });
             }
@@ -175,7 +183,14 @@ const SpaceTravelRenderBodies = (() => {
                 const hoverRadius = Math.max(1, radiusChars);
                 const isPick = hoverActive && Math.abs(mouseState.x - x) <= hoverRadius && Math.abs(mouseState.y - y) <= hoverRadius;
                 if (isPick) {
-                    console.log('[RenderBodies] Body hovered:', body.name, 'kind:', body.kind, 'mousePos:', mouseState, 'bodyCenter:', {x, y}, 'radius:', hoverRadius);
+                    console.log('[RenderBodies] Body hovered:', body.name, 'kind:', body.kind, {
+                        mousePos: mouseState,
+                        bodyCenter: {x, y},
+                        hoverRadius,
+                        radiusCharsX,
+                        radiusCharsY,
+                        bodyType: body.type
+                    });
                     depthAtCursor = cameraSpace.z;
                     hoverInfos.push({ body, dist, x, y });
                 }
@@ -210,14 +225,24 @@ const SpaceTravelRenderBodies = (() => {
                     // Single character - use the body's symbol
                     RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, char, color);
                 } else {
-                    // Multi-character - render as circle
+                    // Multi-character - render as ellipse with proper aspect ratio
                     const blockChar = '█';
-                    const rad = radiusChars;
-                    for (let dy = -rad; dy <= rad; dy++) {
-                        for (let dx = -rad; dx <= rad; dx++) {
-                            // Check if within circular radius
-                            const distFromCenter = Math.sqrt(dx * dx + dy * dy);
-                            if (distFromCenter <= rad) {
+                    
+                    // Find star position for shading (if planet)
+                    let starWorldPos = null;
+                    if (body.kind === 'PLANET' && targetSystem.stars && targetSystem.stars.length > 0) {
+                        const star = targetSystem.stars[0];
+                        const starOrbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
+                        starWorldPos = ThreeDUtils.addVec(systemCenter, starOrbitOffset);
+                    }
+                    
+                    for (let dy = -radiusCharsY; dy <= radiusCharsY; dy++) {
+                        for (let dx = -radiusCharsX; dx <= radiusCharsX; dx++) {
+                            // Check if within elliptical radius (account for aspect ratio)
+                            const normalizedX = dx / radiusCharsX;
+                            const normalizedY = dy / radiusCharsY;
+                            const distFromCenter = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
+                            if (distFromCenter <= 1.0) {
                                 const px = x + dx;
                                 const py = y + dy;
                                 if (px >= 0 && px < viewWidth && py >= 0 && py < viewHeight) {
@@ -233,14 +258,40 @@ const SpaceTravelRenderBodies = (() => {
                                             renderColor = palette[paletteIndex];
                                         }
                                     }
-                                    // For gas planets with stripes, use the varied character and color
-                                    else if (body.kind === 'PLANET' && radiusChars > 1 && starSeed !== null && gasStripeLight) {
-                                        const stripeFreq = 25;
-                                        const stripePhase = (timestampMs * 0.001) % 4;
-                                        const pattern = (px + stripePhase) % stripeFreq;
-                                        renderColor = pattern < 13 ? gasStripeLight : gasStripeDark;
-                                        const variantSymbol = bodyType?.symbol || '●';
-                                        renderChar = starNoise(px, py, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                                    // For planets, apply shading and textures
+                                    else if (body.kind === 'PLANET') {
+                                        // Calculate shading based on star direction
+                                        if (starWorldPos) {
+                                            const toStar = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(starWorldPos, worldPos));
+                                            // Normal at this point on the sphere (in world space)
+                                            const normal = ThreeDUtils.normalizeVec({ x: dx * charAspect, y: dy, z: 0 });
+                                            // Dot product: positive = facing star, negative = away from star
+                                            const lightDot = toStar.x * normal.x + toStar.y * normal.y;
+                                            // Apply shading: 50% darker on far side
+                                            const shadeFactor = 0.5 + (lightDot * 0.5); // Maps -1..1 to 0..1, then 0.5..1
+                                            
+                                            // Apply texture for gas giants
+                                            if (radiusChars > 1 && starSeed !== null && gasStripeLight) {
+                                                const stripeFreq = 25;
+                                                const stripePhase = (timestampMs * 0.001) % 4;
+                                                const pattern = (px + stripePhase) % stripeFreq;
+                                                const baseColor = pattern < 13 ? gasStripeLight : gasStripeDark;
+                                                renderColor = SpaceTravelShared.lerpColorHex('#000000', baseColor, shadeFactor);
+                                                const variantSymbol = bodyType?.symbol || '●';
+                                                renderChar = starNoise(px, py, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                                            } else {
+                                                // Apply shading to base color
+                                                renderColor = SpaceTravelShared.lerpColorHex('#000000', color, shadeFactor);
+                                            }
+                                        } else if (radiusChars > 1 && starSeed !== null && gasStripeLight) {
+                                            // No shading, but still apply gas giant texture
+                                            const stripeFreq = 25;
+                                            const stripePhase = (timestampMs * 0.001) % 4;
+                                            const pattern = (px + stripePhase) % stripeFreq;
+                                            renderColor = pattern < 13 ? gasStripeLight : gasStripeDark;
+                                            const variantSymbol = bodyType?.symbol || '●';
+                                            renderChar = starNoise(px, py, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                                        }
                                     }
                                     
                                     RasterUtils.plotDepthText(depthBuffer, px, py, cameraSpace.z, renderChar, renderColor);

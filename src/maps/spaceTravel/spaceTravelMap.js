@@ -469,7 +469,8 @@ class SpaceTravelMapClass {
         SpaceTravelRender.render({ 
             ...this, 
             timestampMs,
-            stop: () => this.stop() // Explicitly pass method since spread doesn't copy prototype methods
+            stop: () => this.stop(), // Explicitly pass method since spread doesn't copy prototype methods
+            setPaused: (paused, byFocus) => this.setPaused(paused, byFocus)
         });
         
         // Check ASCII log interval after render (must be here so this.lastAsciiLogTimestamp persists)

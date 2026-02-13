@@ -275,35 +275,53 @@ const WarpAnimation = (() => {
             speedOverrideColor: COLORS.CYAN
         });
 
-        UI.draw();
-
-        // Apply radial gradient tint: black in center, darker cyan at edges
-        // Continuously intensify throughout the animation
-        const ctx = UI.getContext?.();
-        const canvas = UI.getCanvas?.();
-        if (ctx && canvas) {
-            // Tint increases from 0 to full over the entire animation
-            const tintAlpha = Math.min(1, elapsedMs / totalDuration);
+        // Apply radial gradient tint using characters instead of canvas
+        // Black in center, darker cyan at edges, intensifies throughout animation
+        const tintAlpha = Math.min(1, elapsedMs / totalDuration);
+        if (tintAlpha > 0) {
+            const tintDepth = 0.5; // Render in front of most HUD elements but behind particles
+            const maxRadiusChars = Math.max(centerX, centerY);
             
-            if (tintAlpha > 0) {
-                ctx.save();
-                ctx.globalAlpha = tintAlpha * 0.3; // Darker overall tint
-                
-                // Create radial gradient from center to edges
-                const gradient = ctx.createRadialGradient(
-                    canvas.width / 2, canvas.height / 2, 0,
-                    canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
-                );
-                gradient.addColorStop(0, '#000000'); // Black center
-                gradient.addColorStop(0.3, '#001a22'); // Very dark cyan-tinted
-                gradient.addColorStop(0.7, '#003344'); // Dark cyan
-                gradient.addColorStop(1, '#005577'); // Medium-dark cyan at edges
-                
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.restore();
+            // Render radial tint by placing characters at varying distances from center
+            for (let y = 0; y < viewHeight; y++) {
+                for (let x = 0; x < viewWidth; x++) {
+                    // Calculate normalized distance from center (0 = center, 1 = edge)
+                    const dx = (x - centerX) / maxRadiusChars;
+                    const dy = (y - centerY) / maxRadiusChars;
+                    const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+                    const normalizedDist = Math.min(1, distFromCenter);
+                    
+                    // Determine tint intensity based on distance from center
+                    // Full black in center, gradually transitioning to dark cyan at edges
+                    let tintColor;
+                    if (normalizedDist < 0.3) {
+                        // Black center (0.0 - 0.3)
+                        tintColor = COLORS.BLACK;
+                    } else if (normalizedDist < 0.5) {
+                        // Transition from black to very dark cyan (0.3 - 0.5)
+                        const t = (normalizedDist - 0.3) / 0.2;
+                        tintColor = SpaceTravelShared.lerpColorHex(COLORS.BLACK, '#001a22', t);
+                    } else if (normalizedDist < 0.75) {
+                        // Dark cyan (0.5 - 0.75)
+                        const t = (normalizedDist - 0.5) / 0.25;
+                        tintColor = SpaceTravelShared.lerpColorHex('#001a22', '#003344', t);
+                    } else {
+                        // Medium-dark cyan at edges (0.75 - 1.0)
+                        const t = (normalizedDist - 0.75) / 0.25;
+                        tintColor = SpaceTravelShared.lerpColorHex('#003344', '#005577', t);
+                    }
+                    
+                    // Use semi-transparent overlay character (shade block with reduced opacity-like effect)
+                    // Intensity increases with animation progress
+                    const intensity = tintAlpha * 0.4 * (1 - normalizedDist * 0.3);
+                    if (intensity > 0.05) {
+                        UI.addText(x, y, '░', tintColor, intensity);
+                    }
+                }
             }
         }
+
+        UI.draw();
     }
 
     return {

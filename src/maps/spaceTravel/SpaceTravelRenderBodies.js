@@ -177,8 +177,12 @@ const SpaceTravelRenderBodies = (() => {
             let color = baseColor;
 
             // Check if mouse is hovering over body (consider radius for larger bodies)
+            // Projection already normalizes coordinates, so standard distance calculation works
             const hoverRadius = Math.max(1, radiusChars);
-            const isPick = hoverActive && Math.abs(mouseState.x - x) <= hoverRadius && Math.abs(mouseState.y - y) <= hoverRadius;
+            const dx = mouseState.x - x;
+            const dy = mouseState.y - y;
+            const mouseDist = Math.sqrt(dx * dx + dy * dy);
+            const isPick = hoverActive && mouseDist <= hoverRadius;
             if (isPick) {
                 depthAtCursor = cameraSpace.z;
                 hoverInfos.push({ body, dist, x, y });
@@ -311,6 +315,7 @@ const SpaceTravelRenderBodies = (() => {
 
         if (hoverActive && depthAtCursor !== null && hoverInfos.length > 0) {
             const hoverTarget = hoverInfos.reduce((closest, current) => {
+                // Projection already normalizes coordinates, so standard distance works
                 const currentDist = Math.abs(current.x - mouseState.x) + Math.abs(current.y - mouseState.y);
                 const closestDist = Math.abs(closest.x - mouseState.x) + Math.abs(closest.y - mouseState.y);
                 return currentDist < closestDist ? current : closest;

@@ -106,10 +106,45 @@ const Geom = (() => {
         return points;
     }
     
+    /**
+     * Normalize screen coordinates to account for character aspect ratio (non-square characters)
+     * Characters are typically taller than they are wide, so Y distances appear smaller.
+     * This function divides Y by the aspect ratio to make distances isotropic.
+     * @param {number} x - X coordinate in screen space (characters)
+     * @param {number} y - Y coordinate in screen space (characters)
+     * @param {number} charAspectRatio - Character height / width ratio (default 1.5)
+     * @returns {Object} Normalized coordinates {x, y}
+     */
+    function normalizeScreenCoords(x, y, charAspectRatio = 1.5) {
+        return {
+            x: x,
+            y: y / charAspectRatio
+        };
+    }
+    
+    /**
+     * Calculate normalized distance between two screen-space points accounting for character aspect ratio
+     * @param {number} x1 - First point X
+     * @param {number} y1 - First point Y
+     * @param {number} x2 - Second point X
+     * @param {number} y2 - Second point Y
+     * @param {number} charAspectRatio - Character height / width ratio (default 1.5)
+     * @returns {number} Normalized distance
+     */
+    function normalizedDistance(x1, y1, x2, y2, charAspectRatio = 1.5) {
+        const norm1 = normalizeScreenCoords(x1, y1, charAspectRatio);
+        const norm2 = normalizeScreenCoords(x2, y2, charAspectRatio);
+        const dx = norm2.x - norm1.x;
+        const dy = norm2.y - norm1.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
     return {
         angleBetween,
         distance,
         lineCircleIntersect,
-        linePoints
+        linePoints,
+        normalizeScreenCoords,
+        normalizedDistance
     };
 })();

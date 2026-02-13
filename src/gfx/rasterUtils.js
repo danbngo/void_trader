@@ -350,6 +350,7 @@ class RasterUtils {
         }
 
         const charDims = UI.getCharDimensions();
+        const charAspect = charDims.height / charDims.width;
         const fovRad = ThreeDUtils.degToRad(fovDeg);
         const fovScale = Math.tan(fovRad / 2);
 
@@ -365,9 +366,11 @@ class RasterUtils {
         const screenPxX = normX * (viewPixelWidth / 2);
         const screenPxY = normY * (viewPixelHeight / 2);
 
+        // Expand Y by character aspect ratio to compensate for tall characters
+        // Y is divided by charHeight (larger value), so multiply to equalize distances
         return {
             x: (centerPxX + screenPxX) / charDims.width,
-            y: (centerPxY - screenPxY) / charDims.height,
+            y: ((centerPxY - screenPxY) / charDims.height) * charAspect,
             z: cameraSpace.z
         };
     }

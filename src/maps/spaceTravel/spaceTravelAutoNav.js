@@ -40,7 +40,7 @@ const SpaceTravelAutoNav = {
                 const desiredDistance = this.getDesiredDistance(params);
                 const boostStopSpeedMult = typeof params.config.AUTO_NAV_BOOST_STOP_SPEED_MULT === 'number'
                     ? params.config.AUTO_NAV_BOOST_STOP_SPEED_MULT
-                    : 10;
+                    : 3;
                 const effectiveBoostSpeed = Math.min(boostMaxSpeed, params.getBaseMaxSpeed(params.playerShip) * boostStopSpeedMult);
                 
                 // Calculate stopping distance using enhanced cooldown braking

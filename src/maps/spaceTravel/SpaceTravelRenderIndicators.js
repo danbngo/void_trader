@@ -39,7 +39,6 @@ const SpaceTravelRenderIndicators = (() => {
             const MIN_RADIUS = 0.5;
             const depth = cameraSpace.z;
             const charDims = UI.getCharDimensions?.() || { width: 8, height: 16 };
-            const charAspect = charDims.height / charDims.width;
             const viewPixelWidth = viewWidth * charDims.width;
             const fovScale = Math.tan(config.VIEW_FOV / 2);
             const pixelsPerUnit = viewPixelWidth / (2 * fovScale * depth);
@@ -50,16 +49,18 @@ const SpaceTravelRenderIndicators = (() => {
                 // Try to get actual world radius from the body object (station, planet, etc)
                 const worldRadius = localDestination?.radiusAU || targetInfo.radius || 5;
                 const radiusPx = Math.abs(worldRadius * pixelsPerUnit * RADIUS_SCALE);
+                // Projection already normalizes coordinates, use charWidth for consistent scaling
                 objectRadiusChars = Math.max(0, Math.round(radiusPx / charDims.width));
             }
             
-            // Try to place label 1 character above the object, fall back to below
-            let displayY = labelY - objectRadiusChars - 1;
+            // Place label 1 character above the object, fall back to below if needed
+            const offsetDistance = objectRadiusChars + 1;
+            let displayY = labelY - offsetDistance;
             if (displayY < 0) {
-                displayY = labelY + objectRadiusChars + 1;
+                displayY = labelY + offsetDistance;
             }
             if (displayY >= viewHeight) {
-                displayY = labelY - objectRadiusChars - 1;
+                displayY = labelY - offsetDistance;
             }
             
             // Center label horizontally around object
@@ -77,6 +78,7 @@ const SpaceTravelRenderIndicators = (() => {
                         centerX: labelX,
                         centerY: labelY,
                         objectRadiusChars,
+                        offsetDistance,
                         displayX,
                         displayY,
                         labelWidth,
@@ -128,18 +130,72 @@ const SpaceTravelRenderIndicators = (() => {
             return;
         }
 
-        // Clamp to screen edge
-        let x = Math.round(projected.x);
-        let y = Math.round(projected.y);
-        
+        // Clamp to screen edge by projecting onto boundary
+        // Find where the ray from center to target intersects the screen edge
+        const centerX = viewWidth / 2;
+        const centerY = viewHeight / 2;
         const margin = 2;
         const minX = margin;
         const maxX = viewWidth - margin - 1;
         const minY = margin;
         const maxY = viewHeight - margin - 1;
         
-        x = Math.max(minX, Math.min(maxX, x));
-        y = Math.max(minY, Math.min(maxY, y));
+        // Direction vector from center to target
+        let dx = projected.x - centerX;
+        let dy = projected.y - centerY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        
+        if (len > 0) {
+            dx /= len;
+            dy /= len;
+        } else {
+            dx = 1;
+            dy = 0;
+        }
+        
+        // Find intersection with screen boundary
+        let x = centerX;
+        let y = centerY;
+        
+        // Calculate t values for each edge intersection
+        let t = Infinity;
+        
+        // Right edge (x = maxX)
+        if (dx > 0) {
+            const tRight = (maxX - centerX) / dx;
+            if (tRight > 0 && tRight < t) {
+                t = tRight;
+            }
+        }
+        
+        // Left edge (x = minX)
+        if (dx < 0) {
+            const tLeft = (minX - centerX) / dx;
+            if (tLeft > 0 && tLeft < t) {
+                t = tLeft;
+            }
+        }
+        
+        // Bottom edge (y = maxY)
+        if (dy > 0) {
+            const tBottom = (maxY - centerY) / dy;
+            if (tBottom > 0 && tBottom < t) {
+                t = tBottom;
+            }
+        }
+        
+        // Top edge (y = minY)
+        if (dy < 0) {
+            const tTop = (minY - centerY) / dy;
+            if (tTop > 0 && tTop < t) {
+                t = tTop;
+            }
+        }
+        
+        if (t < Infinity) {
+            x = Math.round(centerX + dx * t);
+            y = Math.round(centerY + dy * t);
+        }
 
         // Get directional arrow based on camera space direction
         const directionForward = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(playerShip.rotation));

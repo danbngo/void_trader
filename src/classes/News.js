@@ -78,7 +78,7 @@ class News {
                 // If this was an alien conquest or liberation event, adjust encounter weights
                 const alienNewsTypes = ['ALIEN_CONQUEST', 'ALIEN_LIBERATION', 'ALIEN_INSTA_CONQUEST'];
                 if (alienNewsTypes.includes(this.newsType.id)) {
-                    SystemGenerator.adjustEncounterWeightsForAliens(gameState.systems);
+                    AlienUtils.adjustEncounterWeights(gameState.systems);
                 }
             } else {
                 this.newsType.onEnd(this);

@@ -283,7 +283,7 @@ const TitleMenu = (() => {
             gameState.newsEvents = [];
             
             // Adjust encounter weights based on alien proximity (after initial conquests)
-            SystemGenerator.adjustEncounterWeightsForAliens(gameState.systems);
+            AlienUtils.adjustEncounterWeights(gameState.systems);
             
             // Messages will be added when player first docks (via checkShouldAdd)
             
@@ -385,7 +385,7 @@ const TitleMenu = (() => {
             gameState.newsEvents = [];
             
             // Adjust encounter weights based on alien proximity (after initial conquests)
-            SystemGenerator.adjustEncounterWeightsForAliens(gameState.systems);
+            AlienUtils.adjustEncounterWeights(gameState.systems);
             
             // Messages will be added when player first docks (via checkShouldAdd)
             

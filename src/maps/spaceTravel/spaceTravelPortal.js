@@ -191,6 +191,36 @@ const SpaceTravelPortal = {
 
         const gameState = params.currentGameState;
         const previousIndex = gameState.currentSystemIndex;
+        
+        // Calculate fuel cost once for the entire warp journey
+        const currentSystem = gameState.getCurrentSystem ? gameState.getCurrentSystem() : gameState.systems[gameState.currentSystemIndex];
+        const navigationLevel = gameState.getMaxSkillLevel ? gameState.getMaxSkillLevel('navigation') : 0;
+        
+        let warpStartingFuel = 0;
+        let warpExpectedEndingFuel = 0;
+        let warpFuelCost = 0;
+        
+        if (currentSystem && params.portalTargetSystem) {
+            const distance = Math.sqrt(
+                Math.pow(params.portalTargetSystem.x - currentSystem.x, 2) + 
+                Math.pow(params.portalTargetSystem.y - currentSystem.y, 2)
+            );
+            warpFuelCost = Ship.calculateFleetFuelCost(distance, gameState.ships.length, navigationLevel);
+            warpStartingFuel = gameState.ships.reduce((sum, s) => sum + s.fuel, 0);
+            warpExpectedEndingFuel = Math.max(0, warpStartingFuel - warpFuelCost);
+            
+            console.log('[Portal] Warp initiated:', {
+                distance: distance.toFixed(3),
+                fuelCost: warpFuelCost,
+                startingFuel: warpStartingFuel,
+                expectedEndingFuel: warpExpectedEndingFuel
+            });
+        }
+        
+        // Store warp parameters in gameState so warpAnimation can use them
+        gameState.warpFuelCost = warpFuelCost;
+        gameState.warpStartingFuel = warpStartingFuel;
+        gameState.warpExpectedEndingFuel = warpExpectedEndingFuel;
 
         params.portalActive = false;
         params.portalPosition = null;

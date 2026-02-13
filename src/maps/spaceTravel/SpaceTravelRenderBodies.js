@@ -280,8 +280,7 @@ const SpaceTravelRenderBodies = (() => {
                                                 const pattern = (px + stripePhase) % stripeFreq;
                                                 const baseColor = pattern < 13 ? gasStripeLight : gasStripeDark;
                                                 renderColor = SpaceTravelShared.lerpColorHex('#000000', baseColor, shadeFactor);
-                                                const variantSymbol = bodyType?.symbol || '●';
-                                                renderChar = starNoise(px, py, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                                                renderChar = blockChar;
                                             } else {
                                                 // Apply shading to base color
                                                 renderColor = SpaceTravelShared.lerpColorHex('#000000', color, shadeFactor);
@@ -292,8 +291,7 @@ const SpaceTravelRenderBodies = (() => {
                                             const stripePhase = (timestampMs * 0.001) % 4;
                                             const pattern = (px + stripePhase) % stripeFreq;
                                             renderColor = pattern < 13 ? gasStripeLight : gasStripeDark;
-                                            const variantSymbol = bodyType?.symbol || '●';
-                                            renderChar = starNoise(px, py, starSeed, timestampMs) < 0.4 ? variantSymbol : '∘';
+                                            renderChar = blockChar;
                                         }
                                     }
                                     

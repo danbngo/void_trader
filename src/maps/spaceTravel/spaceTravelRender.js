@@ -138,20 +138,21 @@ const SpaceTravelRender = (() => {
         });
 
         const labelCount = SpaceTravelRenderLabels.renderSystemBodyLabels(bodyLabels, viewWidth, viewHeight, (x, y, text, color) => params.addHudText?.(x, y, text, color));
-        if (params.mapInstance && renderTimestampMs - (params.mapInstance.lastLabelLogMs || 0) >= 1000) {
-            console.log('[LabelRender]', {
-                bodyLabels: bodyLabels.length,
-                labelsDrawn: labelCount,
-                viewWidth,
-                viewHeight
-            });
-            params.mapInstance.lastLabelLogMs = renderTimestampMs;
-        }
+        // Suppress label render spam logging
+        // if (params.mapInstance && renderTimestampMs - (params.mapInstance.lastLabelLogMs || 0) >= 1000) {
+        //     console.log('[LabelRender]', {
+        //         bodyLabels: bodyLabels.length,
+        //         labelsDrawn: labelCount,
+        //         viewWidth,
+        //         viewHeight
+        //     });
+        //     params.mapInstance.lastLabelLogMs = renderTimestampMs;
+        // }
         
         SpaceTravelRenderIndicators.renderDestinationIndicator({
             ...renderParams,
             localDestination: params.localDestination,  // CRITICAL: Pass fresh localDestination, not stale spread copy
-            addHudText: (x, y, text, color) => params.addHudText?.(x, y, text, color),
+            addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color),
             getActiveTargetInfo: () => params.getActiveTargetInfo?.()
         });
     }

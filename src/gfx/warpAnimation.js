@@ -8,6 +8,10 @@ const WarpAnimation = (() => {
     let lastTimestamp = 0;
     let isActive = false;
     let streaks = [];
+    let frameCount = 0;
+    let warpFuelCost = 0;
+    let fuelConsumedSoFar = 0;
+    let lastFuelLogTime = 0;
 
     const PARTICLE_COUNT = 120; // Stochastic dust-like particles
     const BASE_SPEED = 40; // Base movement speed
@@ -20,9 +24,21 @@ const WarpAnimation = (() => {
         isActive = true;
         startTimestamp = 0;
         lastTimestamp = 0;
+        frameCount = 0;
         streaks = buildParticles(PARTICLE_COUNT);
 
         const totalDuration = SpaceTravelConfig.WARP_ANIM_DURATION_MS || 1000;
+        
+        // Get pre-calculated fuel cost from gameState (set by portal when opening)
+        warpFuelCost = gameState.warpFuelCost || 0;
+        fuelConsumedSoFar = 0;
+        lastFuelLogTime = 0;
+        
+        console.log('[WarpAnimation] Warp started with pre-calculated fuel cost:', {
+            fuelCost: warpFuelCost,
+            startingFuel: gameState.warpStartingFuel,
+            expectedEndingFuel: gameState.warpExpectedEndingFuel
+        });
 
         const loop = (timestamp) => {
             if (!isActive) {
@@ -32,10 +48,86 @@ const WarpAnimation = (() => {
                 startTimestamp = timestamp;
             }
             const elapsed = timestamp - startTimestamp;
+            frameCount++;
 
             render(elapsed, totalDuration, gameState);
+            
+            // Interpolate fuel consumption based on progress
+            const progress = Math.min(1, elapsed / totalDuration);
+            
+            // Calculate what total fleet fuel should be at this point
+            const expectedTotalFuel = gameState.warpStartingFuel - (gameState.warpFuelCost * progress);
+            const actualTotalFuel = gameState.ships.reduce((sum, s) => sum + s.fuel, 0);
+            const fuelAdjustment = expectedTotalFuel - actualTotalFuel;
+            
+            if (frameCount <= 1 || frameCount % 60 === 0) {
+                console.log('[WarpAnimation] Fuel interpolation:', {
+                    progress: (progress * 100).toFixed(1) + '%',
+                    expectedTotal: Math.round(expectedTotalFuel),
+                    actualTotal: Math.round(actualTotalFuel),
+                    adjustment: Math.round(fuelAdjustment)
+                });
+            }
+            
+            // Apply fuel adjustment proportionally across all ships
+            if (gameState && gameState.ships && Math.abs(fuelAdjustment) > 0.1) {
+                const fuel_to_adjust = fuelAdjustment;
+                if (actualTotalFuel > 0) {
+                    gameState.ships.forEach((ship) => {
+                        const proportion = ship.fuel / actualTotalFuel;
+                        const shipAdjustment = fuel_to_adjust * proportion;
+                        ship.fuel = Math.max(0, ship.fuel + shipAdjustment);
+                    });
+                }
+            }
+            
+            // Log fuel status every 500ms
+            if (elapsed - lastFuelLogTime >= 500) {
+                const currentTotal = gameState?.ships?.reduce((sum, s) => sum + s.fuel, 0) || 0;
+                console.log('[WarpAnimation] Fuel status:', {
+                    progress: (progress * 100).toFixed(1) + '%',
+                    expectedTotal: Math.round(expectedTotalFuel),
+                    currentTotal: Math.round(currentTotal)
+                });
+                lastFuelLogTime = elapsed;
+            }
+            
+            // Log duration every 60 frames
+            if (frameCount % 60 === 0) {
+                const remaining = Math.max(0, totalDuration - elapsed);
+                console.log('[WarpAnimation] Progress:', {
+                    elapsed: Math.round(elapsed),
+                    remaining: Math.round(remaining),
+                    total: totalDuration,
+                    progress: ((elapsed / totalDuration) * 100).toFixed(1) + '%',
+                    frameCount: frameCount
+                });
+            }
 
             if (elapsed >= totalDuration) {
+                // Ensure final fuel matches expected ending fuel
+                const finalExpectedTotal = gameState.warpExpectedEndingFuel;
+                const currentTotal = gameState.ships.reduce((sum, s) => sum + s.fuel, 0);
+                const finalAdjustment = finalExpectedTotal - currentTotal;
+                
+                if (Math.abs(finalAdjustment) > 0) {
+                    const totalFuel = gameState.ships.reduce((sum, s) => sum + s.fuel, 0);
+                    if (totalFuel > 0) {
+                        gameState.ships.forEach((ship) => {
+                            const proportion = ship.fuel / totalFuel;
+                            const shipAdjustment = finalAdjustment * proportion;
+                            ship.fuel = Math.max(0, ship.fuel + shipAdjustment);
+                        });
+                    }
+                }
+                
+                const finalFuel = gameState.ships.reduce((sum, s) => sum + s.fuel, 0);
+                console.log('[WarpAnimation] Warp complete:', {
+                    fuelConsumed: gameState.warpFuelCost,
+                    finalFuel: Math.round(finalFuel),
+                    expectedFinal: Math.round(finalExpectedTotal)
+                });
+                
                 stop();
                 if (typeof onComplete === 'function') {
                     onComplete(gameState, targetSystem);
@@ -51,6 +143,8 @@ const WarpAnimation = (() => {
 
     function stop() {
         isActive = false;
+        fuelConsumedSoFar = 0;
+        lastFuelLogTime = 0;
         if (animationId !== null) {
             cancelAnimationFrame(animationId);
             animationId = null;

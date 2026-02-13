@@ -25,12 +25,14 @@ const UiButtons = (() => {
                 ? isArrowKeysNavigationDisabled()
                 : false;
 
-            console.log('[UiButtons] Key pressed:', key, 'buttonNavEnabled:', buttonNavEnabled, 'arrowKeysDisabled:', arrowKeysDisabled, 'selectedButtonIndex:', selectedButtonIndex, 'buttonCount:', registeredButtons.length);
+            // Suppress verbose logging
+            // console.log('[UiButtons] Key pressed:', key, 'buttonNavEnabled:', buttonNavEnabled, 'arrowKeysDisabled:', arrowKeysDisabled, 'selectedButtonIndex:', selectedButtonIndex, 'buttonCount:', registeredButtons.length);
 
             if (buttonNavEnabled) {
                 // If arrow keys are disabled for this context, only allow PageUp/PageDown for navigation
                 if (arrowKeysDisabled) {
-                    console.log('[UiButtons] Arrow keys disabled mode');
+                    // Suppress verbose logging
+                    // console.log('[UiButtons] Arrow keys disabled mode');
                     if (key === 'PageDown') {
                         event.preventDefault();
                         if (registeredButtons.length > 0) {

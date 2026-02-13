@@ -95,7 +95,7 @@ const SpaceTravelConfig = {
     BOOST_TINT_FADE_SEC: 2.5,
     BOOST_COOLDOWN_SEC: 5,
     BOOST_TINT_MIN: 0,
-    BOOST_STREAK_DELAY_MS: 2000,
+    BOOST_STREAK_DELAY_MS: 1000,  // Reduced from 2000 to start star streaks 2x sooner during boost
     BOOST_BRAKE_MULT: 8,
     BOOST_STREAK_GROWTH_MS: 2000,
     BOOST_READY_SPEED_RATIO: 0.99,

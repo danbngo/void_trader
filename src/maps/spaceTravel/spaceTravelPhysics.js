@@ -90,8 +90,8 @@ const SpaceTravelPhysics = {
                 );
                 console.log('  offsetDistance:', offsetDistance);
                 
-                // Negate to spawn on the OPPOSITE side (in front of entrance, not behind)
-                const startOffset = ThreeDUtils.scaleVec(entranceDir, -offsetDistance);
+                // Spawn in the direction the entrance points (in front of it)
+                const startOffset = ThreeDUtils.scaleVec(entranceDir, offsetDistance);
                 console.log('  startOffset:', startOffset);
                 
                 params.playerShip.position = ThreeDUtils.addVec(params.currentStation.position, startOffset);

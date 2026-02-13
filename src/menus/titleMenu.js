@@ -466,6 +466,7 @@ const TitleMenu = (() => {
         gameState.localDestination = {
             id: system.station.id || `${system.name}-STATION`,
             type: 'STATION',
+            name: system.station.name || `${system.name} Station`,
             positionWorld: {
                 x: system.x * LY_TO_AU + stationDir.x * stationOrbit,
                 y: system.y * LY_TO_AU + stationDir.y * stationOrbit,

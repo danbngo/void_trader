@@ -199,19 +199,11 @@ class SpaceTravelMapClass {
 
         this.currentGameState = gameState;
         this.targetSystem = destination || SpaceTravelLogic.getNearestSystem(gameState);
-        console.log('[SpaceTravelMap.show] Options localDestination:', options.localDestination?.name || 'undefined');
-        console.log('[SpaceTravelMap.show] GameState localDestination:', gameState.localDestination?.name || 'null');
         this.localDestination = options.localDestination || gameState.localDestination || null;
-        console.log('[SpaceTravelMap.show] Assigned localDestination (after OR chain):', this.localDestination?.name || 'null', '(type:', typeof this.localDestination, 'bool:', !!this.localDestination, ') full:', JSON.stringify(this.localDestination));
         if (this.localDestination && gameState.localDestinationSystemIndex !== null
             && gameState.localDestinationSystemIndex !== gameState.currentSystemIndex) {
-            console.log('[SpaceTravelMap.show] Clearing stale localDestination (different system)');
             this.localDestination = null;
-            console.log('[SpaceTravelMap.show] After clearing - localDestination:', this.localDestination?.name || 'null');
-        } else {
-            console.log('[SpaceTravelMap.show] NOT clearing - either no destination OR same system OR no system index');
         }
-        console.log('[SpaceTravelMap.show] Before _initializePlayerShip - localDestination:', this.localDestination?.name || 'null', 'full:', JSON.stringify(this.localDestination));
         this.playerShip = gameState.ships[0];
 
         this._initializePlayerShip();
@@ -259,20 +251,11 @@ class SpaceTravelMapClass {
         const stationOrbit = this.currentStation.orbit.semiMajorAU;
         const stationDir = ThreeDUtils.normalizeVec(this.config.STATION_ENTRANCE_DIR);
         
-        console.log('[SpaceTravelMap._initializeStation] Initial values:');
-        console.log('  stationOrbit:', stationOrbit);
-        console.log('  STATION_ENTRANCE_DIR:', this.config.STATION_ENTRANCE_DIR);
-        console.log('  stationDir (normalized):', stationDir);
-        console.log('  targetSystem position (LY):', { x: this.targetSystem.x, y: this.targetSystem.y });
-        console.log('  targetSystem position (AU):', { x: this.targetSystem.x * this.config.LY_TO_AU, y: this.targetSystem.y * this.config.LY_TO_AU });
-        
         this.currentStation.position = {
             x: this.targetSystem.x * this.config.LY_TO_AU + stationDir.x * stationOrbit,
             y: this.targetSystem.y * this.config.LY_TO_AU + stationDir.y * stationOrbit,
             z: stationDir.z * stationOrbit
         };
-        console.log('  station position:', this.currentStation.position);
-        
         if (!this.currentStation.name) {
             this.currentStation.name = `${this.targetSystem.name} Station`;
         }
@@ -290,15 +273,10 @@ class SpaceTravelMapClass {
             y: this.currentStation.position.y - systemCenter.y
         };
         const radialAngle = Math.atan2(radialDir.y, radialDir.x);
-        console.log('  systemCenter:', systemCenter);
-        console.log('  radialDir:', radialDir);
-        console.log('  radialAngle (rad):', radialAngle);
-        console.log('  radialAngle (deg):', radialAngle * 180 / Math.PI);
         
         // Entrance is along +Z in local space (top face of cuboctahedron)
         // First tip it 90° around Y-axis to point +X, then rotate to face radially
         this.currentStation.rotationPhase = radialAngle;
-        console.log('  rotationPhase:', this.currentStation.rotationPhase);
         
         // Station rotation should be STATIC based on radial direction, not spinning throughout the day
         // 1. Tip entrance from +Z to +X (rotate -90° around Y-axis)
@@ -306,15 +284,8 @@ class SpaceTravelMapClass {
         const tipRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, -Math.PI / 2);
         const radialRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, radialAngle);
         this.currentStation.rotation = ThreeDUtils.quatMultiply(radialRotation, tipRotation);
-        console.log('  station rotation quaternion:', this.currentStation.rotation);
-
-        console.log('[SpaceTravelMap._initializeStation] Checking destination setup:');
-        console.log('  this.localDestination:', this.localDestination?.name || 'null', '(bool:', !!this.localDestination, ') full object:', JSON.stringify(this.localDestination));
-        console.log('  this.currentStation:', this.currentStation?.name || 'null', '(bool:', !!this.currentStation, ')');
-        console.log('  this.currentGameState:', !!this.currentGameState);
-        console.log('  Condition (!localDest && station && gameState):', (!this.localDestination && this.currentStation && this.currentGameState));
         
-        if (!this.localDestination && this.currentStation && this.currentGameState) {
+        if (!this.localDestination?.name && this.currentStation && this.currentGameState) {
             console.log('[SpaceTravelMap._initializeStation] Setting default station destination:', this.currentStation.name);
             this.currentGameState.localDestination = {
                 type: 'STATION',
@@ -501,6 +472,8 @@ class SpaceTravelMapClass {
         const renderParams = { 
             ...this, 
             timestampMs,
+            localDestination: this.localDestination,  // Override stale spread copy with fresh value
+            getActiveTargetInfo: () => this.getActiveTargetInfo(),  // Override stale spread copy with fresh method
             stop: () => this.stop(), // Explicitly pass method since spread doesn't copy prototype methods
             setPaused: (paused, byFocus) => this.setPaused(paused, byFocus),
             mapInstance: this  // Pass mapInstance reference for callbacks to use

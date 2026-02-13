@@ -63,7 +63,6 @@ const SpaceTravelUi = (() => {
     }
 
     function getActiveTargetInfo(state, config) {
-        console.log('[SpaceTravelUi.getActiveTargetInfo] Called with localDestination:', state.localDestination?.name || 'null', 'targetSystem:', state.targetSystem?.name || 'null');
         const { localDestination, targetSystem, currentGameState } = state;
         
         const normalizeName = (raw) => {
@@ -89,7 +88,6 @@ const SpaceTravelUi = (() => {
         };
         
         if (localDestination && targetSystem) {
-            console.log('[SpaceTravelUi.getActiveTargetInfo] BRANCH: localDestination + targetSystem');
             const systemCenter = {
                 x: targetSystem.x * config.LY_TO_AU,
                 y: targetSystem.y * config.LY_TO_AU,
@@ -106,7 +104,6 @@ const SpaceTravelUi = (() => {
         }
 
         if (targetSystem) {
-            console.log('[SpaceTravelUi.getActiveTargetInfo] BRANCH: targetSystem only (no local destination)');
             const position = {
                 x: targetSystem.x * config.LY_TO_AU,
                 y: targetSystem.y * config.LY_TO_AU,
@@ -124,7 +121,6 @@ const SpaceTravelUi = (() => {
             };
         }
 
-        console.log('[SpaceTravelUi.getActiveTargetInfo] RETURNING NULL - no destination or system');
         return null;
     }
 

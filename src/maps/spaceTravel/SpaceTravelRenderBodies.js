@@ -324,6 +324,11 @@ const SpaceTravelRenderBodies = (() => {
                 };
                 setLastHoverPick(pickData);
             }
+        } else {
+            // Clear pick when nothing is being hovered
+            if (setLastHoverPick) {
+                setLastHoverPick(null);
+            }
         }
 
         return labels;

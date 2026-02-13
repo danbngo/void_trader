@@ -183,7 +183,8 @@ const SpaceTravelInput = (() => {
                     isPaused: mapInstance.isPaused,
                     lastHoverPick: mapInstance.lastHoverPick,
                     config,
-                    inputState
+                    inputState,
+                    boostActive: mapInstance.boostActive
                 });
                 if (result?.laserEmptyTimestampMs) {
                     mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;

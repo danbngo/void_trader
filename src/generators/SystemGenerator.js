@@ -418,8 +418,12 @@ const SystemGenerator = (() => {
             semiMajorAU: stationOrbit,
             periodDays: Number.POSITIVE_INFINITY,
             percentOffset: 0,
-            progress: 0
+            progress: 0,
+            inclinationRad: 0  // No axial tilt - station stays in orbital plane
         };
+        // Set rotationPhase to 0 so entrance faces along +X initially
+        // The actual entrance direction will be rotated to face radially during initialization
+        station.rotationPhase = 0;
         system.station = station;
     }
 

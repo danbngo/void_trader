@@ -48,7 +48,7 @@ const SpaceTravelRenderIndicators = (() => {
         addHudText(alignmentX, alignmentY, alignmentText, alignmentColor);
 
         const directionForward = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(playerShip.rotation));
-        const arrow = SpaceTravelRenderLabels.getDirectionalArrow(directionForward.x, directionForward.y);
+        const arrow = SpaceTravelShared.getDirectionalArrow(directionForward.x, directionForward.y);
 
         const arrowX = Math.max(0, viewWidth - 3);
         const arrowY = alignmentY - 1;

@@ -8,6 +8,8 @@ const SpaceTravelLaser = (() => {
         let laserFireStartMs = 0;
         let laserTarget = { x: 0, y: 0 };
         let laserTargetWorldDir = { x: 0, y: 0, z: 1 };
+        let lastFireAttemptMs = 0;
+        const MIN_FIRE_INTERVAL_MS = 50; // Minimum time between fire attempts to prevent caching
 
         function reset() {
             laserFireUntilMs = 0;
@@ -16,16 +18,26 @@ const SpaceTravelLaser = (() => {
             laserTargetWorldDir = { x: 0, y: 0, z: 1 };
         }
 
-        function fireLaser({ playerShip, isPaused, lastHoverPick, config, inputState }) {
+        function fireLaser({ playerShip, isPaused, lastHoverPick, config, inputState, boostActive }) {
             if (!playerShip || isPaused) {
+                return { laserEmptyTimestampMs: null };
+            }
+            // Prevent firing while boosting
+            if (boostActive) {
                 return { laserEmptyTimestampMs: null };
             }
             const currentLaser = Ship.getLaserCurrent(playerShip);
             if (currentLaser <= 0) {
                 return { laserEmptyTimestampMs: performance.now() };
             }
-
+            
+            // Prevent rapid successive fire attempts (laser caching bug fix)
             const now = performance.now();
+            if (now - lastFireAttemptMs < MIN_FIRE_INTERVAL_MS) {
+                return { laserEmptyTimestampMs: null };
+            }
+            lastFireAttemptMs = now;
+
             laserFireStartMs = now;
             laserFireUntilMs = now + config.LASER_FIRE_DURATION_MS;
             laserTarget = getLaserTarget({ inputState, config });

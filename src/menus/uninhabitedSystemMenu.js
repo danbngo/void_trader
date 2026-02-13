@@ -275,16 +275,35 @@ const UninhabitedSystemMenu = (() => {
         const dir = ThreeDUtils.vecLength(rel) > 0
             ? ThreeDUtils.normalizeVec(rel)
             : { x: 0, y: 0, z: 1 };
+        
+        console.log('[UninhabitedSystemMenu] ===== PLANET SPAWN START =====');
+        console.log('  system position (LY):', { x: system.x, y: system.y });
+        console.log('  systemCenter (AU):', systemCenter);
+        console.log('  planet orbit:', planet?.orbit);
+        console.log('  orbitOffset:', orbitOffset);
+        console.log('  planetPos:', planetPos);
+        console.log('  dir (radial from center):', dir);
+        
         const physicsScale = (typeof SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE === 'number' && SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE > 0)
             ? SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE
             : 1;
         const planetRadius = planet?.radiusAU || 0;
         const dockMult = SpaceTravelConfig.PLANET_DOCK_RADIUS_MULT || 1;
         const offsetDistance = planetRadius * physicsScale * dockMult * 1.1;
+        console.log('  planetRadius:', planetRadius);
+        console.log('  physicsScale:', physicsScale);
+        console.log('  dockMult:', dockMult);
+        console.log('  offsetDistance:', offsetDistance);
 
         playerShip.velocity = { x: 0, y: 0, z: 0 };
         playerShip.position = ThreeDUtils.addVec(planetPos, ThreeDUtils.scaleVec(dir, offsetDistance));
+        console.log('  player spawn position:', playerShip.position);
+        console.log('  vector from player to planet:', ThreeDUtils.subVec(planetPos, playerShip.position));
+        
+        console.log('  calling faceToward...');
         ThreeDUtils.faceToward(playerShip, planetPos);
+        console.log('  player rotation after faceToward:', playerShip.rotation);
+        console.log('[UninhabitedSystemMenu] ===== PLANET SPAWN END =====');
 
         if (planet) {
             gameState.localDestination = planet;

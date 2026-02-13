@@ -66,7 +66,7 @@ const SpaceTravelConfig = {
     RENDER_SYSTEM_BODIES: true,
     STATION_FACE_DEPTH_BIAS: 0.0005,
     STATION_EDGE_DEPTH_BIAS: 0.0005,
-    STATION_ENTRANCE_DIR: { x: 1, y: 0, z: 0 },
+    STATION_ENTRANCE_DIR: { x: 1, y: 0, z: 0 },  // Desired world-space direction for entrance (model's +Z will be rotated to this)
     STATION_ENTRANCE_YAW_DEG: 0,
     STATION_ENTRANCE_DOT: 0.85,
     STATION_BOUNCE_DAMPING: 0.6,

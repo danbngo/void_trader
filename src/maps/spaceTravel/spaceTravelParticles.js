@@ -67,22 +67,53 @@ const SpaceTravelParticles = (() => {
                         }
                     }
                 } else {
-                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, COLORS.TEXT_DIM);
+                    // Add significant brightness variation to background stars (not local system stars)
+                    const brightnessSeed = starSeed;
+                    const brightnessVariance = (Math.sin(brightnessSeed * 0.001 + timestampMs * 0.0003) + 1) / 2;
+                    const minBrightness = 0.15; // Much dimmer minimum
+                    const maxBrightness = 1.0;   // Full brightness maximum
+                    const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
+                    const starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
+                    RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
                 }
                 drawn++;
             }
         }
     }
 
-    function renderDust({ viewWidth, viewHeight, depthBuffer, playerShip, dustParticles, config, getVelocityCameraSpace }) {
+    function renderDust({ viewWidth, viewHeight, depthBuffer, playerShip, dustParticles, config, targetSystem, currentGameState, getVelocityCameraSpace }) {
         if (!playerShip || dustParticles.length === 0) {
             return;
         }
 
         const speed = ThreeDUtils.vecLength(playerShip.velocity);
-        const velocityView = getVelocityCameraSpace();
+        // Calculate velocity in camera space directly instead of relying on passed function
+        const velocityView = ThreeDUtils.rotateVecByQuat(playerShip.velocity, ThreeDUtils.quatConjugate(playerShip.rotation));
         const cameraPos = playerShip.position;
         const cameraRot = playerShip.rotation;
+        
+        // Calculate distance to nearest star for temperature-based coloring
+        let minDistanceToStar = Infinity;
+        if (targetSystem && targetSystem.stars) {
+            const systemCenter = {
+                x: targetSystem.x * config.LY_TO_AU,
+                y: targetSystem.y * config.LY_TO_AU,
+                z: 0
+            };
+            targetSystem.stars.forEach(star => {
+                const orbitOffset = star.orbit ? SystemOrbitUtils.getOrbitPosition(star.orbit, currentGameState.date) : { x: 0, y: 0, z: 0 };
+                const starPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
+                const dist = ThreeDUtils.distance(playerShip.position, starPos);
+                if (dist < minDistanceToStar) {
+                    minDistanceToStar = dist;
+                }
+            });
+        }
+        const baseHeatDamageRange = 0.1; // AU - range where heat damage occurs (yellowish-white)
+        const brownRange = baseHeatDamageRange * 100; // 10 AU (brownish-white)
+        const blueRange = baseHeatDamageRange * 10000; // 1000 AU (blueish-white)
+        
+        let loggedOnce = false;
         dustParticles.forEach(particle => {
             const relative = ThreeDUtils.subVec(particle.position, cameraPos);
             const cameraSpacePos = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(cameraRot));
@@ -105,15 +136,55 @@ const SpaceTravelParticles = (() => {
                 const speedPerMinute = speed * 60;
                 const lineSpeedMin = config.DUST_PARTICLE_LINE_SPEED_THRESHOLD || 0.25;
                 if (config.DUST_PARTICLE_LINE_SYMBOLS && speedPerMinute >= lineSpeedMin) {
+                    // Calculate perspective-corrected screen-space velocity for this particle
+                    // This creates radial motion patterns as particles at different positions
+                    // have different apparent screen velocities due to perspective
                     const denom = cameraSpacePos.z * cameraSpacePos.z;
                     const vx = (velocityView.x * cameraSpacePos.z - cameraSpacePos.x * velocityView.z) / denom;
                     const vy = (velocityView.y * cameraSpacePos.z - cameraSpacePos.y * velocityView.z) / denom;
                     const screenSpeed = Math.sqrt(vx * vx + vy * vy);
+                    
                     if (screenSpeed >= config.DUST_SCREEN_SPEED_EPSILON) {
                         symbol = SpaceTravelShared.getLineSymbolFromDirection(vx, vy);
                     }
                 }
-                RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpacePos.z, symbol, COLORS.TEXT_DIM);
+                
+                // Temperature-based dust coloring: yellow/white near star, gray in middle, blue/white in deep space
+                // All colors heavily desaturated to be subtle gray tones
+                const dustColorVariance = (Math.sin(particle.position.x * 0.1 + particle.position.y * 0.15) + 1) / 2;
+                let dustColor;
+                let colorType = '';
+                
+                if (minDistanceToStar < baseHeatDamageRange) {
+                    // Very close to star (0-0.1 AU) - very dark yellowish-white
+                    dustColor = SpaceTravelShared.lerpColorHex('#5a5a48', '#626250', dustColorVariance);
+                    colorType = 'yellowish-white';
+                } else if (minDistanceToStar < brownRange) {
+                    // Medium distance (0.1-10 AU) - transition from yellowish to brownish-white
+                    const t = Math.min(1, (minDistanceToStar - baseHeatDamageRange) / (brownRange - baseHeatDamageRange));
+                    const yellowish = SpaceTravelShared.lerpColorHex('#5a5a48', '#626250', dustColorVariance);
+                    const brownish = SpaceTravelShared.lerpColorHex('#5a5550', '#625d58', dustColorVariance);
+                    dustColor = SpaceTravelShared.lerpColorHex(yellowish, brownish, t);
+                    colorType = `transition-yellow-brown(${t.toFixed(2)})`;
+                } else if (minDistanceToStar < blueRange) {
+                    // Far from star (10-1000 AU) - transition from brownish to blueish-white
+                    const t = Math.min(1, (minDistanceToStar - brownRange) / (blueRange - brownRange));
+                    const brownish = SpaceTravelShared.lerpColorHex('#5a5550', '#625d58', dustColorVariance);
+                    const blueish = SpaceTravelShared.lerpColorHex('#50555a', '#585d62', dustColorVariance);
+                    dustColor = SpaceTravelShared.lerpColorHex(brownish, blueish, t);
+                    colorType = `transition-brown-blue(${t.toFixed(2)})`;
+                } else {
+                    // Deep space (>1000 AU) - very dark blueish-white
+                    dustColor = SpaceTravelShared.lerpColorHex('#50555a', '#585d62', dustColorVariance);
+                    colorType = 'blueish-white';
+                }
+                
+                if (!loggedOnce) {
+                    console.log('[DustParticle] Color:', dustColor, 'Type:', colorType, 'DistanceToStar:', minDistanceToStar.toFixed(2), 'AU');
+                    loggedOnce = true;
+                }
+                
+                RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpacePos.z, symbol, dustColor);
             }
         });
     }

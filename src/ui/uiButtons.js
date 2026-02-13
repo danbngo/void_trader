@@ -25,14 +25,19 @@ const UiButtons = (() => {
                 ? isArrowKeysNavigationDisabled()
                 : false;
 
+            console.log('[UiButtons] Key pressed:', key, 'buttonNavEnabled:', buttonNavEnabled, 'arrowKeysDisabled:', arrowKeysDisabled, 'selectedButtonIndex:', selectedButtonIndex, 'buttonCount:', registeredButtons.length);
+
             if (buttonNavEnabled) {
                 // If arrow keys are disabled for this context, only allow PageUp/PageDown for navigation
                 if (arrowKeysDisabled) {
+                    console.log('[UiButtons] Arrow keys disabled mode');
                     if (key === 'PageDown') {
                         event.preventDefault();
                         if (registeredButtons.length > 0) {
-                            setSelectedButtonIndex((selectedButtonIndex + 1) % registeredButtons.length);
-                            draw();
+                            const newIndex = (selectedButtonIndex + 1) % registeredButtons.length;
+                            console.log('[UiButtons] PageDown - moving from', selectedButtonIndex, 'to', newIndex);
+                            setSelectedButtonIndex(newIndex);
+                            // Don't call draw() - it might reset everything
                         }
                         return;
                     }
@@ -40,16 +45,21 @@ const UiButtons = (() => {
                     if (key === 'PageUp') {
                         event.preventDefault();
                         if (registeredButtons.length > 0) {
-                            setSelectedButtonIndex((selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length);
-                            draw();
+                            const newIndex = (selectedButtonIndex - 1 + registeredButtons.length) % registeredButtons.length;
+                            console.log('[UiButtons] PageUp - moving from', selectedButtonIndex, 'to', newIndex);
+                            setSelectedButtonIndex(newIndex);
+                            // Don't call draw() - it might reset everything
                         }
                         return;
                     }
 
                     if (key === 'Enter') {
                         event.preventDefault();
+                        console.log('[UiButtons] Enter pressed - executing button', selectedButtonIndex);
                         if (registeredButtons.length > 0 && registeredButtons[selectedButtonIndex]) {
-                            registeredButtons[selectedButtonIndex].callback();
+                            const button = registeredButtons[selectedButtonIndex];
+                            console.log('[UiButtons] Executing callback for button:', button.label);
+                            button.callback();
                         }
                         return;
                     }

@@ -38,13 +38,32 @@ const SpaceTravelPhysics = {
 
         if (resetPosition || !hasPosition) {
             if (params.currentStation) {
-                const baseEntranceDir = ThreeDUtils.normalizeVec(params.config.STATION_ENTRANCE_DIR);
+                console.log('[SpaceTravelPhysics.positionShip] ===== STATION SPAWN START =====');
+                console.log('  isWarpArrival:', isWarpArrival);
+                console.log('  station position:', params.currentStation.position);
+                console.log('  station rotation:', params.currentStation.rotation);
+                console.log('  station rotationPhase:', params.currentStation.rotationPhase);
+                
+                // Model's entrance is at +Z (top face of cuboctahedron)
+                // Station rotation transforms this to face radially
+                const baseEntranceDir = { x: 0, y: 0, z: 1 };
+                console.log('  baseEntranceDir (model space):', baseEntranceDir);
+                
                 const entranceYaw = ThreeDUtils.degToRad(params.config.STATION_ENTRANCE_YAW_DEG || 0);
-                const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
+                console.log('  entranceYaw (deg):', params.config.STATION_ENTRANCE_YAW_DEG || 0);
+                console.log('  entranceYaw (rad):', entranceYaw);
+                
+                const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, entranceYaw);
+                console.log('  yawRot quaternion:', yawRot);
+                
                 const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(baseEntranceDir, yawRot);
+                console.log('  yawedEntranceDir:', yawedEntranceDir);
+                
                 const entranceDir = params.currentStation.rotation
                     ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, params.currentStation.rotation)
                     : yawedEntranceDir;
+                console.log('  final entranceDir (world space):', entranceDir);
+                
                 const stationRadius = Math.max(0, params.currentStation.radiusAU ?? params.currentStation.size ?? 0);
                 const stationVisualScale = params.config.STATION_SCREEN_SCALE || 1;
                 const stationPhysicsScale = (typeof params.config.STATION_PHYSICS_SCALE === 'number' && params.config.STATION_PHYSICS_SCALE > 0)
@@ -59,13 +78,30 @@ const SpaceTravelPhysics = {
                 const minSpawnDistance = typeof params.config.STATION_SPAWN_MIN_DISTANCE_AU === 'number'
                     ? params.config.STATION_SPAWN_MIN_DISTANCE_AU
                     : 0;
+                console.log('  stationRadius:', stationRadius);
+                console.log('  stationSpawnScale:', stationSpawnScale);
+                console.log('  spawnMult:', spawnMult);
+                console.log('  warpDistanceMult:', warpDistanceMult);
+                console.log('  minSpawnDistance:', minSpawnDistance);
+                
                 const offsetDistance = Math.max(
                     minSpawnDistance,
                     stationRadius * stationSpawnScale * spawnMult * warpDistanceMult
                 );
-                const startOffset = ThreeDUtils.scaleVec(entranceDir, offsetDistance);
+                console.log('  offsetDistance:', offsetDistance);
+                
+                // Negate to spawn on the OPPOSITE side (in front of entrance, not behind)
+                const startOffset = ThreeDUtils.scaleVec(entranceDir, -offsetDistance);
+                console.log('  startOffset:', startOffset);
+                
                 params.playerShip.position = ThreeDUtils.addVec(params.currentStation.position, startOffset);
+                console.log('  player spawn position:', params.playerShip.position);
+                console.log('  vector from player to station:', ThreeDUtils.subVec(params.currentStation.position, params.playerShip.position));
+                
+                console.log('  calling faceToward...');
                 ThreeDUtils.faceToward(params.playerShip, params.currentStation.position);
+                console.log('  player rotation after faceToward:', params.playerShip.rotation);
+                console.log('[SpaceTravelPhysics.positionShip] ===== STATION SPAWN END =====');
             } else {
                 params.playerShip.position = currentSystemPos;
             }

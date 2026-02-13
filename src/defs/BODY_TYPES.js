@@ -4,9 +4,9 @@
  */
 
 const BODY_TYPES = {
-    STAR_RED_DWARF: { id: 'STAR_RED_DWARF', name: 'Red Dwarf', category: 'STAR', symbol: '⋆' },
-    STAR_YELLOW_DWARF: { id: 'STAR_YELLOW_DWARF', name: 'Yellow Dwarf', category: 'STAR', symbol: '⋆' },
-    STAR_WHITE_DWARF: { id: 'STAR_WHITE_DWARF', name: 'White Dwarf', category: 'STAR', symbol: '⋆' },
+    STAR_RED_DWARF: { id: 'STAR_RED_DWARF', name: 'Red Dwarf', category: 'STAR', symbol: '*' },
+    STAR_YELLOW_DWARF: { id: 'STAR_YELLOW_DWARF', name: 'Yellow Dwarf', category: 'STAR', symbol: '*' },
+    STAR_WHITE_DWARF: { id: 'STAR_WHITE_DWARF', name: 'White Dwarf', category: 'STAR', symbol: '*' },
     STAR_RED_GIANT: { id: 'STAR_RED_GIANT', name: 'Red Giant', category: 'STAR', symbol: '☼' },
     STAR_BLUE_GIANT: { id: 'STAR_BLUE_GIANT', name: 'Blue Giant', category: 'STAR', symbol: '☼' },
     STAR_NEUTRON: { id: 'STAR_NEUTRON', name: 'Neutron Star', category: 'STAR', symbol: '+' },
@@ -18,18 +18,18 @@ const BODY_TYPES = {
     PLANET_GAS_GIANT: { id: 'PLANET_GAS_GIANT', name: 'Gas Giant', category: 'PLANET', symbol: 'Ø', symbolRing: 'Ø' },
     PLANET_GAS_DWARF: { id: 'PLANET_GAS_DWARF', name: 'Gas Dwarf', category: 'PLANET', symbol: '○' },
     PLANET_ICE_GIANT: { id: 'PLANET_ICE_GIANT', name: 'Ice Giant', category: 'PLANET', symbol: '⓿', symbolRing: 'ʘ' },
-    PLANET_ICE_DWARF: { id: 'PLANET_ICE_DWARF', name: 'Ice Dwarf', category: 'PLANET', symbol: '*' },
+    PLANET_ICE_DWARF: { id: 'PLANET_ICE_DWARF', name: 'Ice Dwarf', category: 'PLANET', symbol: 'o' },
 
     DWARF_PLANET_ROCKY: { id: 'DWARF_PLANET_ROCKY', name: 'Rocky Dwarf Planet', category: 'DWARF_PLANET', symbol: 'O' },
-    DWARF_PLANET_ICE: { id: 'DWARF_PLANET_ICE', name: 'Icy Dwarf Planet', category: 'DWARF_PLANET', symbol: '*' },
+    DWARF_PLANET_ICE: { id: 'DWARF_PLANET_ICE', name: 'Icy Dwarf Planet', category: 'DWARF_PLANET', symbol: '•' },
 
-    BELT_ASTEROID: { id: 'BELT_ASTEROID', name: 'Asteroid Belt', category: 'BELT', symbol: '*' },
-    BELT_ICY: { id: 'BELT_ICY', name: 'Icy Belt', category: 'BELT', symbol: '*' },
+    BELT_ASTEROID: { id: 'BELT_ASTEROID', name: 'Asteroid Belt', category: 'BELT', symbol: 'o' },
+    BELT_ICY: { id: 'BELT_ICY', name: 'Icy Belt', category: 'BELT', symbol: 'o' },
     BELT_GAS: { id: 'BELT_GAS', name: 'Gas Belt', category: 'BELT', symbol: 'O' },
 
-    MOON_ROCKY: { id: 'MOON_ROCKY', name: 'Rocky Major Moon', category: 'MOON', symbol: '○' },
-    MOON_ICE: { id: 'MOON_ICE', name: 'Icy Major Moon', category: 'MOON', symbol: '○' },
-    MOON_VOLCANIC: { id: 'MOON_VOLCANIC', name: 'Volcanic Major Moon', category: 'MOON', symbol: '●' }
+    MOON_ROCKY: { id: 'MOON_ROCKY', name: 'Rocky Major Moon', category: 'MOON', symbol: '•' },
+    MOON_ICE: { id: 'MOON_ICE', name: 'Icy Major Moon', category: 'MOON', symbol: 'o' },
+    MOON_VOLCANIC: { id: 'MOON_VOLCANIC', name: 'Volcanic Major Moon', category: 'MOON', symbol: '.' }
 };
 
 const STAR_BODY_TYPES = [

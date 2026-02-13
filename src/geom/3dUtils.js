@@ -135,12 +135,31 @@ class ThreeDUtils {
     }
 
     static faceToward(ship, targetPos) {
-        const forward = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(targetPos, ship.position));
+        console.log('[ThreeDUtils.faceToward] START');
+        console.log('  ship position:', ship.position);
+        console.log('  target position:', targetPos);
+        
+        const toTarget = ThreeDUtils.subVec(targetPos, ship.position);
+        console.log('  vector to target:', toTarget);
+        console.log('  distance to target:', ThreeDUtils.vecLength(toTarget));
+        
+        const forward = ThreeDUtils.normalizeVec(toTarget);
+        console.log('  forward (normalized):', forward);
+        
         if (ThreeDUtils.vecLength(forward) === 0) {
+            console.log('  ZERO LENGTH - returning without change');
             return;
         }
-        const up = { x: 0, y: 1, z: 0 };
-        ship.rotation = ThreeDUtils.quatNormalize(ThreeDUtils.quatFromForwardUp(forward, up));
+        
+        // Use Z-axis as "up" so planets (orbiting in XY plane) appear horizontal (left-right)
+        const up = { x: 0, y: 0, z: 1 };
+        console.log('  up vector:', up);
+        
+        const newRotation = ThreeDUtils.quatNormalize(ThreeDUtils.quatFromForwardUp(forward, up));
+        console.log('  calculated rotation:', newRotation);
+        
+        ship.rotation = newRotation;
+        console.log('[ThreeDUtils.faceToward] END');
     }
 
     static buildStarfield(count) {

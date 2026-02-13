@@ -32,9 +32,10 @@ const SpaceTravelLogic = (() => {
             return { didDock: false, lastStationCollisionMs, damageFlashStartMs };
         }
 
-        const baseEntranceDir = ThreeDUtils.normalizeVec(config.STATION_ENTRANCE_DIR);
+        // Model's entrance is at +Z, transform by station rotation to get world direction
+        const baseEntranceDir = { x: 0, y: 0, z: 1 };
         const entranceYaw = ThreeDUtils.degToRad(config.STATION_ENTRANCE_YAW_DEG || 0);
-        const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
+        const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, entranceYaw);
         const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(baseEntranceDir, yawRot);
         const entranceDir = station.rotation
             ? ThreeDUtils.rotateVecByQuat(yawedEntranceDir, station.rotation)
@@ -141,11 +142,10 @@ const SpaceTravelLogic = (() => {
             const v = playerShip.velocity;
             const dotVN = ThreeDUtils.dotVec(v, toShip);
             if (dotVN > 0) {
+                // Remove normal component (prevent penetration) but keep tangential (sliding) velocity
                 playerShip.velocity = ThreeDUtils.subVec(v, ThreeDUtils.scaleVec(toShip, dotVN));
             }
-            if (typeof config.STATION_SLIDE_DAMPING === 'number') {
-                playerShip.velocity = ThreeDUtils.scaleVec(playerShip.velocity, config.STATION_SLIDE_DAMPING);
-            }
+            // Don't apply damping - let player slide along station at full speed
             playerShip.position = ThreeDUtils.addVec(station.position, ThreeDUtils.scaleVec(toShip, collisionRadius));
             if (config.DEBUG_STATION_COLLISION) {
                 console.log('[SpaceTravelMap] Soft collision clamp (below min speed)', {

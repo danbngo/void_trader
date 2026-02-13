@@ -119,18 +119,38 @@ function logInitialStationState(gameState) {
     const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
         ? system.station.orbit.semiMajorAU
         : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
-    const entranceDir = ThreeDUtils.normalizeVec(SpaceTravelConfig.STATION_ENTRANCE_DIR);
+    // Use desired world direction for station placement
+    const stationPlacementDir = ThreeDUtils.normalizeVec(SpaceTravelConfig.STATION_ENTRANCE_DIR);
     const stationPos = {
-        x: system.x * SpaceTravelConfig.LY_TO_AU + entranceDir.x * stationOrbit,
-        y: system.y * SpaceTravelConfig.LY_TO_AU + entranceDir.y * stationOrbit,
-        z: entranceDir.z * stationOrbit
+        x: system.x * SpaceTravelConfig.LY_TO_AU + stationPlacementDir.x * stationOrbit,
+        y: system.y * SpaceTravelConfig.LY_TO_AU + stationPlacementDir.y * stationOrbit,
+        z: stationPlacementDir.z * stationOrbit
     };
+    
+    // Calculate rotation to make entrance face radially
+    const systemCenter = {
+        x: system.x * SpaceTravelConfig.LY_TO_AU,
+        y: system.y * SpaceTravelConfig.LY_TO_AU,
+        z: 0
+    };
+    const radialDir = {
+        x: stationPos.x - systemCenter.x,
+        y: stationPos.y - systemCenter.y
+    };
+    const radialAngle = Math.atan2(radialDir.y, radialDir.x);
+    
     const gameSeconds = gameState.date ? (gameState.date.getTime() / 1000) : 0;
-    const dayT = (gameSeconds % SpaceTravelConfig.GAME_SECONDS_PER_DAY) / SpaceTravelConfig.GAME_SECONDS_PER_DAY;
-    const stationRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, dayT * Math.PI * 2);
+    // Station rotation is STATIC based on radial direction
+    // 1. Tip entrance from +Z to +X (rotate -90° around Y-axis)
+    // 2. Rotate around Z-axis to face radially
+    const tipRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, -Math.PI / 2);
+    const radialRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, radialAngle);
+    const stationRotation = ThreeDUtils.quatMultiply(radialRotation, tipRotation);
     const entranceYaw = ThreeDUtils.degToRad(SpaceTravelConfig.STATION_ENTRANCE_YAW_DEG || 0);
-    const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, entranceYaw);
-    const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(entranceDir, yawRot);
+    const yawRot = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, entranceYaw);
+    // Model's entrance is at +Z, transform by station rotation to get world direction
+    const modelEntranceDir = { x: 0, y: 0, z: 1 };
+    const yawedEntranceDir = ThreeDUtils.rotateVecByQuat(modelEntranceDir, yawRot);
     const entranceWorldDir = ThreeDUtils.rotateVecByQuat(yawedEntranceDir, stationRotation);
     const entranceWorldAngleDeg = Math.atan2(entranceWorldDir.x, entranceWorldDir.z) * (180 / Math.PI);
     const toStation = ThreeDUtils.subVec(stationPos, playerShip.position);
@@ -139,7 +159,8 @@ function logInitialStationState(gameState) {
         systemName: system.name,
         stationOrbitAU: stationOrbit,
         stationPos,
-        entranceDir,
+        modelEntranceDir,
+        entranceWorldDir,
         stationRotation,
         entranceWorldAngleDeg,
         playerToStationAngleDeg,

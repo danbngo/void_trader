@@ -249,22 +249,55 @@ class SpaceTravelMapClass {
         this.currentStation = this.targetSystem.station;
         const stationOrbit = this.currentStation.orbit.semiMajorAU;
         const stationDir = ThreeDUtils.normalizeVec(this.config.STATION_ENTRANCE_DIR);
+        
+        console.log('[SpaceTravelMap._initializeStation] Initial values:');
+        console.log('  stationOrbit:', stationOrbit);
+        console.log('  STATION_ENTRANCE_DIR:', this.config.STATION_ENTRANCE_DIR);
+        console.log('  stationDir (normalized):', stationDir);
+        console.log('  targetSystem position (LY):', { x: this.targetSystem.x, y: this.targetSystem.y });
+        console.log('  targetSystem position (AU):', { x: this.targetSystem.x * this.config.LY_TO_AU, y: this.targetSystem.y * this.config.LY_TO_AU });
+        
         this.currentStation.position = {
             x: this.targetSystem.x * this.config.LY_TO_AU + stationDir.x * stationOrbit,
             y: this.targetSystem.y * this.config.LY_TO_AU + stationDir.y * stationOrbit,
             z: stationDir.z * stationOrbit
         };
+        console.log('  station position:', this.currentStation.position);
+        
         if (!this.currentStation.name) {
             this.currentStation.name = `${this.targetSystem.name} Station`;
         }
         this.currentStation.dataRef = this.targetSystem.primaryBody || (this.targetSystem.planets && this.targetSystem.planets[0]) || null;
         
-        if (this.currentGameState && this.currentGameState.date) {
-            const gameSeconds = this.currentGameState.date.getTime() / 1000;
-            const dayT = (gameSeconds % this.config.GAME_SECONDS_PER_DAY) / this.config.GAME_SECONDS_PER_DAY;
-            const angle = (dayT * Math.PI * 2) + (this.currentStation.rotationPhase || 0);
-            this.currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
-        }
+        // Calculate rotation to make entrance face radially (toward/away from star)
+        // Station position relative to system center (in XY plane)
+        const systemCenter = {
+            x: this.targetSystem.x * this.config.LY_TO_AU,
+            y: this.targetSystem.y * this.config.LY_TO_AU,
+            z: 0
+        };
+        const radialDir = {
+            x: this.currentStation.position.x - systemCenter.x,
+            y: this.currentStation.position.y - systemCenter.y
+        };
+        const radialAngle = Math.atan2(radialDir.y, radialDir.x);
+        console.log('  systemCenter:', systemCenter);
+        console.log('  radialDir:', radialDir);
+        console.log('  radialAngle (rad):', radialAngle);
+        console.log('  radialAngle (deg):', radialAngle * 180 / Math.PI);
+        
+        // Entrance is along +Z in local space (top face of cuboctahedron)
+        // First tip it 90° around Y-axis to point +X, then rotate to face radially
+        this.currentStation.rotationPhase = radialAngle;
+        console.log('  rotationPhase:', this.currentStation.rotationPhase);
+        
+        // Station rotation should be STATIC based on radial direction, not spinning throughout the day
+        // 1. Tip entrance from +Z to +X (rotate -90° around Y-axis)
+        // 2. Rotate around Z-axis to face radially
+        const tipRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, -Math.PI / 2);
+        const radialRotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 0, z: 1 }, radialAngle);
+        this.currentStation.rotation = ThreeDUtils.quatMultiply(radialRotation, tipRotation);
+        console.log('  station rotation quaternion:', this.currentStation.rotation);
 
         if (!this.localDestination && this.currentStation && this.currentGameState) {
             this.currentGameState.localDestination = {
@@ -406,12 +439,8 @@ class SpaceTravelMapClass {
     }
 
     _updateStationRotation() {
-        if (this.currentStation && this.currentGameState && this.currentGameState.date) {
-            const gameSeconds = this.currentGameState.date.getTime() / 1000;
-            const dayT = (gameSeconds % this.config.GAME_SECONDS_PER_DAY) / this.config.GAME_SECONDS_PER_DAY;
-            const angle = (dayT * Math.PI * 2) + (this.currentStation.rotationPhase || 0);
-            this.currentStation.rotation = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, angle);
-        }
+        // Station rotation is now STATIC - no longer updates with time
+        // Entrance always faces radially (calculated once in _initializeStation)
     }
 
     openTravelPortal(targetSystem, timestampMs = performance.now()) {
@@ -437,6 +466,12 @@ class SpaceTravelMapClass {
     render(timestampMs = 0) {
         // Delegated to SpaceTravelRender
         SpaceTravelRender.render({ ...this, timestampMs });
+        
+        // Check ASCII log interval after render (must be here so this.lastAsciiLogTimestamp persists)
+        if (this.config.ASCII_LOG_INTERVAL_MS && (!this.lastAsciiLogTimestamp || (Date.now() - this.lastAsciiLogTimestamp) >= this.config.ASCII_LOG_INTERVAL_MS)) {
+            this.lastAsciiLogTimestamp = Date.now();
+            UI.logScreenToConsole();
+        }
     }
 
     getVelocityWorldDirection() {

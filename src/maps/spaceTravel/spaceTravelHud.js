@@ -172,15 +172,12 @@ const SpaceTravelHud = (() => {
                 ? COLORS.TEXT_SUCCESS
                 : (autoNavAvailable ? COLORS.CYAN : COLORS.TEXT_DIM);
 
-            if (autoNavAvailable) {
-                UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
-                    if (onAutoNavToggle) {
-                        onAutoNavToggle();
-                    }
-                }, helpers.applyPauseColor(autoNavColor), '');
-            } else {
-                UI.addText(autoNavX, menuY, autoNavText, helpers.applyPauseColor(autoNavColor));
-            }
+            // Always add AutoNav as a button (even when disabled) so users can cycle between buttons
+            UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
+                if (autoNavAvailable && onAutoNavToggle) {
+                    onAutoNavToggle();
+                }
+            }, helpers.applyPauseColor(autoNavColor), autoNavAvailable ? '' : 'Need a destination to autonavigate');
 
             UI.addButton(menuX, menuY, 'm', menuText, () => {
                 if (onMenu) {

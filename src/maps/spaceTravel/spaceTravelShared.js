@@ -73,6 +73,31 @@ const SpaceTravelShared = (() => {
         return chars[index];
     }
 
+    function getDirectionalArrow(dx, dy) {
+        const mag = Math.sqrt(dx * dx + dy * dy);
+        if (mag <= 0.000001) {
+            return '▲';
+        }
+        const angle = Math.atan2(dy, dx);
+        const degrees = (angle * (180 / Math.PI) + 360) % 360;
+        if (degrees >= 337.5 || degrees < 22.5) {
+            return '▶';
+        } else if (degrees >= 22.5 && degrees < 67.5) {
+            return '◥';
+        } else if (degrees >= 67.5 && degrees < 112.5) {
+            return '▲';
+        } else if (degrees >= 112.5 && degrees < 157.5) {
+            return '◤';
+        } else if (degrees >= 157.5 && degrees < 202.5) {
+            return '◀';
+        } else if (degrees >= 202.5 && degrees < 247.5) {
+            return '◣';
+        } else if (degrees >= 247.5 && degrees < 292.5) {
+            return '▼';
+        }
+        return '◢';
+    }
+
     return {
         lerpColorHex,
         hashString,
@@ -80,6 +105,7 @@ const SpaceTravelShared = (() => {
         isGasPlanet,
         isTerrestrialPlanet,
         getLocalMapBodySymbol,
-        getLineSymbolFromDirection
+        getLineSymbolFromDirection,
+        getDirectionalArrow
     };
 })();

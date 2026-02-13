@@ -20,6 +20,7 @@ const UI = (() => {
     let preservedButtonKey = null; // Track button key to preserve selection across re-renders
     let wheelZoomHandler = null; // Handler for mouse wheel zoom
     let buttonNavigationEnabled = true;
+    let arrowKeysNavigationDisabled = false; // Disable arrow key navigation (PageUp/PageDown only)
 
     let gameCursorEnabled = true;
     let gameCursorActive = false;
@@ -79,6 +80,7 @@ const UI = (() => {
             draw,
             getWheelZoomHandler: () => wheelZoomHandler,
             getButtonNavigationEnabled: () => buttonNavigationEnabled,
+            isArrowKeysNavigationDisabled: () => arrowKeysNavigationDisabled,
             handleCursorMove: (gridX, gridY) => {
                 const cursorUpdate = UiCursor.handleMouseMove(gameCursorEnabled, gameCursorPos, gridX, gridY);
                 if (cursorUpdate.didMove) {
@@ -93,6 +95,10 @@ const UI = (() => {
 
     function setButtonNavigationEnabled(enabled) {
         buttonNavigationEnabled = !!enabled;
+    }
+
+    function setArrowKeysNavigationDisabled(disabled) {
+        arrowKeysNavigationDisabled = !!disabled;
     }
     
     /**
@@ -579,6 +585,7 @@ const UI = (() => {
         setWheelZoomHandler,
         setGameCursorEnabled,
         setButtonNavigationEnabled,
+        setArrowKeysNavigationDisabled,
         calcStatColor: ColorUtils.calcStatColor, // Re-export from ColorUtils for convenience
         startFlashing,
         stopFlashing,

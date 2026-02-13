@@ -113,6 +113,42 @@ const SystemGenerator = (() => {
         // Generate planets using PlanetGenerator
         system.planets = PlanetGenerator.generatePlanets(system.name);
         
+        // Calculate heat damage threshold distance from each star
+        // Heat damage occurs when: flux = luminosity / distance² causes damage >= 1 HP/sec
+        // For a yellow dwarf with HEAT_DAMAGE_PER_SEC=10 and typical dt=0.016:
+        // distance = sqrt(luminosity * HEAT_DAMAGE_PER_SEC * dt / flux_threshold)
+        // Simplified: distance ≈ sqrt(luminosity * 0.16) AU
+        const STAR_LUMINOSITY_BY_TYPE = {
+            STAR_RED_DWARF: 0.02,
+            STAR_YELLOW_DWARF: 1,
+            STAR_WHITE_DWARF: 0.1,
+            STAR_RED_GIANT: 1000,
+            STAR_BLUE_GIANT: 10000,
+            STAR_NEUTRON: 0.05,
+            STAR_BLACK_HOLE: 0
+        };
+        
+        // Calculate max heat damage distance (where 1 HP/sec damage occurs)
+        const getHeatDamageDistance = (star) => {
+            const luminosity = STAR_LUMINOSITY_BY_TYPE[star.type] || 1;
+            // Distance where flux causes 1 damage/sec
+            // flux = luminosity / distance², and damage = HEAT_DAMAGE_PER_SEC * flux * dt
+            // For dt=0.016 (60 FPS): distance ≈ sqrt(luminosity * 0.16)
+            return Math.sqrt(luminosity * 0.16);
+        };
+        
+        // Remove planets that are within the heat damage zone (would disintegrate)
+        system.planets = system.planets.filter(planet => {
+            for (const star of system.stars) {
+                const heatDist = getHeatDamageDistance(star);
+                if (planet.orbit && planet.orbit.semiMajorAU < heatDist) {
+                    console.log(`[SystemGenerator] Removing planet ${planet.name} from ${system.name} - too close to star (${planet.orbit.semiMajorAU.toFixed(4)} AU < heat threshold ${heatDist.toFixed(4)} AU)`);
+                    return false;  // Remove it
+                }
+            }
+            return true;  // Keep it
+        });
+        
         // Select and configure primary planet
         const primaryPlanet = PlanetGenerator.selectPrimaryPlanet(system.planets);
         if (primaryPlanet) {
@@ -126,11 +162,22 @@ const SystemGenerator = (() => {
         system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
         system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);
 
-        // Generate station
+        // Generate station - ensure it's beyond the heat damage zone of all stars
+        let maxHeatDist = 0;
+        for (const star of system.stars) {
+            maxHeatDist = Math.max(maxHeatDist, getHeatDamageDistance(star));
+        }
+        
         const farthestOrbit = system.planets.length > 0 
             ? system.planets[system.planets.length - 1].orbit.semiMajorAU 
             : SYSTEM_PLANET_ORBIT_MIN_AU;
-        const stationOrbit = farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU;
+        
+        // Station must be beyond BOTH the farthest planet AND the heat damage zone
+        const stationOrbit = Math.max(
+            farthestOrbit + SYSTEM_STATION_ORBIT_BUFFER_AU,
+            maxHeatDist + SYSTEM_STATION_ORBIT_BUFFER_AU
+        );
+        
         const station = new SpaceStation(`${system.name}-STATION`, SPACE_STATION_SIZE_AU);
         station.name = `${system.name} Station`;
         station.orbit = {

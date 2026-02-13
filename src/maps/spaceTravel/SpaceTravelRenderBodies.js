@@ -19,6 +19,12 @@ const SpaceTravelRenderBodies = (() => {
             return [];
         }
 
+        // Normalize mouseState field names from input (rawX/rawY) to internal coordinates (x/y)
+        if (mouseState && !mouseState.x) {
+            mouseState.x = mouseState.rawX;
+            mouseState.y = mouseState.rawY;
+        }
+
         const systemCenter = {
             x: targetSystem.x * config.LY_TO_AU,
             y: targetSystem.y * config.LY_TO_AU,

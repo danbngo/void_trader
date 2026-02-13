@@ -382,11 +382,16 @@ class SpaceTravelMapClass {
             const dt = Math.min(0.05, (timestamp - this.lastTimestamp) / 1000);
             this.lastTimestamp = timestamp;
 
-            this.update(dt, timestamp);
+            // RENDER FIRST to update hover state before processing input
             if (!this.isActive) {
                 return;
             }
             this.render(timestamp);
+
+            this.update(dt, timestamp);
+            if (!this.isActive) {
+                return;
+            }
 
             this.animationId = requestAnimationFrame(loop);
         };
@@ -467,12 +472,19 @@ class SpaceTravelMapClass {
 
     render(timestampMs = 0) {
         // Delegated to SpaceTravelRender
-        SpaceTravelRender.render({ 
+        const renderParams = { 
             ...this, 
             timestampMs,
             stop: () => this.stop(), // Explicitly pass method since spread doesn't copy prototype methods
-            setPaused: (paused, byFocus) => this.setPaused(paused, byFocus)
-        });
+            setPaused: (paused, byFocus) => this.setPaused(paused, byFocus),
+            mapInstance: this  // Pass mapInstance reference for callbacks to use
+        };
+        SpaceTravelRender.render(renderParams);
+        
+        // Sync lastHoverPick back from renderParams (set by callback in render)
+        if (renderParams.lastHoverPick) {
+            this.lastHoverPick = renderParams.lastHoverPick;
+        }
         
         // Check ASCII log interval after render (must be here so this.lastAsciiLogTimestamp persists)
         if (this.config.ASCII_LOG_INTERVAL_MS && (!this.lastAsciiLogTimestamp || (Date.now() - this.lastAsciiLogTimestamp) >= this.config.ASCII_LOG_INTERVAL_MS)) {

@@ -345,6 +345,9 @@ const SystemGenerator = (() => {
             const type = pickWeighted(PLANET_TYPE_WEIGHTS);
             const periodDays = 365.25 * Math.pow(orbitRadius, 1.5);
             const progress = Math.random();
+            // Orbital inclination in radians (0-25 degrees) for realistic 3D distribution
+            const inclinationDeg = randomRange(0, 25);
+            const inclinationRad = inclinationDeg * (Math.PI / 180);
             planets.push(new Planet({
                 id: `${system.name}-PLANET-${i + 1}`,
                 type,
@@ -356,7 +359,8 @@ const SystemGenerator = (() => {
                     semiMajorAU: orbitRadius,
                     periodDays,
                     percentOffset: progress,
-                    progress
+                    progress,
+                    inclinationRad
                 }
             }));
             assignPlanetTraits(planets[planets.length - 1]);
@@ -365,6 +369,9 @@ const SystemGenerator = (() => {
             const type = pickWeighted(PLANET_TYPE_WEIGHTS);
             const periodDays = 365.25 * Math.pow(SYSTEM_PLANET_ORBIT_MIN_AU, 1.5);
             const progress = Math.random();
+            // Orbital inclination in radians (0-25 degrees) for realistic 3D distribution
+            const inclinationDeg = randomRange(0, 25);
+            const inclinationRad = inclinationDeg * (Math.PI / 180);
             planets.push(new Planet({
                 id: `${system.name}-PLANET-1`,
                 type,
@@ -376,7 +383,8 @@ const SystemGenerator = (() => {
                     semiMajorAU: SYSTEM_PLANET_ORBIT_MIN_AU,
                     periodDays,
                     percentOffset: progress,
-                    progress
+                    progress,
+                    inclinationRad
                 }
             }));
             assignPlanetTraits(planets[planets.length - 1]);

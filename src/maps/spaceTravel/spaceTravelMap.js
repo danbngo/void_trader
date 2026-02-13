@@ -112,6 +112,14 @@ class SpaceTravelMapClass {
                 this.pausedDurationMs += (now - this.pauseTimestampMs);
             }
             this.pauseTimestampMs = 0;
+            
+            // Adjust boost timing when unpausing to maintain proper fade timing
+            if (this.boostStartTimestampMs > 0) {
+                this.boostStartTimestampMs += this.pausedDurationMs;
+            }
+            if (this.boostEndTimestampMs > 0) {
+                this.boostEndTimestampMs += this.pausedDurationMs;
+            }
         }
         this.isPaused = nextPaused;
         this.pausedByFocus = nextPaused && byFocus;

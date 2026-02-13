@@ -164,6 +164,8 @@ const SpaceTravelPhysics = {
             }
             if (ThreeDUtils.vecLength(params.playerShip.velocity) <= (baseMaxSpeed * params.config.BOOST_COOLDOWN_END_SPEED_MULT)) {
                 params.boostCooldownRemaining = 0;
+                // Ensure boost end timestamp is cleared when cooldown completes
+                params.boostEndTimestampMs = 0;
             }
         }
 

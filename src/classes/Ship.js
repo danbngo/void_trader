@@ -268,4 +268,31 @@ class Ship {
         
         return amount - remainingAmount;
     }
+    
+    /**
+     * Get base max speed for a ship (without boost)
+     * Central source of truth for speed calculations across all systems
+     * @param {Ship} ship - The ship
+     * @param {number} speedPerEngine - Units per second per engine level (AU/s per engine)
+     * @returns {number} Base max speed in AU/s
+     */
+    static getBaseMaxSpeed(ship, speedPerEngine = 1 / 600) {
+        if (!ship) return 0;
+        const engine = ship.engine || 10;
+        return engine * speedPerEngine;
+    }
+    
+    /**
+     * Get max speed for a ship (with optional boost multiplier)
+     * Central source of truth for speed calculations across all systems
+     * @param {Ship} ship - The ship
+     * @param {boolean} isBoosting - Whether boost is active
+     * @param {number} speedPerEngine - Units per second per engine level (AU/s per engine)
+     * @param {number} boostMultiplier - Boost speed multiplier
+     * @returns {number} Max speed in AU/s
+     */
+    static getMaxSpeed(ship, isBoosting = false, speedPerEngine = 1 / 600, boostMultiplier = 100) {
+        const baseMaxSpeed = Ship.getBaseMaxSpeed(ship, speedPerEngine);
+        return baseMaxSpeed * (isBoosting ? boostMultiplier : 1);
+    }
 }

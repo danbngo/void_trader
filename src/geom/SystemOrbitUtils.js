@@ -28,10 +28,18 @@ const SystemOrbitUtils = (() => {
         const progress = getOrbitProgress(orbit, date);
         const angle = progress * Math.PI * 2;
         const radius = orbit.semiMajorAU || 0;
+        
+        // Apply orbital inclination for realistic 3D distribution
+        // Inclination is stored per orbit for variety (0-25 degrees typical for solar system)
+        const inclination = orbit.inclinationRad || 0;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius * Math.cos(inclination);
+        const z = Math.sin(angle) * radius * Math.sin(inclination);
+        
         return {
-            x: Math.cos(angle) * radius,
-            y: Math.sin(angle) * radius,
-            z: 0,
+            x,
+            y,
+            z,
             progress
         };
     }

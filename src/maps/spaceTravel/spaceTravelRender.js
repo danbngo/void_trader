@@ -624,8 +624,8 @@ const SpaceTravelRender = (() => {
 
         SpaceTravelHud.renderHud({
             ...renderParams,
-            baseMaxSpeed: params.getBaseMaxSpeed?.(params.playerShip) || 0,
-            maxSpeed: params.getMaxSpeed?.(params.playerShip, params.boostActive) || 0,
+            baseMaxSpeed: Ship.getBaseMaxSpeed(params.playerShip, params.config.SHIP_SPEED_PER_ENGINE) || 0,
+            maxSpeed: Ship.getMaxSpeed(params.playerShip, params.boostActive, params.config.SHIP_SPEED_PER_ENGINE, params.config.BOOST_MAX_SPEED_MULT) || 0,
             autoNavActive: params.autoNavActive,
             speedOverrideText: emergenceSpeedOverride,
             speedOverrideColor: emergenceSpeedOverride ? COLORS.TEXT_DIM : undefined,

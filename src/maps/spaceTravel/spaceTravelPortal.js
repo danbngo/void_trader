@@ -358,68 +358,79 @@ const SpaceTravelPortal = {
         const tintStrength = Math.max(0, Math.min(1, tintBase * expansionProgress));
 
         const sampleChars = [];
-        let tintCandidates = 0;
         let linesDrawn = 0;
+        let tintApplied = 0;
         let tintDepthBlocked = 0;
         let segmentsSkipped = 0;
 
-        // Draw stochastic tunnel lines with perspective-based speed
-        // Slower near center, faster at edges (mirroring movement through tunnel)
-        const timeSeconds = effectiveTimestampMs / 1000;
-        const maxRadius = Math.max(screenRadiusX, screenRadiusY);
-        
-        // Generate stochastic line "seeds" using time-based noise for animation
-        // Use fewer lines (~6-8 instead of 12) and randomize their positions
-        const stochasticLineCount = 7;
-        const dotDensity = 0.3; // Only 30% of potential positions get dots
-        
-        for (let lineIdx = 0; lineIdx < stochasticLineCount; lineIdx++) {
-            // Create pseudo-random but stable line angle for this index
-            const lineSeed = lineIdx * 2654435761; // Large prime for good distribution
-            const baseAngle = ((lineSeed % 10000) / 10000) * Math.PI * 2;
-            
-            // Add drift to line angle over time for organic feel
-            const angleDrift = Math.sin(timeSeconds * 0.3 + lineIdx) * 0.5;
-            const radialAngle = baseAngle + angleDrift;
-            const cosAngle = Math.cos(radialAngle);
-            const sinAngle = Math.sin(radialAngle);
-
-            // Variable dots per line (3-6 instead of fixed 4)
-            const dotsPerLine = 3 + Math.floor((lineSeed % 1000) / 1000 * 3);
-            
-            for (let dotIdx = 0; dotIdx < dotsPerLine; dotIdx++) {
-                // Skip some dots randomly to create gaps
-                const dotSeed = lineSeed + dotIdx * 73856093;
-                if (((dotSeed % 10000) / 10000) > dotDensity) {
+        // First pass: Tint anything visible through the portal (stars, objects, etc.)
+        for (let y = minY; y <= maxY; y++) {
+            const dy = (y - centerY) / screenRadiusY;
+            for (let x = minX; x <= maxX; x++) {
+                const dx = (x - centerX) / screenRadiusX;
+                if ((dx * dx) + (dy * dy) > 1) {
+                    continue;
+                }
+                const index = y * depthBuffer.width + x;
+                if (depthBuffer.depth[index] <= cameraSpace.z) {
+                    tintDepthBlocked++;
                     continue;
                 }
                 
-                // Base radial position (0 = center, 1 = edge)
-                const baseProgress = dotIdx / dotsPerLine;
+                // Tint existing content
+                let color = depthBuffer.colors[index];
+                if (!color || typeof color !== 'string' || color[0] !== '#') {
+                    color = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_NORMAL, emptyBrightness);
+                }
+                depthBuffer.colors[index] = SpaceTravelShared.lerpColorHex(color, COLORS.CYAN, tintStrength);
+                tintApplied++;
+            }
+        }
 
-                // Speed is perspective-based: closer to center is slower, edges are faster
-                // This mirrors actual tunnel perspective
-                const speedMultiplier = 0.3 + baseProgress * 1.7; // 0.3x to 2x
-                const baseMovementRate = 0.6;
-
-                // Animate outward: dot moves from inner to outer radius
-                const animationPhase = (timeSeconds * baseMovementRate * speedMultiplier) % 1.0;
+        // Second pass: Draw animated circular pulses of radial lines expanding outward
+        const timeSeconds = effectiveTimestampMs / 1000;
+        const maxRadiusScreen = Math.max(screenRadiusX, screenRadiusY);
+        const innerDeadZone = 0.25; // 25% radius has no lines
+        const outerClamp = 0.88; // Stop at 88% to ensure no overlap with edge
+        const pulseCount = 3; // Number of concurrent pulses
+        const pulseDensity = 8; // Characters per pulse ring
+        const pulseSpeed = 0.5; // Speed of expansion (2x faster)
+        const pulseSpacing = 1.0 / pulseCount; // Spacing between pulses
+        
+        for (let pulseIdx = 0; pulseIdx < pulseCount; pulseIdx++) {
+            // Calculate phase for this pulse
+            const pulsePhase = (timeSeconds * pulseSpeed + pulseIdx * pulseSpacing) % 1.0;
+            
+            // Progress from innerDeadZone to outerClamp
+            const progress = innerDeadZone + pulsePhase * (outerClamp - innerDeadZone);
+            
+            // Skip if pulse is off-screen
+            if (progress > outerClamp) continue;
+            
+            // Generate ring of individual characters at this distance
+            for (let charIdx = 0; charIdx < pulseDensity; charIdx++) {
+                // Even distribution around the circle
+                const angle = (charIdx / pulseDensity) * Math.PI * 2;
+                const cosAngle = Math.cos(angle);
+                const sinAngle = Math.sin(angle);
                 
-                // Combine base position with animation
-                const progress = (baseProgress + animationPhase) % 1.0;
-
-                // Skip if beyond radius
-                if (progress > 1.0) continue;
-
-                // Calculate screen position
-                const screenDistance = progress * maxRadius;
-                const px = centerX + cosAngle * screenDistance;
-                const py = centerY + sinAngle * screenDistance;
+                // Single character at this radial distance and angle
+                const screenDist = progress * maxRadiusScreen;
+                const px = centerX + cosAngle * screenDist;
+                const py = centerY + sinAngle * screenDist;
                 const x = Math.round(px);
                 const y = Math.round(py);
-
+                
                 // Bounds check
                 if (x < minX || x > maxX || y < minY || y > maxY) {
+                    segmentsSkipped++;
+                    continue;
+                }
+
+                // Additional circle check to prevent extending past portal edge
+                const dx = (x - centerX) / screenRadiusX;
+                const dy = (y - centerY) / screenRadiusY;
+                if ((dx * dx) + (dy * dy) > 0.95) {
                     segmentsSkipped++;
                     continue;
                 }
@@ -428,18 +439,20 @@ const SpaceTravelPortal = {
 
                 // Depth check
                 if (depthBuffer.depth[index] <= cameraSpace.z) {
-                    tintDepthBlocked++;
                     continue;
                 }
 
-                // Brightness based on closeness to center: brighter near center, fades at edges
-                const distFromCenter = screenDistance / maxRadius;
-                const brightness = Math.max(0.15, 1.0 - (distFromCenter * 0.7));
+                // Brightness: fade in as pulse expands, stronger in middle
+                const distFromCenter = (progress - innerDeadZone) / (outerClamp - innerDeadZone);
+                const brightness = Math.max(0.4, 1.0 - Math.abs(pulsePhase - 0.5) * 0.8); // Peak brightness mid-pulse
 
-                // Color varies subtly per line: cyan near center, deeper blue at edges
-                const color = SpaceTravelShared.lerpColorHex(COLORS.CYAN, '#000a2a', distFromCenter * 0.6);
+                // Color: bright cyan fading slightly at edges
+                const color = SpaceTravelShared.lerpColorHex(COLORS.CYAN, '#004466', distFromCenter * 0.3);
 
-                depthBuffer.chars[index] = '·';
+                // Use directional character based on angle
+                const symbol = SpaceTravelShared.getLineSymbolFromDirection(cosAngle, -sinAngle);
+
+                depthBuffer.chars[index] = symbol;
                 depthBuffer.colors[index] = SpaceTravelShared.lerpColorHex(color, depthBuffer.colors[index] || '#000000', Math.min(1, tintStrength * brightness));
                 linesDrawn++;
 
@@ -447,9 +460,9 @@ const SpaceTravelPortal = {
                     sampleChars.push({
                         x,
                         y,
-                        char: '·',
+                        char: symbol,
                         progress: Number(progress.toFixed(3)),
-                        speed: Number(speedMultiplier.toFixed(2)),
+                        pulseIdx: pulseIdx,
                         distFromCenter: Number(distFromCenter.toFixed(3))
                     });
                 }
@@ -458,13 +471,16 @@ const SpaceTravelPortal = {
 
         const logIntervalMs = 1000;
         if (effectiveTimestampMs - (params.portalTintLastLogMs || 0) >= logIntervalMs) {
-            console.log('[PortalTunnel]', {
+            console.log('[PortalTint]', {
                 tintStrength: Number(tintStrength.toFixed(3)),
                 linesDrawn,
+                tintApplied,
                 depthBlocked: tintDepthBlocked,
                 segmentsSkipped,
-                stochasticLines: stochasticLineCount,
-                dotDensity: dotDensity,
+                pulseCount: pulseCount,
+                pulseDensity: pulseDensity,
+                innerDeadZone: innerDeadZone,
+                outerClamp: outerClamp,
                 radiusAU: Number(currentRadius.toFixed(6)),
                 bounds: {
                     centerX: Number(centerX.toFixed(2)),

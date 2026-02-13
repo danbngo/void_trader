@@ -31,6 +31,11 @@ const SpaceTravelAutoNav = {
                 const engine = params.playerShip.engine || 10;
                 const baseAccel = params.playerShip.size * engine * params.config.SHIP_ACCEL_PER_ENGINE * params.config.BASE_ACCEL_MULT;
                 const brakeAccel = baseAccel * 2;
+                
+                // During boost cooldown, braking is much more effective
+                const boostBrakeMult = params.config.BOOST_BRAKE_MULT || 4;
+                const boostCooldownBrakeAccel = baseAccel * boostBrakeMult;
+                
                 const boostMaxSpeed = params.getMaxSpeed(params.playerShip, true);
                 const desiredDistance = this.getDesiredDistance(params);
                 const boostStopSpeedMult = typeof params.config.AUTO_NAV_BOOST_STOP_SPEED_MULT === 'number'
@@ -38,9 +43,11 @@ const SpaceTravelAutoNav = {
                     : 10;
                 const effectiveBoostSpeed = Math.min(boostMaxSpeed, params.getBaseMaxSpeed(params.playerShip) * boostStopSpeedMult);
                 
-                // Calculate stopping distance at boost speed
-                const boostStoppingDist = (effectiveBoostSpeed * effectiveBoostSpeed) / (2 * brakeAccel);
-                params.autoNavBoostBreakpointDistance = desiredDistance + boostStoppingDist;
+                // Calculate stopping distance using enhanced cooldown braking
+                // Use a safety factor of 1.5x instead of assuming worst case
+                const boostStoppingDist = (effectiveBoostSpeed * effectiveBoostSpeed) / (2 * boostCooldownBrakeAccel);
+                const safetyFactor = 1.5; // 50% safety margin
+                params.autoNavBoostBreakpointDistance = desiredDistance + (boostStoppingDist * safetyFactor);
                 params.autoNavBoostStopDistance = params.autoNavBoostBreakpointDistance;
                 params.autoNavBoostDisabled = false;
                 params.autoNavBoostEngagedOnce = false;

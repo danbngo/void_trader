@@ -8,27 +8,21 @@ const WarpAnimation = (() => {
     let lastTimestamp = 0;
     let isActive = false;
     let streaks = [];
-    let stochasticStreaks = [];
 
-    const STREAK_COUNT = 320; // 2x more frequent
-    const BASE_SPEED = 72; // 2x faster (doubled)
-    const SPEED_RAMP = 192; // 2x faster ramp (doubled)
-    const BASE_LENGTH = 2;
-    const LENGTH_RAMP = 8;
-    
-    const STOCHASTIC_STREAK_COUNT = 200; // Random background lines
-    const STOCHASTIC_BASE_SPEED = 144; // 2x faster than circle lines (doubled)
-    const STOCHASTIC_SPEED_RAMP = 384; // (doubled)
+    const PARTICLE_COUNT = 120; // Stochastic dust-like particles
+    const BASE_SPEED = 40; // Base movement speed
+    const SPEED_RAMP = 100; // Speed increase over time
+    const INNER_DEAD_ZONE = 0.15; // Empty circle in center (15% of max radius)
+    const PARTICLE_LENGTH = 3; // Length of each particle streak
 
     function show(gameState, targetSystem, onComplete) {
         stop();
         isActive = true;
         startTimestamp = 0;
         lastTimestamp = 0;
-        streaks = buildStreaks(STREAK_COUNT);
-        stochasticStreaks = buildStochasticStreaks(STOCHASTIC_STREAK_COUNT);
+        streaks = buildParticles(PARTICLE_COUNT);
 
-        const totalDuration = SpaceTravelConfig.WARP_ANIM_DURATION_MS || 4000;
+        const totalDuration = SpaceTravelConfig.WARP_ANIM_DURATION_MS || 1000;
 
         const loop = (timestamp) => {
             if (!isActive) {
@@ -63,37 +57,21 @@ const WarpAnimation = (() => {
         }
     }
 
-    function buildStreaks(count) {
-        const streakData = [];
+    function buildParticles(count) {
+        const particles = [];
         for (let i = 0; i < count; i++) {
-            streakData.push(spawnStreak());
+            particles.push(spawnParticle());
         }
-        return streakData;
+        return particles;
     }
 
-    function buildStochasticStreaks(count) {
-        const streakData = [];
-        for (let i = 0; i < count; i++) {
-            streakData.push(spawnStochasticStreak());
-        }
-        return streakData;
-    }
-
-    function spawnStreak() {
+    function spawnParticle() {
+        // Random angle and starting position outside dead zone
         return {
             angle: Math.random() * Math.PI * 2,
-            offset: Math.random() * 0.5,
-            length: BASE_LENGTH + Math.random() * 2,
-            depth: 0
-        };
-    }
-
-    function spawnStochasticStreak() {
-        return {
-            angle: Math.random() * Math.PI * 2,
-            offset: Math.random() * 0.5,
-            length: BASE_LENGTH + Math.random() * 3,
-            depth: Math.random() * 0.5 - 0.25 // Random depth, not aligned
+            offset: INNER_DEAD_ZONE + Math.random() * (1 - INNER_DEAD_ZONE), // Start beyond dead zone
+            depth: Math.random() * 0.8 - 0.4, // Random depth for variety
+            spawnTime: Math.random() * 2000 // Stagger initial spawns
         };
     }
 
@@ -118,62 +96,57 @@ const WarpAnimation = (() => {
 
         const t = Math.min(1, elapsedMs / totalDuration);
         const speed = BASE_SPEED + (SPEED_RAMP * t * t);
-        const stochasticSpeed = STOCHASTIC_BASE_SPEED + (STOCHASTIC_SPEED_RAMP * t * t);
-        const lengthScale = BASE_LENGTH + (LENGTH_RAMP * t);
 
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
-        // Render stochastic lines first (underneath)
-        stochasticStreaks.forEach(streak => {
-            const dirX = Math.cos(streak.angle);
-            const dirY = Math.sin(streak.angle);
-            streak.offset += stochasticSpeed * dt;
-            if (streak.offset > (maxRadius + 20)) {
-                streak.angle = Math.random() * Math.PI * 2;
-                streak.offset = Math.random() * 2;
-                streak.length = BASE_LENGTH + Math.random() * 3;
-                streak.depth = Math.random() * 0.5 - 0.25;
+        // Render stochastic dust particles
+        streaks.forEach(particle => {
+            // Skip if not spawned yet
+            if (elapsedMs < particle.spawnTime) {
+                return;
             }
 
-            const length = streak.length + lengthScale;
-            const startX = centerX + dirX * streak.offset / aspectRatio;  // INVERT: divide
-            const startY = centerY + dirY * streak.offset;
-            const endX = centerX + dirX * (streak.offset + length) / aspectRatio;  // INVERT: divide
-            const endY = centerY + dirY * (streak.offset + length);
-
-            const points = LineDrawer.drawLine(Math.round(startX), Math.round(startY), Math.round(endX), Math.round(endY), true, COLORS.TEXT_DIM);
-            const symbol = SpaceTravelShared.getLineSymbolFromDirection(dirX, -dirY);
-            for (let i = 0; i < points.length; i++) {
-                const point = points[i];
-                if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, streak.depth + 1, symbol, COLORS.TEXT_DIM);
-                }
-            }
-        });
-
-        // Render ordered circle lines on top
-        streaks.forEach(streak => {
-            const dirX = Math.cos(streak.angle);
-            const dirY = Math.sin(streak.angle);
-            streak.offset += speed * dt;
-            if (streak.offset > (maxRadius + 10)) {
-                streak.angle = Math.random() * Math.PI * 2;
-                streak.offset = Math.random() * 2;
-                streak.length = BASE_LENGTH + Math.random() * 2;
+            const dirX = Math.cos(particle.angle);
+            const dirY = Math.sin(particle.angle);
+            
+            // Perspective speed gradient: slower near dead zone (0.2x), medium in middle (1x), faster at edges (3x)
+            // This creates a smooth acceleration as particles move from center to edge
+            const normalizedDist = (particle.offset - INNER_DEAD_ZONE) / (1 - INNER_DEAD_ZONE);
+            const speedMultiplier = 0.2 + (normalizedDist * normalizedDist * 2.8); // Quadratic curve for smooth gradient
+            
+            particle.offset += (speed * speedMultiplier * dt) / maxRadius;
+            
+            // Respawn particle if it goes off screen
+            if (particle.offset > 1.3) {
+                particle.angle = Math.random() * Math.PI * 2;
+                particle.offset = INNER_DEAD_ZONE + Math.random() * 0.1; // Respawn just outside dead zone
+                particle.depth = Math.random() * 0.8 - 0.4;
             }
 
-            const length = streak.length + lengthScale;
-            const startX = centerX + dirX * streak.offset / aspectRatio;  // INVERT: divide
-            const startY = centerY + dirY * streak.offset;
-            const endX = centerX + dirX * (streak.offset + length) / aspectRatio;  // INVERT: divide
-            const endY = centerY + dirY * (streak.offset + length);
+            // Skip if still in dead zone
+            if (particle.offset < INNER_DEAD_ZONE) {
+                return;
+            }
+
+            const radiusAtParticle = particle.offset * maxRadius;
+            
+            // Draw short streak in direction of motion
+            const startX = centerX + dirX * radiusAtParticle / aspectRatio;
+            const startY = centerY + dirY * radiusAtParticle;
+            const endX = centerX + dirX * (radiusAtParticle + PARTICLE_LENGTH) / aspectRatio;
+            const endY = centerY + dirY * (radiusAtParticle + PARTICLE_LENGTH);
 
             const points = LineDrawer.drawLine(Math.round(startX), Math.round(startY), Math.round(endX), Math.round(endY), true, COLORS.CYAN);
             const symbol = SpaceTravelShared.getLineSymbolFromDirection(dirX, -dirY);
+            
+            // Fade based on distance: brighter near edges (simulates approaching fast)
+            const fadeFactor = Math.min(1, normalizedDist * 1.2);
+            const color = SpaceTravelShared.lerpColorHex('#003344', COLORS.CYAN, fadeFactor);
+            
             for (let i = 0; i < points.length; i++) {
                 const point = points[i];
                 if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, 0, symbol, COLORS.CYAN);
+                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, particle.depth, symbol, color);
                 }
             }
         });
@@ -210,16 +183,32 @@ const WarpAnimation = (() => {
 
         UI.draw();
 
-        const tintRamp = SpaceTravelConfig.WARP_TINT_RAMP_MS || totalDuration;
-        const tintAlpha = Math.min(1, elapsedMs / tintRamp);
+        // Apply radial gradient tint: black in center, darker cyan at edges
+        // Continuously intensify throughout the animation
         const ctx = UI.getContext?.();
         const canvas = UI.getCanvas?.();
-        if (ctx && canvas && tintAlpha > 0) {
-            ctx.save();
-            ctx.globalAlpha = tintAlpha;
-            ctx.fillStyle = '#00ccff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
+        if (ctx && canvas) {
+            // Tint increases from 0 to full over the entire animation
+            const tintAlpha = Math.min(1, elapsedMs / totalDuration);
+            
+            if (tintAlpha > 0) {
+                ctx.save();
+                ctx.globalAlpha = tintAlpha * 0.3; // Darker overall tint
+                
+                // Create radial gradient from center to edges
+                const gradient = ctx.createRadialGradient(
+                    canvas.width / 2, canvas.height / 2, 0,
+                    canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
+                );
+                gradient.addColorStop(0, '#000000'); // Black center
+                gradient.addColorStop(0.3, '#001a22'); // Very dark cyan-tinted
+                gradient.addColorStop(0.7, '#003344'); // Dark cyan
+                gradient.addColorStop(1, '#005577'); // Medium-dark cyan at edges
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
         }
     }
 

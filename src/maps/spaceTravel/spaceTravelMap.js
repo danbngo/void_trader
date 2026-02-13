@@ -317,7 +317,7 @@ class SpaceTravelMapClass {
             console.log('[SpaceTravelMap._initializeStation] Setting default station destination:', this.currentStation.name);
             this.currentGameState.localDestination = {
                 type: 'STATION',
-                positionWorld: { ...this.currentStation.position },
+                // Don't store positionWorld here - let it be calculated from orbit on each frame
                 id: this.currentStation.name || 'Station',
                 name: this.currentStation.name || 'Station',
                 orbit: this.currentStation.orbit

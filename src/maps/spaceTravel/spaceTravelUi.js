@@ -93,14 +93,20 @@ const SpaceTravelUi = (() => {
                 y: targetSystem.y * config.LY_TO_AU,
                 z: 0
             };
-            let rel = { x: 0, y: 0, z: 0 };
+            
+            // Always recalculate position from orbit if available (handles moving objects)
+            if (localDestination.orbit) {
+                const rel = SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date);
+                return buildTargetInfo(localDestination, ThreeDUtils.addVec(systemCenter, rel), true);
+            }
+            
+            // Fallback to static position for non-orbiting objects (like stations without orbits)
             if (localDestination.type === 'STATION' && localDestination.positionWorld) {
                 return buildTargetInfo(localDestination, localDestination.positionWorld, true);
             }
-            if (localDestination.orbit) {
-                rel = SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date);
-            }
-            return buildTargetInfo(localDestination, ThreeDUtils.addVec(systemCenter, rel), true);
+            
+            // Default to system center if no position info available
+            return buildTargetInfo(localDestination, systemCenter, true);
         }
 
         if (targetSystem) {

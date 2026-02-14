@@ -5,6 +5,22 @@
 
 const Object3DRenderer = (() => {
     /**
+     * Linear interpolation between two hex colors
+     */
+    function lerpColorHex(a, b, t) {
+        const aR = parseInt(a.slice(1, 3), 16);
+        const aG = parseInt(a.slice(3, 5), 16);
+        const aB = parseInt(a.slice(5, 7), 16);
+        const bR = parseInt(b.slice(1, 3), 16);
+        const bG = parseInt(b.slice(3, 5), 16);
+        const bB = parseInt(b.slice(5, 7), 16);
+        const r = Math.round(aR + (bR - aR) * t);
+        const g = Math.round(aG + (bG - aG) * t);
+        const b1 = Math.round(aB + (bB - aB) * t);
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b1).toString(16).slice(1);
+    }
+
+    /**
      * Get fat arrow symbol based on direction (for small ship rendering)
      * @param {number} dx - Direction X component
      * @param {number} dy - Direction Y component (in screen space Y, not camera Y)
@@ -64,10 +80,6 @@ const Object3DRenderer = (() => {
             return;
         }
 
-        if (params.isAlly) {
-            console.log(`[Object3DRenderer] render() called for ally: pos=(${object.position.x.toFixed(1)}, ${object.position.y.toFixed(1)}, ${object.position.z.toFixed(6)}), viewport=${viewWidth}x${viewHeight}`);
-        }
-
         const geometry = object.geometry;
         const position = object.position || { x: 0, y: 0, z: 0 };
         const rotation = object.rotation || { x: 0, y: 0, z: 0, w: 1 };
@@ -98,8 +110,6 @@ const Object3DRenderer = (() => {
             
             const x = Math.round(projected.x);
             const y = Math.round(projected.y);
-            
-            console.log(`[Object3DRenderer] Rendering small ship as symbol at screen (${x}, ${y}), size: 1x1 chars, depth: ${depth.toFixed(6)}, distance: ${dist.toFixed(2)} AU`);
             
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
                 // Calculate ship's forward direction in camera space
@@ -152,19 +162,6 @@ const Object3DRenderer = (() => {
             }
             return RasterUtils.projectCameraSpacePointRaw(cameraPos, viewWidth, viewHeight, config.VIEW_FOV);
         });
-        
-        if (params.isAlly) {
-            const validCameraVerts = cameraVertices.filter(v => v.z >= config.NEAR_PLANE).length;
-            const validProjections = projectedVertices.filter(p => p !== null).length;
-            console.log(`  ▲ Geometry: ${geometry.vertices.length} vertices → ${validCameraVerts} in camera bounds → ${validProjections} projected`);
-            
-            // Log projected vertex coordinates
-            projectedVertices.forEach((proj, idx) => {
-                if (proj) {
-                    console.log(`    Vert ${idx}: screen (${proj.x.toFixed(2)}, ${proj.y.toFixed(2)})`);
-                }
-            });
-        }
 
         // Calculate bounding box of projected vertices
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -196,8 +193,7 @@ const Object3DRenderer = (() => {
                     const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
                     
                     const arrow = getFatArrow(cameraForward.x, cameraForward.z);
-                    const color = params.isAlly ? COLORS.LIGHT_GREEN : '#00ff00';
-                    
+                const color = params.isAlly ? COLORS.GREEN : '#00ff00';
                     RasterUtils.plotDepthText(depthBuffer, Math.round(projected.x), Math.round(projected.y), depth, arrow, color);
                     
                     if (onPickInfo && mouseState) {
@@ -215,7 +211,7 @@ const Object3DRenderer = (() => {
             }
         }
 
-        // Calculate face normals in camera space for backface culling
+        // Calculate face depths and normals for rendering
         const visibleFaces = [];
         if (geometry.faces && Array.isArray(geometry.faces)) {
             geometry.faces.forEach((face, faceIdx) => {
@@ -249,93 +245,100 @@ const Object3DRenderer = (() => {
                     return;
                 }
 
-                // Calculate depth (average Z of face vertices)
-                const faceDepth = (v0.z + v1.z + v2.z) / vertexIndices.length;
+                // Calculate depth (average Z of all face vertices)
+                let faceDepth = 0;
+                vertexIndices.forEach(idx => {
+                    const v = cameraVertices[idx];
+                    if (v) faceDepth += v.z;
+                });
+                faceDepth /= vertexIndices.length;
                 
                 visibleFaces.push({
                     face: face,
                     indices: vertexIndices,
                     depth: faceDepth,
-                    faceIdx: faceIdx
+                    faceIdx: faceIdx,
+                    normal: normal
                 });
             });
         }
 
+        // Calculate depth range for shading
+        const faceDepths = visibleFaces.map(f => f.depth);
+        const minDepth = faceDepths.length > 0 ? Math.min(...faceDepths) : 0;
+        const maxDepth = faceDepths.length > 0 ? Math.max(...faceDepths) : 0;
+        const depthRange = Math.max(0.000001, maxDepth - minDepth);
+
         // Sort by depth (farthest first for proper occlusion)
         visibleFaces.sort((a, b) => b.depth - a.depth);
 
-        if (params.isAlly && visibleFaces.length === 0 && geometry.faces && geometry.faces.length > 0) {
-            console.log(`[Object3DRenderer] WARNING: No visible faces for escort! Geometry has ${geometry.faces.length} faces, all backface culled or off-screen`);
-        }
-
-        if (params.isAlly && visibleFaces.length > 0) {
-            console.log(`[Object3DRenderer] Rendering ${visibleFaces.length} visible faces (of ${geometry.faces ? geometry.faces.length : 0} total)`);
-        }
-
-        // Render each visible face
+        // Render each visible face with filled polygons
         let faceRenderCount = 0;
-        let totalEdgesToDraw = 0;
         visibleFaces.forEach(({ face, indices, depth, faceIdx }) => {
-            const faceColor = face.color || COLORS.LIGHT_GREEN;
+            // Get camera space vertices for this face (for clipping)
+            const cameraFace = indices.map(idx => cameraVertices[idx]).filter(v => v !== null);
             
-            // Get projected screen coordinates for this face's vertices
-            const screenPoints = indices.map(idx => projectedVertices[idx]).filter(p => p !== null);
-            
-            if (screenPoints.length < 3) {
+            if (cameraFace.length < 3) {
                 return;
             }
 
-            let edgeCount = 0;
-            // Draw face edges using Bresenham line algorithm
-            for (let i = 0; i < screenPoints.length; i++) {
-                const p1 = screenPoints[i];
-                const p2 = screenPoints[(i + 1) % screenPoints.length];
-                
-                if (!p1 || !p2) continue;
-
-                const x1 = Math.round(p1.x);
-                const y1 = Math.round(p1.y);
-                const x2 = Math.round(p2.x);
-                const y2 = Math.round(p2.y);
-                
-                if (params.isAlly) {
-                    console.log(`  [Object3DRenderer] Face ${faceIdx} edge ${i}: screen (${p1.x.toFixed(2)}, ${p1.y.toFixed(2)}) → (${p2.x.toFixed(2)}, ${p2.y.toFixed(2)}) → rounded (${x1},${y1}) → (${x2},${y2})`);
-                }
-
-                // Draw line between vertices
-                const linePoints = LineDrawer.drawLine(x1, y1, x2, y2, false, faceColor);
-                totalEdgesToDraw += linePoints.length;
-                let plotCount = 0;
-                linePoints.forEach(point => {
-                    if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                        RasterUtils.plotDepthText(depthBuffer, point.x, point.y, depth, point.symbol, faceColor);
-                        plotCount++;
-                    }
-                });
-                if (params.isAlly && plotCount > 0) {
-                    console.log(`    ✓ Plotted ${plotCount}/${linePoints.length} points`);
-                    edgeCount++;
-                } else if (params.isAlly) {
-                    console.log(`    ✗ All ${linePoints.length} points outside viewport`);
-                }
+            // Clip to near plane
+            const clipped = PolygonUtils.clipPolygonToNearPlane(cameraFace, config.NEAR_PLANE);
+            if (clipped.length < 3) {
+                return;
             }
+
+            // Calculate normal for winding order
+            const edge1 = ThreeDUtils.subVec(clipped[1], clipped[0]);
+            const edge2 = ThreeDUtils.subVec(clipped[2], clipped[0]);
+            const normal = {
+                x: edge1.y * edge2.z - edge1.z * edge2.y,
+                y: edge1.z * edge2.x - edge1.x * edge2.z,
+                z: edge1.x * edge2.y - edge1.y * edge2.x
+            };
+            const normalLen = ThreeDUtils.vecLength(normal);
+            if (normalLen === 0) return;
+
+            let normalUnit = ThreeDUtils.scaleVec(normal, 1 / normalLen);
+            let viewDot = normalUnit.z;
             
-            if (params.isAlly && edgeCount > 0) {
-                faceRenderCount++;
-                console.log(`  ▲ Face ${faceIdx} (${screenPoints.length} vertices): rendered ${edgeCount} edges`);
+            // Build plane basis and order vertices
+            const basis = PolygonUtils.buildPlaneBasis(normal);
+            let ordered = PolygonUtils.orderPolygonVertices(clipped, basis);
+            
+            // Flip if facing away
+            if (viewDot < 0) {
+                ordered = ordered.slice().reverse();
             }
 
-            // Optionally fill face (using lighter shade)
-            // This is a simple approach - just render edges for now
+            // Calculate distance-based color (green tint)
+            // Closest face = light green, farthest = dark green
+            const depthT = 1 - ((depth - minDepth) / depthRange);
+            const clampedT = Math.max(0, Math.min(1, depthT));
+            
+            // Use green color range: dark green to light green
+            const faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
+            
+            // Render filled face
+            const rasterResult = RasterUtils.rasterizeFaceDepth(
+                depthBuffer,
+                ordered,
+                viewWidth,
+                viewHeight,
+                '█',
+                faceColor,
+                0,  // depth bias
+                config.NEAR_PLANE,
+                config.VIEW_FOV,
+                'tri'  // fill mode
+            );
+            
+            if (rasterResult && rasterResult.pointsDrawn > 0) {
+                faceRenderCount++;
+            }
         });
         
-        if (params.isAlly && faceRenderCount === 0 && visibleFaces.length > 0) {
-            console.log(`[Object3DRenderer] WARNING: ${visibleFaces.length} visible faces had no edges in screen bounds! (${totalEdgesToDraw} total edge points attempted)`);
-        }
-        
-        if (params.isAlly) {
-            console.log(`[Object3DRenderer] ✓ render() complete for ally: ${faceRenderCount} faces with visible edges`);
-        }
+        RasterUtils.flushDepthBuffer(depthBuffer);
     }
 
     /**

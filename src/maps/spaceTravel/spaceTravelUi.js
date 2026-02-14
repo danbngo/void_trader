@@ -168,6 +168,11 @@ const SpaceTravelUi = (() => {
             return null;
         }
 
+        // Escort ships are always green
+        if (body.kind === 'ESCORT_SHIP' || body.type === 'ESCORT_SHIP') {
+            return COLORS.GREEN;
+        }
+
         const dist = ThreeDUtils.vecLength(ThreeDUtils.subVec(position, state.playerShip.position));
         const shadeMax = config.SYSTEM_BODY_SHADE_MAX_DISTANCE_AU || 1;
         const shadeT = Math.max(0.2, 1 - (dist / shadeMax));

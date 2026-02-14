@@ -59,6 +59,9 @@ const SpaceTravelShared = (() => {
         if (!body) {
             return '•';
         }
+        if (body.kind === 'ESCORT_SHIP' || body.type === 'ESCORT_SHIP') {
+            return '▲';  // Triangle symbol
+        }
         if (body.kind === 'STATION' || body.type === 'STATION') {
             return '□';
         }

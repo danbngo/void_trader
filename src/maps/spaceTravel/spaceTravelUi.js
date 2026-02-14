@@ -30,7 +30,25 @@ const SpaceTravelUi = (() => {
             }
         }
 
-        if (pick.bodyRef && pick.bodyRef.type === 'STATION') {
+        if (pick.kind === 'ESCORT_SHIP') {
+            // Handle escort ship destination
+            const escort = pick.bodyRef;
+            const shipData = escort.shipData || {};
+            currentGameState.localDestination = {
+                type: 'ESCORT_SHIP',
+                positionWorld: escort.position,
+                id: `escort-${escort.shipIndex}`,
+                name: shipData.name || `Allied Ship ${escort.shipIndex}`,
+                escort: escort,
+                orbit: null
+            };
+            console.log('[SpaceTravelUi] Set escort destination:', {
+                escortIndex: escort.shipIndex,
+                escortName: shipData.name,
+                escortPos: escort.position,
+                destinationPos: currentGameState.localDestination.positionWorld
+            });
+        } else if (pick.bodyRef && pick.bodyRef.type === 'STATION') {
             const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
                 ? system.station.orbit.semiMajorAU
                 : SYSTEM_PLANET_ORBIT_MAX_AU + SYSTEM_STATION_ORBIT_BUFFER_AU;
@@ -94,6 +112,21 @@ const SpaceTravelUi = (() => {
                 z: 0
             };
             
+            // For escort ships, get current position from the escort object
+            if (localDestination.type === 'ESCORT_SHIP' && localDestination.escort && localDestination.escort.position) {
+                const escortPos = localDestination.escort.position;
+                // Log at 1% sample rate to avoid spam
+                if (Math.random() < 0.01) {
+                    console.log('[SpaceTravelUi.getActiveTargetInfo] Escort position:', {
+                        escortIndex: localDestination.escort.shipIndex,
+                        escortName: localDestination.name,
+                        escortPos: escortPos,
+                        targetDistance: Math.sqrt((escortPos.x)*(escortPos.x) + (escortPos.y)*(escortPos.y) + (escortPos.z)*(escortPos.z)).toFixed(0)
+                    });
+                }
+                return buildTargetInfo(localDestination, escortPos, true);
+            }
+            
             // Always recalculate position from orbit if available (handles moving objects)
             if (localDestination.orbit) {
                 const rel = SystemOrbitUtils.getOrbitPosition(localDestination.orbit, currentGameState.date);
@@ -101,7 +134,7 @@ const SpaceTravelUi = (() => {
             }
             
             // Fallback to static position for non-orbiting objects (like stations without orbits)
-            if (localDestination.type === 'STATION' && localDestination.positionWorld) {
+            if ((localDestination.type === 'STATION' || localDestination.type === 'ESCORT_SHIP') && localDestination.positionWorld) {
                 return buildTargetInfo(localDestination, localDestination.positionWorld, true);
             }
             

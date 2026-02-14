@@ -170,23 +170,6 @@ class RasterUtils {
 
         const dir = { x: normX * fovScale, y: normY * fovScale, z: 1 };
         const normalized = ThreeDUtils.normalizeVec(dir);
-        
-        // Log ray direction calculation for laser diagnostics
-        if (Math.random() < 0.1) {  // Log 10% of the time to avoid spam
-            console.log('[ScreenRayDirection]', {
-                screenGridX: x,
-                screenGridY: y,
-                charDims: { width: charDims.width, height: charDims.height },
-                charAspect: charAspect.toFixed(4),
-                pixelX: Math.round(px),
-                pixelY: Math.round(py),
-                normX: normX.toFixed(4),
-                normY: normY.toFixed(4),
-                dirBefore: { x: dir.x.toFixed(4), y: dir.y.toFixed(4), z: dir.z.toFixed(4) },
-                dirAfter: { x: normalized.x.toFixed(4), y: normalized.y.toFixed(4), z: normalized.z.toFixed(4) }
-            });
-        }
-        
         return normalized;
     }
 

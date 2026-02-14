@@ -204,11 +204,6 @@ const SpaceTravelInput = (() => {
                     inputState,
                     boostActive: mapInstance.boostActive
                 });
-                console.log('[SpaceTravelInput] onFire RESULT:', {
-                    fired: !!result,
-                    laserEmpty: result?.laserEmptyTimestampMs !== undefined,
-                    hitTarget: result?.hitTarget !== undefined
-                });
                 if (result?.laserEmptyTimestampMs) {
                     mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;
                 }

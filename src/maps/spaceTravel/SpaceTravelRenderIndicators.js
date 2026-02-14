@@ -57,7 +57,7 @@ const SpaceTravelRenderIndicators = (() => {
         // Find where ray from center to target intersects screen edge
         const centerX = viewWidth / 2;
         const centerY = viewHeight / 2;
-        const margin = 2;
+        const margin = 0;  // Allow arrows to touch the edge
         const minX = margin;
         const maxX = viewWidth - margin - 1;
         const minY = margin;
@@ -103,12 +103,28 @@ const SpaceTravelRenderIndicators = (() => {
         const x = Math.round(centerX + dx * t);
         const y = Math.round(centerY + dy * t);
 
-        // Use screen-space dx/dy for arrow direction (already accounts for character aspect)
-        const arrow = SpaceTravelShared.getDirectionalArrow(dx, dy);
+        // Use screen-space dx/dy for arrow direction, but negate dy to convert from screen coords to math coords
+        // (in screen space, +Y is DOWN, but arrows assume +Y is UP)
+        const arrow = SpaceTravelShared.getDirectionalArrow(dx, -dy);
 
         // Render arrow
         if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
             addHudText(x, y, arrow, color || COLORS.CYAN);
+            
+            // Log nav arrow details occasionally
+            if (Math.random() < 0.05) {
+                console.log('[NavArrow]', {
+                    arrow,
+                    screenPos: { x, y },
+                    screenCenter: { centerX, centerY },
+                    directionNormalized: { dx: dx.toFixed(3), dy: dy.toFixed(3) },
+                    targetDistance: Math.sqrt((dx * dx) + (dy * dy)).toFixed(3),
+                    margin,
+                    bounds: { minX, maxX, minY, maxY },
+                    Name: name
+                });
+            }
+            
             return { rendered: true, x, y, arrow };
         }
 

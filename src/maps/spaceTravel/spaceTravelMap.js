@@ -573,10 +573,84 @@ class SpaceTravelMapClass {
                     this.damageFlashStartMs = timestampMs;
                 }
 
+                // Apply bounce physics to player ship
+                this._applyShipBounce(this.playerShip, escort, this.config);
+
                 // Set cooldown for this escort
                 this.escortLastCollisionMs[index] = timestampMs;
             }
+
+            // Also check ship-to-ship collisions between escorts
+            for (let j = index + 1; j < this.escortShips.length; j++) {
+                const otherEscort = this.escortShips[j];
+                if (!otherEscort) continue;
+
+                if (this._checkShipToShipCollision(escort, otherEscort)) {
+                    // Apply bounce physics to both ships
+                    this._applyShipToShipBounce(escort, otherEscort, this.config);
+                }
+            }
         });
+    }
+
+    _checkShipToShipCollision(ship1, ship2) {
+        if (!ship1.position || !ship2.position) {
+            return false;
+        }
+
+        const toOther = ThreeDUtils.subVec(ship2.position, ship1.position);
+        const distance = ThreeDUtils.vecLength(toOther);
+        
+        // Estimate collision radius (half the size of ship from geometry)
+        const collisionRadius1 = 0.1 * (this.config?.SHIP_PHYSICS_SCALE || 50) / 50;
+        const collisionRadius2 = 0.1 * (this.config?.SHIP_PHYSICS_SCALE || 50) / 50;
+        const collisionDistance = (collisionRadius1 + collisionRadius2) * (this.config?.SHIP_COLLISION_RADIUS_MULT || 1.2);
+
+        return distance < collisionDistance;
+    }
+
+    _applyShipBounce(playerShip, otherShip, config) {
+        if (!playerShip.velocity || !otherShip.position || !playerShip.position) {
+            return;
+        }
+
+        const toShip = ThreeDUtils.subVec(otherShip.position, playerShip.position);
+        const normalize = 1 / (ThreeDUtils.vecLength(toShip) || 0.001);
+        const normal = ThreeDUtils.scaleVec(toShip, normalize);
+
+        // Reflect velocity off the collision surface
+        const v = playerShip.velocity;
+        const dotVN = ThreeDUtils.dotVec(v, normal);
+        const reflected = ThreeDUtils.subVec(v, ThreeDUtils.scaleVec(normal, 2 * dotVN));
+        
+        const bounceDamping = config?.SHIP_BOUNCE_DAMPING || 0.7;
+        playerShip.velocity = ThreeDUtils.scaleVec(reflected, bounceDamping);
+    }
+
+    _applyShipToShipBounce(ship1, ship2, config) {
+        if (!ship1.position || !ship2.position || !ship1.velocity || !ship2.velocity) {
+            return;
+        }
+
+        const relPos = ThreeDUtils.subVec(ship2.position, ship1.position);
+        const normalize = 1 / (ThreeDUtils.vecLength(relPos) || 0.001);
+        const normal = ThreeDUtils.scaleVec(relPos, normalize);
+
+        // Relative velocity
+        const relVel = ThreeDUtils.subVec(ship2.velocity, ship1.velocity);
+        const velAlongNormal = ThreeDUtils.dotVec(relVel, normal);
+
+        // Don't collide if moving apart
+        if (velAlongNormal >= 0) {
+            return;
+        }
+
+        const bounceDamping = config?.SHIP_BOUNCE_DAMPING || 0.7;
+        const impulse = ThreeDUtils.scaleVec(normal, -velAlongNormal * bounceDamping);
+
+        // Apply impulse to both ships (simple equal mass assumption)
+        ship1.velocity = ThreeDUtils.subVec(ship1.velocity, impulse);
+        ship2.velocity = ThreeDUtils.addVec(ship2.velocity, impulse);
     }
 
     _advanceTime(dt) {

@@ -65,8 +65,19 @@ const SpaceTravelRender = (() => {
         });
 
         // Render escort ships
+        const escortPickInfos = [];
         if (params.escortShips && params.escortShips.length > 0 && typeof Object3DRenderer !== 'undefined') {
-            params.escortShips.forEach(escort => {
+            console.log(`[SpaceTravelRender] Rendering ${params.escortShips.length} escort ships`);
+            params.escortShips.forEach((escort, idx) => {
+                console.log(`[SpaceTravelRender] Rendering escort ${idx}:`, {
+                    position: escort.position,
+                    hasGeometry: !!escort.geometry,
+                    distance: escort.position ? Math.sqrt(
+                        (escort.position.x - params.playerShip.position.x) ** 2 +
+                        (escort.position.y - params.playerShip.position.y) ** 2 +
+                        (escort.position.z - params.playerShip.position.z) ** 2
+                    ).toFixed(2) : 'N/A'
+                });
                 Object3DRenderer.render({
                     object: escort,
                     playerShip: params.playerShip,
@@ -80,9 +91,60 @@ const SpaceTravelRender = (() => {
                         return depthBuffer.chars[idx] || ' ';
                     },
                     timestampMs: effectiveRenderTimestampMs,
-                    isAlly: true // Mark escort ships as allies for green coloring
+                    mouseState,
+                    isAlly: true, // Mark escort ships as allies for green coloring
+                    onPickInfo: (pickInfo) => {
+                        escortPickInfos.push(pickInfo);
+                    }
                 });
             });
+        } else {
+            if (!params.escortShips || params.escortShips.length === 0) {
+                console.log('[SpaceTravelRender] No escort ships to render');
+            }
+        }
+
+        // Check for escort picks and update hover if needed
+        if (escortPickInfos.length > 0 && mouseState) {
+            // Find closest escort to mouse
+            const closestEscort = escortPickInfos.reduce((closest, current) => {
+                const currentDist = Math.abs(current.screenX - mouseState.x) + Math.abs(current.screenY - mouseState.y);
+                const closestDist = Math.abs(closest.screenX - mouseState.x) + Math.abs(closest.screenY - mouseState.y);
+                return currentDist < closestDist ? current : closest;
+            });
+
+            // Only pick if mouse is reasonably close
+            const pickDistance = Math.abs(closestEscort.screenX - mouseState.x) + Math.abs(closestEscort.screenY - mouseState.y);
+            if (pickDistance <= 2) {  // 2 character distance threshold
+                // Check if there's an existing pick that's closer
+                const existingPickDist = renderParams.lastHoverPick 
+                    ? Math.abs(renderParams.lastHoverPick.screenX - mouseState.x) + Math.abs(renderParams.lastHoverPick.screenY - mouseState.y)
+                    : Infinity;
+                
+                // Use escort pick if it's closer or no existing pick
+                if (pickDistance <= existingPickDist) {
+                    const escortPickData = {
+                        kind: 'ESCORT_SHIP',
+                        bodyRef: closestEscort.object,
+                        x: closestEscort.screenX,
+                        y: closestEscort.screenY,
+                        screenX: mouseState.x,
+                        screenY: mouseState.y,
+                        distance: closestEscort.distance
+                    };
+                    console.log('[SpaceTravelRender] Escort pick created:', {
+                        escortIndex: closestEscort.object.shipIndex,
+                        escortPos: closestEscort.object.position,
+                        distance: closestEscort.distance,
+                        screenPos: { x: closestEscort.screenX, y: closestEscort.screenY },
+                        pickDistance: pickDistance
+                    });
+                    renderParams.lastHoverPick = escortPickData;
+                    if (params.mapInstance) {
+                        params.mapInstance.lastHoverPick = escortPickData;
+                    }
+                }
+            }
         }
 
         // Render portal (even when paused)

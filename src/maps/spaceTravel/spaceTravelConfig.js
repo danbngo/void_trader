@@ -33,6 +33,13 @@ const SpaceTravelConfig = {
     SYSTEM_BODY_SCREEN_SCALE: 10,
     SYSTEM_BODY_PHYSICS_SCALE: 10,
     CHAR_CELL_ASPECT_RATIO: null,
+    SHIP_SCREEN_SCALE: 50, // Magnification factor for screen rendering (must be visible)
+    SHIP_PHYSICS_SCALE: 100, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
+    SHIP_SPAWN_DISTANCE_AU: 2.0,
+    SHIP_SPAWN_SPREAD_AU: 0.3,
+    SHIP_COLLISION_RADIUS_MULT: 1.2,
+    SHIP_BOUNCE_DAMPING: 0.7,
+    SHIP_COLLISION_COOLDOWN_MS: 400,
     STATION_SCREEN_SCALE: 100,
     STATION_PHYSICS_SCALE: 100,
     STATION_SPAWN_DISTANCE_MULT: 25,

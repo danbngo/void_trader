@@ -11,29 +11,122 @@ const EscortShipAI = (() => {
     const STAR_HEAT_AVOID_MARGIN = 1.2; // Multiplier on star heat radius for avoidance
 
     /**
+     * Calculate collision radius from ship geometry
+     * @param {Object} geometry - Ship geometry with vertices
+     * @param {Object} config - SpaceTravelConfig with SHIP_PHYSICS_SCALE
+     * @returns {number} Collision radius in AU
+     */
+    function calculateShipRadius(geometry, config) {
+        if (!geometry || !geometry.vertices || geometry.vertices.length === 0) {
+            return 0.00004; // fallback
+        }
+        
+        const verts = geometry.vertices;
+        let minX = verts[0].x, maxX = verts[0].x;
+        let minY = verts[0].y, maxY = verts[0].y;
+        let minZ = verts[0].z, maxZ = verts[0].z;
+        
+        verts.forEach(v => {
+            minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+            minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+            minZ = Math.min(minZ, v.z); maxZ = Math.max(maxZ, v.z);
+        });
+        
+        const worldSizeX = (maxX - minX) * (config.SHIP_PHYSICS_SCALE || 50);
+        const worldSizeY = (maxY - minY) * (config.SHIP_PHYSICS_SCALE || 50);
+        const worldSizeZ = (maxZ - minZ) * (config.SHIP_PHYSICS_SCALE || 50);
+        return Math.sqrt(worldSizeX * worldSizeX + worldSizeY * worldSizeY + worldSizeZ * worldSizeZ) / 2;
+    }
+
+    /**
      * Initialize escort ships for the player
      * @param {GameState} gameState
      * @param {Object} playerShip
      * @param {Array} systems - System list for context
+     * @param {Object} config - SpaceTravelConfig for spawn distances
      * @returns {Array} Array of escort ship objects
      */
-    function initializeEscortShips(gameState, playerShip, systems = []) {
+    function initializeEscortShips(gameState, playerShip, systems = [], config = {}) {
         const escorts = [];
+        const spawnDistance = Math.max(0.01, Math.min(1, config.SHIP_SPAWN_DISTANCE_AU || 0.3));
+        const spawnSpread = Math.max(0.01, Math.min(0.5, config.SHIP_SPAWN_SPREAD_AU || 0.15));
         
         // Create escort object for each ship except the first (player's)
         if (gameState.ships && gameState.ships.length > 1) {
             for (let i = 1; i < gameState.ships.length; i++) {
                 const shipData = gameState.ships[i];
-                escorts.push({
+                const geometry = ShipGeometry.getShip('FIGHTER');
+                
+                // Calculate spawn position offset to spread escorts around player
+                // Use different spawn points to avoid collision at spawn
+                const angle = (i - 1) * (Math.PI * 2 / (gameState.ships.length - 1));
+                const offsetX = Math.cos(angle) * (spawnDistance + Math.random() * spawnSpread);
+                const offsetY = Math.sin(angle) * (spawnDistance + Math.random() * spawnSpread);
+                const offsetZ = (Math.random() - 0.5) * spawnSpread * 0.5;
+                
+                // Sanity check: ensure offsets are finite and reasonable
+                const finalOffsetX = Number.isFinite(offsetX) && Math.abs(offsetX) < 10 ? offsetX : spawnDistance;
+                const finalOffsetY = Number.isFinite(offsetY) && Math.abs(offsetY) < 10 ? offsetY : spawnDistance;
+                const finalOffsetZ = Number.isFinite(offsetZ) && Math.abs(offsetZ) < 10 ? offsetZ : 0;
+                
+                const escort = {
                     shipIndex: i,
                     shipData: shipData,
-                    position: { x: playerShip.position.x, y: playerShip.position.y, z: playerShip.position.z },
+                    position: { 
+                        x: playerShip.position.x + finalOffsetX, 
+                        y: playerShip.position.y + finalOffsetY, 
+                        z: playerShip.position.z + finalOffsetZ 
+                    },
                     rotation: { x: 0, y: 0, z: 0, w: 1 },
                     velocity: { x: 0, y: 0, z: 0 },
-                    geometry: ShipGeometry.getShip('FIGHTER'),
+                    geometry: geometry,
                     state: 'following', // 'following', 'avoiding', 'docking'
-                    lastAvoidanceTime: 0
-                });
+                    lastAvoidanceTime: 0,
+                    lastCollisionMs: 0
+                };
+                
+                escorts.push(escort);
+                
+                // Log ship geometry sizes
+                if (geometry && geometry.vertices && geometry.vertices.length > 0) {
+                    const verts = geometry.vertices;
+                    let minX = verts[0].x, maxX = verts[0].x;
+                    let minY = verts[0].y, maxY = verts[0].y;
+                    let minZ = verts[0].z, maxZ = verts[0].z;
+                    
+                    verts.forEach(v => {
+                        minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+                        minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+                        minZ = Math.min(minZ, v.z); maxZ = Math.max(maxZ, v.z);
+                    });
+                    
+                    const worldSizeX = (maxX - minX) * (config.SHIP_PHYSICS_SCALE || 50);
+                    const worldSizeY = (maxY - minY) * (config.SHIP_PHYSICS_SCALE || 50);
+                    const worldSizeZ = (maxZ - minZ) * (config.SHIP_PHYSICS_SCALE || 50);
+                    
+                    // Both player and escort use same geometry, so calculate radii the same way
+                    const escortRadius = calculateShipRadius(geometry, config);
+                    const playerGeometry = ShipGeometry.getShip('FIGHTER'); // Player uses FIGHTER too
+                    const playerRadius = calculateShipRadius(playerGeometry, config);
+                    const offsetDist = Math.sqrt(finalOffsetX * finalOffsetX + finalOffsetY * finalOffsetY + finalOffsetZ * finalOffsetZ);
+                    const minSafeDistance = escortRadius + playerRadius;
+                    const hasIntersection = offsetDist < minSafeDistance;
+                    
+                    console.log(`[EscortShipAI] Escort ${i} SPAWN:`, {
+                        shipName: shipData.name || `Ship ${i}`,
+                        playerPos: playerShip.position,
+                        escortPos: escort.position,
+                        spawnOffset: { x: finalOffsetX.toFixed(4), y: finalOffsetY.toFixed(4), z: finalOffsetZ.toFixed(4) },
+                        offsetDistance: offsetDist.toFixed(4),
+                        modelSize: { x: maxX - minX, y: maxY - minY, z: maxZ - minZ },
+                        worldSize: { x: worldSizeX, y: worldSizeY, z: worldSizeZ },
+                        radii: { escortRadius: escortRadius.toFixed(6), playerRadius: playerRadius.toFixed(6), minSafeDistance: minSafeDistance.toFixed(6) },
+                        hasIntersection: hasIntersection,
+                        vertexCount: verts.length,
+                        faceCount: geometry.faces?.length || 0,
+                        positionIsFinite: Number.isFinite(escort.position.x) && Number.isFinite(escort.position.y) && Number.isFinite(escort.position.z)
+                    });
+                }
             }
         }
         
@@ -53,8 +146,70 @@ const EscortShipAI = (() => {
             return;
         }
 
+        // Sync escort positions if player's coordinate system changed
+        // (e.g., due to station positioning or system transition)
+        syncEscortPositions(escorts, playerShip, config);
+
         escorts.forEach(escort => {
             updateEscortShip(escort, playerShip, system, dt, config);
+        });
+    }
+
+    /**
+     * Sync escort positions to player if coordinate system changed
+     * This handles cases when player position is relocated (station/system transitions)
+     */
+    function syncEscortPositions(escorts, playerShip, config) {
+        const maxReasonableDistance = 10; // AU - escorts shouldn't be this far from player naturally
+        
+        escorts.forEach(escort => {
+            const toPlayer = ThreeDUtils.subVec(playerShip.position, escort.position);
+            const distance = ThreeDUtils.vecLength(toPlayer);
+            
+            if (distance > maxReasonableDistance) {
+                // Player's coordinate system has changed - relocate escort near player
+                const spawnDistance = Math.max(0.01, Math.min(1, config.SHIP_SPAWN_DISTANCE_AU || 0.3));
+                const spawnSpread = Math.max(0.01, Math.min(0.5, config.SHIP_SPAWN_SPREAD_AU || 0.15));
+                
+                // Calculate new spawn position offset
+                const angle = Math.random() * Math.PI * 2;
+                const offsetX = Math.cos(angle) * (spawnDistance + Math.random() * spawnSpread);
+                const offsetY = Math.sin(angle) * (spawnDistance + Math.random() * spawnSpread);
+                const offsetZ = (Math.random() - 0.5) * spawnSpread * 0.5;
+                
+                const oldPos = escort.position;
+                const newPos = {
+                    x: playerShip.position.x + offsetX,
+                    y: playerShip.position.y + offsetY,
+                    z: playerShip.position.z + offsetZ
+                };
+                escort.position = newPos;
+                escort.velocity = { x: 0, y: 0, z: 0 };
+                
+                // Calculate collision info
+                const offsetDist = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
+                const geometry = escort.geometry;
+                const escortRadius = calculateShipRadius(geometry, config);
+                const playerGeometry = ShipGeometry.getShip('FIGHTER');
+                const playerRadius = calculateShipRadius(playerGeometry, config);
+                const minSafeDistance = escortRadius + playerRadius;
+                const hasIntersection = offsetDist < minSafeDistance;
+                const newDistance = Math.sqrt((newPos.x - playerShip.position.x)**2 +
+                                             (newPos.y - playerShip.position.y)**2 +
+                                             (newPos.z - playerShip.position.z)**2);
+                
+                console.log(`[EscortShipAI] Escort ${escort.shipIndex} SYNCED to new coordinate system:`, {
+                    reason: 'coordinate_system_change',
+                    oldDistance: distance.toFixed(1),
+                    oldPos: oldPos,
+                    playerPos: playerShip.position,
+                    newPos: newPos,
+                    newDistance: newDistance.toFixed(4),
+                    offsetDistance: offsetDist.toFixed(6),
+                    radii: { escortRadius: escortRadius.toFixed(6), playerRadius: playerRadius.toFixed(6), minSafeDistance: minSafeDistance.toFixed(6) },
+                    hasIntersection: hasIntersection
+                });
+            }
         });
     }
 
@@ -83,9 +238,10 @@ const EscortShipAI = (() => {
         }
 
         // Apply velocity and position update
+        const oldPosition = escort.position;
         const newPosition = ThreeDUtils.addVec(escort.position, ThreeDUtils.scaleVec(escort.velocity, dt));
         escort.position = newPosition;
-
+        
         // Update rotation to face direction of movement
         if (ThreeDUtils.vecLength(escort.velocity) > 0.1) {
             const dir = ThreeDUtils.normalizeVec(escort.velocity);
@@ -155,14 +311,26 @@ const EscortShipAI = (() => {
         const distance = ThreeDUtils.vecLength(toPlayer);
 
         if (distance <= FOLLOW_STOP_DISTANCE) {
+            escort.velocity = ThreeDUtils.scaleVec(escort.velocity, 0.9);
             return;
         }
 
-        const direction = ThreeDUtils.normalizeVec(toPlayer);
-        const desiredSpeed = Math.min(MAX_APPROACH_SPEED, distance / dt);
-        const acceleration = ThreeDUtils.scaleVec(direction, desiredSpeed * 0.5); // Smooth acceleration
+        // Use ship speed constants from config - escorts should move at player's speed scales
+        const shipEngine = 10; // Assume escort has 10 engine level like player
+        const maxSpeed = shipEngine * (config.SHIP_SPEED_PER_ENGINE || 1/600); // AU/s
+        const shipAccel = shipEngine * (config.SHIP_ACCEL_PER_ENGINE || 1/60); // AU/s²
 
+        const direction = ThreeDUtils.normalizeVec(toPlayer);
+        
+        // Accelerate toward player at reasonable rates
+        const acceleration = ThreeDUtils.scaleVec(direction, shipAccel * 2); // 2x acceleration to catch up
         escort.velocity = ThreeDUtils.addVec(escort.velocity, ThreeDUtils.scaleVec(acceleration, dt));
+        
+        // Cap velocity to max speed
+        const velocityMag = ThreeDUtils.vecLength(escort.velocity);
+        if (velocityMag > maxSpeed) {
+            escort.velocity = ThreeDUtils.scaleVec(escort.velocity, maxSpeed / velocityMag);
+        }
     }
 
     /**
@@ -174,15 +342,26 @@ const EscortShipAI = (() => {
             return;
         }
 
+        // Use ship speed constants from config
+        const shipEngine = 10; // Assume escort has 10 engine level like player
+        const maxSpeed = shipEngine * (config.SHIP_SPEED_PER_ENGINE || 1/600); // AU/s
+        const shipAccel = shipEngine * (config.SHIP_ACCEL_PER_ENGINE || 1/60) * 3; // 3x acceleration for emergency avoidance
+
         const away = ThreeDUtils.subVec(escort.position, primaryHazard.position);
         const distFromHazard = ThreeDUtils.vecLength(away);
 
         if (distFromHazard < 0.01) {
-            // Too close, move away faster
-            escort.velocity = ThreeDUtils.scaleVec(away, MAX_APPROACH_SPEED / Math.max(0.1, distFromHazard));
+            // Too close, move away faster - use emergency acceleration
+            const emergencyAccel = Math.min(maxSpeed, shipAccel * 5);
+            escort.velocity = ThreeDUtils.scaleVec(away, emergencyAccel / Math.max(0.001, distFromHazard));
+            // Cap to max speed
+            const velocityMag = ThreeDUtils.vecLength(escort.velocity);
+            if (velocityMag > maxSpeed) {
+                escort.velocity = ThreeDUtils.scaleVec(escort.velocity, maxSpeed / velocityMag);
+            }
         } else {
             const direction = ThreeDUtils.normalizeVec(away);
-            escort.velocity = ThreeDUtils.scaleVec(direction, MAX_APPROACH_SPEED);
+            escort.velocity = ThreeDUtils.scaleVec(direction, maxSpeed);
         }
     }
 

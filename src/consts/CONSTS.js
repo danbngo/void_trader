@@ -201,6 +201,7 @@ const MINING_MAX_HULL_DAMAGE = 5
 const MINING_MAX_GOODS_PER_LASER = 0.1
 
 const SPACE_STATION_SIZE_AU = 0.000043 // about 6.45 million km, which is roughly the size of the ISS's orbit around Earth. This is used for collision detection and rendering scale in space travel map and station interiors.
+const SHIP_SIZE_AU = SPACE_STATION_SIZE_AU*.01
 
 // Collision damage constants (generalized for all object types)
 const COLLISION_DAMAGE_DIVISOR = 10 // damage = floor(speedPerMinute / COLLISION_DAMAGE_DIVISOR), min 1

@@ -5,7 +5,8 @@
 
 const ShipGeometry = (() => {
     // Default fighter ship: triangular with pointy nose
-    // 11 vertices for a sleek, angular design
+    // Vertex coordinates are in canonical form (relative units)
+    // They will be scaled by SHIP_SIZE_AU in post-processing below
     const SHIPS = {
         FIGHTER: {
             id: 'FIGHTER',
@@ -70,6 +71,17 @@ const ShipGeometry = (() => {
             ]
         }
     };
+
+    // Post-process all ships to scale vertices by SHIP_SIZE_AU
+    Object.values(SHIPS).forEach(ship => {
+        if (ship.vertices && Array.isArray(ship.vertices)) {
+            ship.vertices.forEach(vertex => {
+                vertex.x *= SHIP_SIZE_AU;
+                vertex.y *= SHIP_SIZE_AU;
+                vertex.z *= SHIP_SIZE_AU;
+            });
+        }
+    });
 
     /**
      * Get ship geometry by ID

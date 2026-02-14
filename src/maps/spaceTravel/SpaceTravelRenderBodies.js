@@ -265,15 +265,42 @@ const SpaceTravelRenderBodies = (() => {
                                         // Calculate shading based on star direction
                                         if (starWorldPos) {
                                             const toStarWorld = ThreeDUtils.normalizeVec(ThreeDUtils.subVec(starWorldPos, worldPos));
-                                            const toStarCamera = ThreeDUtils.normalizeVec(ThreeDUtils.rotateVecByQuat(toStarWorld, ThreeDUtils.quatConjugate(playerShip.rotation)));
+                                            
+                                            // Compute surface normal in WORLD space (radial from planet center)
+                                            // This keeps shading consistent as player rotates camera
                                             const nx = normalizedX;
                                             const ny = normalizedY;
                                             const nz = Math.sqrt(Math.max(0, 1 - (nx * nx) - (ny * ny)));
-                                            const normalCamera = ThreeDUtils.normalizeVec({ x: nx, y: ny, z: nz });
+                                            
+                                            // Transform the normal from ellipse space to world space
+                                            // The normal needs to account for the planet's rotation and orientation
+                                            const pitch = -playerShip.rotation.x || 0;  // Camera pitch
+                                            const yaw = -playerShip.rotation.z || 0;    // Camera yaw
+                                            
+                                            // Build rotation matrix (reversed from camera rotation so normal is in world space)
+                                            const cosPitch = Math.cos(pitch);
+                                            const sinPitch = Math.sin(pitch);
+                                            const cosYaw = Math.cos(yaw);
+                                            const sinYaw = Math.sin(yaw);
+                                            
+                                            // Rotate normal from camera space back to world space
+                                            // First yaw, then pitch
+                                            let normalWorldX = nx * cosYaw + nz * sinYaw;
+                                            let normalWorldY = ny;
+                                            let normalWorldZ = -nx * sinYaw + nz * cosYaw;
+                                            
+                                            // Then pitch rotation
+                                            let tempY = normalWorldY * cosPitch - normalWorldZ * sinPitch;
+                                            let tempZ = normalWorldY * sinPitch + normalWorldZ * cosPitch;
+                                            normalWorldY = tempY;
+                                            normalWorldZ = tempZ;
+                                            
+                                            const normalWorld = ThreeDUtils.normalizeVec({ x: normalWorldX, y: normalWorldY, z: normalWorldZ });
+                                            
                                             // Dot product: positive = facing star, negative = away from star
-                                            const lightDot = (toStarCamera.x * normalCamera.x)
-                                                + (toStarCamera.y * normalCamera.y)
-                                                + (toStarCamera.z * normalCamera.z);
+                                            const lightDot = (toStarWorld.x * normalWorld.x)
+                                                + (toStarWorld.y * normalWorld.y)
+                                                + (toStarWorld.z * normalWorld.z);
                                             // Apply shading: 50% darker on far side
                                             const shadeFactor = 0.5 + (lightDot * 0.5); // Maps -1..1 to 0..1, then 0.5..1
                                             

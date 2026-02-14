@@ -193,11 +193,59 @@ const WarpAnimation = (() => {
 
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
-        // Render stochastic dust particles
-        streaks.forEach(particle => {
+        SpaceTravelHud.renderHud({
+            viewWidth,
+            viewHeight,
+            playerShip: gameState?.ships?.[0] || null,
+            currentGameState: gameState,
+            baseMaxSpeed: 0,
+            maxSpeed: 0,
+            boostActive: false,
+            boostCooldownRemaining: 0,
+            isPaused: false,
+            laserEmptyTimestampMs: 0,
+            boostNoFuelTimestampMs: 0,
+            timestampMs: performance.now(),
+            config: SpaceTravelConfig,
+            helpers: {
+                applyPauseColor: (color) => color,
+                addHudText: (x, y, text, color) => UI.addText(x, y, text, color),
+                getActiveTargetInfo: () => null
+            },
+            autoNavActive: false,
+            suppressButtons: true,
+            hideDestination: true,
+            hideDistance: true,
+            hideTime: true,
+            speedOverrideText: '???',
+            speedOverrideColor: COLORS.CYAN,
+            onOptions: () => {} // No-op during warp animation
+        });
+
+        // Apply radial gradient tint using characters instead of canvas
+        // Black in center, darker cyan at edges, intensifies throughout animation
+        const tintAlpha = Math.min(1, elapsedMs / totalDuration);
+        // REMOVED: Radial gradient tint - cleaner look with just lines
+
+        // Render stochastic dust particles AFTER tint so lines appear on top
+        // Vary particle frequency based on progress: start at 0.5x (sparse), ramp to 2.0x (dense)
+        const frequencyMultiplier = 0.5 + (t * 1.5); // 0.5 at t=0, 2.0 at t=1
+        
+        streaks.forEach((particle, particleIndex) => {
             // Skip if not spawned yet
             if (elapsedMs < particle.spawnTime) {
                 return;
+            }
+
+            // Dynamic frequency: skip particles based on progress
+            // At start (t=0, freq=0.5): skip 50% of particles (only render every 2nd)
+            // At end (t=1, freq=2.0): render all plus create virtual clones
+            if (frequencyMultiplier < 1) {
+                // Sparse phase: skip particles based on threshold
+                const skipThreshold = 1 / frequencyMultiplier;
+                if (particleIndex % Math.ceil(skipThreshold) !== 0) {
+                    return; // Skip this particle
+                }
             }
 
             const dirX = Math.cos(particle.angle);
@@ -240,87 +288,35 @@ const WarpAnimation = (() => {
             for (let i = 0; i < points.length; i++) {
                 const point = points[i];
                 if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
-                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, particle.depth, symbol, color);
+                    UI.addText(point.x, point.y, symbol, color);
                 }
             }
-        });
-
-        RasterUtils.flushDepthBuffer(depthBuffer);
-
-        SpaceTravelHud.renderHud({
-            viewWidth,
-            viewHeight,
-            playerShip: gameState?.ships?.[0] || null,
-            currentGameState: gameState,
-            baseMaxSpeed: 0,
-            maxSpeed: 0,
-            boostActive: false,
-            boostCooldownRemaining: 0,
-            isPaused: false,
-            laserEmptyTimestampMs: 0,
-            boostNoFuelTimestampMs: 0,
-            timestampMs: performance.now(),
-            config: SpaceTravelConfig,
-            helpers: {
-                applyPauseColor: (color) => color,
-                addHudText: (x, y, text, color) => UI.addText(x, y, text, color),
-                getActiveTargetInfo: () => null
-            },
-            autoNavActive: false,
-            suppressButtons: true,
-            hideDestination: true,
-            hideDistance: true,
-            hideTime: true,
-            speedOverrideText: '???',
-            speedOverrideColor: COLORS.CYAN,
-            onOptions: () => {} // No-op during warp animation
-        });
-
-        // Apply radial gradient tint using characters instead of canvas
-        // Black in center, darker cyan at edges, intensifies throughout animation
-        const tintAlpha = Math.min(1, elapsedMs / totalDuration);
-        if (tintAlpha > 0) {
-            const tintDepth = 0.5; // Render in front of most HUD elements but behind particles
-            const maxRadiusChars = Math.max(centerX, centerY);
             
-            // Render radial tint by placing characters at varying distances from center
-            for (let y = 0; y < viewHeight; y++) {
-                for (let x = 0; x < viewWidth; x++) {
-                    // Calculate normalized distance from center (0 = center, 1 = edge)
-                    const dx = (x - centerX) / maxRadiusChars;
-                    const dy = (y - centerY) / maxRadiusChars;
-                    const distFromCenter = Math.sqrt(dx * dx + dy * dy);
-                    const normalizedDist = Math.min(1, distFromCenter);
+            // In dense phase, render some particles a second time with slightly offset angle
+            if (frequencyMultiplier > 1) {
+                const extraRenderChance = frequencyMultiplier - 1; // 0 to 1
+                if (Math.random() < extraRenderChance) {
+                    // Render a clone of this particle with a slight angular offset
+                    const offsetAngle = (Math.random() - 0.5) * Math.PI / 4; // ±22.5 degrees
+                    const cloneDirX = Math.cos(particle.angle + offsetAngle);
+                    const cloneDirY = Math.sin(particle.angle + offsetAngle);
+                    const cloneStartX = centerX + cloneDirX * radiusAtParticle / aspectRatio;
+                    const cloneStartY = centerY + cloneDirY * radiusAtParticle;
+                    const cloneEndX = centerX + cloneDirX * (radiusAtParticle + PARTICLE_LENGTH) / aspectRatio;
+                    const cloneEndY = centerY + cloneDirY * (radiusAtParticle + PARTICLE_LENGTH);
                     
-                    // Determine tint intensity based on distance from center
-                    // Full black in center, gradually transitioning to dark cyan at edges
-                    let tintColor;
-                    if (normalizedDist < 0.3) {
-                        // Black center (0.0 - 0.3)
-                        tintColor = COLORS.BLACK;
-                    } else if (normalizedDist < 0.5) {
-                        // Transition from black to very dark cyan (0.3 - 0.5)
-                        const t = (normalizedDist - 0.3) / 0.2;
-                        tintColor = SpaceTravelShared.lerpColorHex(COLORS.BLACK, '#001a22', t);
-                    } else if (normalizedDist < 0.75) {
-                        // Dark cyan (0.5 - 0.75)
-                        const t = (normalizedDist - 0.5) / 0.25;
-                        tintColor = SpaceTravelShared.lerpColorHex('#001a22', '#003344', t);
-                    } else {
-                        // Medium-dark cyan at edges (0.75 - 1.0)
-                        const t = (normalizedDist - 0.75) / 0.25;
-                        tintColor = SpaceTravelShared.lerpColorHex('#003344', '#005577', t);
-                    }
+                    const clonePoints = LineDrawer.drawLine(Math.round(cloneStartX), Math.round(cloneStartY), Math.round(cloneEndX), Math.round(cloneEndY), true, COLORS.CYAN);
+                    const cloneSymbol = SpaceTravelShared.getLineSymbolFromDirection(cloneDirX, -cloneDirY);
                     
-                    // Use semi-transparent overlay character (shade block with reduced opacity-like effect)
-                    // Intensity increases with animation progress
-                    const intensity = tintAlpha * 0.4 * (1 - normalizedDist * 0.3);
-                    if (intensity > 0.05) {
-                        UI.addText(x, y, '░', tintColor, intensity);
+                    for (let i = 0; i < clonePoints.length; i++) {
+                        const point = clonePoints[i];
+                        if (point.x >= 0 && point.x < viewWidth && point.y >= 0 && point.y < viewHeight) {
+                            UI.addText(point.x, point.y, cloneSymbol, color);
+                        }
                     }
                 }
             }
-        }
+        });
 
         UI.draw();
     }

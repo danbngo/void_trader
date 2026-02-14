@@ -149,6 +149,16 @@ const SpaceTravelInput = (() => {
                         localDestination: mapInstance.localDestination,
                         portalState
                     });
+                }, () => {
+                    const portalState = SpaceTravelPortal.getState(mapInstance);
+                    OptionsMenu.show(() => {
+                        const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(mapInstance.currentGameState);
+                        mapInstance.show(mapInstance.currentGameState, destination, {
+                            resetPosition: false,
+                            localDestination: mapInstance.localDestination,
+                            portalState
+                        });
+                    });
                 });
             },
             onTogglePause: () => {

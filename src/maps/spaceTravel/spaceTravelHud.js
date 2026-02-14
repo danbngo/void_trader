@@ -195,22 +195,6 @@ const SpaceTravelHud = (() => {
             const speed = ThreeDUtils.vecLength(playerShip.velocity);
             const isMoving = speed > 0.001;
             
-            // Options button
-            const optionsText = '[o] Options';
-            const optionsX = Math.max(0, autoNavX - optionsText.length - 2);
-            const optionsColor = isMoving ? COLORS.TEXT_DIM : COLORS.CYAN;
-            
-            UI.addButton(optionsX, menuY, 'o', 'Options', () => {
-                if (isMoving) {
-                    // Store error message to persist across HUD renders
-                    helpers.setErrorMessage?.('Must brake before opening options');
-                    console.log('[SpaceTravelHud] Options button clicked while moving - storing error message');
-                } else if (onOptions) {
-                    console.log('[SpaceTravelHud] Options button clicked while not moving - opening options');
-                    onOptions();
-                }
-            }, helpers.applyPauseColor(optionsColor), 'Game settings and save/load');
-
             const menuColor = isMoving ? COLORS.TEXT_DIM : COLORS.CYAN;
             
             UI.addButton(menuX, menuY, 'm', menuText, () => {

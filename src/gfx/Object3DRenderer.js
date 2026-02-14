@@ -179,12 +179,40 @@ const Object3DRenderer = (() => {
             }
         });
         
+        // If all projected vertices fit within a single character, render as symbol instead of geometry
         if (validProjections > 0 && minX !== Infinity) {
-            const screenWidth = Math.max(1, Math.round(maxX - minX));
-            const screenHeight = Math.max(1, Math.round(maxY - minY));
-            const centerX = Math.round((minX + maxX) / 2);
-            const centerY = Math.round((minY + maxY) / 2);
-            console.log(`[Object3DRenderer] Rendering full geometry at screen (${centerX}, ${centerY}), size: ${screenWidth}x${screenHeight} chars, depth range: ${cameraVertices.reduce((min, v) => Math.min(min, v.z), Infinity).toFixed(6)} to ${cameraVertices.reduce((max, v) => Math.max(max, v.z), -Infinity).toFixed(6)}`);
+            const boundingWidth = maxX - minX;
+            const boundingHeight = maxY - minY;
+            
+            if (boundingWidth <= 1.0 && boundingHeight <= 1.0) {
+                // Too small for geometry - render as single character symbol
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+                const projected = { x: centerX, y: centerY };
+                
+                if (projected.x >= 0 && projected.x < viewWidth && projected.y >= 0 && projected.y < viewHeight) {
+                    const shipForward = { x: 0, y: 0, z: 1 };
+                    const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, rotation);
+                    const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
+                    
+                    const arrow = getFatArrow(cameraForward.x, cameraForward.z);
+                    const color = params.isAlly ? COLORS.LIGHT_GREEN : '#00ff00';
+                    
+                    RasterUtils.plotDepthText(depthBuffer, Math.round(projected.x), Math.round(projected.y), depth, arrow, color);
+                    
+                    if (onPickInfo && mouseState) {
+                        onPickInfo({
+                            object,
+                            screenX: Math.round(projected.x),
+                            screenY: Math.round(projected.y),
+                            depth,
+                            distance: dist
+                        });
+                    }
+                }
+                RasterUtils.flushDepthBuffer(depthBuffer);
+                return;
+            }
         }
 
         // Calculate face normals in camera space for backface culling

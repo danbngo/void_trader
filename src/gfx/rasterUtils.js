@@ -395,23 +395,6 @@ class RasterUtils {
             z: cameraSpace.z
         };
         
-        // Log projection for laser diagnostics (match with screenRayDirection logs)
-        if (Math.random() < 0.1) {
-            console.log('[ProjectCameraSpacePoint]', {
-                inputCameraSpace: { x: cameraSpace.x.toFixed(4), y: cameraSpace.y.toFixed(4), z: cameraSpace.z.toFixed(4) },
-                charAspect: charAspect.toFixed(4),
-                normX: normX.toFixed(4),
-                normY: normY.toFixed(4),
-                screenPxX: Math.round(screenPxX),
-                screenPxY: Math.round(screenPxY),
-                outputGridX: result.x.toFixed(2),
-                outputGridY: result.y.toFixed(2),
-                viewWidth,
-                viewHeight,
-                fovDeg
-            });
-        }
-        
         return result;
     }
 

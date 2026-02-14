@@ -155,6 +155,18 @@ const SpaceTravelRender = (() => {
                         portalState
                     });
                 });
+            },
+            onOptions: () => {
+                const portalState = SpaceTravelPortal.getState(params.mapInstance);
+                params.stop?.(true);
+                OptionsMenu.show(() => {
+                    const destination = params.targetSystem || SpaceTravelLogic.getNearestSystem(params.currentGameState);
+                    SpaceTravelMap.show(params.currentGameState, destination, {
+                        resetPosition: false,
+                        localDestination: params.localDestination,
+                        portalState
+                    });
+                });
             }
         });
 
@@ -176,6 +188,18 @@ const SpaceTravelRender = (() => {
             addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color),
             getActiveTargetInfo: () => params.getActiveTargetInfo?.()
         });
+
+        // Render escort ship nav arrows if any escorts exist
+        if (params.escortShips && params.escortShips.length > 0) {
+            SpaceTravelRenderIndicators.renderEscortArrows({
+                escortShips: params.escortShips,
+                viewWidth,
+                viewHeight,
+                playerShip: params.playerShip,
+                config: params.config,
+                addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color)
+            });
+        }
     }
 
     /**

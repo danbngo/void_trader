@@ -1,4 +1,120 @@
 const SpaceTravelRenderIndicators = (() => {
+    /**
+     * Generalized nav arrow rendering for any off-screen object
+     * @param {Object} params - { position, name, color, viewWidth, viewHeight, playerShip, config, addHudText }
+     */
+    function renderNavArrow({ position, name, color, viewWidth, viewHeight, playerShip, config, addHudText }) {
+        if (!position || !playerShip) {
+            return { rendered: false };
+        }
+
+        const toTarget = ThreeDUtils.subVec(position, playerShip.position);
+        const distance = ThreeDUtils.vecLength(toTarget);
+
+        if (!Number.isFinite(distance) || distance <= 0.0001) {
+            return { rendered: false };
+        }
+
+        // Project target onto screen space
+        const relative = toTarget;
+        const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
+        
+        let projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, config.VIEW_FOV);
+        
+        // Check if target is on-screen
+        const isOnScreen = projected 
+            && cameraSpace.z > config.NEAR_PLANE 
+            && projected.x >= 0 
+            && projected.x < viewWidth 
+            && projected.y >= 0 
+            && projected.y < viewHeight;
+
+        // Only render arrow if off-screen
+        if (isOnScreen) {
+            return { rendered: false, reason: 'on-screen' };
+        }
+        
+        // If off-screen or behind camera, project onto near plane for direction calculation
+        if (!projected || cameraSpace.z <= config.NEAR_PLANE) {
+            const forwardPlane = config.NEAR_PLANE;
+            const scale = forwardPlane / Math.max(Math.abs(cameraSpace.z || forwardPlane), 0.0001);
+            projected = RasterUtils.projectCameraSpacePointRaw(
+                {
+                    x: cameraSpace.x * scale,
+                    y: cameraSpace.y * scale,
+                    z: forwardPlane
+                },
+                viewWidth,
+                viewHeight,
+                config.VIEW_FOV
+            );
+        }
+        
+        if (!projected) {
+            return { rendered: false, reason: 'projection-failed' };
+        }
+
+        // Find where ray from center to target intersects screen edge
+        const centerX = viewWidth / 2;
+        const centerY = viewHeight / 2;
+        const margin = 2;
+        const minX = margin;
+        const maxX = viewWidth - margin - 1;
+        const minY = margin;
+        const maxY = viewHeight - margin - 1;
+        
+        // Direction vector from center to target (in screen space)
+        let dx = projected.x - centerX;
+        let dy = projected.y - centerY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        
+        if (len > 0) {
+            dx /= len;
+            dy /= len;
+        } else {
+            dx = 1;
+            dy = 0;
+        }
+        
+        // Find intersection with screen boundary
+        let t = Infinity;
+        
+        if (dx > 0) {
+            const tRight = (maxX - centerX) / dx;
+            if (tRight > 0 && tRight < t) t = tRight;
+        }
+        if (dx < 0) {
+            const tLeft = (minX - centerX) / dx;
+            if (tLeft > 0 && tLeft < t) t = tLeft;
+        }
+        if (dy > 0) {
+            const tBottom = (maxY - centerY) / dy;
+            if (tBottom > 0 && tBottom < t) t = tBottom;
+        }
+        if (dy < 0) {
+            const tTop = (minY - centerY) / dy;
+            if (tTop > 0 && tTop < t) t = tTop;
+        }
+        
+        if (t >= Infinity) {
+            return { rendered: false, reason: 'no-intersection' };
+        }
+
+        const x = Math.round(centerX + dx * t);
+        const y = Math.round(centerY + dy * t);
+
+        // Use screen-space dx/dy for arrow direction (already accounts for character aspect)
+        const arrow = SpaceTravelShared.getDirectionalArrow(dx, dy);
+
+        // Render arrow
+        if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
+            addHudText(x, y, arrow, color || COLORS.CYAN);
+            return { rendered: true, x, y, arrow };
+        }
+
+        return { rendered: false, reason: 'out-of-bounds' };
+    }
+
     function renderDestinationIndicator({ viewWidth, viewHeight, playerShip, localDestination, currentgameState, config, addHudText, getActiveTargetInfo, timestampMs, mapInstance }) {
         const logNow = timestampMs || performance.now();
         const targetInfo = getActiveTargetInfo();
@@ -138,98 +254,47 @@ const SpaceTravelRenderIndicators = (() => {
             return;
         }
 
-        // Clamp to screen edge by projecting onto boundary
-        // Find where the ray from center to target intersects the screen edge
-        const centerX = viewWidth / 2;
-        const centerY = viewHeight / 2;
-        const margin = 2;
-        const minX = margin;
-        const maxX = viewWidth - margin - 1;
-        const minY = margin;
-        const maxY = viewHeight - margin - 1;
-        
-        // Direction vector from center to target
-        let dx = projected.x - centerX;
-        let dy = projected.y - centerY;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        
-        if (len > 0) {
-            dx /= len;
-            dy /= len;
-        } else {
-            dx = 1;
-            dy = 0;
-        }
-        
-        // Find intersection with screen boundary
-        let x = centerX;
-        let y = centerY;
-        
-        // Calculate t values for each edge intersection
-        let t = Infinity;
-        
-        // Right edge (x = maxX)
-        if (dx > 0) {
-            const tRight = (maxX - centerX) / dx;
-            if (tRight > 0 && tRight < t) {
-                t = tRight;
-            }
-        }
-        
-        // Left edge (x = minX)
-        if (dx < 0) {
-            const tLeft = (minX - centerX) / dx;
-            if (tLeft > 0 && tLeft < t) {
-                t = tLeft;
-            }
-        }
-        
-        // Bottom edge (y = maxY)
-        if (dy > 0) {
-            const tBottom = (maxY - centerY) / dy;
-            if (tBottom > 0 && tBottom < t) {
-                t = tBottom;
-            }
-        }
-        
-        // Top edge (y = minY)
-        if (dy < 0) {
-            const tTop = (minY - centerY) / dy;
-            if (tTop > 0 && tTop < t) {
-                t = tTop;
-            }
-        }
-        
-        if (t < Infinity) {
-            x = Math.round(centerX + dx * t);
-            y = Math.round(centerY + dy * t);
+        // Use generalized nav arrow rendering
+        renderNavArrow({
+            position: targetInfo.position,
+            name: targetInfo.name,
+            color: COLORS.CYAN,
+            viewWidth,
+            viewHeight,
+            playerShip,
+            config,
+            addHudText
+        });
+    }
+
+    /**
+     * Render nav arrows for all off-screen escort ships
+     */
+    function renderEscortArrows({ escortShips, viewWidth, viewHeight, playerShip, config, addHudText }) {
+        if (!escortShips || escortShips.length === 0) {
+            return;
         }
 
-        // Get directional arrow based on camera space direction
-        const directionForward = ThreeDUtils.rotateVecByQuat(toTarget, ThreeDUtils.quatConjugate(playerShip.rotation));
-        const arrow = SpaceTravelShared.getDirectionalArrow(directionForward.x, directionForward.y);
+        escortShips.forEach((escort, index) => {
+            if (!escort || !escort.position) {
+                return;
+            }
 
-        // Render arrow in cyan
-        if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
-            addHudText(x, y, arrow, COLORS.CYAN);
-        }
-
-        // Suppress spam logging
-        // if (mapInstance && logNow - (mapInstance.lastIndicatorLogMs || 0) >= 1000) {
-        //     console.log('[NavIndicator]', {
-        //         status: 'arrow_rendered',
-        //         x,
-        //         y,
-        //         distance: Number(distance.toFixed(3)),
-        //         arrow,
-        //         directionX: Number(directionForward.x.toFixed(3)),
-        //         directionY: Number(directionForward.y.toFixed(3))
-        //     });
-        //     mapInstance.lastIndicatorLogMs = logNow;
-        // }
+            renderNavArrow({
+                position: escort.position,
+                name: `Escort ${index + 1}`,
+                color: COLORS.GREEN,
+                viewWidth,
+                viewHeight,
+                playerShip,
+                config,
+                addHudText
+            });
+        });
     }
 
     return {
-        renderDestinationIndicator
+        renderDestinationIndicator,
+        renderEscortArrows
     };
 })();

@@ -272,7 +272,8 @@ const WarpAnimation = (() => {
             hideDistance: true,
             hideTime: true,
             speedOverrideText: '???',
-            speedOverrideColor: COLORS.CYAN
+            speedOverrideColor: COLORS.CYAN,
+            onOptions: () => {} // No-op during warp animation
         });
 
         // Apply radial gradient tint using characters instead of canvas

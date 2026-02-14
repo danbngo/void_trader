@@ -8,6 +8,7 @@ const SpaceTravelLaser = (() => {
         let laserFireStartMs = 0;
         let laserTarget = { x: 0, y: 0 };
         let laserTargetWorldDir = { x: 0, y: 0, z: 1 };
+        let laserBeamLength = 5; // Length of laser beam in characters (minimum)
         let lastFireAttemptMs = 0;
         const MIN_FIRE_INTERVAL_MS = 50; // Minimum time between fire attempts to prevent caching
 
@@ -49,6 +50,10 @@ const SpaceTravelLaser = (() => {
                 playerShip,
                 config
             });
+            
+            // Calculate beam length based on laser rating: 5 + laserRating
+            const laserRating = Ship.getLaserMax(playerShip);
+            laserBeamLength = 5 + laserRating;
             
             // Log laser firing diagnostics
             const grid = UI.getGridSize();
@@ -118,20 +123,19 @@ const SpaceTravelLaser = (() => {
                 if (points.length === 0) {
                     return;
                 }
-                if (progress < 0.5) {
-                    const growT = progress / 0.5;
-                    const endIndex = Math.max(0, Math.floor(points.length * growT) - 1);
-                    for (let i = 0; i <= endIndex; i++) {
-                        const point = points[i];
-                        RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
-                    }
-                } else {
-                    const shrinkT = (progress - 0.5) / 0.5;
-                    const startIndex = Math.min(points.length, Math.floor(points.length * shrinkT));
-                    for (let i = startIndex; i < points.length; i++) {
-                        const point = points[i];
-                        RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
-                    }
+                
+                // Beam travels from start to end as a moving segment of fixed length
+                // Front edge position travels from -beamLength (hidden) to points.length (passed through)
+                const totalDistance = points.length + laserBeamLength;
+                const frontPos = progress * totalDistance - laserBeamLength;
+                
+                // Render the segment of the beam currently visible on the path
+                const startIndex = Math.max(0, Math.ceil(frontPos));
+                const endIndex = Math.min(points.length - 1, Math.floor(frontPos + laserBeamLength));
+                
+                for (let i = startIndex; i <= endIndex; i++) {
+                    const point = points[i];
+                    RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
                 }
             };
 

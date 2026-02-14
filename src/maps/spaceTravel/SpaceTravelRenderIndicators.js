@@ -33,39 +33,48 @@ const SpaceTravelRenderIndicators = (() => {
             const labelX = Math.round(projected.x);
             const labelY = Math.round(projected.y);
             
-            // Calculate object's approximate screen size
-            // Similar logic to SpaceTravelRenderBodies
-            const RADIUS_SCALE = 0.8;
-            const MIN_RADIUS = 0.5;
+            // Calculate object's approximate screen size by projecting a point at object edge
+            // This is more accurate than trying to calculate from world radius
+            const PROJECTED_RADIUS_SCALE = 0.8;
             const depth = cameraSpace.z;
             const charDims = UI.getCharDimensions?.() || { width: 8, height: 16 };
             const viewPixelWidth = viewWidth * charDims.width;
             const fovScale = Math.tan(config.VIEW_FOV / 2);
-            const pixelsPerUnit = viewPixelWidth / (2 * fovScale * depth);
+            const pixelsPerUnit = viewPixelWidth / (2 * fovScale * Math.abs(depth));
             
-            // Get body radius from localDestination if available, otherwise use default
-            let objectRadiusChars = 0;
-            if (targetInfo.position && playerShip.position) {
-                // Try to get actual world radius from the body object (station, planet, etc)
-                const worldRadius = localDestination?.radiusAU || targetInfo.radius || 5;
-                const radiusPx = Math.abs(worldRadius * pixelsPerUnit * RADIUS_SCALE);
-                // Projection already normalizes coordinates, use charWidth for consistent scaling
-                objectRadiusChars = Math.max(0, Math.round(radiusPx / charDims.width));
+            // Estimate object screen width by sampling from targetInfo
+            let objectRadiusChars = 1;
+            if (targetInfo.radiusAU !== undefined) {
+                const radiusPx = targetInfo.radiusAU * pixelsPerUnit * PROJECTED_RADIUS_SCALE;
+                objectRadiusChars = Math.max(2, Math.round(radiusPx / charDims.width));
+            } else if (localDestination?.radiusAU !== undefined) {
+                const radiusPx = localDestination.radiusAU * pixelsPerUnit * PROJECTED_RADIUS_SCALE;
+                objectRadiusChars = Math.max(2, Math.round(radiusPx / charDims.width));
+            } else {
+                // Default: estimate as 2-3 chars for typical objects
+                objectRadiusChars = 3;
             }
             
-            // Place label 1 character above the object, fall back to below if needed
-            const offsetDistance = objectRadiusChars + 1;
+            // Place label with enough offset to clear the object
+            // Use a minimum offset to ensure spacing
+            const MIN_LABEL_OFFSET = 2;
+            const offsetDistance = Math.max(MIN_LABEL_OFFSET, objectRadiusChars + 1);
+            
+            // Try to place above first, then below if too close to top
             let displayY = labelY - offsetDistance;
-            if (displayY < 0) {
+            if (displayY < 1) {
                 displayY = labelY + offsetDistance;
             }
-            if (displayY >= viewHeight) {
-                displayY = labelY - offsetDistance;
+            // If still out of bounds, try to fit it
+            if (displayY >= viewHeight - 1) {
+                displayY = Math.max(1, viewHeight - 2);
             }
             
-            // Center label horizontally around object
+            // Center label horizontally under/over the object center
             const labelWidth = targetName.length;
             let displayX = labelX - Math.floor(labelWidth / 2);
+            
+            // Clamp to valid screen bounds
             displayX = Math.max(0, Math.min(viewWidth - labelWidth, displayX));
             
             if (displayX >= 0 && displayX + labelWidth <= viewWidth && displayY >= 0 && displayY < viewHeight) {
@@ -88,8 +97,7 @@ const SpaceTravelRenderIndicators = (() => {
                         viewHeight,
                         charWidth: charDims.width,
                         charHeight: charDims.height,
-                        worldRadiusAU: localDestination?.radiusAU || 'undefined',
-                        targetInfoRadius: targetInfo.radius || 'undefined'
+                        worldRadiusAU: localDestination?.radiusAU || targetInfo.radiusAU || 'undefined'
                     });
                     mapInstance.lastLabelPosLogMs = logNow;
                 }

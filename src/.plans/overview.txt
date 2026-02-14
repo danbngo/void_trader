@@ -1,3 +1,18 @@
+stuff i still need to complete
+
+ship to ship combat
+encounters/enemy ships spawning. maybe get rid of the more complex (faction vs faction) encounters.
+hailing system -> hook back into original encounter system
+end combat -> hook back into original encounter results.. or maybe not? maybe just leave "dead ships" on screen and player can fly into them to loot
+implement ship modules in 3d combat.. note: most ship modules may no longer be needed or a bad idea. combat can't be as complex as it was previously.
+clean up legacy systems .. old combat system etc. 
+work on better graphics for docking, landing on planets, viewing planets, shipyard, etc.
+
+^^^ game ready to go ^^^
+
+
+----
+
 going to add 3d now.
 
 --

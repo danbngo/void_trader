@@ -151,6 +151,7 @@ class RasterUtils {
 
     static screenRayDirection(x, y, viewWidth, viewHeight, fovDeg) {
         const charDims = UI.getCharDimensions();
+        const charAspect = charDims.height / charDims.width;
         const fovRad = ThreeDUtils.degToRad(fovDeg);
         const fovScale = Math.tan(fovRad / 2);
 
@@ -163,10 +164,30 @@ class RasterUtils {
         const py = (y + 0.5) * charDims.height;
 
         const normX = (px - centerPxX) / (viewPixelWidth / 2);
-        const normY = (centerPxY - py) / (viewPixelHeight / 2);
+        // Divide Y by aspect ratio to match projection (which multiplies by aspect ratio)
+        // This ensures cursor aims at the correct location accounting for character dimensions
+        const normY = ((centerPxY - py) / (viewPixelHeight / 2)) / charAspect;
 
         const dir = { x: normX * fovScale, y: normY * fovScale, z: 1 };
-        return ThreeDUtils.normalizeVec(dir);
+        const normalized = ThreeDUtils.normalizeVec(dir);
+        
+        // Log ray direction calculation for laser diagnostics
+        if (Math.random() < 0.1) {  // Log 10% of the time to avoid spam
+            console.log('[ScreenRayDirection]', {
+                screenGridX: x,
+                screenGridY: y,
+                charDims: { width: charDims.width, height: charDims.height },
+                charAspect: charAspect.toFixed(4),
+                pixelX: Math.round(px),
+                pixelY: Math.round(py),
+                normX: normX.toFixed(4),
+                normY: normY.toFixed(4),
+                dirBefore: { x: dir.x.toFixed(4), y: dir.y.toFixed(4), z: dir.z.toFixed(4) },
+                dirAfter: { x: normalized.x.toFixed(4), y: normalized.y.toFixed(4), z: normalized.z.toFixed(4) }
+            });
+        }
+        
+        return normalized;
     }
 
     static rasterizeFaceDepth(buffer, faceVertices, viewWidth, viewHeight, fillSymbol, fillColor, bias = 0, nearPlane = 0.0001, fovDeg = 75, fillMode = 'ray') {
@@ -358,7 +379,9 @@ class RasterUtils {
         const viewPixelHeight = viewHeight * charDims.height;
 
         const normX = (cameraSpace.x / cameraSpace.z) / fovScale;
-        const normY = (cameraSpace.y / cameraSpace.z) / fovScale;
+        // Apply charAspect in normY to match screenRayDirection (which divides by charAspect)
+        // This ensures projection and unprojection are symmetric
+        const normY = ((cameraSpace.y / cameraSpace.z) / fovScale) * charAspect;
 
         const centerPxX = viewPixelWidth / 2;
         const centerPxY = viewPixelHeight / 2;
@@ -366,13 +389,30 @@ class RasterUtils {
         const screenPxX = normX * (viewPixelWidth / 2);
         const screenPxY = normY * (viewPixelHeight / 2);
 
-        // Expand Y by character aspect ratio to compensate for tall characters
-        // Y is divided by charHeight (larger value), so multiply to equalize distances
-        return {
+        const result = {
             x: (centerPxX + screenPxX) / charDims.width,
-            y: ((centerPxY - screenPxY) / charDims.height) * charAspect,
+            y: (centerPxY - screenPxY) / charDims.height,
             z: cameraSpace.z
         };
+        
+        // Log projection for laser diagnostics (match with screenRayDirection logs)
+        if (Math.random() < 0.1) {
+            console.log('[ProjectCameraSpacePoint]', {
+                inputCameraSpace: { x: cameraSpace.x.toFixed(4), y: cameraSpace.y.toFixed(4), z: cameraSpace.z.toFixed(4) },
+                charAspect: charAspect.toFixed(4),
+                normX: normX.toFixed(4),
+                normY: normY.toFixed(4),
+                screenPxX: Math.round(screenPxX),
+                screenPxY: Math.round(screenPxY),
+                outputGridX: result.x.toFixed(2),
+                outputGridY: result.y.toFixed(2),
+                viewWidth,
+                viewHeight,
+                fovDeg
+            });
+        }
+        
+        return result;
     }
 
 }

@@ -49,6 +49,31 @@ const SpaceTravelLaser = (() => {
                 playerShip,
                 config
             });
+            
+            // Log laser firing diagnostics
+            const grid = UI.getGridSize();
+            const viewWidth = grid.width;
+            const viewHeight = grid.height - config.PANEL_HEIGHT;
+            const screenPos = getLaserTargetScreenPosition({ viewWidth, viewHeight, config, playerShip });
+            
+            console.log('[LaserFire] DIAGNOSTICS:', {
+                clickedScreenX: laserTarget.x,
+                clickedScreenY: laserTarget.y,
+                firedScreenX: Math.round(screenPos.x),
+                firedScreenY: Math.round(screenPos.y),
+                worldDirX: laserTargetWorldDir.x.toFixed(4),
+                worldDirY: laserTargetWorldDir.y.toFixed(4),
+                worldDirZ: laserTargetWorldDir.z.toFixed(4),
+                worldDirLength: ThreeDUtils.vecLength(laserTargetWorldDir).toFixed(4),
+                playerRotW: playerShip.rotation.w.toFixed(4),
+                playerRotX: playerShip.rotation.x.toFixed(4),
+                playerRotY: playerShip.rotation.y.toFixed(4),
+                playerRotZ: playerShip.rotation.z.toFixed(4),
+                viewWidth,
+                viewHeight,
+                viewFOV: config.VIEW_FOV
+            });
+            
             Ship.setLaserCurrent(playerShip, 0);
 
             if (lastHoverPick && lastHoverPick.bodyRef) {
@@ -119,13 +144,30 @@ const SpaceTravelLaser = (() => {
             const viewWidth = grid.width;
             const viewHeight = grid.height - config.PANEL_HEIGHT;
             const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
+            
+            let result;
             if (mouseState && mouseState.active) {
-                return { x: mouseState.displayX, y: mouseState.displayY };
+                result = { x: mouseState.displayX, y: mouseState.displayY };
+                console.log('[LaserTarget] FROM MOUSE:', {
+                    displayX: mouseState.displayX,
+                    displayY: mouseState.displayY,
+                    rawX: mouseState.rawX,
+                    rawY: mouseState.rawY,
+                    active: mouseState.active,
+                    inView: mouseState.inView
+                });
+            } else {
+                result = {
+                    x: Math.floor(viewWidth / 2),
+                    y: Math.floor(viewHeight / 2)
+                };
+                console.log('[LaserTarget] FROM CENTER:', {
+                    centerX: result.x,
+                    centerY: result.y,
+                    mouseActive: mouseState?.active || false
+                });
             }
-            return {
-                x: Math.floor(viewWidth / 2),
-                y: Math.floor(viewHeight / 2)
-            };
+            return result;
         }
 
         function getLaserTargetWorldDirection({ target, playerShip, config }) {
@@ -141,10 +183,33 @@ const SpaceTravelLaser = (() => {
                 return laserTarget;
             }
             const cameraDir = ThreeDUtils.rotateVecByQuat(laserTargetWorldDir, ThreeDUtils.quatConjugate(playerShip.rotation));
-            const projected = RasterUtils.projectCameraSpacePointRaw(cameraDir, viewWidth, viewHeight, config.VIEW_FOV);
+            
+            // Scale direction to a proper depth for projection (100 AU works well)
+            // projectCameraSpacePointRaw expects a 3D point in camera space, not a unit direction
+            const projectionDepth = 100;
+            const cameraPoint = {
+                x: cameraDir.x * projectionDepth,
+                y: cameraDir.y * projectionDepth,
+                z: cameraDir.z * projectionDepth
+            };
+            
+            const projected = RasterUtils.projectCameraSpacePointRaw(cameraPoint, viewWidth, viewHeight, config.VIEW_FOV);
             if (!projected) {
                 return { x: viewWidth / 2, y: viewHeight / 2 };
             }
+            
+            // Log screen position each time laser is rendered
+            console.log('[LaserTargetScreenPos]', {
+                cameraDirX: cameraDir.x.toFixed(4),
+                cameraDirY: cameraDir.y.toFixed(4),
+                cameraDirZ: cameraDir.z.toFixed(4),
+                cameraPointZ: cameraPoint.z.toFixed(2),
+                projectedGridX: projected.x.toFixed(2),
+                projectedGridY: projected.y.toFixed(2),
+                clampedX: Math.max(0, Math.min(viewWidth - 1, Math.floor(projected.x))),
+                clampedY: Math.max(0, Math.min(viewHeight - 1, Math.floor(projected.y)))
+            });
+            
             return { x: projected.x, y: projected.y };
         }
 

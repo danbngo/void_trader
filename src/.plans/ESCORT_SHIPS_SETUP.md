@@ -46,31 +46,38 @@
 /*
  * INTEGRATION CHECKLIST:
  * 
- * [ ] 1. Add escort ship rendering to SpaceTravelRenderBodies.js
- *        - Call Object3DRenderer.render() for each escort ship
- *        - Filter out-of-screen escorts to avoid rendering overhead
+ * [✓] 1. Add escort ship rendering to SpaceTravelRenderBodies.js
+ *        - COMPLETED: spaceTravelRender.js calls Object3DRenderer.render() for each escort
+ *        - Escorts rendered after bodies, respects depth buffer
+ *        - Out-of-screen escorts handled by Object3DRenderer.isOnScreen()
  * 
- * [ ] 2. Spawn escort ships when entering 3D map
- *        - In spaceTravelMap.js show() method
- *        - Call EscortShipAI.initializeEscortShips()
- *        - Store escorts array in map state
+ * [✓] 2. Spawn escort ships when entering 3D map
+ *        - COMPLETED: spaceTravelMap.js _initializeEscortShips() method
+ *        - Called from show() method during map initialization
+ *        - Stores escorts array in this.escortShips
  * 
- * [ ] 3. Update escort AI each frame
- *        - In spaceTravelMap.js update() method
- *        - Call EscortShipAI.update() with game state and escort list
+ * [✓] 3. Update escort AI each frame
+ *        - COMPLETED: spaceTravelMap.js update() method
+ *        - Calls EscortShipAI.update() with all needed parameters
+ *        - Integrated into main physics/update loop
  * 
- * [ ] 4. Handle player-escort collisions
- *        - In spaceTravelLogic.js (alongside station collision code)
- *        - Check each escort: EscortShipAI.checkPlayerCollision()
- *        - If collision: both take damage using getCollisionDamage()
+ * [✓] 4. Handle player-escort collisions
+ *        - COMPLETED: spaceTravelMap.js _checkEscortCollisions() method
+ *        - Checks each escort for collision with player
+ *        - Applies damage to both ships if ALLY_VS_PLAYER_COLLISION_DAMAGE enabled
+ *        - Includes collision cooldown per escort to prevent spam
  * 
- * [ ] 5. Respawn escorts on warp/undock
- *        - Update position when player warps to new system
- *        - Ensure escorts reappear near player location
+ * [✓] 5. Respawn escorts on warp/undock
+ *        - COMPLETED: Escorts re-initialize automatically on spaceTravelMap.show()
+ *        - Called when warping to new system
+ *        - Escorts positioned near player on re-entry
+ *        - Cleared on stop() to prevent state leakage
  * 
- * [ ] 6. AI escort collision with objects
- *        - Add collision response: bounce off player (no damage)
- *        - Preventfrom flying into stars/planets (already in AI avoidance)
+ * [✓] 6. AI escort collision with objects
+ *        - COMPLETED: EscortShipAI.findNearbyHazards() detects stars, planets
+ *        - updateAvoidance() applies bounce/repulsion vectors
+ *        - STAR_HEAT_AVOID_MARGIN prevents flying into star heat zones
+ *        - Collision avoidance already integrated into movement loop
  * 
  * USAGE EXAMPLE:
  * 
@@ -130,6 +137,35 @@
  * 5. Visual customization:
  *    - Different colors based on faction/allegiance
  *    - Damage indicators on body
+ */
+
+/*
+ * INTEGRATION STATUS: ✓ COMPLETE
+ * 
+ * All escort ship features have been fully integrated into the game:
+ * 
+ * INTEGRATION COMPLETED:
+ * ✓ Escort ship 3D rendering in space travel map
+ * ✓ Automatic spawn/despawn on system travel
+ * ✓ Real-time AI following and hazard avoidance
+ * ✓ Collision detection and damage resolution
+ * ✓ Persist across pause/unpause cycles
+ * 
+ * TESTING CHECKLIST:
+ * - [ ] Test with 1+ escort ship (requires officers commanding fleet ships)
+ * - [ ] Verify escorts follow at ~0.5 AU distance
+ * - [ ] Test collision damage between player and escorts
+ * - [ ] Verify escorts avoid stars and planets
+ * - [ ] Test pause/unpause doesn't break escort state
+ * - [ ] Test warp to new system preserves escort AI
+ * - [ ] Test undock/redock cycle
+ * 
+ * KNOWN LIMITATIONS:
+ * - Escorts only spawn if player has 2+ ships in fleet
+ * - All escorts use FIGHTER geometry (variants planned for future)
+ * - No visual customization per faction (planned)
+ * - No escort commands/orders system yet (planned)
+ * - Escorts don't engage in combat (planned)
  */
 
 // This is a documentation file only - no actual code is executed here

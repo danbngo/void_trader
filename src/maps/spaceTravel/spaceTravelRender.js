@@ -79,7 +79,8 @@ const SpaceTravelRender = (() => {
                         const idx = RasterUtils.getDepthBufferIndex(depthBuffer, x, y);
                         return depthBuffer.chars[idx] || ' ';
                     },
-                    timestampMs: effectiveRenderTimestampMs
+                    timestampMs: effectiveRenderTimestampMs,
+                    isAlly: true // Mark escort ships as allies for green coloring
                 });
             });
         }

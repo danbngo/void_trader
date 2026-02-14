@@ -3,7 +3,7 @@
  */
 
 const SpaceTravelParticles = (() => {
-    function renderStars({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, starfield, boostActive, boostStartTimestampMs, config }) {
+    function renderStars({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, starfield, boostActive, boostStartTimestampMs, boostEndTimestampMs, config }) {
         if (!playerShip) {
             return;
         }
@@ -48,29 +48,38 @@ const SpaceTravelParticles = (() => {
             const brightness = minBrightness + (brightnessVariance * (maxBrightness - minBrightness));
             let starColor = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_DIM, brightness);
             
-            // Apply redshift during boost (4x the orange tint intensity)
-            if (boostActive && boostStartTimestampMs) {
-                const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
-                const elapsedSec = Math.max(0, (timestampMs - boostStartTimestampMs) / 1000);
-                const timeRatio = Math.min(1, elapsedSec / rampSec);
-                // Redshift is 4x the original tint amount (0.25), but at current tint's ramp: 0.25 * timeRatio
-                const redshiftAmount = config.BOOST_TINT_MAX * 4 * timeRatio;  // 4x the current subtle tint
-                if (redshiftAmount > 0) {
-                    starColor = SpaceTravelShared.lerpColorHex(starColor, '#ff0000', redshiftAmount);
-                }
-            }
+            // Check if we're in streak mode (active boost or within 1s after boost)
+            const streakPersistMs = config.BOOST_STREAK_PERSIST_MS || 1000;
+            const isInStreakMode = boostActive || (boostEndTimestampMs && boostEndTimestampMs > 0 && (timestampMs - boostEndTimestampMs) < streakPersistMs);
             
-            if (boostActive) {
-                // Boost mode: draw streak even if center is off-screen
+            if (isInStreakMode) {
+                // Calculate streak parameters
                 const offsetMs = starSeed % config.BOOST_STREAK_GROWTH_MS;
                 const delayMs = config.BOOST_STREAK_DELAY_MS + (starSeed % config.BOOST_STREAK_DELAY_MS);
-                if ((timestampMs - boostStartTimestampMs) < delayMs) {
-                    // Still in delay period, draw only center if visible
-                    if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
-                        RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
-                        drawn++;
+                
+                // Determine base length based on boost state
+                let baseLength;
+                if (boostActive) {
+                    // During boost: grow normally
+                    if ((timestampMs - boostStartTimestampMs) < delayMs) {
+                        // Still in delay period, draw only center if visible
+                        if (baseX >= 0 && baseX < viewWidth && baseY >= 0 && baseY < viewHeight) {
+                            RasterUtils.plotDepthText(depthBuffer, baseX, baseY, projected.z, starSymbol, starColor);
+                            drawn++;
+                        }
+                        continue;
                     }
-                    continue;
+                    const streakElapsed = Math.max(0, timestampMs - boostStartTimestampMs - delayMs);
+                    baseLength = 1 + Math.floor(Math.max(0, streakElapsed - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
+                } else {
+                    // After boost: calculate length at boost end, then shrink
+                    const lengthAtBoostEnd = Math.max(0, boostEndTimestampMs - boostStartTimestampMs - delayMs);
+                    const maxLength = 1 + Math.floor(Math.max(0, lengthAtBoostEnd - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
+                    
+                    // Shrink from maxLength to 0 over 1 second
+                    const shrinkElapsed = timestampMs - boostEndTimestampMs;
+                    const shrinkProgress = Math.min(1, shrinkElapsed / streakPersistMs);
+                    baseLength = Math.max(1, Math.ceil(maxLength * (1 - shrinkProgress)));
                 }
                 
                 // Draw streak from center outward toward screen center
@@ -82,10 +91,9 @@ const SpaceTravelParticles = (() => {
                 const dirX = dx / mag;
                 const dirY = dy / mag;
                 const symbol = SpaceTravelShared.getLineSymbolFromDirection(dirX, -dirY);
-                const streakElapsed = Math.max(0, timestampMs - boostStartTimestampMs - delayMs);
-                const length = 1 + Math.floor(Math.max(0, streakElapsed - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
+                
                 let streakDrawn = false;
-                for (let i = 0; i < length; i++) {
+                for (let i = 0; i < baseLength; i++) {
                     const sx = Math.round(baseX + dirX * i);
                     const sy = Math.round(baseY + dirY * i);
                     if (sx >= 0 && sx < viewWidth && sy >= 0 && sy < viewHeight) {

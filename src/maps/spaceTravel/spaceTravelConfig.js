@@ -117,10 +117,11 @@ const SpaceTravelConfig = {
     BOOST_FUEL_PER_SEC: 0.1,
     BOOST_TINT_MAX: 0.25,
     BOOST_TINT_RAMP_SEC: 1.0,  // 2x slower ramp (was 0.5)
-    BOOST_TINT_FADE_SEC: 2.0,  // Visual cooldown time
+    BOOST_TINT_FADE_SEC: 1.0,  // Visual cooldown time
     BOOST_COOLDOWN_SEC: 5,
     BOOST_TINT_MIN: 0,
     BOOST_STREAK_DELAY_MS: 1000,  // Reduced from 2000 to start star streaks 2x sooner during boost
+    BOOST_STREAK_PERSIST_MS: 1000,
     BOOST_BRAKE_MULT: 8,
     BOOST_STREAK_GROWTH_MS: 2000,
     BOOST_READY_SPEED_RATIO: 0.99,

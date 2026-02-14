@@ -51,9 +51,9 @@ const SpaceTravelLaser = (() => {
                 config
             });
             
-            // Calculate beam length based on laser rating: 5 + laserRating
-            const laserRating = Ship.getLaserMax(playerShip);
-            laserBeamLength = 5 + laserRating;
+            // Calculate beam length based on laser energy used: 5 + current laser amount
+            laserBeamLength = 5 + currentLaser;
+            console.log('[Laser] Firing:', { currentLaser, laserBeamLength, maxLaser: Ship.getLaserMax(playerShip) });
             
             const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);

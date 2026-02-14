@@ -8,14 +8,18 @@ const SpaceTravelAnimation = (() => {
         function renderBoostTint(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const { boostActive, boostEndTimestampMs, boostStartTimestampMs } = mapInstance;
             
+            console.log('[BoostTint]', { boostActive, boostEndTimestampMs, timestampMs, diff: boostEndTimestampMs ? timestampMs - boostEndTimestampMs : null, isPaused, pausedTimestamp });
+            
             if (!boostActive && (!boostEndTimestampMs || boostEndTimestampMs <= 0)) {
                 // Clear tint when not active
+                console.log('[BoostTint] Clearing tint - no boost and no end timestamp');
                 ColorTinting?.clearTint?.();
                 return;
             }
 
             // When paused, use the frozen pause timestamp for calculations to prevent time desync
-            const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
+            // BUT: For boost fade (when not actively boosting), always use real time so fade progresses
+            const effectiveTimestampMs = (isPaused && boostActive && pausedTimestamp) ? pausedTimestamp : timestampMs;
 
             const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
             const fadeSec = Math.max(0.1, (config.BOOST_TINT_FADE_SEC ?? config.BOOST_COOLDOWN_SEC) || 1);
@@ -26,11 +30,16 @@ const SpaceTravelAnimation = (() => {
                 const timeRatio = Math.min(1, elapsedSec / rampSec);
                 alpha = config.BOOST_TINT_MAX * timeRatio;
                 alpha = Math.max(alpha, config.BOOST_TINT_MIN);
+                console.log('[BoostTint] Active ramp:', { elapsedSec, timeRatio, alpha });
             } else {
                 const elapsedFade = Math.max(0, (effectiveTimestampMs - boostEndTimestampMs) / 1000);
                 const fadeT = Math.max(0, 1 - (elapsedFade / fadeSec));
                 alpha = config.BOOST_TINT_MAX * fadeT;
-                if (fadeT <= 0) mapInstance.boostEndTimestampMs = 0;
+                console.log('[BoostTint] Fade:', { elapsedFade, fadeSec, fadeT, alpha, maxTint: config.BOOST_TINT_MAX });
+                if (fadeT <= 0) {
+                    console.log('[BoostTint] Fade complete, clearing boostEndTimestampMs');
+                    mapInstance.boostEndTimestampMs = 0;
+                }
             }
 
             if (alpha > 0) {
@@ -104,7 +113,11 @@ const SpaceTravelAnimation = (() => {
         function renderWarpFade(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const startMs = mapInstance.warpFadeOutStartMs;
             if (!startMs) {
-                ColorTinting?.clearTint?.();
+                const hasBoostTint = mapInstance.boostActive
+                    || (mapInstance.boostEndTimestampMs && mapInstance.boostEndTimestampMs > 0);
+                if (!hasBoostTint) {
+                    ColorTinting?.clearTint?.();
+                }
                 return;
             }
 

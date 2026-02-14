@@ -15,6 +15,46 @@ const LootMenu = (() => {
     let selectedModuleIndex = 0;
     let selectedModuleShipIndex = 0;
     let selectedModule = null;
+    let isIndividualShipLoot = false; // New flag for individual ship looting
+    let lootedShip = null; // Reference to the specific ship being looted
+    
+    /**
+     * Show the loot menu for an individual disabled ship
+     * @param {GameState} state - Current game state
+     * @param {Object} disabledShip - The disabled ship to loot
+     * @param {Function} onContinue - Callback when player continues
+     */
+    function showIndividualShip(state, disabledShip, onContinue) {
+        gameState = state;
+        selectedCargoIndex = 0;
+        outputMessage = '';
+        isIndividualShipLoot = true;
+        lootedShip = disabledShip;
+        
+        // Get cargo from this specific ship
+        lootCargo = {};
+        if (disabledShip.cargo) {
+            for (const cargoId in disabledShip.cargo) {
+                const amount = disabledShip.cargo[cargoId];
+                if (amount > 0) {
+                    lootCargo[cargoId] = amount;
+                }
+            }
+        }
+        
+        // No credit reward for individual ship looting
+        creditReward = 0;
+        
+        // No modules for individual ship looting
+        pendingModules = [];
+        selectedModuleIndex = 0;
+        selectedModuleShipIndex = 0;
+        selectedModule = null;
+        mode = 'loot';
+        
+        UI.resetSelection();
+        render(onContinue);
+    }
     
     /**
      * Show the loot menu
@@ -27,6 +67,8 @@ const LootMenu = (() => {
         gameState = state;
         selectedCargoIndex = 0;
         outputMessage = '';
+        isIndividualShipLoot = false;
+        lootedShip = null;
         
         // Combine cargo from all defeated ships
         lootCargo = {};
@@ -96,7 +138,8 @@ const LootMenu = (() => {
         }
         
         // Title
-        UI.addTitleLineCentered(0, 'Victory: Salvage Operations');
+        const title = isIndividualShipLoot ? 'Salvaging Disabled Ship' : 'Victory: Salvage Operations';
+        UI.addTitleLineCentered(0, title);
 
         let y = 4;
         if (gameState.factionRewardMessage) {
@@ -125,10 +168,11 @@ const LootMenu = (() => {
             gameState.factionReward = null;
         }
         
-        // Player cargo info
-        const fleetCargo = Ship.getFleetCargo(gameState.ships);
+        // Player cargo info - only count non-disabled ships
+        const activeShips = gameState.ships.filter(ship => !ship.hull || ship.hull > 0);
+        const fleetCargo = Ship.getFleetCargo(activeShips);
         const totalPlayerCargo = Object.values(fleetCargo).reduce((sum, amt) => sum + amt, 0);
-        const totalPlayerCapacity = gameState.ships.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
+        const totalPlayerCapacity = activeShips.reduce((sum, ship) => sum + ship.cargoCapacity, 0);
         UI.addText(5, y++, `Your Cargo: ${totalPlayerCargo} / ${totalPlayerCapacity}`, COLORS.TEXT_NORMAL);
         
         // Check if there's any loot
@@ -184,8 +228,12 @@ const LootMenu = (() => {
         // Get selected cargo type and check training
         const selectedCargoType = ALL_CARGO_TYPES[selectedCargoIndex];
         const lootQuantity = selectedCargoType ? (lootCargo[selectedCargoType.id] || 0) : 0;
-        const playerQuantity = selectedCargoType ? (fleetCargo[selectedCargoType.id] || 0) : 0;
-        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
+        
+        // Only count non-disabled ships for cargo calculations
+        const activeShipsForButtons = gameState.ships.filter(ship => !ship.hull || ship.hull > 0);
+        const activeFleetCargo = Ship.getFleetCargo(activeShipsForButtons);
+        const playerQuantity = selectedCargoType ? (activeFleetCargo[selectedCargoType.id] || 0) : 0;
+        const availableSpace = Ship.getFleetAvailableCargoSpace(activeShipsForButtons);
         
         // Check if this cargo type is enabled (player has training for it)
         const hasTraining = selectedCargoType ? gameState.enabledCargoTypes.some(ct => ct.id === selectedCargoType.id) : false;
@@ -454,7 +502,10 @@ const LootMenu = (() => {
         const cargoType = availableCargoTypes[selectedCargoIndex];
         
         const availableLoot = lootCargo[cargoType.id] || 0;
-        const availableSpace = Ship.getFleetAvailableCargoSpace(gameState.ships);
+        
+        // Only distribute to non-disabled ships
+        const activeShips = gameState.ships.filter(ship => !ship.hull || ship.hull > 0);
+        const availableSpace = Ship.getFleetAvailableCargoSpace(activeShips);
         
         // Adjust amount based on availability and space
         const actualAmount = Math.min(amount, availableLoot, availableSpace);
@@ -471,7 +522,14 @@ const LootMenu = (() => {
         } else {
             // Take the cargo
             lootCargo[cargoType.id] -= actualAmount;
-            Ship.addCargoToFleet(gameState.ships, cargoType.id, actualAmount);
+            
+            // If looting individual ship, update that ship's cargo
+            if (isIndividualShipLoot && lootedShip && lootedShip.cargo) {
+                lootedShip.cargo[cargoType.id] = Math.max(0, (lootedShip.cargo[cargoType.id] || 0) - actualAmount);
+            }
+            
+            // Add to active (non-disabled) ships only
+            Ship.addCargoToFleet(activeShips, cargoType.id, actualAmount);
             
             const message = actualAmount < amount 
                 ? `Took all ${actualAmount}x ${cargoType.name}!` 
@@ -564,6 +622,7 @@ const LootMenu = (() => {
     }
     
     return {
-        show
+        show,
+        showIndividualShip
     };
 })();

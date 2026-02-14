@@ -505,6 +505,9 @@ class SpaceTravelMapClass {
         // Check collisions with escort ships
         this._checkEscortCollisions(timestampMs);
         
+        // Check for disabled ship looting
+        this._checkDisabledShipLooting(timestampMs);
+        
         this.docking.checkDocking(this);
         SpaceTravelParticles.updateParticles(this);
         SpaceTravelPhysics.regenStats(this, dt);
@@ -547,6 +550,35 @@ class SpaceTravelMapClass {
             if (EscortShipAI.checkPlayerCollision(escort, this.playerShip, this.config)) {
                 const damage = EscortShipAI.getCollisionDamage(escort, this.playerShip, this.config);
                 
+                // Calculate ram damage based on player velocity
+                const playerVelocity = this.playerShip.velocity || { x: 0, y: 0, z: 0 };
+                const speed = Math.sqrt(playerVelocity.x ** 2 + playerVelocity.y ** 2 + playerVelocity.z ** 2);
+                const ramDamageRatio = this.config.RAM_DAMAGE_RATIO || 0.3;
+                const ramDamageMin = this.config.RAM_DAMAGE_MIN || 5;
+                const ramDamage = Math.max(ramDamageMin, Math.ceil(speed * 1000 * ramDamageRatio)); // Convert AU/s to relative damage
+                
+                let escortHullDamaged = false;
+                
+                // Apply ram damage to escort
+                if (typeof escort.shields === 'number' && escort.shields > 0) {
+                    const shieldDamage = Math.min(escort.shields, ramDamage);
+                    escort.shields = Math.max(0, escort.shields - shieldDamage);
+                    const overflow = ramDamage - shieldDamage;
+                    if (overflow > 0 && typeof escort.hull === 'number') {
+                        escort.hull = Math.max(0, escort.hull - overflow);
+                        escortHullDamaged = true;
+                    }
+                } else if (typeof escort.hull === 'number') {
+                    escort.hull = Math.max(0, escort.hull - ramDamage);
+                    escortHullDamaged = true;
+                }
+                
+                // Always set red flash for ram damage
+                if (escortHullDamaged || escort.shields < (escort.maxShields || 100)) {
+                    escort.flashStartMs = timestampMs;
+                    escort.flashColor = this.config.SHIP_FLASH_HULL_COLOR || '#ff0000';
+                }
+                
                 // Both player and ally take damage on collision
                 if (allyVsPlayerCollisionDamage) {
                     // Apply damage to player
@@ -557,16 +589,6 @@ class SpaceTravelMapClass {
                     if (this.playerShip.shields <= 0 && this.playerShip.health !== undefined) {
                         const healthDamage = damage - (this.playerShip.shields + Math.max(0, this.playerShip.shields));
                         this.playerShip.health = Math.max(0, this.playerShip.health - healthDamage);
-                    }
-
-                    // Apply damage to ally
-                    if (escort.shields !== undefined) {
-                        const shieldDamage = Math.min(escort.shields, damage);
-                        escort.shields = Math.max(0, escort.shields - shieldDamage);
-                    }
-                    if (escort.shields <= 0 && escort.health !== undefined) {
-                        const healthDamage = damage - (escort.shields + Math.max(0, escort.shields));
-                        escort.health = Math.max(0, escort.health - healthDamage);
                     }
 
                     // Flash screen on collision
@@ -658,6 +680,60 @@ class SpaceTravelMapClass {
         // Apply impulse to both ships (simple equal mass assumption)
         ship1.velocity = ThreeDUtils.subVec(ship1.velocity, impulse);
         ship2.velocity = ThreeDUtils.addVec(ship2.velocity, impulse);
+    }
+
+    _checkDisabledShipLooting(timestampMs) {
+        if (!this.escortShips || this.escortShips.length === 0) {
+            return;
+        }
+        
+        // Check if player collides with any disabled escort ship
+        this.escortShips.forEach((escort, index) => {
+            if (!escort) return;
+            
+            // Only check disabled ships (hull = 0)
+            if (typeof escort.hull !== 'number' || escort.hull > 0) {
+                return;
+            }
+            
+            // Check if player is close enough to loot
+            if (typeof EscortShipAI === 'undefined' || !EscortShipAI.checkPlayerCollision) {
+                return;
+            }
+            
+            if (EscortShipAI.checkPlayerCollision(escort, this.playerShip, this.config)) {
+                // Check cooldown to prevent re-opening immediately
+                const lastLoot = this.lastDisabledShipLootMs || 0;
+                const lootCooldown = 2000; // 2 second cooldown between loots
+                
+                if (timestampMs - lastLoot < lootCooldown) {
+                    return;
+                }
+                
+                // Stop the map and open loot menu
+                this.stop(true); // Preserve portal if active
+                this.lastDisabledShipLootMs = timestampMs;
+                
+                // Open loot menu for this specific ship
+                if (typeof LootMenu !== 'undefined' && LootMenu.showIndividualShip) {
+                    LootMenu.showIndividualShip(this.currentGameState, escort, () => {
+                        // After looting, move player back
+                        const toShip = ThreeDUtils.subVec(escort.position, this.playerShip.position);
+                        const distance = ThreeDUtils.vecLength(toShip);
+                        if (distance > 0) {
+                            const normalize = 1 / distance;
+                            const direction = ThreeDUtils.scaleVec(toShip, normalize);
+                            const pushBackDistance = 0.1; // Push back 0.1 AU
+                            const pushBack = ThreeDUtils.scaleVec(direction, -pushBackDistance);
+                            this.playerShip.position = ThreeDUtils.addVec(this.playerShip.position, pushBack);
+                        }
+                        
+                        // Resume travel
+                        this.start();
+                    });
+                }
+            }
+        });
     }
 
     _advanceTime(dt) {

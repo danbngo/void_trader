@@ -269,6 +269,35 @@ const Object3DRenderer = (() => {
         const maxDepth = faceDepths.length > 0 ? Math.max(...faceDepths) : 0;
         const depthRange = Math.max(0.000001, maxDepth - minDepth);
 
+        // Check for damage flash state
+        const flashDuration = config.SHIP_FLASH_DURATION_MS || 1000;
+        const flashCount = config.SHIP_FLASH_COUNT || 2;
+        let isFlashing = false;
+        let flashColor = null;
+        
+        if (object.flashStartMs && timestampMs) {
+            const flashElapsed = timestampMs - object.flashStartMs;
+            if (flashElapsed < flashDuration) {
+                // Calculate which flash cycle we're in
+                const flashPeriod = flashDuration / flashCount;
+                const currentFlash = Math.floor(flashElapsed / flashPeriod);
+                const flashPhase = (flashElapsed % flashPeriod) / flashPeriod;
+                
+                // Flash on for half the period, off for half
+                if (flashPhase < 0.5) {
+                    isFlashing = true;
+                    flashColor = object.flashColor || '#ffffff';
+                }
+            } else {
+                // Flash complete, clear it
+                delete object.flashStartMs;
+                delete object.flashColor;
+            }
+        }
+        
+        // Check if ship is disabled (hull = 0)
+        const isDisabled = (typeof object.hull === 'number' && object.hull <= 0);
+
         // Sort by depth (farthest first for proper occlusion)
         visibleFaces.sort((a, b) => b.depth - a.depth);
 
@@ -316,8 +345,18 @@ const Object3DRenderer = (() => {
             const depthT = 1 - ((depth - minDepth) / depthRange);
             const clampedT = Math.max(0, Math.min(1, depthT));
             
-            // Use green color range: dark green to light green
-            const faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
+            // Determine base color based on ship state
+            let faceColor;
+            if (isFlashing && flashColor) {
+                // Use flash color (white for shields, red for hull)
+                faceColor = flashColor;
+            } else if (isDisabled) {
+                // Gray scale for disabled ships: closest = gray, farthest = dark gray
+                faceColor = lerpColorHex('#333333', '#888888', clampedT);
+            } else {
+                // Normal green color range: dark green to light green
+                faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
+            }
             
             // Render filled face
             const rasterResult = RasterUtils.rasterizeFaceDepth(

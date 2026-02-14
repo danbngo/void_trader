@@ -35,11 +35,25 @@ const SpaceTravelConfig = {
     CHAR_CELL_ASPECT_RATIO: null,
     SHIP_SCREEN_SCALE: 1000, // Magnification factor for screen rendering (must be visible)
     SHIP_PHYSICS_SCALE: 1000, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
-    SHIP_SPAWN_DISTANCE_AU: 2.0,
-    SHIP_SPAWN_SPREAD_AU: 0.3,
+    SHIP_SPAWN_DISTANCE_AU: 0.2,  // Reduced 10x (was 2.0)
+    SHIP_SPAWN_SPREAD_AU: 0.03,   // Reduced 10x (was 0.3)
     SHIP_COLLISION_RADIUS_MULT: 1.2,
     SHIP_BOUNCE_DAMPING: 0.7,
     SHIP_COLLISION_COOLDOWN_MS: 400,
+    
+    // Laser damage to ships
+    LASER_DAMAGE_MIN_RATIO: 0.5,  // Minimum 50% of laser energy as damage
+    LASER_DAMAGE_MAX_RATIO: 1.0,  // Maximum 100% of laser energy as damage
+    
+    // Ship damage flash settings
+    SHIP_FLASH_DURATION_MS: 1000,  // 1 second for 2 flashes
+    SHIP_FLASH_COUNT: 2,
+    SHIP_FLASH_SHIELD_COLOR: '#ffffff',  // White for shield damage
+    SHIP_FLASH_HULL_COLOR: '#ff0000',    // Red for hull damage
+    
+    // Ram damage
+    RAM_DAMAGE_RATIO: 0.3,  // 30% of collision speed as damage
+    RAM_DAMAGE_MIN: 5,      // Minimum ram damage
     STATION_SCREEN_SCALE: 100,
     STATION_PHYSICS_SCALE: 100,
     STATION_SPAWN_DISTANCE_MULT: 25,

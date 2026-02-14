@@ -55,20 +55,43 @@ const SpaceTravelLaser = (() => {
             const laserRating = Ship.getLaserMax(playerShip);
             laserBeamLength = 5 + laserRating;
             
+            const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);
 
             if (lastHoverPick && lastHoverPick.bodyRef) {
                 const target = lastHoverPick.bodyRef;
-                const damage = Ship.getLaserMax(playerShip);
+                
+                // Calculate damage: random between 50-100% of laser energy, rounded up
+                const minRatio = config.LASER_DAMAGE_MIN_RATIO || 0.5;
+                const maxRatio = config.LASER_DAMAGE_MAX_RATIO || 1.0;
+                const damageRatio = minRatio + Math.random() * (maxRatio - minRatio);
+                const damage = Math.ceil(laserEnergy * damageRatio);
+                
+                let shieldDamaged = false;
+                let hullDamaged = false;
+                
                 if (typeof target.shields === 'number' && target.shields > 0) {
-                    const remaining = Math.max(0, target.shields - damage);
-                    const overflow = Math.max(0, damage - target.shields);
-                    target.shields = remaining;
+                    const shieldDamage = Math.min(target.shields, damage);
+                    target.shields = Math.max(0, target.shields - shieldDamage);
+                    shieldDamaged = true;
+                    
+                    const overflow = damage - shieldDamage;
                     if (overflow > 0 && typeof target.hull === 'number') {
                         target.hull = Math.max(0, target.hull - overflow);
+                        hullDamaged = true;
                     }
                 } else if (typeof target.hull === 'number') {
                     target.hull = Math.max(0, target.hull - damage);
+                    hullDamaged = true;
+                }
+                
+                // Set flash state on target
+                if (hullDamaged) {
+                    target.flashStartMs = now;
+                    target.flashColor = config.SHIP_FLASH_HULL_COLOR || '#ff0000';
+                } else if (shieldDamaged) {
+                    target.flashStartMs = now;
+                    target.flashColor = config.SHIP_FLASH_SHIELD_COLOR || '#ffffff';
                 }
             }
 

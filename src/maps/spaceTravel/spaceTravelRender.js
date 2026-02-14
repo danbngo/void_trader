@@ -64,6 +64,26 @@ const SpaceTravelRender = (() => {
             }
         });
 
+        // Render escort ships
+        if (params.escortShips && params.escortShips.length > 0 && typeof Object3DRenderer !== 'undefined') {
+            params.escortShips.forEach(escort => {
+                Object3DRenderer.render({
+                    object: escort,
+                    playerShip: params.playerShip,
+                    viewWidth,
+                    viewHeight,
+                    config: params.config,
+                    depthBuffer,
+                    addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color),
+                    getLineSymbol: (x, y) => {
+                        const idx = RasterUtils.getDepthBufferIndex(depthBuffer, x, y);
+                        return depthBuffer.chars[idx] || ' ';
+                    },
+                    timestampMs: effectiveRenderTimestampMs
+                });
+            });
+        }
+
         // Render portal (even when paused)
         SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
 

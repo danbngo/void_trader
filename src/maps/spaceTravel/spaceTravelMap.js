@@ -113,6 +113,10 @@ class SpaceTravelMapClass {
         // Damage and collision state
         this.damageFlashStartMs = 0;
         this.lastStationCollisionMs = 0;
+
+        // Escort ships state
+        this.escortShips = [];
+        this.escortLastCollisionMs = {}; // Track collision cooldown per escort
     }
 
     setPaused(nextPaused, byFocus = false) {
@@ -223,6 +227,7 @@ class SpaceTravelMapClass {
 
         this._initializePlayerShip();
         this._initializeStation();
+        this._initializeEscortShips();
         SpaceTravelPhysics.positionShip(this, resetPosition, options.warpFadeOut);
         this._initializeStarfield();
         this._updateVisibility();
@@ -330,6 +335,27 @@ class SpaceTravelMapClass {
         }
     }
 
+    _initializeEscortShips() {
+        // Initialize escort ships from gameState.ships[1+] (all ships except the player ship at index 0)
+        if (!this.currentGameState || !Array.isArray(this.currentGameState.ships) || this.currentGameState.ships.length <= 1) {
+            this.escortShips = [];
+            return;
+        }
+
+        // Only call AI initialization if EscortShipAI is available
+        if (typeof EscortShipAI !== 'undefined' && EscortShipAI.initializeEscortShips) {
+            this.escortShips = EscortShipAI.initializeEscortShips(
+                this.currentGameState,
+                this.playerShip,
+                this.targetSystem,
+                this.config
+            );
+            this.escortLastCollisionMs = {};
+        } else {
+            this.escortShips = [];
+        }
+    }
+
     _initializeEmergenceMomentum() {
         // Moved to SpaceTravelPhysics
     }
@@ -382,6 +408,8 @@ class SpaceTravelMapClass {
         this.lastHoverPick = null;
         this.autoNavActive = false;
         this.autoNavInput = null;
+        this.escortShips = [];
+        this.escortLastCollisionMs = {};
         if (!preservePortal) {
             this.portalActive = false;
             this.portalPosition = null;
@@ -458,9 +486,25 @@ class SpaceTravelMapClass {
         }
         SpaceTravelPhysics.updateMovement(this, dt, timestampMs);
         SpaceTravelPhysics.updateEmergenceMomentum(this, timestampMs);
+        
+        // Update escort ships AI
+        if (this.escortShips.length > 0 && typeof EscortShipAI !== 'undefined' && EscortShipAI.update) {
+            EscortShipAI.update(
+                this.escortShips,
+                this.playerShip,
+                this.targetSystem,
+                dt,
+                this.config
+            );
+        }
+
         if (SpaceTravelPortal.update(this, timestampMs)) return;
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
+        
+        // Check collisions with escort ships
+        this._checkEscortCollisions(timestampMs);
+        
         this.docking.checkDocking(this);
         SpaceTravelParticles.updateParticles(this);
         SpaceTravelPhysics.regenStats(this, dt);
@@ -473,6 +517,65 @@ class SpaceTravelMapClass {
             stop: () => this.stop(),
             TowMenu,
             onCancelBoost: () => { this.boostActive = false; }
+        });
+    }
+
+    _checkEscortCollisions(timestampMs) {
+        if (!this.escortShips || this.escortShips.length === 0) {
+            return;
+        }
+        if (typeof EscortShipAI === 'undefined' || !EscortShipAI.checkPlayerCollision) {
+            return;
+        }
+
+        // Use global constants defined in CONSTS.js (with fallback defaults)
+        const collisionDamageDivisor = (typeof globalThis.COLLISION_DAMAGE_DIVISOR !== 'undefined') ? globalThis.COLLISION_DAMAGE_DIVISOR : 10;
+        const collisionMinDamage = (typeof globalThis.COLLISION_MIN_DAMAGE !== 'undefined') ? globalThis.COLLISION_MIN_DAMAGE : 1;
+        const collisionCooldownMs = (typeof globalThis.COLLISION_COOLDOWN_MS !== 'undefined') ? globalThis.COLLISION_COOLDOWN_MS : 500;
+        const allyVsPlayerCollisionDamage = (typeof globalThis.ALLY_VS_PLAYER_COLLISION_DAMAGE !== 'undefined') ? globalThis.ALLY_VS_PLAYER_COLLISION_DAMAGE : true;
+
+        this.escortShips.forEach((escort, index) => {
+            if (!escort) return;
+
+            // Check if collision cooldown is active for this escort
+            const lastCollision = this.escortLastCollisionMs[index] || 0;
+            if (timestampMs - lastCollision < collisionCooldownMs) {
+                return;
+            }
+
+            // Check collision between player and this escort ship
+            if (EscortShipAI.checkPlayerCollision(escort, this.playerShip, this.config)) {
+                const damage = EscortShipAI.getCollisionDamage(escort, this.playerShip, this.config);
+                
+                // Both player and ally take damage on collision
+                if (allyVsPlayerCollisionDamage) {
+                    // Apply damage to player
+                    if (this.playerShip.shields !== undefined) {
+                        const shieldDamage = Math.min(this.playerShip.shields, damage);
+                        this.playerShip.shields = Math.max(0, this.playerShip.shields - shieldDamage);
+                    }
+                    if (this.playerShip.shields <= 0 && this.playerShip.health !== undefined) {
+                        const healthDamage = damage - (this.playerShip.shields + Math.max(0, this.playerShip.shields));
+                        this.playerShip.health = Math.max(0, this.playerShip.health - healthDamage);
+                    }
+
+                    // Apply damage to ally
+                    if (escort.shields !== undefined) {
+                        const shieldDamage = Math.min(escort.shields, damage);
+                        escort.shields = Math.max(0, escort.shields - shieldDamage);
+                    }
+                    if (escort.shields <= 0 && escort.health !== undefined) {
+                        const healthDamage = damage - (escort.shields + Math.max(0, escort.shields));
+                        escort.health = Math.max(0, escort.health - healthDamage);
+                    }
+
+                    // Flash screen on collision
+                    this.damageFlashStartMs = timestampMs;
+                }
+
+                // Set cooldown for this escort
+                this.escortLastCollisionMs[index] = timestampMs;
+            }
         });
     }
 

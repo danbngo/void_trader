@@ -5,22 +5,25 @@
 
 const SpaceTravelAnimation = (() => {
     function create(config) {
-        function renderBoostTint(mapInstance, timestampMs) {
+        function renderBoostTint(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const { boostActive, boostEndTimestampMs, boostStartTimestampMs } = mapInstance;
             
             if (!boostActive && (!boostEndTimestampMs || boostEndTimestampMs <= 0)) return;
+
+            // When paused, use the frozen pause timestamp for calculations to prevent time desync
+            const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
 
             const rampSec = Math.max(0.1, config.BOOST_TINT_RAMP_SEC || 1);
             const fadeSec = Math.max(0.1, (config.BOOST_TINT_FADE_SEC ?? config.BOOST_COOLDOWN_SEC) || 1);
             let alpha = 0;
 
             if (boostActive) {
-                const elapsedSec = Math.max(0, (timestampMs - boostStartTimestampMs) / 1000);
+                const elapsedSec = Math.max(0, (effectiveTimestampMs - boostStartTimestampMs) / 1000);
                 const timeRatio = Math.min(1, elapsedSec / rampSec);
                 alpha = config.BOOST_TINT_MAX * timeRatio;
                 alpha = Math.max(alpha, config.BOOST_TINT_MIN);
             } else {
-                const elapsedFade = Math.max(0, (timestampMs - boostEndTimestampMs) / 1000);
+                const elapsedFade = Math.max(0, (effectiveTimestampMs - boostEndTimestampMs) / 1000);
                 const fadeT = Math.max(0, 1 - (elapsedFade / fadeSec));
                 alpha = config.BOOST_TINT_MAX * fadeT;
                 if (fadeT <= 0) mapInstance.boostEndTimestampMs = 0;
@@ -39,9 +42,13 @@ const SpaceTravelAnimation = (() => {
             }
         }
 
-        function renderDamageFlash(mapInstance, timestampMs) {
+        function renderDamageFlash(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const { damageFlashStartMs } = mapInstance;
-            const flashElapsed = timestampMs - damageFlashStartMs;
+            
+            // When paused, use the frozen pause timestamp for calculations to prevent time desync
+            const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
+            
+            const flashElapsed = effectiveTimestampMs - damageFlashStartMs;
             if (flashElapsed < 0 || flashElapsed > config.DAMAGE_FLASH_DURATION_MS) return;
 
             const t = flashElapsed / config.DAMAGE_FLASH_DURATION_MS;
@@ -61,13 +68,16 @@ const SpaceTravelAnimation = (() => {
             }
         }
 
-        function renderDeathSequence(mapInstance, timestampMs) {
+        function renderDeathSequence(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const { deathTow } = mapInstance;
             if (!deathTow.isDeathSequenceActive()) return;
 
+            // When paused, use the frozen pause timestamp for calculations to prevent time desync
+            const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
+
             const redSec = Math.max(0.01, config.DEATH_FADE_TO_RED_SEC || 1);
             const blackSec = Math.max(0.01, config.DEATH_FADE_TO_BLACK_SEC || 1);
-            const elapsedSec = Math.max(0, (timestampMs - deathTow.getDeathSequenceStartMs()) / 1000);
+            const elapsedSec = Math.max(0, (effectiveTimestampMs - deathTow.getDeathSequenceStartMs()) / 1000);
             const redT = Math.min(1, elapsedSec / redSec);
             const blackT = Math.min(1, Math.max(0, (elapsedSec - redSec) / blackSec));
 
@@ -92,12 +102,15 @@ const SpaceTravelAnimation = (() => {
             }
         }
 
-        function renderWarpFade(mapInstance, timestampMs) {
+        function renderWarpFade(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const startMs = mapInstance.warpFadeOutStartMs;
             if (!startMs) return;
 
+            // When paused, use the frozen pause timestamp for calculations to prevent time desync
+            const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
+
             const duration = Math.max(1, config.WARP_FADE_OUT_MS || 1000);
-            const elapsed = timestampMs - startMs;
+            const elapsed = effectiveTimestampMs - startMs;
             const t = Math.min(1, Math.max(0, elapsed / duration));
             const alpha = 1 - t;
 

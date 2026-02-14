@@ -33,8 +33,8 @@ const SpaceTravelConfig = {
     SYSTEM_BODY_SCREEN_SCALE: 10,
     SYSTEM_BODY_PHYSICS_SCALE: 10,
     CHAR_CELL_ASPECT_RATIO: null,
-    SHIP_SCREEN_SCALE: 50, // Magnification factor for screen rendering (must be visible)
-    SHIP_PHYSICS_SCALE: 100, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
+    SHIP_SCREEN_SCALE: 1000, // Magnification factor for screen rendering (must be visible)
+    SHIP_PHYSICS_SCALE: 0, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
     SHIP_SPAWN_DISTANCE_AU: 2.0,
     SHIP_SPAWN_SPREAD_AU: 0.3,
     SHIP_COLLISION_RADIUS_MULT: 1.2,
@@ -101,9 +101,9 @@ const SpaceTravelConfig = {
     BOOST_ACCEL_MULT: 50,
     BOOST_MAX_SPEED_MULT: 100,
     BOOST_FUEL_PER_SEC: 0.1,
-    BOOST_TINT_MAX: 0.0625,
-    BOOST_TINT_RAMP_SEC: 4,
-    BOOST_TINT_FADE_SEC: 2.5,
+    BOOST_TINT_MAX: 0.25,
+    BOOST_TINT_RAMP_SEC: 0.5,
+    BOOST_TINT_FADE_SEC: 5.0,  // 2x slower fade (was 2.5)
     BOOST_COOLDOWN_SEC: 5,
     BOOST_TINT_MIN: 0,
     BOOST_STREAK_DELAY_MS: 1000,  // Reduced from 2000 to start star streaks 2x sooner during boost

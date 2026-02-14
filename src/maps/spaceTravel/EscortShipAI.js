@@ -394,12 +394,19 @@ const EscortShipAI = (() => {
      * Check if escort ship collides with player
      */
     function checkPlayerCollision(escort, playerShip, config) {
+        // If SHIP_PHYSICS_SCALE is 0, disable collisions
+        if (config.SHIP_PHYSICS_SCALE === 0) {
+            return false;
+        }
+        
         const relative = ThreeDUtils.subVec(escort.position, playerShip.position);
         const distance = ThreeDUtils.vecLength(relative);
         
-        // Collision threshold
-        const playerRadius = (config.SHIP_COLLISION_RADIUS || 0.3);
-        const escortRadius = (config.SHIP_COLLISION_RADIUS || 0.3);
+        // Use SHIP_SIZE_AU from global constants and apply collision radius multiplier
+        const baseRadius = (typeof SHIP_SIZE_AU !== 'undefined') ? SHIP_SIZE_AU : (typeof SHIP_COLLISION_RADIUS !== 'undefined' ? SHIP_COLLISION_RADIUS : 0.00000043);
+        const radiusMult = config.SHIP_COLLISION_RADIUS_MULT || 1.2;
+        const playerRadius = baseRadius * radiusMult;
+        const escortRadius = baseRadius * radiusMult;
         const collisionDist = playerRadius + escortRadius;
 
         return distance < collisionDist;

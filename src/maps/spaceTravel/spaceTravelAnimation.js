@@ -8,7 +8,11 @@ const SpaceTravelAnimation = (() => {
         function renderBoostTint(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const { boostActive, boostEndTimestampMs, boostStartTimestampMs } = mapInstance;
             
-            if (!boostActive && (!boostEndTimestampMs || boostEndTimestampMs <= 0)) return;
+            if (!boostActive && (!boostEndTimestampMs || boostEndTimestampMs <= 0)) {
+                // Clear tint when not active
+                ColorTinting?.clearTint?.();
+                return;
+            }
 
             // When paused, use the frozen pause timestamp for calculations to prevent time desync
             const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
@@ -30,15 +34,10 @@ const SpaceTravelAnimation = (() => {
             }
 
             if (alpha > 0) {
-                const ctx = UI.getContext?.();
-                const canvas = UI.getCanvas?.();
-                if (ctx && canvas) {
-                    ctx.save();
-                    ctx.globalAlpha = alpha;
-                    ctx.fillStyle = '#ff8a00';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.restore();
-                }
+                // Use character-level tinting instead of full-screen canvas tint
+                ColorTinting?.setTint?.('#ff8a00', alpha);
+            } else {
+                ColorTinting?.clearTint?.();
             }
         }
 
@@ -104,7 +103,10 @@ const SpaceTravelAnimation = (() => {
 
         function renderWarpFade(mapInstance, timestampMs, isPaused, pausedTimestamp) {
             const startMs = mapInstance.warpFadeOutStartMs;
-            if (!startMs) return;
+            if (!startMs) {
+                ColorTinting?.clearTint?.();
+                return;
+            }
 
             // When paused, use the frozen pause timestamp for calculations to prevent time desync
             const effectiveTimestampMs = isPaused && pausedTimestamp ? pausedTimestamp : timestampMs;
@@ -116,18 +118,12 @@ const SpaceTravelAnimation = (() => {
 
             if (alpha <= 0) {
                 mapInstance.warpFadeOutStartMs = 0;
+                ColorTinting?.clearTint?.();
                 return;
             }
 
-            const ctx = UI.getContext?.();
-            const canvas = UI.getCanvas?.();
-            if (!ctx || !canvas) return;
-
-            ctx.save();
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = '#00ccff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
+            // Use character-level tinting instead of full-screen canvas tint
+            ColorTinting?.setTint?.('#00ccff', alpha);
         }
 
         return {

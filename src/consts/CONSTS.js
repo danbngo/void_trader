@@ -207,7 +207,7 @@ const SHIP_SIZE_AU = SPACE_STATION_SIZE_AU*.01
 const COLLISION_DAMAGE_DIVISOR = 10 // damage = floor(speedPerMinute / COLLISION_DAMAGE_DIVISOR), min 1
 const COLLISION_MIN_DAMAGE = 1 // Minimum damage dealt on collision
 const COLLISION_COOLDOWN_MS = 500 // Minimum time between collision damage events
-const SHIP_COLLISION_RADIUS = 0.3 // AU - collision radius for player/ally ships
+const SHIP_COLLISION_RADIUS = SHIP_SIZE_AU // AU - collision radius for player/ally ships (based on ship size)
 const ALLY_VS_PLAYER_COLLISION_DAMAGE = true // Ally ships take damage when hit by player
 const ALLY_VS_PLAYER_DAMAGE_DIVISOR = 10 // Same formula as stations
 const AI_COLLISION_BOUNCE = true // AI ships bounce off player without damage

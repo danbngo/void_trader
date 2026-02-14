@@ -141,12 +141,16 @@ class CanvasWrapper {
         }
 
         if (text.length === 1 && '█▓▒░'.includes(text)) {
-            this.ctx.fillStyle = color;
+            // Apply tinting if active
+            const tintedColor = ColorTinting?.applyCurrentTint?.(color) || color;
+            this.ctx.fillStyle = tintedColor;
             this.ctx.fillRect(pixelX, pixelY, this.charWidth, this.charHeight);
             return;
         }
         
-        this.ctx.fillStyle = color;
+        // Apply tinting if active
+        const tintedColor = ColorTinting?.applyCurrentTint?.(color) || color;
+        this.ctx.fillStyle = tintedColor;
         if (text.length > 1) {
             for (let i = 0; i < text.length; i++) {
                 const ch = text[i];
@@ -162,7 +166,7 @@ class CanvasWrapper {
             const textWidth = this.charWidth * text.length;
             const underlineY = pixelY + this.charHeight - 1;
             this.ctx.beginPath();
-            this.ctx.strokeStyle = color;
+            this.ctx.strokeStyle = tintedColor;
             this.ctx.lineWidth = Math.max(1, actualFontSize / 16);
             this.ctx.moveTo(pixelX, underlineY);
             this.ctx.lineTo(pixelX + textWidth, underlineY);

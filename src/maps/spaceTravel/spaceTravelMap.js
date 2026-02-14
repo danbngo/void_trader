@@ -598,13 +598,20 @@ class SpaceTravelMapClass {
             return false;
         }
 
+        // If SHIP_PHYSICS_SCALE is 0, disable collisions
+        if (this.config?.SHIP_PHYSICS_SCALE === 0) {
+            return false;
+        }
+
         const toOther = ThreeDUtils.subVec(ship2.position, ship1.position);
         const distance = ThreeDUtils.vecLength(toOther);
         
-        // Estimate collision radius (half the size of ship from geometry)
-        const collisionRadius1 = 0.1 * (this.config?.SHIP_PHYSICS_SCALE || 50) / 50;
-        const collisionRadius2 = 0.1 * (this.config?.SHIP_PHYSICS_SCALE || 50) / 50;
-        const collisionDistance = (collisionRadius1 + collisionRadius2) * (this.config?.SHIP_COLLISION_RADIUS_MULT || 1.2);
+        // Use SHIP_SIZE_AU from global constants and apply collision radius multiplier
+        const baseRadius = (typeof SHIP_SIZE_AU !== 'undefined') ? SHIP_SIZE_AU : 0.00000043;
+        const radiusMult = this.config?.SHIP_COLLISION_RADIUS_MULT || 1.2;
+        const collisionRadius1 = baseRadius * radiusMult;
+        const collisionRadius2 = baseRadius * radiusMult;
+        const collisionDistance = collisionRadius1 + collisionRadius2;
 
         return distance < collisionDistance;
     }

@@ -110,21 +110,7 @@ const SpaceTravelRenderIndicators = (() => {
         // Render arrow
         if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
             addHudText(x, y, arrow, color || COLORS.CYAN);
-            
-            // Log nav arrow details occasionally
-            if (Math.random() < 0.05) {
-                console.log('[NavArrow]', {
-                    arrow,
-                    screenPos: { x, y },
-                    screenCenter: { centerX, centerY },
-                    directionNormalized: { dx: dx.toFixed(3), dy: dy.toFixed(3) },
-                    targetDistance: Math.sqrt((dx * dx) + (dy * dy)).toFixed(3),
-                    margin,
-                    bounds: { minX, maxX, minY, maxY },
-                    Name: name
-                });
-            }
-            
+
             return { rendered: true, x, y, arrow };
         }
 

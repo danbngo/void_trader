@@ -67,17 +67,7 @@ const SpaceTravelRender = (() => {
         // Render escort ships
         const escortPickInfos = [];
         if (params.escortShips && params.escortShips.length > 0 && typeof Object3DRenderer !== 'undefined') {
-            console.log(`[SpaceTravelRender] Rendering ${params.escortShips.length} escort ships`);
             params.escortShips.forEach((escort, idx) => {
-                console.log(`[SpaceTravelRender] Rendering escort ${idx}:`, {
-                    position: escort.position,
-                    hasGeometry: !!escort.geometry,
-                    distance: escort.position ? Math.sqrt(
-                        (escort.position.x - params.playerShip.position.x) ** 2 +
-                        (escort.position.y - params.playerShip.position.y) ** 2 +
-                        (escort.position.z - params.playerShip.position.z) ** 2
-                    ).toFixed(2) : 'N/A'
-                });
                 Object3DRenderer.render({
                     object: escort,
                     playerShip: params.playerShip,
@@ -98,10 +88,6 @@ const SpaceTravelRender = (() => {
                     }
                 });
             });
-        } else {
-            if (!params.escortShips || params.escortShips.length === 0) {
-                console.log('[SpaceTravelRender] No escort ships to render');
-            }
         }
 
         // Check for escort picks and update hover if needed
@@ -132,13 +118,6 @@ const SpaceTravelRender = (() => {
                         screenY: mouseState.y,
                         distance: closestEscort.distance
                     };
-                    console.log('[SpaceTravelRender] Escort pick created:', {
-                        escortIndex: closestEscort.object.shipIndex,
-                        escortPos: closestEscort.object.position,
-                        distance: closestEscort.distance,
-                        screenPos: { x: closestEscort.screenX, y: closestEscort.screenY },
-                        pickDistance: pickDistance
-                    });
                     renderParams.lastHoverPick = escortPickData;
                     if (params.mapInstance) {
                         params.mapInstance.lastHoverPick = escortPickData;

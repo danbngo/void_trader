@@ -164,13 +164,27 @@ const SpaceStationGfx = (() => {
         const stations = visibleStations || [];
         const nearPlane = config.NEAR_PLANE;
         const faceBias = config.STATION_FACE_DEPTH_BIAS;
-        const scale = config.STATION_SCREEN_SCALE;
+        const baseScale = config.STATION_SCREEN_SCALE;
+        const minNonSymbolSize = config.STATION_MIN_NON_SYMBOL_SIZE_CHARS || 3;
+        const maxScaleMult = config.STATION_MIN_NON_SYMBOL_MAX_SCALE_MULT || 4;
         
         if (stations.length === 0) {
             return;
         }
 
         stations.forEach(station => {
+            let scale = baseScale;
+            const boundsAtBaseScale = stationScreenBoundsChars(station, playerShip, viewWidth, viewHeight, 75, scale);
+            if (boundsAtBaseScale) {
+                const { width, height } = boundsAtBaseScale;
+                if ((width > 1 || height > 1) && (width < minNonSymbolSize || height < minNonSymbolSize)) {
+                    const widthSafe = Math.max(0.001, width);
+                    const heightSafe = Math.max(0.001, height);
+                    const requiredScaleMult = Math.max(minNonSymbolSize / widthSafe, minNonSymbolSize / heightSafe);
+                    scale *= Math.min(requiredScaleMult, maxScaleMult);
+                }
+            }
+
             let edgeDebugCount = 0;
             const geometry = buildCuboctahedronGeometry(station);
             const cameraPos = playerShip.position;

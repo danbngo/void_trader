@@ -58,8 +58,22 @@ const SpaceTravelLaser = (() => {
             const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);
 
+            if (!lastHoverPick || !lastHoverPick.bodyRef) {
+                const grid = UI.getGridSize();
+                const viewWidth = grid.width;
+                const viewHeight = grid.height - config.PANEL_HEIGHT;
+                const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
+                console.log('[Laser] No target pick:', {
+                    lastHoverPick,
+                    laserTarget,
+                    mouseTargetActive: inputState?.mouseTargetActive,
+                    mouseState
+                });
+            }
+
             if (lastHoverPick && lastHoverPick.bodyRef) {
                 const target = lastHoverPick.bodyRef;
+                const damageTarget = target.shipData || target;
                 
                 // Calculate damage: random between 50-100% of laser energy, rounded up
                 const minRatio = config.LASER_DAMAGE_MIN_RATIO || 0.5;
@@ -70,28 +84,71 @@ const SpaceTravelLaser = (() => {
                 let shieldDamaged = false;
                 let hullDamaged = false;
                 
-                if (typeof target.shields === 'number' && target.shields > 0) {
-                    const shieldDamage = Math.min(target.shields, damage);
-                    target.shields = Math.max(0, target.shields - shieldDamage);
+                if (typeof damageTarget.shields === 'number' && damageTarget.shields > 0) {
+                    const shieldDamage = Math.min(damageTarget.shields, damage);
+                    damageTarget.shields = Math.max(0, damageTarget.shields - shieldDamage);
                     shieldDamaged = true;
                     
                     const overflow = damage - shieldDamage;
-                    if (overflow > 0 && typeof target.hull === 'number') {
-                        target.hull = Math.max(0, target.hull - overflow);
+                    if (overflow > 0 && typeof damageTarget.hull === 'number') {
+                        damageTarget.hull = Math.max(0, damageTarget.hull - overflow);
                         hullDamaged = true;
                     }
-                } else if (typeof target.hull === 'number') {
-                    target.hull = Math.max(0, target.hull - damage);
+                } else if (typeof damageTarget.hull === 'number') {
+                    damageTarget.hull = Math.max(0, damageTarget.hull - damage);
                     hullDamaged = true;
+                }
+
+                // Keep top-level escort stats in sync when using nested shipData
+                if (target !== damageTarget) {
+                    if (typeof damageTarget.hull === 'number') target.hull = damageTarget.hull;
+                    if (typeof damageTarget.shields === 'number') target.shields = damageTarget.shields;
+                    if (typeof damageTarget.maxHull === 'number') target.maxHull = damageTarget.maxHull;
+                    if (typeof damageTarget.maxShields === 'number') target.maxShields = damageTarget.maxShields;
+                }
+
+                // Rename disabled ships
+                const isDisabledAfterHit = (typeof damageTarget.hull === 'number' && damageTarget.hull <= 0);
+                if (isDisabledAfterHit) {
+                    damageTarget.name = 'Abandoned Ship';
+                    target.name = 'Abandoned Ship';
                 }
                 
                 // Set flash state on target
                 if (hullDamaged) {
                     target.flashStartMs = now;
-                    target.flashColor = config.SHIP_FLASH_HULL_COLOR || '#ff0000';
+                    target.flashColor = isDisabledAfterHit
+                        ? (config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
+                        : (config.SHIP_FLASH_HULL_COLOR || '#ff0000');
+                    console.log('[DamageFlash] Hull flash set:', {
+                        targetId: target.id || target.name || damageTarget.id || damageTarget.name || 'unknown',
+                        flashStartMs: target.flashStartMs,
+                        flashColor: target.flashColor,
+                        hull: damageTarget.hull,
+                        shields: damageTarget.shields,
+                        damage
+                    });
                 } else if (shieldDamaged) {
                     target.flashStartMs = now;
                     target.flashColor = config.SHIP_FLASH_SHIELD_COLOR || '#ffffff';
+                    console.log('[DamageFlash] Shield flash set:', {
+                        targetId: target.id || target.name || damageTarget.id || damageTarget.name || 'unknown',
+                        flashStartMs: target.flashStartMs,
+                        flashColor: target.flashColor,
+                        hull: damageTarget.hull,
+                        shields: damageTarget.shields,
+                        damage
+                    });
+                } else {
+                    console.log('[DamageFlash] No flash set after hit:', {
+                        targetId: target.id || target.name || damageTarget.id || damageTarget.name || 'unknown',
+                        hull: damageTarget.hull,
+                        shields: damageTarget.shields,
+                        damage,
+                        shieldDamaged,
+                        hullDamaged,
+                        hasShipData: !!target.shipData
+                    });
                 }
             }
 

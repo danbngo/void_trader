@@ -35,6 +35,10 @@ const SpaceTravelRender = (() => {
     function renderSceneDepthBuffer(params) {
         const { depthBuffer, renderTimestampMs, viewWidth, viewHeight } = params;
         const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, params.inputState);
+        if (mouseState && typeof mouseState.x === 'undefined') {
+            mouseState.x = mouseState.rawX;
+            mouseState.y = mouseState.rawY;
+        }
         
         const renderParams = {
             ...params,
@@ -92,23 +96,32 @@ const SpaceTravelRender = (() => {
 
         // Check for escort picks and update hover if needed
         if (escortPickInfos.length > 0 && mouseState) {
-            // Find closest escort to mouse
-            const closestEscort = escortPickInfos.reduce((closest, current) => {
-                const currentDist = Math.abs(current.screenX - mouseState.x) + Math.abs(current.screenY - mouseState.y);
-                const closestDist = Math.abs(closest.screenX - mouseState.x) + Math.abs(closest.screenY - mouseState.y);
-                return currentDist < closestDist ? current : closest;
+            const withDistance = escortPickInfos.map(pick => {
+                const dx = (pick.screenX - mouseState.x);
+                const dy = (pick.screenY - mouseState.y);
+                const distance = Math.sqrt((dx * dx) + (dy * dy));
+                const pickRadius = pick.pickRadius || 3;
+                return { pick, distance, pickRadius };
             });
 
-            // Only pick if mouse is reasonably close
-            const pickDistance = Math.abs(closestEscort.screenX - mouseState.x) + Math.abs(closestEscort.screenY - mouseState.y);
-            if (pickDistance <= 2) {  // 2 character distance threshold
+            const hoverCandidates = withDistance.filter(entry => entry.distance <= entry.pickRadius);
+            if (hoverCandidates.length > 0) {
+                const bestMatch = hoverCandidates.reduce((best, current) => {
+                    if (!best) return current;
+                    if (current.distance < best.distance) return current;
+                    if (current.distance === best.distance && (current.pick.distance || Infinity) < (best.pick.distance || Infinity)) return current;
+                    return best;
+                }, null);
+
+                const closestEscort = bestMatch.pick;
+
                 // Check if there's an existing pick that's closer
-                const existingPickDist = renderParams.lastHoverPick 
-                    ? Math.abs(renderParams.lastHoverPick.screenX - mouseState.x) + Math.abs(renderParams.lastHoverPick.screenY - mouseState.y)
+                const existingPickDist = renderParams.lastHoverPick
+                    ? Math.hypot((renderParams.lastHoverPick.screenX - mouseState.x), (renderParams.lastHoverPick.screenY - mouseState.y))
                     : Infinity;
-                
+
                 // Use escort pick if it's closer or no existing pick
-                if (pickDistance <= existingPickDist) {
+                if (bestMatch.distance <= existingPickDist) {
                     const escortPickData = {
                         kind: 'ESCORT_SHIP',
                         bodyRef: closestEscort.object,

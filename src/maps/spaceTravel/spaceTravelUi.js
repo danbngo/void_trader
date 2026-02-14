@@ -115,16 +115,23 @@ const SpaceTravelUi = (() => {
             // For escort ships, get current position from the escort object
             if (localDestination.type === 'ESCORT_SHIP' && localDestination.escort && localDestination.escort.position) {
                 const escortPos = localDestination.escort.position;
+                const liveEscortName = localDestination.escort.name
+                    || localDestination.escort.shipData?.name
+                    || localDestination.name;
+                const liveLocalDestination = {
+                    ...localDestination,
+                    name: liveEscortName
+                };
                 // Log at 1% sample rate to avoid spam
                 if (Math.random() < 0.01) {
                     console.log('[SpaceTravelUi.getActiveTargetInfo] Escort position:', {
                         escortIndex: localDestination.escort.shipIndex,
-                        escortName: localDestination.name,
+                        escortName: liveEscortName,
                         escortPos: escortPos,
                         targetDistance: Math.sqrt((escortPos.x)*(escortPos.x) + (escortPos.y)*(escortPos.y) + (escortPos.z)*(escortPos.z)).toFixed(0)
                     });
                 }
-                return buildTargetInfo(localDestination, escortPos, true);
+                return buildTargetInfo(liveLocalDestination, escortPos, true);
             }
             
             // Always recalculate position from orbit if available (handles moving objects)

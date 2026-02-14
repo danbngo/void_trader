@@ -43,7 +43,7 @@ const SpaceTravelInput = (() => {
         window.addEventListener('focus', handlers.windowFocusHandler);
     }
 
-    function setupMouseTargeting({ handlers, config, getLastHoverPick, onPick, onFire }) {
+    function setupMouseTargeting({ handlers, config, getLastHoverPick, onPick, onFire, mapInstance }) {
         const canvas = UI.getCanvas?.();
         if (!canvas) {
             return;
@@ -78,8 +78,14 @@ const SpaceTravelInput = (() => {
                 const gridY = Math.floor(pixelY / charDims.height);
                 
                 const pick = getLastHoverPick();
-                
-                if (pick) {
+
+                const hasEscortSelection = !!mapInstance?.localDestination
+                    && mapInstance.localDestination.type === 'ESCORT_SHIP';
+                const clickedEscort = !!pick && pick.kind === 'ESCORT_SHIP';
+
+                // Always allow selecting non-escort targets (planets/stars/stations),
+                // even when an escort is currently selected.
+                if (pick && (!hasEscortSelection || !clickedEscort)) {
                     onPick(pick);
                     return;
                 }
@@ -221,7 +227,8 @@ const SpaceTravelInput = (() => {
                     UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
                     UI.setOutputRow(result.flashMessage, COLORS.TEXT_WARN);
                 }
-            }
+            },
+            mapInstance
         });
     }
 

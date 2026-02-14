@@ -572,11 +572,20 @@ class SpaceTravelMapClass {
                     escort.hull = Math.max(0, escort.hull - ramDamage);
                     escortHullDamaged = true;
                 }
+
+                if (typeof escort.hull === 'number' && escort.hull <= 0) {
+                    escort.name = 'Abandoned Ship';
+                    if (escort.shipData) {
+                        escort.shipData.name = 'Abandoned Ship';
+                    }
+                }
                 
                 // Always set red flash for ram damage
                 if (escortHullDamaged || escort.shields < (escort.maxShields || 100)) {
                     escort.flashStartMs = timestampMs;
-                    escort.flashColor = this.config.SHIP_FLASH_HULL_COLOR || '#ff0000';
+                    escort.flashColor = (typeof escort.hull === 'number' && escort.hull <= 0)
+                        ? (this.config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
+                        : (this.config.SHIP_FLASH_HULL_COLOR || '#ff0000');
                 }
                 
                 // Both player and ally take damage on collision

@@ -4,8 +4,12 @@
  */
 
 const EscortShipAI = (() => {
-    const FOLLOW_DISTANCE = 0.5; // AU - desired distance to maintain from player
-    const FOLLOW_STOP_DISTANCE = 0.1; // AU - stop moving when this close
+    const FOLLOW_DISTANCE = 0.08; // AU - desired distance to maintain from player
+    const FOLLOW_STOP_DISTANCE = 0.03; // AU - stop moving when this close
+    const FOLLOW_REENGAGE_DISTANCE = 0.2; // AU - if farther than this, leave patrol and resume follow
+    const PATROL_MIN_RADIUS = 0.04; // AU - min patrol offset from player
+    const PATROL_MAX_RADIUS = 0.12; // AU - max patrol offset from player
+    const PATROL_POINT_REACHED_DISTANCE = 0.01; // AU - when to pick next patrol point
     const MAX_APPROACH_SPEED = 60; // m/s
     const COLLISION_AVOID_RADIUS = 2; // AU - avoid objects within this range
     const STAR_HEAT_AVOID_MARGIN = 1.2; // Multiplier on star heat radius for avoidance
@@ -72,6 +76,8 @@ const EscortShipAI = (() => {
                 const escort = {
                     shipIndex: i,
                     shipData: shipData,
+                    id: shipData.id || `escort-${i}`,
+                    name: shipData.name || `Allied Ship ${i}`,
                     position: { 
                         x: playerShip.position.x + finalOffsetX, 
                         y: playerShip.position.y + finalOffsetY, 
@@ -80,7 +86,13 @@ const EscortShipAI = (() => {
                     rotation: { x: 0, y: 0, z: 0, w: 1 },
                     velocity: { x: 0, y: 0, z: 0 },
                     geometry: geometry,
-                    state: 'following', // 'following', 'avoiding', 'docking'
+                    hull: typeof shipData.hull === 'number' ? shipData.hull : 100,
+                    maxHull: typeof shipData.maxHull === 'number' ? shipData.maxHull : (typeof shipData.hull === 'number' ? shipData.hull : 100),
+                    shields: typeof shipData.shields === 'number' ? shipData.shields : 0,
+                    maxShields: typeof shipData.maxShields === 'number' ? shipData.maxShields : (typeof shipData.shields === 'number' ? shipData.shields : 0),
+                    cargo: shipData.cargo || {},
+                    state: 'following', // 'following', 'patrolling', 'avoiding', 'docking'
+                    patrolTarget: null,
                     lastAvoidanceTime: 0,
                     lastCollisionMs: 0
                 };
@@ -219,6 +231,7 @@ const EscortShipAI = (() => {
     function updateEscortShip(escort, playerShip, system, dt, config) {
         const toPlayer = ThreeDUtils.subVec(playerShip.position, escort.position);
         const distanceToPlayer = ThreeDUtils.vecLength(toPlayer);
+        const previousState = escort.state;
 
         // Check for nearby hazards
         const hazards = findNearbyHazards(escort, system, config);
@@ -227,14 +240,20 @@ const EscortShipAI = (() => {
             // Avoid hazards
             updateAvoidance(escort, hazards, playerShip, dt, config);
             escort.state = 'avoiding';
-        } else if (distanceToPlayer > FOLLOW_DISTANCE + FOLLOW_STOP_DISTANCE) {
+        } else if (distanceToPlayer > FOLLOW_REENGAGE_DISTANCE) {
             // Approach player
             applyFollowBehavior(escort, playerShip, dt, config);
             escort.state = 'following';
-        } else {
-            // Maintain distance - slight damping
-            escort.velocity = ThreeDUtils.scaleVec(escort.velocity, 0.95);
+            escort.patrolTarget = null;
+        } else if (distanceToPlayer > FOLLOW_DISTANCE + FOLLOW_STOP_DISTANCE) {
+            // Close enough for local behavior, but still outside ideal follow bubble
+            applyFollowBehavior(escort, playerShip, dt, config);
             escort.state = 'following';
+            escort.patrolTarget = null;
+        } else {
+            // Close to player: patrol around them using remembered/random waypoints
+            applyPatrolBehavior(escort, playerShip, dt, config);
+            escort.state = 'patrolling';
         }
 
         // Apply velocity and position update
@@ -246,6 +265,98 @@ const EscortShipAI = (() => {
         if (ThreeDUtils.vecLength(escort.velocity) > 0.1) {
             const dir = ThreeDUtils.normalizeVec(escort.velocity);
             escort.rotation = directionToQuaternion(dir);
+        }
+
+        if (previousState !== escort.state) {
+            console.log('[EscortPatrol] State change:', {
+                escort: escort.name || `Escort ${escort.shipIndex}`,
+                from: previousState,
+                to: escort.state,
+                distanceToPlayerAU: Number(distanceToPlayer.toFixed(4))
+            });
+        }
+
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        if (!escort._lastPatrolDebugMs || (now - escort._lastPatrolDebugMs) > 1000) {
+            escort._lastPatrolDebugMs = now;
+            const distanceToPatrolTarget = escort.patrolTarget
+                ? ThreeDUtils.vecLength(ThreeDUtils.subVec(escort.patrolTarget, escort.position))
+                : null;
+            console.log('[EscortPatrol] Status:', {
+                escort: escort.name || `Escort ${escort.shipIndex}`,
+                mode: escort.state,
+                distanceToPlayerAU: Number(distanceToPlayer.toFixed(4)),
+                patrolTarget: escort.patrolTarget
+                    ? {
+                        x: Number(escort.patrolTarget.x.toFixed(4)),
+                        y: Number(escort.patrolTarget.y.toFixed(4)),
+                        z: Number(escort.patrolTarget.z.toFixed(4))
+                    }
+                    : null,
+                distanceToPatrolTargetAU: distanceToPatrolTarget === null ? null : Number(distanceToPatrolTarget.toFixed(4)),
+                speedAUPerSec: Number(ThreeDUtils.vecLength(escort.velocity).toFixed(4))
+            });
+        }
+    }
+
+    function getRandomPatrolPoint(playerShip) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        const radius = PATROL_MIN_RADIUS + (Math.random() * (PATROL_MAX_RADIUS - PATROL_MIN_RADIUS));
+
+        const offset = {
+            x: radius * Math.sin(phi) * Math.cos(theta),
+            y: radius * Math.sin(phi) * Math.sin(theta),
+            z: radius * Math.cos(phi)
+        };
+
+        return ThreeDUtils.addVec(playerShip.position, offset);
+    }
+
+    function applyPatrolBehavior(escort, playerShip, dt, config) {
+        if (!escort.patrolTarget) {
+            escort.patrolTarget = getRandomPatrolPoint(playerShip);
+            console.log('[EscortPatrol] New destination:', {
+                escort: escort.name || `Escort ${escort.shipIndex}`,
+                reason: 'no_target',
+                target: {
+                    x: Number(escort.patrolTarget.x.toFixed(4)),
+                    y: Number(escort.patrolTarget.y.toFixed(4)),
+                    z: Number(escort.patrolTarget.z.toFixed(4))
+                }
+            });
+        }
+
+        const toTarget = ThreeDUtils.subVec(escort.patrolTarget, escort.position);
+        const distanceToTarget = ThreeDUtils.vecLength(toTarget);
+
+        if (distanceToTarget <= PATROL_POINT_REACHED_DISTANCE) {
+            escort.patrolTarget = getRandomPatrolPoint(playerShip);
+            console.log('[EscortPatrol] New destination:', {
+                escort: escort.name || `Escort ${escort.shipIndex}`,
+                reason: 'reached_target',
+                target: {
+                    x: Number(escort.patrolTarget.x.toFixed(4)),
+                    y: Number(escort.patrolTarget.y.toFixed(4)),
+                    z: Number(escort.patrolTarget.z.toFixed(4))
+                }
+            });
+        }
+
+        const updatedToTarget = ThreeDUtils.subVec(escort.patrolTarget, escort.position);
+        const targetDirection = ThreeDUtils.normalizeVec(updatedToTarget);
+
+        const shipEngine = 10;
+        const maxSpeed = shipEngine * (config.SHIP_SPEED_PER_ENGINE || 1 / 600);
+        const shipAccel = shipEngine * (config.SHIP_ACCEL_PER_ENGINE || 1 / 60);
+        const patrolMaxSpeed = maxSpeed * 0.75;
+
+        const acceleration = ThreeDUtils.scaleVec(targetDirection, shipAccel * 1.5);
+        escort.velocity = ThreeDUtils.addVec(escort.velocity, ThreeDUtils.scaleVec(acceleration, dt));
+
+        const velocityMag = ThreeDUtils.vecLength(escort.velocity);
+        if (velocityMag > patrolMaxSpeed) {
+            escort.velocity = ThreeDUtils.scaleVec(escort.velocity, patrolMaxSpeed / velocityMag);
         }
     }
 
@@ -369,8 +480,8 @@ const EscortShipAI = (() => {
      * Convert velocity direction to rotation quaternion
      */
     function directionToQuaternion(direction) {
-        // Point in +Z direction, aim toward direction
-        const forward = { x: 0, y: 0, z: 1 };
+        // Point in -Z direction, aim toward direction
+        const forward = { x: 0, y: 0, z: -1 };
         const normalized = ThreeDUtils.normalizeVec(direction);
 
         // Simple rotation to align forward with normalized direction

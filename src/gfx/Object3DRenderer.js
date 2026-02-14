@@ -95,6 +95,52 @@ const Object3DRenderer = (() => {
         const viewPixelWidth = viewWidth * charDims.width;
         const depth = Math.max(0.000001, cameraSpace.z);
         const pixelsPerUnit = viewPixelWidth / (2 * fovScale * depth);
+
+        // Check for damage flash state
+        const flashDuration = config.SHIP_FLASH_DURATION_MS || 1000;
+        const flashCount = config.SHIP_FLASH_COUNT || 2;
+        let isFlashing = false;
+        let flashColor = null;
+
+        if (object.flashStartMs && timestampMs) {
+            const flashElapsed = timestampMs - object.flashStartMs;
+            if (flashElapsed < flashDuration) {
+                const flashPeriod = flashDuration / flashCount;
+                const flashPhase = (flashElapsed % flashPeriod) / flashPeriod;
+                if (flashPhase < 0.5) {
+                    isFlashing = true;
+                    flashColor = object.flashColor || '#ffffff';
+                }
+                if (!object._lastDamageFlashDebugMs || (timestampMs - object._lastDamageFlashDebugMs) > 120) {
+                    console.log('[DamageFlash] Render state:', {
+                        targetId: object.id || object.name || 'unknown',
+                        timestampMs,
+                        flashStartMs: object.flashStartMs,
+                        flashElapsed,
+                        flashDuration,
+                        flashPhase,
+                        isFlashing,
+                        flashColor: object.flashColor || '#ffffff'
+                    });
+                    object._lastDamageFlashDebugMs = timestampMs;
+                }
+            } else {
+                console.log('[DamageFlash] Flash expired:', {
+                    targetId: object.id || object.name || 'unknown',
+                    timestampMs,
+                    flashStartMs: object.flashStartMs,
+                    flashElapsed,
+                    flashDuration,
+                    lastColor: object.flashColor
+                });
+                delete object.flashStartMs;
+                delete object.flashColor;
+                delete object._lastDamageFlashDebugMs;
+            }
+        }
+
+        // Check if ship is disabled (hull = 0)
+        const isDisabled = (typeof object.hull === 'number' && object.hull <= 0);
         
         // Estimate object size (use a typical ship size of ~0.5 AU)
         const estimatedSizeAU = 0.5;
@@ -119,18 +165,35 @@ const Object3DRenderer = (() => {
                 
                 // Use X (horizontal) and Z (vertical in screen space) for arrow direction
                 const arrow = getFatArrow(cameraForward.x, cameraForward.z);
-                const color = params.isAlly ? COLORS.GREEN : '#00ff00';
+                let color;
+                if (isFlashing && flashColor) {
+                    color = flashColor;
+                } else if (isDisabled) {
+                    color = '#777777';
+                } else {
+                    color = params.isAlly ? COLORS.GREEN : '#00ff00';
+                }
+
+                if (isFlashing) {
+                    console.log('[DamageFlash] Symbol render color:', {
+                        targetId: object.id || object.name || 'unknown',
+                        color,
+                        x,
+                        y
+                    });
+                }
                 
                 RasterUtils.plotDepthText(depthBuffer, x, y, depth, arrow, color);
                 
                 // Report picking information
-                if (onPickInfo && mouseState) {
+                if (onPickInfo) {
                     onPickInfo({
                         object,
                         screenX: x,
                         screenY: y,
                         depth,
-                        distance: dist
+                        distance: dist,
+                        pickRadius: 2
                     });
                 }
             }
@@ -140,9 +203,10 @@ const Object3DRenderer = (() => {
         // Transform vertices to world space
         // Apply SHIP_SCREEN_SCALE for rendering magnification (so tiny ships are visible)
         const screenScale = params.isAlly ? (config.SHIP_SCREEN_SCALE || 50) : 1;
-        const worldVertices = geometry.vertices.map(v => {
+        const baseScreenScale = params.isAlly ? (config.SHIP_SCREEN_SCALE || 50) : 1;
+        let worldVertices = geometry.vertices.map(v => {
             // Scale for screen rendering magnification
-            const scaled = ThreeDUtils.scaleVec(v, screenScale);
+            const scaled = ThreeDUtils.scaleVec(v, baseScreenScale);
             // Apply object's local rotation
             const rotated = ThreeDUtils.rotateVecByQuat(scaled, rotation);
             // Translate to object position
@@ -150,13 +214,13 @@ const Object3DRenderer = (() => {
         });
 
         // Transform to camera space
-        const cameraVertices = worldVertices.map(worldPos => {
+        let cameraVertices = worldVertices.map(worldPos => {
             const relative = ThreeDUtils.subVec(worldPos, playerShip.position);
             return ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
         });
 
         // Project vertices to screen space
-        const projectedVertices = cameraVertices.map(cameraPos => {
+        let projectedVertices = cameraVertices.map(cameraPos => {
             if (cameraPos.z < config.NEAR_PLANE) {
                 return null;
             }
@@ -196,18 +260,44 @@ const Object3DRenderer = (() => {
                 const color = params.isAlly ? COLORS.GREEN : '#00ff00';
                     RasterUtils.plotDepthText(depthBuffer, Math.round(projected.x), Math.round(projected.y), depth, arrow, color);
                     
-                    if (onPickInfo && mouseState) {
+                    if (onPickInfo) {
                         onPickInfo({
                             object,
                             screenX: Math.round(projected.x),
                             screenY: Math.round(projected.y),
                             depth,
-                            distance: dist
+                            distance: dist,
+                            pickRadius: 2
                         });
                     }
                 }
                 RasterUtils.flushDepthBuffer(depthBuffer);
                 return;
+            }
+
+            // If this object is not in symbol mode, enforce a minimum projected size
+            const minNonSymbolSize = config.SHIP_MIN_NON_SYMBOL_SIZE_CHARS || 3;
+            if ((boundingWidth > 1 || boundingHeight > 1) &&
+                (boundingWidth < minNonSymbolSize || boundingHeight < minNonSymbolSize)) {
+                const widthSafe = Math.max(0.001, boundingWidth);
+                const heightSafe = Math.max(0.001, boundingHeight);
+                const requiredScale = Math.max(minNonSymbolSize / widthSafe, minNonSymbolSize / heightSafe);
+                const maxScaleMult = config.SHIP_MIN_NON_SYMBOL_MAX_SCALE_MULT || 4;
+                const appliedScale = Math.min(requiredScale, maxScaleMult);
+
+                if (appliedScale > 1.0001) {
+                    cameraVertices = cameraVertices.map(v => {
+                        const offset = ThreeDUtils.subVec(v, cameraSpace);
+                        return ThreeDUtils.addVec(cameraSpace, ThreeDUtils.scaleVec(offset, appliedScale));
+                    });
+
+                    projectedVertices = cameraVertices.map(cameraPos => {
+                        if (cameraPos.z < config.NEAR_PLANE) {
+                            return null;
+                        }
+                        return RasterUtils.projectCameraSpacePointRaw(cameraPos, viewWidth, viewHeight, config.VIEW_FOV);
+                    });
+                }
             }
         }
 
@@ -269,37 +359,12 @@ const Object3DRenderer = (() => {
         const maxDepth = faceDepths.length > 0 ? Math.max(...faceDepths) : 0;
         const depthRange = Math.max(0.000001, maxDepth - minDepth);
 
-        // Check for damage flash state
-        const flashDuration = config.SHIP_FLASH_DURATION_MS || 1000;
-        const flashCount = config.SHIP_FLASH_COUNT || 2;
-        let isFlashing = false;
-        let flashColor = null;
-        
-        if (object.flashStartMs && timestampMs) {
-            const flashElapsed = timestampMs - object.flashStartMs;
-            if (flashElapsed < flashDuration) {
-                // Calculate which flash cycle we're in
-                const flashPeriod = flashDuration / flashCount;
-                const currentFlash = Math.floor(flashElapsed / flashPeriod);
-                const flashPhase = (flashElapsed % flashPeriod) / flashPeriod;
-                
-                // Flash on for half the period, off for half
-                if (flashPhase < 0.5) {
-                    isFlashing = true;
-                    flashColor = object.flashColor || '#ffffff';
-                }
-            } else {
-                // Flash complete, clear it
-                delete object.flashStartMs;
-                delete object.flashColor;
-            }
-        }
-        
-        // Check if ship is disabled (hull = 0)
-        const isDisabled = (typeof object.hull === 'number' && object.hull <= 0);
-
         // Sort by depth (farthest first for proper occlusion)
         visibleFaces.sort((a, b) => b.depth - a.depth);
+
+        // Track bounding box for picking
+        let shipBoundingBox = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        let hasBoundingBox = false;
 
         // Render each visible face with filled polygons
         let faceRenderCount = 0;
@@ -340,6 +405,20 @@ const Object3DRenderer = (() => {
                 ordered = ordered.slice().reverse();
             }
 
+            // Project ordered vertices to screen space for bounding box
+            const projectedForBBox = ordered
+                .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, config.VIEW_FOV))
+                .filter(p => p !== null);
+            
+            // Track projected vertices for bounding box
+            projectedForBBox.forEach(v => {
+                shipBoundingBox.minX = Math.min(shipBoundingBox.minX, v.x);
+                shipBoundingBox.maxX = Math.max(shipBoundingBox.maxX, v.x);
+                shipBoundingBox.minY = Math.min(shipBoundingBox.minY, v.y);
+                shipBoundingBox.maxY = Math.max(shipBoundingBox.maxY, v.y);
+            });
+            hasBoundingBox = true;
+
             // Calculate distance-based color (green tint)
             // Closest face = light green, farthest = dark green
             const depthT = 1 - ((depth - minDepth) / depthRange);
@@ -357,6 +436,18 @@ const Object3DRenderer = (() => {
                 // Normal green color range: dark green to light green
                 faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
             }
+
+            if (isFlashing && (!object._lastDamageFlashFaceDebugMs || (timestampMs - object._lastDamageFlashFaceDebugMs) > 120)) {
+                console.log('[DamageFlash] Geometry render color:', {
+                    targetId: object.id || object.name || 'unknown',
+                    faceColor,
+                    depth,
+                    minDepth,
+                    maxDepth,
+                    clampedT
+                });
+                object._lastDamageFlashFaceDebugMs = timestampMs;
+            }
             
             // Render filled face
             const rasterResult = RasterUtils.rasterizeFaceDepth(
@@ -372,12 +463,40 @@ const Object3DRenderer = (() => {
                 'tri'  // fill mode
             );
             
-            if (rasterResult && rasterResult.pointsDrawn > 0) {
+            if (rasterResult && rasterResult.plotCount > 0) {
                 faceRenderCount++;
             }
         });
         
         RasterUtils.flushDepthBuffer(depthBuffer);
+
+        if (!isFlashing) {
+            delete object._lastDamageFlashFaceDebugMs;
+        }
+
+        // Report geometry pick candidate (selection is resolved in spaceTravelRender)
+        if (hasBoundingBox && onPickInfo) {
+            const centerX = Math.round((shipBoundingBox.minX + shipBoundingBox.maxX) / 2);
+            const centerY = Math.round((shipBoundingBox.minY + shipBoundingBox.maxY) / 2);
+            const width = Math.max(1, shipBoundingBox.maxX - shipBoundingBox.minX);
+            const height = Math.max(1, shipBoundingBox.maxY - shipBoundingBox.minY);
+            const pickRadius = Math.max(2, Math.ceil(Math.max(width, height) * 0.5) + 1);
+
+            onPickInfo({
+                object,
+                screenX: centerX,
+                screenY: centerY,
+                depth: minDepth,
+                distance: dist,
+                pickRadius,
+                bbox: {
+                    minX: shipBoundingBox.minX,
+                    maxX: shipBoundingBox.maxX,
+                    minY: shipBoundingBox.minY,
+                    maxY: shipBoundingBox.maxY
+                }
+            });
+        }
     }
 
     /**

@@ -5,6 +5,7 @@
 
 const SpaceTravelRenderBodies = (() => {
     let lastCharAspectLogMs = 0;
+    let lastHoverDebugMs = 0;
 
     function render({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, mouseState = null, targetSystem, playerShip, localDestination, currentGameState, currentStation, config, setLastHoverPick }) {
         const starNoise = (x, y, seed, timeMs) => {
@@ -19,11 +20,18 @@ const SpaceTravelRenderBodies = (() => {
             return [];
         }
 
-        // Normalize mouseState field names from input (rawX/rawY) to internal coordinates (x/y)
-        if (mouseState && !mouseState.x) {
+        // Normalize mouse coordinates for hover/pick logic
+        if (mouseState && typeof mouseState.x === 'undefined') {
             mouseState.x = mouseState.rawX;
             mouseState.y = mouseState.rawY;
         }
+
+        const mouseX = (mouseState && typeof mouseState.x === 'number')
+            ? mouseState.x
+            : (mouseState && typeof mouseState.displayX === 'number' ? mouseState.displayX : null);
+        const mouseY = (mouseState && typeof mouseState.y === 'number')
+            ? mouseState.y
+            : (mouseState && typeof mouseState.displayY === 'number' ? mouseState.displayY : null);
 
         const systemCenter = {
             x: targetSystem.x * config.LY_TO_AU,
@@ -84,7 +92,7 @@ const SpaceTravelRenderBodies = (() => {
         const labels = [];
         const hoverInfos = [];
 
-        const hoverActive = mouseState && mouseState.active && mouseState.inView;
+        const hoverActive = mouseState && mouseState.active && mouseState.inView && mouseX !== null && mouseY !== null;
         let depthAtCursor = null;
 
         bodies.forEach(body => {
@@ -179,8 +187,8 @@ const SpaceTravelRenderBodies = (() => {
             // Check if mouse is hovering over body (consider radius for larger bodies)
             // Projection already normalizes coordinates, so standard distance calculation works
             const hoverRadius = Math.max(1, radiusChars);
-            const dx = mouseState.x - x;
-            const dy = mouseState.y - y;
+            const dx = mouseX - x;
+            const dy = mouseY - y;
             const mouseDist = Math.sqrt(dx * dx + dy * dy);
             const isPick = hoverActive && mouseDist <= hoverRadius;
             if (isPick) {
@@ -242,7 +250,7 @@ const SpaceTravelRenderBodies = (() => {
                                 if (px >= 0 && px < viewWidth && py >= 0 && py < viewHeight) {
                                     // Check hover detection for multi-character bodies
                                     // For each visible pixel, check if mouse is over it
-                                    if (hoverActive && mouseState.x === px && mouseState.y === py) {
+                                    if (hoverActive && mouseX === px && mouseY === py) {
                                         if (!hoverInfos.some(h => h.body === body)) {
                                             hoverInfos.push({ body, dist, x: px, y: py });
                                             depthAtCursor = cameraSpace.z;
@@ -343,8 +351,8 @@ const SpaceTravelRenderBodies = (() => {
         if (hoverActive && depthAtCursor !== null && hoverInfos.length > 0) {
             const hoverTarget = hoverInfos.reduce((closest, current) => {
                 // Projection already normalizes coordinates, so standard distance works
-                const currentDist = Math.abs(current.x - mouseState.x) + Math.abs(current.y - mouseState.y);
-                const closestDist = Math.abs(closest.x - mouseState.x) + Math.abs(closest.y - mouseState.y);
+                const currentDist = Math.abs(current.x - mouseX) + Math.abs(current.y - mouseY);
+                const closestDist = Math.abs(closest.x - mouseX) + Math.abs(closest.y - mouseY);
                 return currentDist < closestDist ? current : closest;
             });
             if (setLastHoverPick) {
@@ -353,8 +361,8 @@ const SpaceTravelRenderBodies = (() => {
                     bodyRef: hoverTarget.body,
                     x: hoverTarget.x,
                     y: hoverTarget.y,
-                    screenX: mouseState.x,
-                    screenY: mouseState.y,
+                    screenX: mouseX,
+                    screenY: mouseY,
                     distance: hoverTarget.dist
                 };
                 setLastHoverPick(pickData);

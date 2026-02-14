@@ -78,11 +78,11 @@ const SpaceTravelMenu = (() => {
         }, optionsButtonDisabled ? COLORS.TEXT_DIM : COLORS.BUTTON, optionsButtonDisabled ? 'Options unavailable while moving' : 'Game settings and save/load');
 
         // Back button (change from '0' to 'q' to avoid conflict with Return key)
-        UI.addButton(rightX, buttonY + 1, 'q', 'Quit', () => {
+        UI.addButton(rightX, buttonY + 1, 'q', 'Return', () => {
             if (onReturn) {
                 onReturn();
             }
-        }, COLORS.BUTTON, 'Exit menu');
+        }, COLORS.BUTTON, 'Return to space travel');
 
         // Show computer error message if recently attempted while moving
         const nowMs = performance.now();

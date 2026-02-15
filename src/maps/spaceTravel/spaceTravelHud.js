@@ -176,6 +176,7 @@ const SpaceTravelHud = (() => {
             const autoNavColor = autoNavActive
                 ? COLORS.TEXT_SUCCESS
                 : (autoNavAvailable ? COLORS.CYAN : COLORS.TEXT_DIM);
+            const autoNavColorFinal = isPaused ? COLORS.TEXT_DIM : autoNavColor;
 
             const hailLabel = 'Hail';
             const hailText = `[h] ${hailLabel}`;
@@ -192,26 +193,29 @@ const SpaceTravelHud = (() => {
 
             // Always add AutoNav as a button (even when disabled) so users can cycle between buttons
             UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {
+                if (isPaused) {
+                    helpers.setErrorMessage?.('Unavailable while paused');
+                    return;
+                }
                 if (autoNavAvailable && onAutoNavToggle) {
-                    // If paused, unpause before starting autonav
-                    if (isPaused && onUnpause) {
-                        onUnpause();
-                    }
                     onAutoNavToggle();
                 } else if (!autoNavAvailable) {
                     // Store error message to persist across HUD renders
                     helpers.setErrorMessage?.('Must select a destination to use autonav');
                     console.log('[SpaceTravelHud] AutoNav button clicked without destination - storing error message');
                 }
-            }, helpers.applyPauseColor(autoNavColor), '');
+            }, helpers.applyPauseColor(autoNavColorFinal), '');
 
             const speed = ThreeDUtils.vecLength(playerShip.velocity);
             const isMoving = speed > 0.001;
             
-            const menuColor = isMoving ? COLORS.TEXT_DIM : COLORS.CYAN;
+            const menuColor = (isPaused || isMoving) ? COLORS.TEXT_DIM : COLORS.CYAN;
             
             UI.addButton(menuX, menuY, 'm', menuText, () => {
-                if (isMoving) {
+                if (isPaused) {
+                    helpers.setErrorMessage?.('Unavailable while paused');
+                    console.log('[SpaceTravelHud] Menu button clicked while paused - storing error message');
+                } else if (isMoving) {
                     // Store error message to persist across HUD renders
                     helpers.setErrorMessage?.('Must brake before opening menu');
                     console.log('[SpaceTravelHud] Menu button clicked while moving - storing error message');

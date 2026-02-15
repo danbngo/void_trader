@@ -22,13 +22,21 @@ const SpaceTravelRender = (() => {
 
         renderSceneDepthBuffer({ ...params, depthBuffer, renderTimestampMs, viewWidth, viewHeight });
         addDebugMessages(params, renderTimestampMs, viewWidth, viewHeight);
+        const hailModalActive = !!params.mapInstance?.npcEncounterHailPrompt;
         if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.renderHailPrompt) {
             SpaceTravelEncounters.renderHailPrompt({
                 mapInstance: params.mapInstance,
                 viewWidth,
                 viewHeight,
                 timestampMs: renderTimestampMs,
-                addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color)
+                addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color),
+                onOpenChannel: () => {
+                    const opened = SpaceTravelEncounters?.openPendingHail?.(params.mapInstance);
+                    if (!opened && params.mapInstance) {
+                        params.mapInstance.lastErrorMessage = 'Unable to open hailing channel';
+                        params.mapInstance.lastErrorTimestampMs = performance.now();
+                    }
+                }
             });
         }
 
@@ -43,6 +51,7 @@ const SpaceTravelRender = (() => {
      */
     function renderSceneDepthBuffer(params) {
         const { depthBuffer, renderTimestampMs, viewWidth, viewHeight } = params;
+        const hailModalActive = !!params.mapInstance?.npcEncounterHailPrompt;
         const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, params.inputState);
         if (mouseState && typeof mouseState.x === 'undefined') {
             mouseState.x = mouseState.rawX;
@@ -200,6 +209,17 @@ const SpaceTravelRender = (() => {
 
         params.laser?.renderLaserFire(renderParams);
 
+        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.renderCombatLasers) {
+            SpaceTravelEncounters.renderCombatLasers({
+                mapInstance: params.mapInstance,
+                depthBuffer,
+                playerShip: params.playerShip,
+                viewWidth,
+                viewHeight,
+                config: params.config
+            });
+        }
+
         SpaceTravelPortal.applyTint(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
 
         if (params.isPaused) {
@@ -243,7 +263,17 @@ const SpaceTravelRender = (() => {
             },
             onAutoNavToggle: () => params.toggleAutoNav?.(),
             hailAvailable: !!params.mapInstance?.npcEncounterHailAvailable,
+            hailPromptActive: hailModalActive,
             onHail: () => {
+                if (hailModalActive) {
+                    const opened = SpaceTravelEncounters?.openPendingHail?.(params.mapInstance);
+                    if (!opened && params.mapInstance) {
+                        params.mapInstance.lastErrorMessage = 'Unable to open hailing channel';
+                        params.mapInstance.lastErrorTimestampMs = performance.now();
+                    }
+                    return;
+                }
+
                 const started = SpaceTravelEncounters?.playerInitiateHail?.(params.mapInstance, renderTimestampMs);
                 if (!started && params.mapInstance) {
                     params.mapInstance.lastErrorMessage = 'No hail target in range';
@@ -251,6 +281,7 @@ const SpaceTravelRender = (() => {
                 }
             },
             onUnpause: () => params.setPaused?.(false, false),
+            suppressButtons: hailModalActive,
             onMenu: () => {
                 const portalState = SpaceTravelPortal.getState(params.mapInstance);
                 const runtimeState = params.mapInstance?.getRuntimeStateSnapshot?.() || null;
@@ -315,6 +346,18 @@ const SpaceTravelRender = (() => {
         if (params.escortShips && params.escortShips.length > 0) {
             SpaceTravelRenderIndicators.renderEscortArrows({
                 escortShips: params.escortShips,
+                viewWidth,
+                viewHeight,
+                playerShip: params.playerShip,
+                config: params.config,
+                addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color)
+            });
+        }
+
+        const npcIndicatorShips = SpaceTravelEncounters?.getRenderableShips?.(params.mapInstance) || [];
+        if (npcIndicatorShips.length > 0) {
+            SpaceTravelRenderIndicators.renderNpcArrows({
+                npcShips: npcIndicatorShips,
                 viewWidth,
                 viewHeight,
                 playerShip: params.playerShip,

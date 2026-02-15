@@ -1,4 +1,38 @@
 const SpaceTravelRenderIndicators = (() => {
+    function isAbandonedShip(ship) {
+        if (!ship) {
+            return false;
+        }
+        if (typeof ship.hull === 'number' && ship.hull <= 0) {
+            return true;
+        }
+        const shipName = (ship.name || ship.shipData?.name || '').toString().toLowerCase();
+        return shipName.includes('abandoned');
+    }
+
+    function getNpcIndicatorColor(ship) {
+        if (isAbandonedShip(ship)) {
+            return COLORS.GRAY;
+        }
+
+        if (ship?.shipColor) {
+            return ship.shipColor;
+        }
+
+        const faction = (ship?.shipData?.faction || '').toString().toUpperCase();
+        if (faction.includes('POLICE')) {
+            return COLORS.BLUE;
+        }
+        if (faction.includes('MERCHANT')) {
+            return COLORS.YELLOW;
+        }
+        if (faction.includes('PIRATE')) {
+            return COLORS.RED;
+        }
+
+        return COLORS.CYAN;
+    }
+
     /**
      * Generalized nav arrow rendering for any off-screen object
      * @param {Object} params - { position, name, color, viewWidth, viewHeight, playerShip, config, addHudText }
@@ -285,7 +319,30 @@ const SpaceTravelRenderIndicators = (() => {
             renderNavArrow({
                 position: escort.position,
                 name: `Escort ${index + 1}`,
-                color: COLORS.GREEN,
+                color: isAbandonedShip(escort) ? COLORS.GRAY : COLORS.GREEN,
+                viewWidth,
+                viewHeight,
+                playerShip,
+                config,
+                addHudText
+            });
+        });
+    }
+
+    function renderNpcArrows({ npcShips, viewWidth, viewHeight, playerShip, config, addHudText }) {
+        if (!Array.isArray(npcShips) || npcShips.length === 0) {
+            return;
+        }
+
+        npcShips.forEach((ship, index) => {
+            if (!ship || !ship.position) {
+                return;
+            }
+
+            renderNavArrow({
+                position: ship.position,
+                name: ship.name || `NPC ${index + 1}`,
+                color: getNpcIndicatorColor(ship),
                 viewWidth,
                 viewHeight,
                 playerShip,
@@ -297,6 +354,7 @@ const SpaceTravelRenderIndicators = (() => {
 
     return {
         renderDestinationIndicator,
-        renderEscortArrows
+        renderEscortArrows,
+        renderNpcArrows
     };
 })();

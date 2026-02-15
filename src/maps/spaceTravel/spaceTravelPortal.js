@@ -228,6 +228,10 @@ const SpaceTravelPortal = {
         params.autoNavActive = false;
         params.autoNavInput = null;
 
+        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.clearEncounterState) {
+            SpaceTravelEncounters.clearEncounterState(params, 'warp');
+        }
+
         params.stop();
 
         WarpAnimation.show(gameState, params.portalTargetSystem, (state, destination) => {

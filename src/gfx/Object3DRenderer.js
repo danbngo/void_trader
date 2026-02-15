@@ -47,6 +47,34 @@ const Object3DRenderer = (() => {
         else return '◥'; // Up-right (-67.5 to -22.5)
     }
 
+    function getSingleCharShipArrow(object, rotation, playerShip) {
+        const velocity = object?.velocity;
+        const shipPos = object?.position;
+        const playerPos = playerShip?.position;
+
+        if (velocity && shipPos && playerPos) {
+            const toShip = ThreeDUtils.subVec(shipPos, playerPos);
+            const toShipLen = ThreeDUtils.vecLength(toShip);
+            const speed = ThreeDUtils.vecLength(velocity);
+
+            if (toShipLen > 0.000001 && speed > 0.000001) {
+                const dirToShip = ThreeDUtils.scaleVec(toShip, 1 / toShipLen);
+                const radialSpeed = ThreeDUtils.dotVec(velocity, dirToShip);
+                const radialRatio = Math.abs(radialSpeed) / speed;
+                const primaryRadialThreshold = 0.6;
+
+                if (radialRatio >= primaryRadialThreshold) {
+                    return radialSpeed >= 0 ? '▲' : '▼';
+                }
+            }
+        }
+
+        const shipForward = { x: 0, y: 0, z: -1 };
+        const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, rotation);
+        const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
+        return getFatArrow(cameraForward.x, cameraForward.z);
+    }
+
     /**
      * Render a 3D object to the screen
      * @param {Object} params - Rendering parameters
@@ -188,12 +216,7 @@ const Object3DRenderer = (() => {
             
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
                 // Calculate ship's forward direction in camera space
-                const shipForward = { x: 0, y: 0, z: -1 }; // Ship's local forward (inverted to match momentum)
-                const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, rotation);
-                const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
-                
-                // Use X (horizontal) and Z (vertical in screen space) for arrow direction
-                const arrow = getFatArrow(cameraForward.x, cameraForward.z);
+                const arrow = getSingleCharShipArrow(object, rotation, playerShip);
                 let color;
                 if (isFlashing && flashColor) {
                     color = flashColor;
@@ -282,11 +305,7 @@ const Object3DRenderer = (() => {
                 const projected = { x: centerX, y: centerY };
                 
                 if (projected.x >= 0 && projected.x < viewWidth && projected.y >= 0 && projected.y < viewHeight) {
-                    const shipForward = { x: 0, y: 0, z: -1 };
-                    const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, rotation);
-                    const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
-                    
-                    const arrow = getFatArrow(cameraForward.x, cameraForward.z);
+                    const arrow = getSingleCharShipArrow(object, rotation, playerShip);
                 const color = params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
                     const symbolX = Math.round(projected.x);
                     const symbolY = Math.round(projected.y);

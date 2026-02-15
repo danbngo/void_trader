@@ -31,7 +31,12 @@ const DockMenu = (() => {
             : false;
         const isHabitedLocation = dockData && (((dockData.population || 0) > 0) || (dockData.buildings && dockData.buildings.length > 0) || hasHabitedFeature);
         if (!isHabitedLocation) {
-            UninhabitedSystemMenu.show(gameState, currentDockLocation, () => GalaxyMap.show(gameState));
+            if (typeof UninhabitedSystemMenu !== 'undefined' && UninhabitedSystemMenu?.show) {
+                UninhabitedSystemMenu.show(gameState, currentDockLocation, () => GalaxyMap.show(gameState));
+            } else {
+                console.log('[DockMenu] UninhabitedSystemMenu missing; falling back to galaxy map');
+                GalaxyMap.show(gameState);
+            }
             return;
         }
         // If we changed systems, reset the news arrays

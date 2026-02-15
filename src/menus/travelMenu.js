@@ -421,7 +421,12 @@ const TravelMenu = (() => {
         // Check if target system is conquered by aliens
         if (targetSystem.conqueredByAliens) {
             // Trigger liberation battle
-            AlienLiberationBattle.show(currentGameState, targetSystem);
+            if (typeof AlienLiberationBattle !== 'undefined' && AlienLiberationBattle?.show) {
+                AlienLiberationBattle.show(currentGameState, targetSystem);
+            } else {
+                console.log('[TravelMenu] AlienLiberationBattle missing; falling back to docking flow');
+                DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
+            }
             return;
         }
         
@@ -433,7 +438,12 @@ const TravelMenu = (() => {
         if (SystemUtils.isHabitedSystem(targetSystem)) {
             DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
         } else {
-            UninhabitedSystemMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation, () => GalaxyMap.show(currentGameState));
+            if (typeof UninhabitedSystemMenu !== 'undefined' && UninhabitedSystemMenu?.show) {
+                UninhabitedSystemMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation, () => GalaxyMap.show(currentGameState));
+            } else {
+                console.log('[TravelMenu] UninhabitedSystemMenu missing; falling back to galaxy map');
+                GalaxyMap.show(currentGameState);
+            }
         }
     }
     

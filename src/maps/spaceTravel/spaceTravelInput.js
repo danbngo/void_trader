@@ -159,6 +159,11 @@ const SpaceTravelInput = (() => {
                 if (deathTow.isDeathSequenceActive()) {
                     return;
                 }
+                if (mapInstance.npcEncounterHailPrompt) {
+                    mapInstance.lastErrorMessage = 'Open or clear hailing channel first';
+                    mapInstance.lastErrorTimestampMs = performance.now();
+                    return;
+                }
                 const portalState = SpaceTravelPortal.getState(mapInstance);
                 const runtimeState = mapInstance.getRuntimeStateSnapshot?.() || null;
                 mapInstance.stop(true);
@@ -187,10 +192,21 @@ const SpaceTravelInput = (() => {
                 if (deathTow.isDeathSequenceActive()) {
                     return;
                 }
+                if (mapInstance.npcEncounterHailPrompt) {
+                    return;
+                }
                 mapInstance.togglePause();
             },
             onHail: () => {
                 if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                if (mapInstance.npcEncounterHailPrompt) {
+                    const opened = SpaceTravelEncounters?.openPendingHail?.(mapInstance);
+                    if (!opened) {
+                        mapInstance.lastErrorMessage = 'Unable to open hailing channel';
+                        mapInstance.lastErrorTimestampMs = performance.now();
+                    }
                     return;
                 }
                 const now = mapInstance.timestampMs || performance.now();
@@ -239,6 +255,7 @@ const SpaceTravelInput = (() => {
                     isPaused: mapInstance.isPaused,
                     pickType: mapInstance.lastHoverPick ? mapInstance.lastHoverPick.kind : 'none'
                 });
+                const laserTimestampMs = mapInstance.timestampMs || performance.now();
                 const result = mapInstance.laser.fireLaser({
                     playerShip: mapInstance.playerShip,
                     isPaused: mapInstance.isPaused,
@@ -247,7 +264,7 @@ const SpaceTravelInput = (() => {
                     inputState,
                     boostActive: mapInstance.boostActive,
                     mapInstance,
-                    timestampMs
+                    timestampMs: laserTimestampMs
                 });
                 if (result?.laserEmptyTimestampMs) {
                     mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;

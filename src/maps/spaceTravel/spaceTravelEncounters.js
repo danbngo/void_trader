@@ -20,6 +20,31 @@ const SpaceTravelEncounters = (() => {
         if (typeof mapInstance.npcEncounterHailAvailable !== 'boolean') {
             mapInstance.npcEncounterHailAvailable = false;
         }
+        if (!Array.isArray(mapInstance.npcCombatLaserBursts)) {
+            mapInstance.npcCombatLaserBursts = [];
+        }
+    }
+
+    function clearEncounterState(mapInstance, reason = 'manual') {
+        if (!mapInstance) {
+            return;
+        }
+
+        const hadFleet = Array.isArray(mapInstance.npcEncounterFleets) && mapInstance.npcEncounterFleets.length > 0;
+        const hadHailPrompt = !!mapInstance.npcEncounterHailPrompt;
+        mapInstance.npcEncounterFleets = [];
+        mapInstance.npcEncounterSpawnUnlocked = true;
+        mapInstance.npcEncounterHailPrompt = null;
+        mapInstance.npcEncounterHailAvailable = false;
+        mapInstance.npcCombatLaserBursts = [];
+
+        if (hadHailPrompt && mapInstance.isPaused && typeof mapInstance.setPaused === 'function') {
+            mapInstance.setPaused(false, false);
+        }
+
+        if (hadFleet) {
+            console.log('[SpaceTravelEncounter] Encounter state cleared:', { reason });
+        }
     }
 
     function getSystemCenter(system, config) {
@@ -327,6 +352,93 @@ const SpaceTravelEncounters = (() => {
         return ThreeDUtils.quatFromAxisAngle(ThreeDUtils.scaleVec(cross, 1 / crossLen), angle);
     }
 
+    function getShipForwardDirection(ship) {
+        if (!ship) {
+            return { x: 0, y: 0, z: -1 };
+        }
+
+        if (ship.rotation) {
+            return ThreeDUtils.normalizeVec(ThreeDUtils.rotateVecByQuat({ x: 0, y: 0, z: -1 }, ship.rotation));
+        }
+
+        if (ship.velocity && ThreeDUtils.vecLength(ship.velocity) > 0.00001) {
+            return ThreeDUtils.normalizeVec(ship.velocity);
+        }
+
+        return { x: 0, y: 0, z: -1 };
+    }
+
+    function canFireWithinFov(shooter, targetPos, config) {
+        if (!shooter || !targetPos || !shooter.position) {
+            return false;
+        }
+
+        const toTarget = ThreeDUtils.subVec(targetPos, shooter.position);
+        const toTargetLen = ThreeDUtils.vecLength(toTarget);
+        if (toTargetLen <= 0.000001) {
+            return true;
+        }
+
+        const toTargetDir = ThreeDUtils.scaleVec(toTarget, 1 / toTargetLen);
+        const shooterForward = getShipForwardDirection(shooter);
+        const fovDeg = Math.max(1, config.NPC_COMBAT_FIRE_FOV_DEG || 60);
+        const minDot = Math.cos((fovDeg * Math.PI / 180) * 0.5);
+        const dot = ThreeDUtils.dotVec(shooterForward, toTargetDir);
+        return dot >= minDot;
+    }
+
+    function addCombatLaserBurst(mapInstance, fromPos, toPos, color, timestampMs) {
+        if (!mapInstance || !fromPos || !toPos) {
+            return;
+        }
+        if (!Array.isArray(mapInstance.npcCombatLaserBursts)) {
+            mapInstance.npcCombatLaserBursts = [];
+        }
+
+        mapInstance.npcCombatLaserBursts.push({
+            from: { ...fromPos },
+            to: { ...toPos },
+            color: color || COLORS.RED,
+            createdMs: timestampMs,
+            ttlMs: Math.max(60, mapInstance.config.NPC_COMBAT_LASER_VISIBLE_MS || 180)
+        });
+
+        if (mapInstance.npcCombatLaserBursts.length > 80) {
+            mapInstance.npcCombatLaserBursts.splice(0, mapInstance.npcCombatLaserBursts.length - 80);
+        }
+    }
+
+    function applyDamageToShip(target, damage, mapInstance, timestampMs) {
+        if (!target || typeof damage !== 'number' || damage <= 0) {
+            return;
+        }
+
+        let remaining = damage;
+        if (typeof target.shields === 'number' && target.shields > 0) {
+            const absorbed = Math.min(target.shields, remaining);
+            target.shields = Math.max(0, target.shields - absorbed);
+            remaining -= absorbed;
+        }
+        if (remaining > 0 && typeof target.hull === 'number') {
+            target.hull = Math.max(0, target.hull - remaining);
+        }
+
+        if (typeof target.hull === 'number' && target.hull <= 0) {
+            target.name = 'Abandoned Ship';
+            if (target.shipData) {
+                target.shipData.name = 'Abandoned Ship';
+            }
+        }
+
+        target.flashStartMs = timestampMs;
+        const shieldOnlyHit = (typeof target.shields === 'number' && target.shields > 0 && remaining <= 0);
+        target.flashColor = shieldOnlyHit
+            ? (mapInstance.config.SHIP_FLASH_SHIELD_COLOR || '#ffffff')
+            : ((typeof target.hull === 'number' && target.hull <= 0)
+                ? (mapInstance.config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
+                : (mapInstance.config.SHIP_FLASH_HULL_COLOR || '#ff0000'));
+    }
+
     function getFleetDistanceToPlayer(fleet, playerShip) {
         if (!fleet || !playerShip || !Array.isArray(fleet.ships) || fleet.ships.length === 0) {
             return Infinity;
@@ -334,6 +446,24 @@ const SpaceTravelEncounters = (() => {
         let best = Infinity;
         fleet.ships.forEach(ship => {
             if (!ship || typeof ship.hull === 'number' && ship.hull <= 0) {
+                return;
+            }
+            const dist = ThreeDUtils.distance(ship.position, playerShip.position);
+            if (dist < best) {
+                best = dist;
+            }
+        });
+        return best;
+    }
+
+    function getFleetDistanceToPlayerAnyShip(fleet, playerShip) {
+        if (!fleet || !playerShip || !Array.isArray(fleet.ships) || fleet.ships.length === 0) {
+            return Infinity;
+        }
+
+        let best = Infinity;
+        fleet.ships.forEach(ship => {
+            if (!ship || !ship.position) {
                 return;
             }
             const dist = ThreeDUtils.distance(ship.position, playerShip.position);
@@ -360,16 +490,48 @@ const SpaceTravelEncounters = (() => {
             text: 'You are being hailed',
             subtext: buildEncounterPromptText(fleet),
             source,
-            createdMs: timestampMs,
-            openAtMs: timestampMs + Math.max(300, mapInstance.config.NPC_HAIL_POPOVER_MS || 800)
+            createdMs: timestampMs
         };
+
+        if (typeof mapInstance.setPaused === 'function') {
+            mapInstance.setPaused(true, false);
+        }
 
         console.log('[SpaceTravelEncounter] Hail triggered:', {
             fleetId: fleet.id,
             type: fleet.typeId,
-            source,
-            openAtMs: mapInstance.npcEncounterHailPrompt.openAtMs
+            source
         });
+    }
+
+    function canOpenPendingHail(mapInstance) {
+        const prompt = mapInstance?.npcEncounterHailPrompt;
+        if (!prompt) {
+            return false;
+        }
+
+        const fleetId = prompt.fleetId;
+        if (!fleetId) {
+            return false;
+        }
+
+        return !!(mapInstance.npcEncounterFleets || []).find(candidate => candidate.id === fleetId);
+    }
+
+    function openPendingHail(mapInstance) {
+        if (!mapInstance || !canOpenPendingHail(mapInstance)) {
+            return false;
+        }
+
+        const prompt = mapInstance.npcEncounterHailPrompt;
+        const targetFleet = (mapInstance.npcEncounterFleets || []).find(candidate => candidate.id === prompt.fleetId);
+        mapInstance.npcEncounterHailPrompt = null;
+        if (!targetFleet) {
+            return false;
+        }
+
+        beginEncounterMenu(mapInstance, targetFleet);
+        return true;
     }
 
     function beginEncounterMenu(mapInstance, fleet) {
@@ -442,7 +604,15 @@ const SpaceTravelEncounters = (() => {
 
         const playerShip = mapInstance.playerShip;
         const weaponRange = Math.max(0.1, mapInstance.config.NPC_FLEET_WEAPON_RANGE_AU || 2);
-        const shooters = fleet.ships.filter(ship => ship && (ship.hull || 0) > 0 && ThreeDUtils.distance(ship.position, playerShip.position) <= weaponRange);
+        const shooters = fleet.ships.filter(ship => {
+            if (!ship || (ship.hull || 0) <= 0) {
+                return false;
+            }
+            if (ThreeDUtils.distance(ship.position, playerShip.position) > weaponRange) {
+                return false;
+            }
+            return canFireWithinFov(ship, playerShip.position, mapInstance.config);
+        });
 
         if (shooters.length === 0) {
             return;
@@ -455,6 +625,7 @@ const SpaceTravelEncounters = (() => {
             const perShotMin = Math.max(1, mapInstance.config.NPC_SHOT_MIN_DAMAGE || 2);
             const perShotMax = Math.max(perShotMin, mapInstance.config.NPC_SHOT_MAX_DAMAGE || 6);
             totalDamage += perShotMin + Math.floor(Math.random() * (perShotMax - perShotMin + 1));
+            addCombatLaserBurst(mapInstance, ship.position, playerShip.position, fleet.shipColor || COLORS.RED, timestampMs);
         });
 
         let remaining = totalDamage;
@@ -478,24 +649,64 @@ const SpaceTravelEncounters = (() => {
         });
     }
 
+    function applyAllyCombatShots(mapInstance, fleet, timestampMs) {
+        const fireInterval = Math.max(200, mapInstance.config.NPC_FLEET_FIRE_INTERVAL_MS || 1000);
+        if ((timestampMs - (fleet.lastAllyFireMs || 0)) < fireInterval) {
+            return;
+        }
+
+        const allies = (Array.isArray(mapInstance.escortShips) ? mapInstance.escortShips : []).filter(ship => ship && (ship.hull || 0) > 0);
+        const hostileShips = (Array.isArray(fleet.ships) ? fleet.ships : []).filter(ship => ship && (ship.hull || 0) > 0);
+        if (allies.length === 0 || hostileShips.length === 0) {
+            return;
+        }
+
+        const weaponRange = Math.max(0.1, mapInstance.config.NPC_FLEET_WEAPON_RANGE_AU || 2);
+        const perShotMin = Math.max(1, mapInstance.config.NPC_SHOT_MIN_DAMAGE || 2);
+        const perShotMax = Math.max(perShotMin, mapInstance.config.NPC_SHOT_MAX_DAMAGE || 6);
+
+        let shotsFired = 0;
+        allies.forEach(ally => {
+            let bestTarget = null;
+            let bestDistance = Infinity;
+
+            hostileShips.forEach(target => {
+                const dist = ThreeDUtils.distance(ally.position, target.position);
+                if (dist > weaponRange || dist >= bestDistance) {
+                    return;
+                }
+                if (!canFireWithinFov(ally, target.position, mapInstance.config)) {
+                    return;
+                }
+                bestDistance = dist;
+                bestTarget = target;
+            });
+
+            if (!bestTarget) {
+                return;
+            }
+
+            const damage = perShotMin + Math.floor(Math.random() * (perShotMax - perShotMin + 1));
+            applyDamageToShip(bestTarget, damage, mapInstance, timestampMs);
+            addCombatLaserBurst(mapInstance, ally.position, bestTarget.position, COLORS.GREEN, timestampMs);
+            shotsFired += 1;
+        });
+
+        if (shotsFired > 0) {
+            fleet.lastAllyFireMs = timestampMs;
+        }
+    }
+
     function updateFleetBehavior(mapInstance, fleet, dt, timestampMs) {
         const playerShip = mapInstance.playerShip;
         const hailRange = Math.max(0.1, mapInstance.config.NPC_HAIL_RANGE_AU || 1);
         const despawnRange = Math.max(1, mapInstance.config.NPC_FLEET_DESPAWN_DISTANCE_AU || 10);
 
         const activeShips = fleet.ships.filter(ship => ship && (ship.hull || 0) > 0);
-        if (activeShips.length === 0) {
-            mapInstance.npcEncounterFleets = [];
-            mapInstance.npcEncounterSpawnUnlocked = true;
-            console.log('[SpaceTravelEncounter] Fleet removed (all ships disabled):', { fleetId: fleet.id, type: fleet.typeId });
-            return;
-        }
-
-        const distanceToPlayer = getFleetDistanceToPlayer(fleet, playerShip);
+        const distanceToPlayer = getFleetDistanceToPlayerAnyShip(fleet, playerShip);
 
         if (distanceToPlayer > despawnRange) {
-            mapInstance.npcEncounterFleets = [];
-            mapInstance.npcEncounterSpawnUnlocked = true;
+            clearEncounterState(mapInstance, 'distance');
             console.log('[SpaceTravelEncounter] Fleet despawned by distance:', {
                 fleetId: fleet.id,
                 type: fleet.typeId,
@@ -504,10 +715,24 @@ const SpaceTravelEncounters = (() => {
             return;
         }
 
+        if (activeShips.length === 0) {
+            if (!fleet.allShipsDisabledLogged) {
+                fleet.allShipsDisabledLogged = true;
+                fleet.state = 'disabled';
+                fleet.completedBusiness = true;
+                console.log('[SpaceTravelEncounter] Fleet disabled and now lootable until out of range:', {
+                    fleetId: fleet.id,
+                    type: fleet.typeId
+                });
+            }
+            return;
+        }
+
         if (fleet.isHostile) {
             fleet.state = 'hostile';
             activeShips.forEach(ship => steerShipToward(ship, playerShip.position, dt, mapInstance.config, mapInstance.config.NPC_HOSTILE_SPEED_MULT || 1.1));
             applyNpcCombatShots(mapInstance, fleet, timestampMs);
+            applyAllyCombatShots(mapInstance, fleet, timestampMs);
             return;
         }
 
@@ -578,6 +803,31 @@ const SpaceTravelEncounters = (() => {
         }
     }
 
+    function spawnInitialEncounter(mapInstance, timestampMs = performance.now()) {
+        ensureState(mapInstance);
+        if (!mapInstance || !mapInstance.playerShip || !mapInstance.targetSystem || !mapInstance.currentGameState) {
+            return false;
+        }
+
+        if (Array.isArray(mapInstance.npcEncounterFleets) && mapInstance.npcEncounterFleets.length > 0) {
+            return false;
+        }
+
+        const rates = getSpawnRates(mapInstance);
+        if (!Array.isArray(rates) || rates.length === 0) {
+            return false;
+        }
+
+        const choice = chooseWeightedRate(rates) || rates[0];
+        if (!choice) {
+            return false;
+        }
+
+        spawnFleetFromRate(mapInstance, choice, timestampMs);
+        console.log('[SpaceTravelEncounter] Forced initial encounter spawn on travel start');
+        return true;
+    }
+
     function updateHailState(mapInstance, timestampMs) {
         const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
         const hailRange = Math.max(0.1, mapInstance.config.NPC_HAIL_RANGE_AU || 1);
@@ -586,19 +836,6 @@ const SpaceTravelEncounters = (() => {
             && !fleet.completedBusiness
             && !fleet.hasHailedPlayer
             && getFleetDistanceToPlayer(fleet, mapInstance.playerShip) <= hailRange;
-
-        const prompt = mapInstance.npcEncounterHailPrompt;
-        if (!prompt) {
-            return;
-        }
-
-        if (timestampMs >= prompt.openAtMs) {
-            const targetFleet = (mapInstance.npcEncounterFleets || []).find(candidate => candidate.id === prompt.fleetId);
-            mapInstance.npcEncounterHailPrompt = null;
-            if (targetFleet) {
-                beginEncounterMenu(mapInstance, targetFleet);
-            }
-        }
     }
 
     function update(mapInstance, dt, timestampMs) {
@@ -615,6 +852,46 @@ const SpaceTravelEncounters = (() => {
         }
 
         updateHailState(mapInstance, timestampMs);
+
+        if (Array.isArray(mapInstance.npcCombatLaserBursts) && mapInstance.npcCombatLaserBursts.length > 0) {
+            mapInstance.npcCombatLaserBursts = mapInstance.npcCombatLaserBursts.filter(burst => burst && (timestampMs - (burst.createdMs || 0)) <= (burst.ttlMs || 0));
+        }
+    }
+
+    function renderCombatLasers({ mapInstance, depthBuffer, playerShip, viewWidth, viewHeight, config }) {
+        if (!mapInstance || !playerShip || !Array.isArray(mapInstance.npcCombatLaserBursts) || mapInstance.npcCombatLaserBursts.length === 0) {
+            return;
+        }
+
+        mapInstance.npcCombatLaserBursts.forEach(burst => {
+            if (!burst?.from || !burst?.to) {
+                return;
+            }
+
+            const fromRelative = ThreeDUtils.subVec(burst.from, playerShip.position);
+            const toRelative = ThreeDUtils.subVec(burst.to, playerShip.position);
+            const fromCamera = ThreeDUtils.rotateVecByQuat(fromRelative, ThreeDUtils.quatConjugate(playerShip.rotation));
+            const toCamera = ThreeDUtils.rotateVecByQuat(toRelative, ThreeDUtils.quatConjugate(playerShip.rotation));
+
+            if (fromCamera.z <= config.NEAR_PLANE || toCamera.z <= config.NEAR_PLANE) {
+                return;
+            }
+
+            const fromProjected = RasterUtils.projectCameraSpacePointRaw(fromCamera, viewWidth, viewHeight, config.VIEW_FOV);
+            const toProjected = RasterUtils.projectCameraSpacePointRaw(toCamera, viewWidth, viewHeight, config.VIEW_FOV);
+            if (!fromProjected || !toProjected) {
+                return;
+            }
+
+            const x1 = Math.round(fromProjected.x);
+            const y1 = Math.round(fromProjected.y);
+            const x2 = Math.round(toProjected.x);
+            const y2 = Math.round(toProjected.y);
+            const points = LineDrawer.drawLine(x1, y1, x2, y2, true, burst.color || COLORS.RED);
+            points.forEach(point => {
+                RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, burst.color || COLORS.RED);
+            });
+        });
     }
 
     function getRenderableShips(mapInstance) {
@@ -661,7 +938,7 @@ const SpaceTravelEncounters = (() => {
         return true;
     }
 
-    function renderHailPrompt({ mapInstance, viewWidth, viewHeight, timestampMs, addHudText }) {
+    function renderHailPrompt({ mapInstance, viewWidth, viewHeight, timestampMs, addHudText, onOpenChannel }) {
         const prompt = mapInstance?.npcEncounterHailPrompt;
         if (!prompt || !addHudText) {
             return;
@@ -689,19 +966,30 @@ const SpaceTravelEncounters = (() => {
             addHudText(subX, top + 2, sub, COLORS.TEXT_DIM);
         }
 
-        const remainMs = Math.max(0, prompt.openAtMs - timestampMs);
-        const status = `Opening channel... ${Math.ceil(remainMs / 100) / 10}s`;
+        const status = 'Transmission incoming';
         const statusX = left + Math.max(1, Math.floor((width - status.length) / 2));
         addHudText(statusX, top + 3, status, COLORS.YELLOW);
+
+        const buttonLabel = 'Open Channel';
+        const buttonX = Math.max(0, left + Math.floor((width - (`[h] ${buttonLabel}`).length) / 2));
+        const buttonY = Math.min(viewHeight - 1, top + 4);
+        UI.addButton(buttonX, buttonY, 'h', buttonLabel, () => {
+            onOpenChannel?.();
+        }, COLORS.YELLOW, 'Open channel with hailing fleet');
     }
 
     return {
         ensureState,
+        clearEncounterState,
+        spawnInitialEncounter,
         update,
         getRenderableShips,
         handlePlayerAttackTarget,
         playerInitiateHail,
+        canOpenPendingHail,
+        openPendingHail,
         renderHailPrompt,
+        renderCombatLasers,
         setFleetHostile
     };
 })();

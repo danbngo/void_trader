@@ -70,6 +70,9 @@ const SpaceTravelDocking = (() => {
                 dockSequenceStartMs = 0;
                 dockSequencePayload = null;
                 if (payload) {
+                    if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.clearEncounterState) {
+                        SpaceTravelEncounters.clearEncounterState(payload.mapInstance || null, 'dock');
+                    }
                     if (typeof stop === 'function') {
                         console.log('[Docking] Calling stop()');
                         stop();
@@ -151,11 +154,12 @@ const SpaceTravelDocking = (() => {
 
             const dockingParams = {
                 ...mapInstance,
+                mapInstance,
                 onStop: null,
                 onDock: ({ currentGameState: dockGameState, targetSystem: dockTarget, planet: dockPlanet }) => {
                     console.log('[Docking.checkDocking] Dock condition MET! Starting dock sequence for', dockPlanet?.name || currentStation?.name);
                     startDockSequence({
-                        payload: { dockGameState, dockTarget, location: dockPlanet || currentStation },
+                        payload: { dockGameState, dockTarget, location: dockPlanet || currentStation, mapInstance },
                         timestampMs,
                         playerShip,
                         inputState

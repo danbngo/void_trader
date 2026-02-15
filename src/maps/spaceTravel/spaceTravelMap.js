@@ -261,6 +261,11 @@ class SpaceTravelMapClass {
             this.npcEncounterHailPrompt = null;
             this.npcEncounterHailAvailable = false;
         }
+
+        if (!hasRuntimeState && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.spawnInitialEncounter) {
+            SpaceTravelEncounters.spawnInitialEncounter(this, performance.now());
+        }
+
         this._updateVisibility();
 
         // Initialize emergence momentum if warping in

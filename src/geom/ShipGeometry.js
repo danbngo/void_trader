@@ -10,7 +10,7 @@ const ShipGeometry = (() => {
     const SHIPS = {
         FIGHTER: {
             id: 'FIGHTER',
-            // Simple pyramid: 1 nose vertex + 4 base vertices
+            // Base hull + side wings
             vertices: [
                 // Nose (pointy front, facing +Z direction)
                 { x: 0, y: 0, z: 3 },        // 0: Nose tip
@@ -19,7 +19,19 @@ const ShipGeometry = (() => {
                 { x: -0.3, y: 0.3, z: -0.5 },  // 1: Base top-left
                 { x: 0.3, y: 0.3, z: -0.5 },   // 2: Base top-right
                 { x: 0.3, y: -0.3, z: -0.5 },  // 3: Base bottom-right
-                { x: -0.3, y: -0.3, z: -0.5 }  // 4: Base bottom-left
+                { x: -0.3, y: -0.3, z: -0.5 }, // 4: Base bottom-left
+
+                // Left wing (3 points on left side plane + 1 outward point)
+                { x: -0.105, y: 0.0, z: 1.775 }, // 5: Left wing forward anchor (on side plane)
+                { x: -0.24, y: 0.24, z: 0.2 },   // 6: Left wing rear-top anchor (on side plane)
+                { x: -0.24, y: -0.24, z: 0.2 },  // 7: Left wing rear-bottom anchor (on side plane)
+                { x: -1.85, y: 0.0, z: 1.0 },    // 8: Left wing outward point (~1/2 dorsal length out)
+
+                // Right wing (mirrored)
+                { x: 0.105, y: 0.0, z: 1.775 },  // 9: Right wing forward anchor (on side plane)
+                { x: 0.24, y: 0.24, z: 0.2 },    // 10: Right wing rear-top anchor (on side plane)
+                { x: 0.24, y: -0.24, z: 0.2 },   // 11: Right wing rear-bottom anchor (on side plane)
+                { x: 1.85, y: 0.0, z: 1.0 }      // 12: Right wing outward point (~1/2 dorsal length out)
             ],
             
             // Faces as triangles (CCW when viewed from outside)
@@ -32,7 +44,11 @@ const ShipGeometry = (() => {
                 [0, 1, 4],  // Left face
                 
                 // Square base (2 triangles)
-                [1, 2, 3, 4]  // Base (quad)
+                [1, 2, 3, 4],  // Base (quad)
+
+                // Wing surfaces (4-point triangles / quads)
+                [5, 6, 8, 7],   // Left wing
+                [9, 11, 12, 10] // Right wing (mirrored winding)
             ]
         }
     };

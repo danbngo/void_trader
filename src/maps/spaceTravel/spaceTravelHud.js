@@ -3,7 +3,7 @@
  */
 
 const SpaceTravelHud = (() => {
-    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, autoNavActive, onAutoNavToggle, onMenu, onOptions, suppressButtons, hideDestination, hideDistance, hideTime, speedOverrideText, speedOverrideColor }) {
+    function renderHud({ viewWidth, viewHeight, playerShip, currentGameState, baseMaxSpeed, maxSpeed, boostActive, boostCooldownRemaining, isPaused, laserEmptyTimestampMs, boostNoFuelTimestampMs, timestampMs, config, helpers, autoNavActive, onAutoNavToggle, onMenu, onOptions, suppressButtons, hideDestination, hideDistance, hideTime, speedOverrideText, speedOverrideColor, hailAvailable, onHail }) {
         const startY = viewHeight;
         const panelWidth = viewWidth;
 
@@ -176,6 +176,19 @@ const SpaceTravelHud = (() => {
             const autoNavColor = autoNavActive
                 ? COLORS.TEXT_SUCCESS
                 : (autoNavAvailable ? COLORS.CYAN : COLORS.TEXT_DIM);
+
+            const hailLabel = 'Hail';
+            const hailText = `[h] ${hailLabel}`;
+            const hailX = Math.max(0, autoNavX - hailText.length - 2);
+            const hailColor = hailAvailable ? COLORS.YELLOW : COLORS.TEXT_DIM;
+
+            UI.addButton(hailX, menuY, 'h', hailLabel, () => {
+                if (hailAvailable && onHail) {
+                    onHail();
+                } else {
+                    helpers.setErrorMessage?.('No ship in hail range');
+                }
+            }, helpers.applyPauseColor(hailColor), 'Open hailing channel with nearby NPC fleet');
 
             // Always add AutoNav as a button (even when disabled) so users can cycle between buttons
             UI.addButton(autoNavX, menuY, '1', autoNavLabel, () => {

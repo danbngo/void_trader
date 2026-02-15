@@ -22,6 +22,15 @@ const SpaceTravelRender = (() => {
 
         renderSceneDepthBuffer({ ...params, depthBuffer, renderTimestampMs, viewWidth, viewHeight });
         addDebugMessages(params, renderTimestampMs, viewWidth, viewHeight);
+        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.renderHailPrompt) {
+            SpaceTravelEncounters.renderHailPrompt({
+                mapInstance: params.mapInstance,
+                viewWidth,
+                viewHeight,
+                timestampMs: renderTimestampMs,
+                addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color)
+            });
+        }
 
         UI.draw();
 
@@ -69,7 +78,8 @@ const SpaceTravelRender = (() => {
         });
 
         // Render escort ships
-        const escortPickInfos = [];
+        const shipPickInfos = [];
+        const shipOccupancyMask = new Uint8Array(viewWidth * viewHeight);
         if (params.escortShips && params.escortShips.length > 0 && typeof Object3DRenderer !== 'undefined') {
             params.escortShips.forEach((escort, idx) => {
                 Object3DRenderer.render({
@@ -87,16 +97,44 @@ const SpaceTravelRender = (() => {
                     timestampMs: effectiveRenderTimestampMs,
                     mouseState,
                     isAlly: true, // Mark escort ships as allies for green coloring
+                    shipOccupancyMask,
                     onPickInfo: (pickInfo) => {
-                        escortPickInfos.push(pickInfo);
+                        shipPickInfos.push({ ...pickInfo, kind: 'ESCORT_SHIP' });
                     }
                 });
             });
         }
 
-        // Check for escort picks and update hover if needed
-        if (escortPickInfos.length > 0 && mouseState) {
-            const withDistance = escortPickInfos.map(pick => {
+        if (typeof SpaceTravelEncounters !== 'undefined' && typeof Object3DRenderer !== 'undefined') {
+            const npcShips = SpaceTravelEncounters.getRenderableShips?.(params.mapInstance) || [];
+            npcShips.forEach((ship) => {
+                Object3DRenderer.render({
+                    object: ship,
+                    playerShip: params.playerShip,
+                    viewWidth,
+                    viewHeight,
+                    config: params.config,
+                    depthBuffer,
+                    addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color),
+                    getLineSymbol: (x, y) => {
+                        const idx = RasterUtils.getDepthBufferIndex(depthBuffer, x, y);
+                        return depthBuffer.chars[idx] || ' ';
+                    },
+                    timestampMs: effectiveRenderTimestampMs,
+                    mouseState,
+                    isAlly: false,
+                    shipColor: ship.shipColor,
+                    shipOccupancyMask,
+                    onPickInfo: (pickInfo) => {
+                        shipPickInfos.push({ ...pickInfo, kind: 'NPC_SHIP' });
+                    }
+                });
+            });
+        }
+
+        // Check for ship picks and update hover if needed
+        if (shipPickInfos.length > 0 && mouseState) {
+            const withDistance = shipPickInfos.map(pick => {
                 const dx = (pick.screenX - mouseState.x);
                 const dy = (pick.screenY - mouseState.y);
                 const distance = Math.sqrt((dx * dx) + (dy * dy));
@@ -113,7 +151,7 @@ const SpaceTravelRender = (() => {
                     return best;
                 }, null);
 
-                const closestEscort = bestMatch.pick;
+                const closestShip = bestMatch.pick;
 
                 // Check if there's an existing pick that's closer
                 const existingPickDist = renderParams.lastHoverPick
@@ -122,18 +160,18 @@ const SpaceTravelRender = (() => {
 
                 // Use escort pick if it's closer or no existing pick
                 if (bestMatch.distance <= existingPickDist) {
-                    const escortPickData = {
-                        kind: 'ESCORT_SHIP',
-                        bodyRef: closestEscort.object,
-                        x: closestEscort.screenX,
-                        y: closestEscort.screenY,
+                    const shipPickData = {
+                        kind: closestShip.kind || 'NPC_SHIP',
+                        bodyRef: closestShip.object,
+                        x: closestShip.screenX,
+                        y: closestShip.screenY,
                         screenX: mouseState.x,
                         screenY: mouseState.y,
-                        distance: closestEscort.distance
+                        distance: closestShip.distance
                     };
-                    renderParams.lastHoverPick = escortPickData;
+                    renderParams.lastHoverPick = shipPickData;
                     if (params.mapInstance) {
-                        params.mapInstance.lastHoverPick = escortPickData;
+                        params.mapInstance.lastHoverPick = shipPickData;
                     }
                 }
             }
@@ -152,6 +190,13 @@ const SpaceTravelRender = (() => {
                 getVelocityCameraSpace: () => params.getVelocityCameraSpace?.() || { x: 0, y: 0, z: 0 }
             });
         }
+
+        SpaceTravelParticles.renderRocketTrails({
+            ...renderParams,
+            timestampMs: effectiveRenderTimestampMs,
+            rocketTrailClouds: params.rocketTrailClouds,
+            shipOccupancyMask
+        });
 
         params.laser?.renderLaserFire(renderParams);
 
@@ -197,16 +242,26 @@ const SpaceTravelRender = (() => {
                 lastErrorTimestampMs: params.mapInstance?.lastErrorTimestampMs || 0
             },
             onAutoNavToggle: () => params.toggleAutoNav?.(),
+            hailAvailable: !!params.mapInstance?.npcEncounterHailAvailable,
+            onHail: () => {
+                const started = SpaceTravelEncounters?.playerInitiateHail?.(params.mapInstance, renderTimestampMs);
+                if (!started && params.mapInstance) {
+                    params.mapInstance.lastErrorMessage = 'No hail target in range';
+                    params.mapInstance.lastErrorTimestampMs = performance.now();
+                }
+            },
             onUnpause: () => params.setPaused?.(false, false),
             onMenu: () => {
                 const portalState = SpaceTravelPortal.getState(params.mapInstance);
+                const runtimeState = params.mapInstance?.getRuntimeStateSnapshot?.() || null;
                 params.stop?.(true);
                 SpaceTravelMenu.show(params.currentGameState, () => {
                     const destination = params.targetSystem || SpaceTravelLogic.getNearestSystem(params.currentGameState);
                     SpaceTravelMap.show(params.currentGameState, destination, {
                         resetPosition: false,
                         localDestination: params.localDestination,
-                        portalState
+                        portalState,
+                        runtimeState
                     });
                 }, () => {
                     const portalState = SpaceTravelPortal.getState(params.mapInstance);
@@ -215,20 +270,23 @@ const SpaceTravelRender = (() => {
                         SpaceTravelMap.show(params.currentGameState, destination, {
                             resetPosition: false,
                             localDestination: params.localDestination,
-                            portalState
+                            portalState,
+                            runtimeState
                         });
                     });
                 });
             },
             onOptions: () => {
                 const portalState = SpaceTravelPortal.getState(params.mapInstance);
+                const runtimeState = params.mapInstance?.getRuntimeStateSnapshot?.() || null;
                 params.stop?.(true);
                 OptionsMenu.show(() => {
                     const destination = params.targetSystem || SpaceTravelLogic.getNearestSystem(params.currentGameState);
                     SpaceTravelMap.show(params.currentGameState, destination, {
                         resetPosition: false,
                         localDestination: params.localDestination,
-                        portalState
+                        portalState,
+                        runtimeState
                     });
                 });
             }

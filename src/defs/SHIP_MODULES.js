@@ -84,103 +84,12 @@ const SHIP_MODULES = {
         }
     },
     
-    REFLECTOR: {
-        id: 'REFLECTOR',
-        name: 'Reflector',
-        description: '25% chance to reflect lasers',
-        slot: SHIP_MODULE_SLOT.ARMOR,
-        value: 8000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    DISRUPTER: {
-        id: 'DISRUPTER',
-        name: 'Disrupter',
-        description: '25% chance to strip shields',
-        slot: SHIP_MODULE_SLOT.WEAPON,
-        value: 7000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    DRILL: {
-        id: 'DRILL',
-        name: 'Drill',
-        description: '2x ramming damage',
-        slot: SHIP_MODULE_SLOT.CHASSIS,
-        value: 6000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
     REGENERATIVE_HULL: {
         id: 'REGENERATIVE_HULL',
         name: 'Regenerative Hull',
         description: '+1 hull per combat turn',
         slot: SHIP_MODULE_SLOT.ARMOR,
         value: 10000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    TRACTOR_BEAM: {
-        id: 'TRACTOR_BEAM',
-        name: 'Tractor Beam',
-        description: 'Pulls enemies on laser hit',
-        alienTechnology: true,
-        slot: SHIP_MODULE_SLOT.WEAPON,
-        value: 9000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    REPULSOR: {
-        id: 'REPULSOR',
-        name: 'Repulsor',
-        description: 'Pushes enemies on laser hit',
-        alienTechnology: true,
-        slot: SHIP_MODULE_SLOT.WEAPON,
-        value: 9000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    BLINK: {
-        id: 'BLINK',
-        name: 'Blink',
-        description: '25% chance to teleport when hit',
-        alienTechnology: true,
-        slot: SHIP_MODULE_SLOT.COMPUTER,
-        value: 12000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    SELF_DESTRUCT: {
-        id: 'SELF_DESTRUCT',
-        name: 'Self Destruct',
-        description: 'Damages nearby on death',
-        slot: SHIP_MODULE_SLOT.COMPUTER,
-        value: 8000,
-        onInstall: (ship) => {
-            // Passive effect, handled in combat
-        }
-    },
-    
-    WARHEAD: {
-        id: 'WARHEAD',
-        name: 'Warhead',
-        description: 'Splash damage on laser hit',
-        slot: SHIP_MODULE_SLOT.WEAPON,
-        value: 11000,
         onInstall: (ship) => {
             // Passive effect, handled in combat
         }
@@ -194,28 +103,6 @@ const SHIP_MODULES = {
         value: 7000,
         onInstall: (ship) => {
             // Passive effect, handled in travel
-        }
-    },
-    
-    ENHANCED_SCANNER: {
-        id: 'ENHANCED_SCANNER',
-        name: 'Enhanced Scanner',
-        description: '-20% undetected enemy chance',
-        slot: SHIP_MODULE_SLOT.COMPUTER,
-        value: 8000,
-        onInstall: (ship) => {
-            // Passive effect, handled in encounters
-        }
-    },
-    
-    CLOAK: {
-        id: 'CLOAK',
-        name: 'Cloak',
-        description: '+20% undetected fleet chance',
-        slot: SHIP_MODULE_SLOT.COMPUTER,
-        value: 10000,
-        onInstall: (ship) => {
-            // Passive effect, handled in encounters
         }
     },
     

@@ -93,6 +93,7 @@ const EscortShipAI = (() => {
                     cargo: shipData.cargo || {},
                     state: 'following', // 'following', 'patrolling', 'avoiding', 'docking'
                     patrolTarget: null,
+                    patrolWaitRemainingSec: 0,
                     lastAvoidanceTime: 0,
                     lastCollisionMs: 0
                 };
@@ -245,11 +246,13 @@ const EscortShipAI = (() => {
             applyFollowBehavior(escort, playerShip, dt, config);
             escort.state = 'following';
             escort.patrolTarget = null;
+            escort.patrolWaitRemainingSec = 0;
         } else if (distanceToPlayer > FOLLOW_DISTANCE + FOLLOW_STOP_DISTANCE) {
             // Close enough for local behavior, but still outside ideal follow bubble
             applyFollowBehavior(escort, playerShip, dt, config);
             escort.state = 'following';
             escort.patrolTarget = null;
+            escort.patrolWaitRemainingSec = 0;
         } else {
             // Close to player: patrol around them using remembered/random waypoints
             applyPatrolBehavior(escort, playerShip, dt, config);
@@ -314,8 +317,13 @@ const EscortShipAI = (() => {
     }
 
     function applyPatrolBehavior(escort, playerShip, dt, config) {
+        const minWaitSec = Math.max(0, Number.isFinite(config.PATROL_WAIT_MIN_SEC) ? config.PATROL_WAIT_MIN_SEC : 5);
+        const maxWaitSec = Math.max(minWaitSec, Number.isFinite(config.PATROL_WAIT_MAX_SEC) ? config.PATROL_WAIT_MAX_SEC : 15);
+        const randomWaitSec = () => minWaitSec + (Math.random() * (maxWaitSec - minWaitSec));
+
         if (!escort.patrolTarget) {
             escort.patrolTarget = getRandomPatrolPoint(playerShip);
+            escort.patrolWaitRemainingSec = 0;
             console.log('[EscortPatrol] New destination:', {
                 escort: escort.name || `Escort ${escort.shipIndex}`,
                 reason: 'no_target',
@@ -331,10 +339,26 @@ const EscortShipAI = (() => {
         const distanceToTarget = ThreeDUtils.vecLength(toTarget);
 
         if (distanceToTarget <= PATROL_POINT_REACHED_DISTANCE) {
+            if (!Number.isFinite(escort.patrolWaitRemainingSec) || escort.patrolWaitRemainingSec <= 0) {
+                escort.patrolWaitRemainingSec = randomWaitSec();
+                console.log('[EscortPatrol] Holding at destination:', {
+                    escort: escort.name || `Escort ${escort.shipIndex}`,
+                    waitSec: Number(escort.patrolWaitRemainingSec.toFixed(2))
+                });
+            }
+
+            escort.patrolWaitRemainingSec = Math.max(0, escort.patrolWaitRemainingSec - dt);
+            escort.velocity = ThreeDUtils.scaleVec(escort.velocity, 0.85);
+
+            if (escort.patrolWaitRemainingSec > 0) {
+                return;
+            }
+
             escort.patrolTarget = getRandomPatrolPoint(playerShip);
+            escort.patrolWaitRemainingSec = 0;
             console.log('[EscortPatrol] New destination:', {
                 escort: escort.name || `Escort ${escort.shipIndex}`,
-                reason: 'reached_target',
+                reason: 'wait_elapsed',
                 target: {
                     x: Number(escort.patrolTarget.x.toFixed(4)),
                     y: Number(escort.patrolTarget.y.toFixed(4)),

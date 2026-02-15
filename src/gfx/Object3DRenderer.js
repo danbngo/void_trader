@@ -76,6 +76,35 @@ const Object3DRenderer = (() => {
             onPickInfo = null
         } = params;
 
+        const markShipMaskCell = (x, y) => {
+            const mask = params.shipOccupancyMask;
+            if (!mask) {
+                return;
+            }
+            if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
+                return;
+            }
+            mask[(y * viewWidth) + x] = 1;
+        };
+
+        const markShipMaskRect = (minX, maxX, minY, maxY) => {
+            const mask = params.shipOccupancyMask;
+            if (!mask) {
+                return;
+            }
+            const startX = Math.max(0, Math.floor(Math.min(minX, maxX)));
+            const endX = Math.min(viewWidth - 1, Math.ceil(Math.max(minX, maxX)));
+            const startY = Math.max(0, Math.floor(Math.min(minY, maxY)));
+            const endY = Math.min(viewHeight - 1, Math.ceil(Math.max(minY, maxY)));
+
+            for (let y = startY; y <= endY; y++) {
+                const rowOffset = y * viewWidth;
+                for (let x = startX; x <= endX; x++) {
+                    mask[rowOffset + x] = 1;
+                }
+            }
+        };
+
         if (!object || !object.geometry || !playerShip) {
             return;
         }
@@ -159,7 +188,7 @@ const Object3DRenderer = (() => {
             
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
                 // Calculate ship's forward direction in camera space
-                const shipForward = { x: 0, y: 0, z: 1 }; // Ship's local forward
+                const shipForward = { x: 0, y: 0, z: -1 }; // Ship's local forward (inverted to match momentum)
                 const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, rotation);
                 const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
                 
@@ -171,7 +200,7 @@ const Object3DRenderer = (() => {
                 } else if (isDisabled) {
                     color = '#777777';
                 } else {
-                    color = params.isAlly ? COLORS.GREEN : '#00ff00';
+                    color = params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
                 }
 
                 if (isFlashing) {
@@ -184,6 +213,7 @@ const Object3DRenderer = (() => {
                 }
                 
                 RasterUtils.plotDepthText(depthBuffer, x, y, depth, arrow, color);
+                markShipMaskCell(x, y);
                 
                 // Report picking information
                 if (onPickInfo) {
@@ -252,19 +282,22 @@ const Object3DRenderer = (() => {
                 const projected = { x: centerX, y: centerY };
                 
                 if (projected.x >= 0 && projected.x < viewWidth && projected.y >= 0 && projected.y < viewHeight) {
-                    const shipForward = { x: 0, y: 0, z: 1 };
+                    const shipForward = { x: 0, y: 0, z: -1 };
                     const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, rotation);
                     const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
                     
                     const arrow = getFatArrow(cameraForward.x, cameraForward.z);
-                const color = params.isAlly ? COLORS.GREEN : '#00ff00';
-                    RasterUtils.plotDepthText(depthBuffer, Math.round(projected.x), Math.round(projected.y), depth, arrow, color);
+                const color = params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
+                    const symbolX = Math.round(projected.x);
+                    const symbolY = Math.round(projected.y);
+                    RasterUtils.plotDepthText(depthBuffer, symbolX, symbolY, depth, arrow, color);
+                    markShipMaskCell(symbolX, symbolY);
                     
                     if (onPickInfo) {
                         onPickInfo({
                             object,
-                            screenX: Math.round(projected.x),
-                            screenY: Math.round(projected.y),
+                            screenX: symbolX,
+                            screenY: symbolY,
                             depth,
                             distance: dist,
                             pickRadius: 2
@@ -434,7 +467,11 @@ const Object3DRenderer = (() => {
                 faceColor = lerpColorHex('#333333', '#888888', clampedT);
             } else {
                 // Normal green color range: dark green to light green
-                faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
+                if (params.shipColor) {
+                    faceColor = lerpColorHex('#111111', params.shipColor, clampedT);
+                } else {
+                    faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
+                }
             }
 
             if (isFlashing && (!object._lastDamageFlashFaceDebugMs || (timestampMs - object._lastDamageFlashFaceDebugMs) > 120)) {
@@ -496,6 +533,15 @@ const Object3DRenderer = (() => {
                     maxY: shipBoundingBox.maxY
                 }
             });
+        }
+
+        if (hasBoundingBox) {
+            markShipMaskRect(
+                shipBoundingBox.minX,
+                shipBoundingBox.maxX,
+                shipBoundingBox.minY,
+                shipBoundingBox.maxY
+            );
         }
     }
 

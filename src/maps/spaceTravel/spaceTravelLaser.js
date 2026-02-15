@@ -19,7 +19,7 @@ const SpaceTravelLaser = (() => {
             laserTargetWorldDir = { x: 0, y: 0, z: 1 };
         }
 
-        function fireLaser({ playerShip, isPaused, lastHoverPick, config, inputState, boostActive }) {
+        function fireLaser({ playerShip, isPaused, lastHoverPick, config, inputState, boostActive, mapInstance, timestampMs = 0 }) {
             if (!playerShip || isPaused) {
                 return { laserEmptyTimestampMs: null };
             }
@@ -149,6 +149,10 @@ const SpaceTravelLaser = (() => {
                         hullDamaged,
                         hasShipData: !!target.shipData
                     });
+                }
+
+                if (target.isNpcEncounterShip && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
+                    SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, target, timestampMs || now);
                 }
             }
 

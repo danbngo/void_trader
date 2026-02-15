@@ -3,11 +3,16 @@
  */
 
 const SpaceTravelInput = (() => {
-    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause }) {
+    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause, onHail }) {
         handlers.keyDownHandler = (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
                 onEscape();
+                return;
+            }
+            if (e.key === 'h' || e.key === 'H') {
+                e.preventDefault();
+                onHail?.();
                 return;
             }
             if (e.code === 'Space' || e.key === ' ') {
@@ -82,6 +87,14 @@ const SpaceTravelInput = (() => {
                 const hasEscortSelection = !!mapInstance?.localDestination
                     && mapInstance.localDestination.type === 'ESCORT_SHIP';
                 const clickedEscort = !!pick && pick.kind === 'ESCORT_SHIP';
+                const clickedNpcShip = !!pick && pick.kind === 'NPC_SHIP';
+
+                if (clickedNpcShip) {
+                    if (typeof onFire === 'function') {
+                        onFire();
+                    }
+                    return;
+                }
 
                 // Always allow selecting non-escort targets (planets/stars/stations),
                 // even when an escort is currently selected.
@@ -147,13 +160,15 @@ const SpaceTravelInput = (() => {
                     return;
                 }
                 const portalState = SpaceTravelPortal.getState(mapInstance);
+                const runtimeState = mapInstance.getRuntimeStateSnapshot?.() || null;
                 mapInstance.stop(true);
                 SpaceTravelMenu.show(mapInstance.currentGameState, () => {
                     const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(mapInstance.currentGameState);
                     mapInstance.show(mapInstance.currentGameState, destination, {
                         resetPosition: false,
                         localDestination: mapInstance.localDestination,
-                        portalState
+                        portalState,
+                        runtimeState
                     });
                 }, () => {
                     const portalState = SpaceTravelPortal.getState(mapInstance);
@@ -162,7 +177,8 @@ const SpaceTravelInput = (() => {
                         mapInstance.show(mapInstance.currentGameState, destination, {
                             resetPosition: false,
                             localDestination: mapInstance.localDestination,
-                            portalState
+                            portalState,
+                            runtimeState
                         });
                     });
                 });
@@ -172,6 +188,17 @@ const SpaceTravelInput = (() => {
                     return;
                 }
                 mapInstance.togglePause();
+            },
+            onHail: () => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                const now = mapInstance.timestampMs || performance.now();
+                const started = SpaceTravelEncounters?.playerInitiateHail?.(mapInstance, now);
+                if (!started) {
+                    mapInstance.lastErrorMessage = 'No ship in hail range';
+                    mapInstance.lastErrorTimestampMs = performance.now();
+                }
             }
         });
         setupMouseTargeting({
@@ -218,7 +245,9 @@ const SpaceTravelInput = (() => {
                     lastHoverPick: mapInstance.lastHoverPick,
                     config,
                     inputState,
-                    boostActive: mapInstance.boostActive
+                    boostActive: mapInstance.boostActive,
+                    mapInstance,
+                    timestampMs
                 });
                 if (result?.laserEmptyTimestampMs) {
                     mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;

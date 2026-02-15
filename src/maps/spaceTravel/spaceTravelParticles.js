@@ -3,6 +3,57 @@
  */
 
 const SpaceTravelParticles = (() => {
+    function renderRocketTrails({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, rocketTrailClouds, config, shipOccupancyMask = null }) {
+        if (!playerShip || !Array.isArray(rocketTrailClouds) || rocketTrailClouds.length === 0) {
+            return;
+        }
+        if (!config.ROCKET_TRAIL_ENABLED) {
+            return;
+        }
+
+        const fadeMs = config.ROCKET_TRAIL_FADE_MS || 4000;
+        const visibleDistanceAU = config.ROCKET_TRAIL_VISIBLE_DISTANCE_AU || 1;
+        const cloudChar = config.ROCKET_TRAIL_CHAR || '*';
+        const startColor = config.ROCKET_TRAIL_COLOR || '#ff8a00';
+
+        rocketTrailClouds.forEach(cloud => {
+            const ageMs = timestampMs - cloud.spawnMs;
+            if (ageMs < 0 || ageMs > fadeMs) {
+                return;
+            }
+
+            const distToPlayer = ThreeDUtils.distance(playerShip.position, cloud.position);
+            if (distToPlayer > visibleDistanceAU) {
+                return;
+            }
+
+            const relative = ThreeDUtils.subVec(cloud.position, playerShip.position);
+            const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
+            if (cameraSpace.z < config.NEAR_PLANE) {
+                return;
+            }
+
+            const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, config.VIEW_FOV);
+            if (!projected) {
+                return;
+            }
+
+            const x = Math.round(projected.x);
+            const y = Math.round(projected.y);
+            if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
+                return;
+            }
+
+            if (shipOccupancyMask && shipOccupancyMask[(y * viewWidth) + x]) {
+                return;
+            }
+
+            const t = Math.max(0, Math.min(1, ageMs / fadeMs));
+            const color = SpaceTravelShared.lerpColorHex(startColor, '#000000', t);
+            RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, cloudChar, color);
+        });
+    }
+
     function renderStars({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, starfield, boostActive, boostStartTimestampMs, boostEndTimestampMs, config }) {
         if (!playerShip) {
             return;
@@ -253,7 +304,81 @@ const SpaceTravelParticles = (() => {
         return nextParticles;
     }
 
-    function updateParticles(mapInstance) {
+    function updateRocketTrails(mapInstance, timestampMs = 0) {
+        if (!mapInstance?.config?.ROCKET_TRAIL_ENABLED) {
+            return;
+        }
+        if (!mapInstance.playerShip) {
+            return;
+        }
+
+        if (!Array.isArray(mapInstance.rocketTrailClouds)) {
+            mapInstance.rocketTrailClouds = [];
+        }
+        if (!mapInstance.rocketTrailLastSpawnByShip) {
+            mapInstance.rocketTrailLastSpawnByShip = {};
+        }
+
+        const hasValidTimestamp = Number.isFinite(timestampMs);
+        const now = hasValidTimestamp
+            ? timestampMs
+            : ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now());
+        const fadeMs = mapInstance.config.ROCKET_TRAIL_FADE_MS || 4000;
+        const spawnIntervalMs = mapInstance.config.ROCKET_TRAIL_SPAWN_INTERVAL_MS || 200;
+        const minSpeed = mapInstance.config.ROCKET_TRAIL_MIN_SPEED_AU_PER_SEC || 0.000001;
+
+        mapInstance.rocketTrailClouds = mapInstance.rocketTrailClouds.filter(cloud => {
+            if (!cloud || !Number.isFinite(cloud.spawnMs)) {
+                return false;
+            }
+            const age = now - cloud.spawnMs;
+            return age >= 0 && age <= fadeMs;
+        });
+
+        const npcShips = (Array.isArray(mapInstance.npcEncounterFleets) && mapInstance.npcEncounterFleets.length > 0)
+            ? (mapInstance.npcEncounterFleets[0].ships || [])
+            : [];
+        const ships = [
+            mapInstance.playerShip,
+            ...(Array.isArray(mapInstance.escortShips) ? mapInstance.escortShips : []),
+            ...npcShips
+        ];
+        ships.forEach((ship, index) => {
+            if (!ship || !ship.position || !ship.velocity) {
+                return;
+            }
+
+            const speed = ThreeDUtils.vecLength(ship.velocity);
+            if (speed < minSpeed) {
+                return;
+            }
+
+            const shipKey = ship.id || `ship_${index}`;
+            const lastSpawnMs = mapInstance.rocketTrailLastSpawnByShip[shipKey] || 0;
+            if (!Number.isFinite(lastSpawnMs) || lastSpawnMs > now) {
+                mapInstance.rocketTrailLastSpawnByShip[shipKey] = now - spawnIntervalMs;
+            }
+
+            const safeLastSpawnMs = mapInstance.rocketTrailLastSpawnByShip[shipKey] || 0;
+            if ((now - safeLastSpawnMs) < spawnIntervalMs) {
+                return;
+            }
+
+            const moveDir = ThreeDUtils.normalizeVec(ship.velocity);
+            const shipSize = ship.size || SHIP_SIZE_AU || 0.00000043;
+            const rearOffset = Math.max(shipSize * 0.5, 0.0000002);
+            const spawnPos = ThreeDUtils.subVec(ship.position, ThreeDUtils.scaleVec(moveDir, rearOffset));
+
+            mapInstance.rocketTrailClouds.push({
+                position: spawnPos,
+                spawnMs: now,
+                shipId: shipKey
+            });
+            mapInstance.rocketTrailLastSpawnByShip[shipKey] = now;
+        });
+    }
+
+    function updateParticles(mapInstance, timestampMs = 0) {
         mapInstance.dustParticles = updateDustParticles({
             ...mapInstance,
             getVelocityWorldDirection: () => {
@@ -268,12 +393,16 @@ const SpaceTravelParticles = (() => {
         if (mapInstance.config.DEBUG_STATION_LOG) {
             SpaceTravelLogic.logNearestStationDebug({ playerShip: mapInstance.playerShip });
         }
+
+        updateRocketTrails(mapInstance, timestampMs);
     }
 
     return {
         renderStars,
         renderDust,
+        renderRocketTrails,
         updateDustParticles,
+        updateRocketTrails,
         updateParticles
     };
 })();

@@ -16,6 +16,8 @@ const TravelMenu = (() => {
     let encounterType = null;
     let travelTickInterval = null;
     let shipFuelCosts = []; // Pre-calculated fuel cost for each ship
+    let externalResumeHandler = null;
+    let externalResumeGameState = null;
     
     /**
      * Show the travel menu
@@ -178,7 +180,14 @@ const TravelMenu = (() => {
             
             UI.addCenteredButton(buttonY, '1', 'Continue', () => {
                 // Check for undetected encounter (radar comparison)
-                UndetectedEncounter.check(currentGameState, encounterType);
+                if (typeof UndetectedEncounter !== 'undefined' && UndetectedEncounter.check) {
+                    UndetectedEncounter.check(currentGameState, encounterType);
+                    return;
+                }
+
+                if (encounterType?.onGreet) {
+                    encounterType.onGreet(currentGameState, encounterType);
+                }
             }, COLORS.GREEN);
         } else if (arrivedAtDestination) {
             const arrivalMessage = `You have arrived at ${targetSystem.name}!`;
@@ -464,6 +473,24 @@ const TravelMenu = (() => {
      * Resume travel after encounter
      */
     function resume() {
+        if (typeof externalResumeHandler === 'function') {
+            const gs = externalResumeGameState || currentGameState;
+            if (gs) {
+                gs.encounter = false;
+                gs.encounterShips = [];
+                gs.encounterCargo = {};
+                gs.encounterShipModules = [];
+                gs.encounterContext = null;
+                gs.factionReward = null;
+            }
+
+            const callback = externalResumeHandler;
+            externalResumeHandler = null;
+            externalResumeGameState = null;
+            callback();
+            return;
+        }
+
         // Clear encounter state
         currentGameState.encounter = false;
         currentGameState.encounterShips = [];
@@ -486,6 +513,15 @@ const TravelMenu = (() => {
         }
         
         render();
+    }
+
+    function setExternalResumeHandler(handler, gameState = null) {
+        externalResumeHandler = (typeof handler === 'function') ? handler : null;
+        externalResumeGameState = gameState || null;
+    }
+
+    function isExternalResumeActive() {
+        return typeof externalResumeHandler === 'function';
     }
     
     /**
@@ -533,6 +569,8 @@ const TravelMenu = (() => {
     return {
         show,
         resume,
+        setExternalResumeHandler,
+        isExternalResumeActive,
         consumeFuelForProgress,
         handleTowedBack
     };

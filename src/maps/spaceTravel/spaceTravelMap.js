@@ -53,6 +53,8 @@ class SpaceTravelMapClass {
         this.starSystems = [];
         this.starfield = [];
         this.dustParticles = [];
+        this.rocketTrailClouds = [];
+        this.rocketTrailLastSpawnByShip = {};
         this.possibleStations = [];
         this.visibleStations = [];
 
@@ -117,6 +119,12 @@ class SpaceTravelMapClass {
         // Escort ships state
         this.escortShips = [];
         this.escortLastCollisionMs = {}; // Track collision cooldown per escort
+
+        // NPC encounter fleet state
+        this.npcEncounterFleets = [];
+        this.npcEncounterSpawnUnlocked = true;
+        this.npcEncounterHailPrompt = null;
+        this.npcEncounterHailAvailable = false;
     }
 
     setPaused(nextPaused, byFocus = false) {
@@ -228,8 +236,31 @@ class SpaceTravelMapClass {
         this._initializePlayerShip();
         this._initializeStation();
         this._initializeEscortShips();
+        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.ensureState) {
+            SpaceTravelEncounters.ensureState(this);
+        }
         SpaceTravelPhysics.positionShip(this, resetPosition, options.warpFadeOut);
         this._initializeStarfield();
+
+        const runtimeState = options.runtimeState || null;
+        const hasRuntimeState = !!runtimeState && resetPosition === false;
+        if (hasRuntimeState) {
+            this.escortShips = Array.isArray(runtimeState.escortShips) ? runtimeState.escortShips : this.escortShips;
+            this.escortLastCollisionMs = runtimeState.escortLastCollisionMs ? { ...runtimeState.escortLastCollisionMs } : {};
+            this.rocketTrailClouds = Array.isArray(runtimeState.rocketTrailClouds) ? runtimeState.rocketTrailClouds : [];
+            this.rocketTrailLastSpawnByShip = runtimeState.rocketTrailLastSpawnByShip ? { ...runtimeState.rocketTrailLastSpawnByShip } : {};
+            this.npcEncounterFleets = Array.isArray(runtimeState.npcEncounterFleets) ? runtimeState.npcEncounterFleets : [];
+            this.npcEncounterSpawnUnlocked = runtimeState.npcEncounterSpawnUnlocked !== false;
+            this.npcEncounterHailPrompt = runtimeState.npcEncounterHailPrompt || null;
+            this.npcEncounterHailAvailable = !!runtimeState.npcEncounterHailAvailable;
+        } else {
+            this.rocketTrailClouds = [];
+            this.rocketTrailLastSpawnByShip = {};
+            this.npcEncounterFleets = [];
+            this.npcEncounterSpawnUnlocked = true;
+            this.npcEncounterHailPrompt = null;
+            this.npcEncounterHailAvailable = false;
+        }
         this._updateVisibility();
 
         // Initialize emergence momentum if warping in
@@ -393,6 +424,29 @@ class SpaceTravelMapClass {
         this.visibleStations = visibility.visibleStations;
     }
 
+    getRuntimeStateSnapshot() {
+        const escortShips = Array.isArray(this.escortShips)
+            ? this.escortShips
+            : [];
+        const rocketTrailClouds = Array.isArray(this.rocketTrailClouds)
+            ? this.rocketTrailClouds.map(cloud => ({
+                ...cloud,
+                position: cloud?.position ? { ...cloud.position } : cloud?.position
+            }))
+            : [];
+
+        return {
+            escortShips,
+            escortLastCollisionMs: { ...(this.escortLastCollisionMs || {}) },
+            rocketTrailClouds,
+            rocketTrailLastSpawnByShip: { ...(this.rocketTrailLastSpawnByShip || {}) },
+            npcEncounterFleets: Array.isArray(this.npcEncounterFleets) ? this.npcEncounterFleets : [],
+            npcEncounterSpawnUnlocked: this.npcEncounterSpawnUnlocked !== false,
+            npcEncounterHailPrompt: this.npcEncounterHailPrompt ? { ...this.npcEncounterHailPrompt } : null,
+            npcEncounterHailAvailable: !!this.npcEncounterHailAvailable
+        };
+    }
+
     stop(preservePortal = false) {
         this.isActive = false;
         UI.setGameCursorEnabled?.(true);
@@ -498,6 +552,10 @@ class SpaceTravelMapClass {
             );
         }
 
+        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.update) {
+            SpaceTravelEncounters.update(this, dt, timestampMs);
+        }
+
         if (SpaceTravelPortal.update(this, timestampMs)) return;
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
@@ -509,7 +567,7 @@ class SpaceTravelMapClass {
         this._checkDisabledShipLooting(timestampMs);
         
         this.docking.checkDocking(this);
-        SpaceTravelParticles.updateParticles(this);
+        SpaceTravelParticles.updateParticles(this, this._getRenderTimestampMs(timestampMs));
         SpaceTravelPhysics.regenStats(this, dt);
     }
 
@@ -692,12 +750,20 @@ class SpaceTravelMapClass {
     }
 
     _checkDisabledShipLooting(timestampMs) {
-        if (!this.escortShips || this.escortShips.length === 0) {
+        const npcShips = (Array.isArray(this.npcEncounterFleets) && this.npcEncounterFleets.length > 0)
+            ? this.npcEncounterFleets[0].ships || []
+            : [];
+        const lootableShips = [
+            ...(Array.isArray(this.escortShips) ? this.escortShips : []),
+            ...npcShips
+        ];
+
+        if (lootableShips.length === 0) {
             return;
         }
         
         // Check if player collides with any disabled escort ship
-        this.escortShips.forEach((escort, index) => {
+        lootableShips.forEach((escort, index) => {
             if (!escort) return;
             
             // Only check disabled ships (hull = 0)

@@ -145,6 +145,14 @@ const SpaceTravelUi = (() => {
                 }
                 return buildTargetInfo(liveLocalDestination, escortPos, true);
             }
+
+            // For NPC ships, use live ship position so labels/indicators track the ship
+            if (localDestination.type === 'NPC_SHIP') {
+                const npcPos = localDestination.npcShip?.position || localDestination.positionWorld || null;
+                if (npcPos) {
+                    return buildTargetInfo(localDestination, npcPos, true);
+                }
+            }
             
             // Always recalculate position from orbit if available (handles moving objects)
             if (localDestination.orbit) {
@@ -153,7 +161,7 @@ const SpaceTravelUi = (() => {
             }
             
             // Fallback to static position for non-orbiting objects (like stations without orbits)
-            if ((localDestination.type === 'STATION' || localDestination.type === 'ESCORT_SHIP') && localDestination.positionWorld) {
+            if ((localDestination.type === 'STATION' || localDestination.type === 'ESCORT_SHIP' || localDestination.type === 'NPC_SHIP') && localDestination.positionWorld) {
                 return buildTargetInfo(localDestination, localDestination.positionWorld, true);
             }
             

@@ -255,8 +255,7 @@ const Object3DRenderer = (() => {
 
         // Transform vertices to world space
         // Apply SHIP_SCREEN_SCALE for rendering magnification (so tiny ships are visible)
-        const screenScale = params.isAlly ? (config.SHIP_SCREEN_SCALE || 50) : 1;
-        const baseScreenScale = params.isAlly ? (config.SHIP_SCREEN_SCALE || 50) : 1;
+        const baseScreenScale = config.SHIP_SCREEN_SCALE || 50;
         let worldVertices = geometry.vertices.map(v => {
             // Scale for screen rendering magnification
             const scaled = ThreeDUtils.scaleVec(v, baseScreenScale);

@@ -601,16 +601,11 @@ const SpaceTravelEncounters = (() => {
             return false;
         }
 
-        if (escort.hasHailedPlayer) {
-            return false;
-        }
-
         const gameState = mapInstance.currentGameState;
         const runtimeState = mapInstance.getRuntimeStateSnapshot?.() || null;
         const portalState = SpaceTravelPortal.getState(mapInstance);
 
         const onReturn = () => {
-            escort.hasHailedPlayer = true;
             const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(gameState);
             mapInstance.show(gameState, destination, {
                 resetPosition: false,
@@ -634,6 +629,47 @@ const SpaceTravelEncounters = (() => {
         return true;
     }
 
+    function beginIgnoredHailMenu(mapInstance, selectedShip) {
+        if (!mapInstance || !mapInstance.currentGameState) {
+            return false;
+        }
+
+        const gameState = mapInstance.currentGameState;
+        const runtimeState = mapInstance.getRuntimeStateSnapshot?.() || null;
+        const portalState = SpaceTravelPortal.getState(mapInstance);
+        const shipName = (selectedShip?.name || selectedShip?.shipData?.name || 'The ship').toString();
+
+        const onReturn = () => {
+            const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(gameState);
+            mapInstance.show(gameState, destination, {
+                resetPosition: false,
+                localDestination: mapInstance.localDestination,
+                portalState,
+                runtimeState
+            });
+        };
+
+        mapInstance.stop(true);
+
+        if (typeof HailingMenu !== 'undefined' && HailingMenu.show) {
+            HailingMenu.show(gameState, {
+                encounterType: { name: shipName },
+                ships: [selectedShip || {}]
+            }, onReturn, {
+                line1: `${shipName} receives your hail.`,
+                line2: `"${shipName} ignores you."`,
+                line3: null,
+                footer: 'No response is transmitted.',
+                closeLabel: 'Continue',
+                closeHelp: 'Return to 3D travel'
+            });
+            return true;
+        }
+
+        onReturn();
+        return true;
+    }
+
     function canPlayerHailSelectedTarget(mapInstance) {
         if (!mapInstance || mapInstance.npcEncounterHailPrompt) {
             return false;
@@ -646,7 +682,7 @@ const SpaceTravelEncounters = (() => {
 
         if (selectedDestination.type === 'ESCORT_SHIP') {
             const escort = selectedDestination.escort || null;
-            return !!escort && (escort.hull || 0) > 0 && !escort.hasHailedPlayer;
+            return !!escort && (escort.hull || 0) > 0;
         }
 
         if (selectedDestination.type !== 'NPC_SHIP' && selectedDestination.kind !== 'NPC_SHIP') {
@@ -654,7 +690,7 @@ const SpaceTravelEncounters = (() => {
         }
 
         const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
-        if (!fleet || fleet.isHostile || fleet.completedBusiness || fleet.hasHailedPlayer) {
+        if (!fleet || fleet.isHostile) {
             return false;
         }
 
@@ -1003,14 +1039,14 @@ const SpaceTravelEncounters = (() => {
         const selectedDestination = mapInstance.currentGameState?.localDestination || mapInstance.localDestination || null;
         if (selectedDestination?.type === 'ESCORT_SHIP') {
             const escort = selectedDestination.escort || null;
-            if (!escort || (escort.hull || 0) <= 0 || escort.hasHailedPlayer) {
+            if (!escort || (escort.hull || 0) <= 0) {
                 return false;
             }
             return beginAllyHailMenu(mapInstance, escort);
         }
 
         const fleet = (mapInstance?.npcEncounterFleets || [])[0] || null;
-        if (!fleet || fleet.isHostile || fleet.completedBusiness || fleet.hasHailedPlayer) {
+        if (!fleet || fleet.isHostile) {
             return false;
         }
 
@@ -1025,6 +1061,10 @@ const SpaceTravelEncounters = (() => {
         const targetShip = (fleet.ships || []).find(ship => ship && ship.id === selectedShip.id);
         if (!targetShip || (targetShip.hull || 0) <= 0) {
             return false;
+        }
+
+        if (fleet.hasHailedPlayer) {
+            return beginIgnoredHailMenu(mapInstance, targetShip);
         }
 
         triggerHail(mapInstance, fleet, timestampMs || performance.now(), 'player');

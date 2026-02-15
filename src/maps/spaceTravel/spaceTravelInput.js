@@ -219,14 +219,11 @@ const SpaceTravelInput = (() => {
                 const now = mapInstance.timestampMs || performance.now();
                 const started = SpaceTravelEncounters?.playerInitiateHail?.(mapInstance, now);
                 if (!started) {
-                    const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
                     const hasSelectedNpc = (mapInstance.currentGameState?.localDestination?.type === 'NPC_SHIP')
                         || (mapInstance.localDestination?.type === 'NPC_SHIP');
                     const hasSelectedEscort = (mapInstance.currentGameState?.localDestination?.type === 'ESCORT_SHIP')
                         || (mapInstance.localDestination?.type === 'ESCORT_SHIP');
-                    const msg = (fleet && fleet.hasHailedPlayer)
-                        ? 'That fleet already completed hailing'
-                        : ((hasSelectedNpc || hasSelectedEscort) ? 'Unable to hail selected ship' : 'Select a ship to hail');
+                    const msg = (hasSelectedNpc || hasSelectedEscort) ? 'Unable to hail selected ship' : 'Select a ship to hail';
                     mapInstance.lastErrorMessage = msg;
                     mapInstance.lastErrorTimestampMs = performance.now();
                     UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 700);

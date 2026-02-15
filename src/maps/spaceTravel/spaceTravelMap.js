@@ -561,6 +561,11 @@ class SpaceTravelMapClass {
             SpaceTravelEncounters.update(this, dt, timestampMs);
         }
 
+        this.laser?.updateLasers?.({
+            mapInstance: this,
+            timestampMs
+        });
+
         if (SpaceTravelPortal.update(this, timestampMs)) return;
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;

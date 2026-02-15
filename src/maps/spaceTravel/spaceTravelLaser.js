@@ -4,19 +4,143 @@
 
 const SpaceTravelLaser = (() => {
     function create() {
-        let laserFireUntilMs = 0;
-        let laserFireStartMs = 0;
-        let laserTarget = { x: 0, y: 0 };
-        let laserTargetWorldDir = { x: 0, y: 0, z: 1 };
-        let laserBeamLength = 5; // Length of laser beam in characters (minimum)
+        let laserShots = [];
         let lastFireAttemptMs = 0;
         const MIN_FIRE_INTERVAL_MS = 50; // Minimum time between fire attempts to prevent caching
 
         function reset() {
-            laserFireUntilMs = 0;
-            laserFireStartMs = 0;
-            laserTarget = { x: 0, y: 0 };
-            laserTargetWorldDir = { x: 0, y: 0, z: 1 };
+            laserShots = [];
+        }
+
+        function applyDamage(target, damage, config, timestampMs) {
+            if (!target || !Number.isFinite(damage) || damage <= 0) {
+                return;
+            }
+
+            let remaining = damage;
+            if (typeof target.shields === 'number' && target.shields > 0) {
+                const shieldDamage = Math.min(target.shields, remaining);
+                target.shields = Math.max(0, target.shields - shieldDamage);
+                remaining -= shieldDamage;
+            }
+            if (remaining > 0 && typeof target.hull === 'number') {
+                target.hull = Math.max(0, target.hull - remaining);
+            }
+
+            if (typeof target.hull === 'number' && target.hull <= 0) {
+                target.name = 'Abandoned Ship';
+                if (target.shipData) {
+                    target.shipData.name = 'Abandoned Ship';
+                }
+            }
+
+            target.flashStartMs = timestampMs;
+            const shieldOnlyHit = (remaining <= 0) && (typeof target.shields === 'number' && target.shields > 0);
+            target.flashColor = shieldOnlyHit
+                ? (config.SHIP_FLASH_SHIELD_COLOR || '#ffffff')
+                : ((typeof target.hull === 'number' && target.hull <= 0)
+                    ? (config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
+                    : (config.SHIP_FLASH_HULL_COLOR || '#ff0000'));
+        }
+
+        function enqueueShot({ mapInstance, shooter, targetPoint, damageMin, damageMax, color, timestampMs = 0 }) {
+            if (!mapInstance || !shooter || !targetPoint || !shooter.position) {
+                return false;
+            }
+
+            const now = Number.isFinite(timestampMs) && timestampMs > 0 ? timestampMs : performance.now();
+            const durationMs = Math.max(1, mapInstance.config?.LASER_FIRE_DURATION_MS || 125);
+
+            laserShots.push({
+                from: { ...shooter.position },
+                to: { ...targetPoint },
+                createdMs: now,
+                impactMs: now + durationMs,
+                durationMs,
+                damageMin: Math.max(1, Math.floor(damageMin || 1)),
+                damageMax: Math.max(Math.floor(damageMin || 1), Math.floor(damageMax || damageMin || 1)),
+                color: color || mapInstance.config?.LASER_COLOR || '#ff4d4d',
+                shooterRef: shooter,
+                resolved: false
+            });
+
+            if (laserShots.length > 120) {
+                laserShots.splice(0, laserShots.length - 120);
+            }
+
+            return true;
+        }
+
+        function getImpactCandidates(mapInstance) {
+            const candidates = [];
+            if (mapInstance?.playerShip) {
+                candidates.push(mapInstance.playerShip);
+            }
+            if (Array.isArray(mapInstance?.escortShips)) {
+                mapInstance.escortShips.forEach(ship => candidates.push(ship));
+            }
+            const npcShips = (Array.isArray(mapInstance?.npcEncounterFleets) && mapInstance.npcEncounterFleets.length > 0)
+                ? (mapInstance.npcEncounterFleets[0].ships || [])
+                : [];
+            npcShips.forEach(ship => candidates.push(ship));
+            return candidates;
+        }
+
+        function resolveShotImpact(shot, mapInstance, timestampMs) {
+            if (!shot || !mapInstance || shot.resolved) {
+                return;
+            }
+
+            const impactRadius = Math.max(0.0000001, mapInstance.config?.LASER_IMPACT_RADIUS_AU || 0.000001);
+            let bestTarget = null;
+            let bestDistance = Infinity;
+
+            const candidates = getImpactCandidates(mapInstance);
+            candidates.forEach(candidate => {
+                if (!candidate || !candidate.position || candidate === shot.shooterRef) {
+                    return;
+                }
+                if (typeof candidate.hull === 'number' && candidate.hull <= 0) {
+                    return;
+                }
+
+                const dist = ThreeDUtils.distance(candidate.position, shot.to);
+                if (dist <= impactRadius && dist < bestDistance) {
+                    bestDistance = dist;
+                    bestTarget = candidate;
+                }
+            });
+
+            if (bestTarget) {
+                const damageRange = shot.damageMax - shot.damageMin;
+                const damage = shot.damageMin + Math.floor(Math.random() * (damageRange + 1));
+                applyDamage(bestTarget, damage, mapInstance.config || {}, timestampMs);
+
+                if (bestTarget.isNpcEncounterShip && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget && shot.shooterRef === mapInstance.playerShip) {
+                    SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, bestTarget, timestampMs);
+                }
+
+                if (bestTarget === mapInstance.playerShip) {
+                    mapInstance.damageFlashStartMs = timestampMs;
+                }
+            }
+
+            shot.resolved = true;
+        }
+
+        function updateLasers({ mapInstance, timestampMs = 0 }) {
+            if (!mapInstance || !Array.isArray(laserShots) || laserShots.length === 0) {
+                return;
+            }
+
+            const now = Number.isFinite(timestampMs) && timestampMs > 0 ? timestampMs : performance.now();
+            laserShots.forEach(shot => {
+                if (!shot.resolved && now >= shot.impactMs) {
+                    resolveShotImpact(shot, mapInstance, now);
+                }
+            });
+
+            laserShots = laserShots.filter(shot => now <= (shot.impactMs + 100));
         }
 
         function fireLaser({ playerShip, isPaused, lastHoverPick, config, inputState, boostActive, mapInstance, timestampMs = 0 }) {
@@ -42,165 +166,104 @@ const SpaceTravelLaser = (() => {
             }
             lastFireAttemptMs = now;
 
-            laserFireStartMs = now;
-            laserFireUntilMs = now + config.LASER_FIRE_DURATION_MS;
-            laserTarget = getLaserTarget({ inputState, config });
-            laserTargetWorldDir = getLaserTargetWorldDirection({
-                target: laserTarget,
-                playerShip,
-                config
-            });
-            
-            // Calculate beam length based on laser energy used: 5 + current laser amount
-            laserBeamLength = 5 + currentLaser;
-            console.log('[Laser] Firing:', { currentLaser, laserBeamLength, maxLaser: Ship.getLaserMax(playerShip) });
+            const targetPoint = getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick });
             
             const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);
 
-            if (!lastHoverPick || !lastHoverPick.bodyRef) {
-                const grid = UI.getGridSize();
-                const viewWidth = grid.width;
-                const viewHeight = grid.height - config.PANEL_HEIGHT;
-                const mouseState = SpaceTravelInput.getMouseTargetState(viewWidth, viewHeight, inputState);
-                console.log('[Laser] No target pick:', {
-                    lastHoverPick,
-                    laserTarget,
-                    mouseTargetActive: inputState?.mouseTargetActive,
-                    mouseState
-                });
-            }
+            const minRatio = config.LASER_DAMAGE_MIN_RATIO || 0.5;
+            const maxRatio = config.LASER_DAMAGE_MAX_RATIO || 1.0;
+            const minDamage = Math.ceil(laserEnergy * minRatio);
+            const maxDamage = Math.ceil(laserEnergy * maxRatio);
 
-            if (lastHoverPick && lastHoverPick.bodyRef) {
-                const target = lastHoverPick.bodyRef;
-                const damageTarget = target.shipData || target;
-                
-                // Calculate damage: random between 50-100% of laser energy, rounded up
-                const minRatio = config.LASER_DAMAGE_MIN_RATIO || 0.5;
-                const maxRatio = config.LASER_DAMAGE_MAX_RATIO || 1.0;
-                const damageRatio = minRatio + Math.random() * (maxRatio - minRatio);
-                const damage = Math.ceil(laserEnergy * damageRatio);
-                
-                let shieldDamaged = false;
-                let hullDamaged = false;
-                
-                if (typeof damageTarget.shields === 'number' && damageTarget.shields > 0) {
-                    const shieldDamage = Math.min(damageTarget.shields, damage);
-                    damageTarget.shields = Math.max(0, damageTarget.shields - shieldDamage);
-                    shieldDamaged = true;
-                    
-                    const overflow = damage - shieldDamage;
-                    if (overflow > 0 && typeof damageTarget.hull === 'number') {
-                        damageTarget.hull = Math.max(0, damageTarget.hull - overflow);
-                        hullDamaged = true;
-                    }
-                } else if (typeof damageTarget.hull === 'number') {
-                    damageTarget.hull = Math.max(0, damageTarget.hull - damage);
-                    hullDamaged = true;
-                }
+            enqueueShot({
+                mapInstance,
+                shooter: playerShip,
+                targetPoint,
+                damageMin: minDamage,
+                damageMax: Math.max(minDamage, maxDamage),
+                color: config.LASER_COLOR || '#ff4d4d',
+                timestampMs: timestampMs || now
+            });
 
-                // Keep top-level escort stats in sync when using nested shipData
-                if (target !== damageTarget) {
-                    if (typeof damageTarget.hull === 'number') target.hull = damageTarget.hull;
-                    if (typeof damageTarget.shields === 'number') target.shields = damageTarget.shields;
-                    if (typeof damageTarget.maxHull === 'number') target.maxHull = damageTarget.maxHull;
-                    if (typeof damageTarget.maxShields === 'number') target.maxShields = damageTarget.maxShields;
-                }
-
-                // Rename disabled ships
-                const isDisabledAfterHit = (typeof damageTarget.hull === 'number' && damageTarget.hull <= 0);
-                if (isDisabledAfterHit) {
-                    damageTarget.name = 'Abandoned Ship';
-                    target.name = 'Abandoned Ship';
-                }
-                
-                // Set flash state on target
-                if (hullDamaged) {
-                    target.flashStartMs = now;
-                    target.flashColor = isDisabledAfterHit
-                        ? (config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
-                        : (config.SHIP_FLASH_HULL_COLOR || '#ff0000');
-                    console.log('[DamageFlash] Hull flash set:', {
-                        targetId: target.id || target.name || damageTarget.id || damageTarget.name || 'unknown',
-                        flashStartMs: target.flashStartMs,
-                        flashColor: target.flashColor,
-                        hull: damageTarget.hull,
-                        shields: damageTarget.shields,
-                        damage
-                    });
-                } else if (shieldDamaged) {
-                    target.flashStartMs = now;
-                    target.flashColor = config.SHIP_FLASH_SHIELD_COLOR || '#ffffff';
-                    console.log('[DamageFlash] Shield flash set:', {
-                        targetId: target.id || target.name || damageTarget.id || damageTarget.name || 'unknown',
-                        flashStartMs: target.flashStartMs,
-                        flashColor: target.flashColor,
-                        hull: damageTarget.hull,
-                        shields: damageTarget.shields,
-                        damage
-                    });
-                } else {
-                    console.log('[DamageFlash] No flash set after hit:', {
-                        targetId: target.id || target.name || damageTarget.id || damageTarget.name || 'unknown',
-                        hull: damageTarget.hull,
-                        shields: damageTarget.shields,
-                        damage,
-                        shieldDamaged,
-                        hullDamaged,
-                        hasShipData: !!target.shipData
-                    });
-                }
-
-                if (target.isNpcEncounterShip && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
-                    SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, target, timestampMs || now);
-                }
+            if (lastHoverPick?.bodyRef?.isNpcEncounterShip && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
+                SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, lastHoverPick.bodyRef, timestampMs || now);
             }
 
             return { laserEmptyTimestampMs: null };
         }
 
+        function fireWorldLaser({ mapInstance, shooter, targetPoint, damageMin, damageMax, color, timestampMs = 0 }) {
+            if (!mapInstance || !shooter || !targetPoint) {
+                return false;
+            }
+            return enqueueShot({
+                mapInstance,
+                shooter,
+                targetPoint,
+                damageMin,
+                damageMax,
+                color,
+                timestampMs
+            });
+        }
+
         function renderLaserFire({ depthBuffer, viewWidth, viewHeight, timestampMs, config, playerShip }) {
-            if (timestampMs < laserFireStartMs || timestampMs > laserFireUntilMs) {
+            if (!Array.isArray(laserShots) || laserShots.length === 0) {
                 return;
             }
-            const duration = Math.max(1, config.LASER_FIRE_DURATION_MS);
-            const progress = Math.min(1, Math.max(0, (timestampMs - laserFireStartMs) / duration));
-            const targetScreen = getLaserTargetScreenPosition({ viewWidth, viewHeight, config, playerShip });
-            const targetX = Math.max(0, Math.min(viewWidth - 1, Math.floor(targetScreen.x)));
-            const targetY = Math.max(0, Math.min(viewHeight - 1, Math.floor(targetScreen.y)));
-            let pulseT = 0;
-            if (progress >= 0.25 && progress < 0.5) {
-                pulseT = (progress - 0.25) / 0.25;
-            } else if (progress >= 0.5 && progress < 0.75) {
-                pulseT = 1 - ((progress - 0.5) / 0.25);
-            }
-            const laserColor = SpaceTravelShared.lerpColorHex(config.LASER_COLOR, '#ffffff', pulseT);
 
-            const leftPoints = LineDrawer.drawLine(0, viewHeight - 1, targetX, targetY, true, config.LASER_COLOR);
-            const rightPoints = LineDrawer.drawLine(viewWidth - 1, viewHeight - 1, targetX, targetY, true, config.LASER_COLOR);
-
-            const renderPoints = (points) => {
-                if (points.length === 0) {
+            laserShots.forEach(shot => {
+                if (!shot?.from || !shot?.to) {
                     return;
                 }
-                
-                // Beam travels from start to end as a moving segment of fixed length
-                // Front edge position travels from -beamLength (hidden) to points.length (passed through)
-                const totalDistance = points.length + laserBeamLength;
-                const frontPos = progress * totalDistance - laserBeamLength;
-                
-                // Render the segment of the beam currently visible on the path
+
+                const startMs = shot.createdMs || 0;
+                const endMs = shot.impactMs || (startMs + (shot.durationMs || config.LASER_FIRE_DURATION_MS || 125));
+                if (timestampMs < startMs || timestampMs > endMs) {
+                    return;
+                }
+
+                const progress = Math.min(1, Math.max(0, (timestampMs - startMs) / Math.max(1, shot.durationMs || (endMs - startMs) || 1)));
+
+                const fromRelative = ThreeDUtils.subVec(shot.from, playerShip.position);
+                const toRelative = ThreeDUtils.subVec(shot.to, playerShip.position);
+                const fromCamera = ThreeDUtils.rotateVecByQuat(fromRelative, ThreeDUtils.quatConjugate(playerShip.rotation));
+                const toCamera = ThreeDUtils.rotateVecByQuat(toRelative, ThreeDUtils.quatConjugate(playerShip.rotation));
+                if (fromCamera.z <= config.NEAR_PLANE || toCamera.z <= config.NEAR_PLANE) {
+                    return;
+                }
+
+                const fromProjected = RasterUtils.projectCameraSpacePointRaw(fromCamera, viewWidth, viewHeight, config.VIEW_FOV);
+                const toProjected = RasterUtils.projectCameraSpacePointRaw(toCamera, viewWidth, viewHeight, config.VIEW_FOV);
+                if (!fromProjected || !toProjected) {
+                    return;
+                }
+
+                const x1 = Math.round(fromProjected.x);
+                const y1 = Math.round(fromProjected.y);
+                const x2 = Math.round(toProjected.x);
+                const y2 = Math.round(toProjected.y);
+
+                let pulseT = 0;
+                if (progress >= 0.25 && progress < 0.5) {
+                    pulseT = (progress - 0.25) / 0.25;
+                } else if (progress >= 0.5 && progress < 0.75) {
+                    pulseT = 1 - ((progress - 0.5) / 0.25);
+                }
+                const laserColor = SpaceTravelShared.lerpColorHex(shot.color || config.LASER_COLOR || '#ff4d4d', '#ffffff', pulseT);
+                const points = LineDrawer.drawLine(x1, y1, x2, y2, true, laserColor);
+                const beamLength = Math.max(3, Math.floor(points.length * 0.35));
+                const totalDistance = points.length + beamLength;
+                const frontPos = progress * totalDistance - beamLength;
                 const startIndex = Math.max(0, Math.ceil(frontPos));
-                const endIndex = Math.min(points.length - 1, Math.floor(frontPos + laserBeamLength));
-                
+                const endIndex = Math.min(points.length - 1, Math.floor(frontPos + beamLength));
+
                 for (let i = startIndex; i <= endIndex; i++) {
                     const point = points[i];
                     RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
                 }
-            };
-
-            renderPoints(leftPoints);
-            renderPoints(rightPoints);
+            });
         }
 
         function getLaserTarget({ inputState, config }) {
@@ -229,32 +292,22 @@ const SpaceTravelLaser = (() => {
             return ThreeDUtils.rotateVecByQuat(cameraDir, playerShip.rotation);
         }
 
-        function getLaserTargetScreenPosition({ viewWidth, viewHeight, config, playerShip }) {
-            if (!laserTargetWorldDir) {
-                return laserTarget;
+        function getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick }) {
+            if (lastHoverPick?.bodyRef?.position) {
+                return { ...lastHoverPick.bodyRef.position };
             }
-            const cameraDir = ThreeDUtils.rotateVecByQuat(laserTargetWorldDir, ThreeDUtils.quatConjugate(playerShip.rotation));
-            
-            // Scale direction to a proper depth for projection (100 AU works well)
-            // projectCameraSpacePointRaw expects a 3D point in camera space, not a unit direction
-            const projectionDepth = 100;
-            const cameraPoint = {
-                x: cameraDir.x * projectionDepth,
-                y: cameraDir.y * projectionDepth,
-                z: cameraDir.z * projectionDepth
-            };
-            
-            const projected = RasterUtils.projectCameraSpacePointRaw(cameraPoint, viewWidth, viewHeight, config.VIEW_FOV);
-            if (!projected) {
-                return { x: viewWidth / 2, y: viewHeight / 2 };
-            }
-            
-            return { x: projected.x, y: projected.y };
+
+            const target = getLaserTarget({ inputState, config });
+            const worldDir = getLaserTargetWorldDirection({ target, playerShip, config });
+            const range = Math.max(0.1, config.NPC_FLEET_WEAPON_RANGE_AU || 2);
+            return ThreeDUtils.addVec(playerShip.position, ThreeDUtils.scaleVec(worldDir, range));
         }
 
         return {
             reset,
             fireLaser,
+            fireWorldLaser,
+            updateLasers,
             renderLaserFire
         };
     }

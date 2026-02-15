@@ -170,6 +170,7 @@ const SpaceTravelConfig = {
     LASER_FIRE_DURATION_MS: (typeof SPACE_TRAVEL_LASER_TRAVEL_DURATION_MS !== 'undefined')
         ? SPACE_TRAVEL_LASER_TRAVEL_DURATION_MS
         : 125,
+    LASER_IMPACT_RADIUS_AU: (typeof SHIP_SIZE_AU !== 'undefined') ? (SHIP_SIZE_AU * 1.5) : 0.000001,
     LASER_REGEN_SEC: 1,
     SHIELD_REGEN_SEC: 5,
     LASER_COLOR: '#ff4d4d',

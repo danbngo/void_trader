@@ -90,8 +90,15 @@ const SpaceTravelInput = (() => {
                 const clickedNpcShip = !!pick && pick.kind === 'NPC_SHIP';
 
                 if (clickedNpcShip) {
-                    if (typeof onFire === 'function') {
-                        onFire();
+                    if (typeof onPick === 'function') {
+                        onPick(pick);
+                    }
+                    return;
+                }
+
+                if (clickedEscort) {
+                    if (typeof onPick === 'function') {
+                        onPick(pick);
                     }
                     return;
                 }
@@ -212,8 +219,18 @@ const SpaceTravelInput = (() => {
                 const now = mapInstance.timestampMs || performance.now();
                 const started = SpaceTravelEncounters?.playerInitiateHail?.(mapInstance, now);
                 if (!started) {
-                    mapInstance.lastErrorMessage = 'No ship in hail range';
+                    const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
+                    const hasSelectedNpc = (mapInstance.currentGameState?.localDestination?.type === 'NPC_SHIP')
+                        || (mapInstance.localDestination?.type === 'NPC_SHIP');
+                    const hasSelectedEscort = (mapInstance.currentGameState?.localDestination?.type === 'ESCORT_SHIP')
+                        || (mapInstance.localDestination?.type === 'ESCORT_SHIP');
+                    const msg = (fleet && fleet.hasHailedPlayer)
+                        ? 'That fleet already completed hailing'
+                        : ((hasSelectedNpc || hasSelectedEscort) ? 'Unable to hail selected ship' : 'Select a ship to hail');
+                    mapInstance.lastErrorMessage = msg;
                     mapInstance.lastErrorTimestampMs = performance.now();
+                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 700);
+                    UI.setOutputRow(msg, COLORS.TEXT_ERROR);
                 }
             }
         });

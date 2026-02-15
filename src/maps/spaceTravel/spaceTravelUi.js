@@ -48,6 +48,18 @@ const SpaceTravelUi = (() => {
                 escortPos: escort.position,
                 destinationPos: currentGameState.localDestination.positionWorld
             });
+        } else if (pick.kind === 'NPC_SHIP') {
+            const npcShip = pick.bodyRef;
+            const npcName = npcShip?.name || npcShip?.shipData?.name || 'Enemy Ship';
+            currentGameState.localDestination = {
+                type: 'NPC_SHIP',
+                kind: 'NPC_SHIP',
+                positionWorld: npcShip?.position,
+                id: npcShip?.id || `npc-${Date.now()}`,
+                name: npcName,
+                npcShip,
+                orbit: null
+            };
         } else if (pick.bodyRef && pick.bodyRef.type === 'STATION') {
             const stationOrbit = typeof system.station?.orbit?.semiMajorAU === 'number'
                 ? system.station.orbit.semiMajorAU

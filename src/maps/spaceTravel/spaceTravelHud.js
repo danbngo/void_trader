@@ -184,10 +184,12 @@ const SpaceTravelHud = (() => {
             const hailColor = hailAvailable ? COLORS.YELLOW : COLORS.TEXT_DIM;
 
             UI.addButton(hailX, menuY, 'h', hailLabel, () => {
-                if (hailAvailable && onHail) {
+                if (onHail) {
                     onHail();
                 } else {
-                    helpers.setErrorMessage?.('No ship in hail range');
+                    helpers.setErrorMessage?.('Select a ship to hail');
+                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 700);
+                    UI.setOutputRow('Select a ship to hail', COLORS.TEXT_ERROR);
                 }
             }, helpers.applyPauseColor(hailColor), 'Open hailing channel with nearby NPC fleet');
 

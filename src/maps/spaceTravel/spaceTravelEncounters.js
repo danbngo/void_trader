@@ -596,6 +596,77 @@ const SpaceTravelEncounters = (() => {
         }
     }
 
+    function beginAllyHailMenu(mapInstance, escort) {
+        if (!mapInstance || !escort || !mapInstance.currentGameState) {
+            return false;
+        }
+
+        if (escort.hasHailedPlayer) {
+            return false;
+        }
+
+        const gameState = mapInstance.currentGameState;
+        const runtimeState = mapInstance.getRuntimeStateSnapshot?.() || null;
+        const portalState = SpaceTravelPortal.getState(mapInstance);
+
+        const onReturn = () => {
+            escort.hasHailedPlayer = true;
+            const destination = mapInstance.targetSystem || SpaceTravelLogic.getNearestSystem(gameState);
+            mapInstance.show(gameState, destination, {
+                resetPosition: false,
+                localDestination: mapInstance.localDestination,
+                portalState,
+                runtimeState
+            });
+        };
+
+        mapInstance.stop(true);
+
+        if (typeof HailingMenu !== 'undefined' && HailingMenu.show) {
+            HailingMenu.show(gameState, {
+                encounterType: { name: escort.name || escort.shipData?.name || 'Allied Ship' },
+                ships: [escort]
+            }, onReturn);
+            return true;
+        }
+
+        onReturn();
+        return true;
+    }
+
+    function canPlayerHailSelectedTarget(mapInstance) {
+        if (!mapInstance || mapInstance.npcEncounterHailPrompt) {
+            return false;
+        }
+
+        const selectedDestination = mapInstance.currentGameState?.localDestination || mapInstance.localDestination || null;
+        if (!selectedDestination) {
+            return false;
+        }
+
+        if (selectedDestination.type === 'ESCORT_SHIP') {
+            const escort = selectedDestination.escort || null;
+            return !!escort && (escort.hull || 0) > 0 && !escort.hasHailedPlayer;
+        }
+
+        if (selectedDestination.type !== 'NPC_SHIP' && selectedDestination.kind !== 'NPC_SHIP') {
+            return false;
+        }
+
+        const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
+        if (!fleet || fleet.isHostile || fleet.completedBusiness || fleet.hasHailedPlayer) {
+            return false;
+        }
+
+        const selectedShip = selectedDestination.npcShip || null;
+        if (!selectedShip || !selectedShip.id) {
+            return false;
+        }
+
+        const targetShip = (fleet.ships || []).find(ship => ship && ship.id === selectedShip.id);
+        return !!targetShip && (targetShip.hull || 0) > 0;
+    }
+
     function applyNpcCombatShots(mapInstance, fleet, timestampMs) {
         const fireInterval = Math.max(200, mapInstance.config.NPC_FLEET_FIRE_INTERVAL_MS || 1000);
         if ((timestampMs - (fleet.lastFireMs || 0)) < fireInterval) {
@@ -620,32 +691,28 @@ const SpaceTravelEncounters = (() => {
 
         fleet.lastFireMs = timestampMs;
 
-        let totalDamage = 0;
+        let shotsFired = 0;
         shooters.forEach(ship => {
             const perShotMin = Math.max(1, mapInstance.config.NPC_SHOT_MIN_DAMAGE || 2);
             const perShotMax = Math.max(perShotMin, mapInstance.config.NPC_SHOT_MAX_DAMAGE || 6);
-            totalDamage += perShotMin + Math.floor(Math.random() * (perShotMax - perShotMin + 1));
-            addCombatLaserBurst(mapInstance, ship.position, playerShip.position, fleet.shipColor || COLORS.RED, timestampMs);
+            const fired = mapInstance.laser?.fireWorldLaser?.({
+                mapInstance,
+                shooter: ship,
+                targetPoint: playerShip.position,
+                damageMin: perShotMin,
+                damageMax: perShotMax,
+                color: fleet.shipColor || COLORS.RED,
+                timestampMs
+            });
+            if (fired) {
+                shotsFired += 1;
+            }
         });
 
-        let remaining = totalDamage;
-        if (typeof playerShip.shields === 'number' && playerShip.shields > 0) {
-            const absorbed = Math.min(playerShip.shields, remaining);
-            playerShip.shields = Math.max(0, playerShip.shields - absorbed);
-            remaining -= absorbed;
-        }
-        if (remaining > 0 && typeof playerShip.hull === 'number') {
-            playerShip.hull = Math.max(0, playerShip.hull - remaining);
-        }
-
-        mapInstance.damageFlashStartMs = timestampMs;
-
-        console.log('[SpaceTravelEncounter] NPC volley hit player:', {
+        console.log('[SpaceTravelEncounter] NPC volley fired:', {
             fleetId: fleet.id,
             shooters: shooters.length,
-            totalDamage,
-            playerHull: playerShip.hull,
-            playerShields: playerShip.shields
+            shotsFired
         });
     }
 
@@ -686,10 +753,18 @@ const SpaceTravelEncounters = (() => {
                 return;
             }
 
-            const damage = perShotMin + Math.floor(Math.random() * (perShotMax - perShotMin + 1));
-            applyDamageToShip(bestTarget, damage, mapInstance, timestampMs);
-            addCombatLaserBurst(mapInstance, ally.position, bestTarget.position, COLORS.GREEN, timestampMs);
-            shotsFired += 1;
+            const fired = mapInstance.laser?.fireWorldLaser?.({
+                mapInstance,
+                shooter: ally,
+                targetPoint: bestTarget.position,
+                damageMin: perShotMin,
+                damageMax: perShotMax,
+                color: COLORS.GREEN,
+                timestampMs
+            });
+            if (fired) {
+                shotsFired += 1;
+            }
         });
 
         if (shotsFired > 0) {
@@ -830,12 +905,10 @@ const SpaceTravelEncounters = (() => {
 
     function updateHailState(mapInstance, timestampMs) {
         const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
-        const hailRange = Math.max(0.1, mapInstance.config.NPC_HAIL_RANGE_AU || 1);
         mapInstance.npcEncounterHailAvailable = !!fleet
             && !fleet.isHostile
             && !fleet.completedBusiness
-            && !fleet.hasHailedPlayer
-            && getFleetDistanceToPlayer(fleet, mapInstance.playerShip) <= hailRange;
+            && !fleet.hasHailedPlayer;
     }
 
     function update(mapInstance, dt, timestampMs) {
@@ -923,14 +996,34 @@ const SpaceTravelEncounters = (() => {
     }
 
     function playerInitiateHail(mapInstance, timestampMs = 0) {
-        const fleet = (mapInstance?.npcEncounterFleets || [])[0] || null;
-        if (!fleet || fleet.isHostile || fleet.completedBusiness || fleet.hasHailedPlayer || mapInstance.npcEncounterHailPrompt) {
+        if (!mapInstance || mapInstance.npcEncounterHailPrompt) {
             return false;
         }
 
-        const distance = getFleetDistanceToPlayer(fleet, mapInstance.playerShip);
-        const hailRange = Math.max(0.1, mapInstance.config.NPC_HAIL_RANGE_AU || 1);
-        if (distance > hailRange) {
+        const selectedDestination = mapInstance.currentGameState?.localDestination || mapInstance.localDestination || null;
+        if (selectedDestination?.type === 'ESCORT_SHIP') {
+            const escort = selectedDestination.escort || null;
+            if (!escort || (escort.hull || 0) <= 0 || escort.hasHailedPlayer) {
+                return false;
+            }
+            return beginAllyHailMenu(mapInstance, escort);
+        }
+
+        const fleet = (mapInstance?.npcEncounterFleets || [])[0] || null;
+        if (!fleet || fleet.isHostile || fleet.completedBusiness || fleet.hasHailedPlayer) {
+            return false;
+        }
+
+        const selectedShip = selectedDestination && (selectedDestination.type === 'NPC_SHIP' || selectedDestination.kind === 'NPC_SHIP')
+            ? (selectedDestination.npcShip || null)
+            : null;
+
+        if (!selectedShip || !selectedShip.id) {
+            return false;
+        }
+
+        const targetShip = (fleet.ships || []).find(ship => ship && ship.id === selectedShip.id);
+        if (!targetShip || (targetShip.hull || 0) <= 0) {
             return false;
         }
 
@@ -981,6 +1074,7 @@ const SpaceTravelEncounters = (() => {
     return {
         ensureState,
         clearEncounterState,
+        canPlayerHailSelectedTarget,
         spawnInitialEncounter,
         update,
         getRenderableShips,

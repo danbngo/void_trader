@@ -209,17 +209,6 @@ const SpaceTravelRender = (() => {
 
         params.laser?.renderLaserFire(renderParams);
 
-        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.renderCombatLasers) {
-            SpaceTravelEncounters.renderCombatLasers({
-                mapInstance: params.mapInstance,
-                depthBuffer,
-                playerShip: params.playerShip,
-                viewWidth,
-                viewHeight,
-                config: params.config
-            });
-        }
-
         SpaceTravelPortal.applyTint(params, depthBuffer, viewWidth, viewHeight, renderTimestampMs);
 
         if (params.isPaused) {
@@ -239,6 +228,7 @@ const SpaceTravelRender = (() => {
         const emergenceSpeedOverride = params.emergenceMomentumActive
             ? `${(ThreeDUtils.vecLength(params.playerShip.velocity) * 60).toFixed(2)} AU/m [Cooldown]`
             : null;
+        const hailSelectedAvailable = SpaceTravelEncounters?.canPlayerHailSelectedTarget?.(params.mapInstance) || false;
 
         SpaceTravelHud.renderHud({
             ...renderParams,
@@ -262,7 +252,7 @@ const SpaceTravelRender = (() => {
                 lastErrorTimestampMs: params.mapInstance?.lastErrorTimestampMs || 0
             },
             onAutoNavToggle: () => params.toggleAutoNav?.(),
-            hailAvailable: !!params.mapInstance?.npcEncounterHailAvailable,
+            hailAvailable: hailSelectedAvailable,
             hailPromptActive: hailModalActive,
             onHail: () => {
                 if (hailModalActive) {

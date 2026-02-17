@@ -3,6 +3,36 @@
  */
 
 const SpaceTravelParticles = (() => {
+    function getTrailRearOffset(ship, config) {
+        const fallbackShipSize = ship?.size || SHIP_SIZE_AU || 0.00000043;
+        const minOffset = Math.max(fallbackShipSize * 0.75, 0.0000004);
+
+        const shipGeometry = ship?.geometry || ShipGeometry?.getShip?.('FIGHTER') || null;
+        const verts = Array.isArray(shipGeometry?.vertices) ? shipGeometry.vertices : null;
+        if (!verts || verts.length === 0) {
+            return minOffset;
+        }
+
+        let maxRadiusLocal = 0;
+        verts.forEach(v => {
+            if (!v) {
+                return;
+            }
+            const r = Math.sqrt((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
+            if (r > maxRadiusLocal) {
+                maxRadiusLocal = r;
+            }
+        });
+
+        const screenScale = Math.max(1, Number(config?.SHIP_SCREEN_SCALE) || 1);
+        const radiusFromVisualModel = maxRadiusLocal * screenScale;
+        const desiredOffset = Math.max(minOffset, radiusFromVisualModel * 0.35);
+
+        // Keep trail reasonably close even with extreme debug/experimental scales.
+        const maxOffset = Math.max(0.06, minOffset * 12);
+        return Math.min(desiredOffset, maxOffset);
+    }
+
     function renderRocketTrails({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, rocketTrailClouds, config, shipOccupancyMask = null }) {
         if (!playerShip || !Array.isArray(rocketTrailClouds) || rocketTrailClouds.length === 0) {
             return;
@@ -369,8 +399,7 @@ const SpaceTravelParticles = (() => {
             }
 
             const moveDir = ThreeDUtils.normalizeVec(ship.velocity);
-            const shipSize = ship.size || SHIP_SIZE_AU || 0.00000043;
-            const rearOffset = Math.max(shipSize * 0.5, 0.0000002);
+            const rearOffset = getTrailRearOffset(ship, mapInstance.config);
             const spawnPos = ThreeDUtils.subVec(ship.position, ThreeDUtils.scaleVec(moveDir, rearOffset));
 
             mapInstance.rocketTrailClouds.push({

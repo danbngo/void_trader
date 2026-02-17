@@ -504,25 +504,17 @@ const EscortShipAI = (() => {
      * Convert velocity direction to rotation quaternion
      */
     function directionToQuaternion(direction) {
-        // Point in -Z direction, aim toward direction
-        const forward = { x: 0, y: 0, z: -1 };
         const normalized = ThreeDUtils.normalizeVec(direction);
-
-        // Simple rotation to align forward with normalized direction
-        const angle = Math.acos(Math.max(-1, Math.min(1, ThreeDUtils.dotVec(forward, normalized))));
-        const cross = {
-            x: forward.y * normalized.z - forward.z * normalized.y,
-            y: forward.z * normalized.x - forward.x * normalized.z,
-            z: forward.x * normalized.y - forward.y * normalized.x
-        };
-        const crossLen = ThreeDUtils.vecLength(cross);
-
-        if (crossLen < 0.001) {
+        if (ThreeDUtils.vecLength(normalized) <= 0.001) {
             return { x: 0, y: 0, z: 0, w: 1 };
         }
 
-        const axis = ThreeDUtils.normalizeVec(cross);
-        return ThreeDUtils.quatFromAxisAngle(axis, angle);
+        // Keep escort wings level with planetary plane by fixing up-axis.
+        // quatFromForwardUp uses +Z forward; negate desired direction so local -Z
+        // (used by ship flight code) points along movement.
+        const worldUp = { x: 0, y: 0, z: 1 };
+        const quatForward = ThreeDUtils.scaleVec(normalized, -1);
+        return ThreeDUtils.quatNormalize(ThreeDUtils.quatFromForwardUp(quatForward, worldUp));
     }
 
     /**

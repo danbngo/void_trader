@@ -118,19 +118,11 @@ const SystemGenerator = (() => {
         // For a yellow dwarf with HEAT_DAMAGE_PER_SEC=10 and typical dt=0.016:
         // distance = sqrt(luminosity * HEAT_DAMAGE_PER_SEC * dt / flux_threshold)
         // Simplified: distance ≈ sqrt(luminosity * 0.16) AU
-        const STAR_LUMINOSITY_BY_TYPE = {
-            STAR_RED_DWARF: 0.02,
-            STAR_YELLOW_DWARF: 1,
-            STAR_WHITE_DWARF: 0.1,
-            STAR_RED_GIANT: 1000,
-            STAR_BLUE_GIANT: 10000,
-            STAR_NEUTRON: 0.05,
-            STAR_BLACK_HOLE: 0
-        };
-        
         // Calculate max heat damage distance (where 1 HP/sec damage occurs)
         const getHeatDamageDistance = (star) => {
-            const luminosity = STAR_LUMINOSITY_BY_TYPE[star.type] || 1;
+            const luminosity = Number.isFinite(star?.luminosity)
+                ? star.luminosity
+                : (BODY_TYPES?.[star?.type]?.luminosity ?? 1);
             // Distance where flux causes 1 damage/sec
             // flux = luminosity / distance², and damage = HEAT_DAMAGE_PER_SEC * flux * dt
             // For dt=0.016 (60 FPS): distance ≈ sqrt(luminosity * 0.16)

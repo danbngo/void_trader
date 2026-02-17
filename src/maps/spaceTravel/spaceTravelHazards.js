@@ -84,7 +84,7 @@ const SpaceTravelHazards = (() => {
                 if (config.STAR_HEAT_DAMAGE_PER_SEC > 0) {
                     const luminosity = Number.isFinite(star.luminosity)
                         ? star.luminosity
-                        : (config.STAR_LUMINOSITY_BY_TYPE?.[star.type] ?? 1);
+                        : (BODY_TYPES?.[star.type]?.luminosity ?? 1);
                     const effectiveDist = Math.max(dist, radius, 0.000001);
                     const flux = luminosity / (effectiveDist * effectiveDist);
                     const damage = config.STAR_HEAT_DAMAGE_PER_SEC * flux * dt;

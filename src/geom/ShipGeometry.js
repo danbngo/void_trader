@@ -10,45 +10,57 @@ const ShipGeometry = (() => {
     const SHIPS = {
         FIGHTER: {
             id: 'FIGHTER',
-            // Base hull + side wings
+            // Wingless hull: wider/flatter chassis with octagonal rear section
             vertices: [
                 // Nose (pointy front, facing +Z direction)
-                { x: 0, y: 0, z: 3 },        // 0: Nose tip
-                
-                // Base (rear of ship, small square)
-                { x: -0.3, y: 0.3, z: -0.5 },  // 1: Base top-left
-                { x: 0.3, y: 0.3, z: -0.5 },   // 2: Base top-right
-                { x: 0.3, y: -0.3, z: -0.5 },  // 3: Base bottom-right
-                { x: -0.3, y: -0.3, z: -0.5 }, // 4: Base bottom-left
+                { x: 0, y: 0, z: 4.1 },           // 0: Nose tip (longer/sharper)
 
-                // Left wing (3 points on left side plane + 1 outward point)
-                { x: -0.105, y: 0.0, z: 1.775 }, // 5: Left wing forward anchor (on side plane)
-                { x: -0.24, y: 0.24, z: 0.2 },   // 6: Left wing rear-top anchor (on side plane)
-                { x: -0.24, y: -0.24, z: 0.2 },  // 7: Left wing rear-bottom anchor (on side plane)
-                { x: -1.85, y: 0.0, z: 1.0 },    // 8: Left wing outward point (~1/2 dorsal length out)
+                // Front octagonal section (wider side flare, still relatively flat)
+                { x: -1.25, y: 0.00, z: 0.55 },   // 1
+                { x: -0.82, y: 0.24, z: 0.85 },   // 2
+                { x: 0.00, y: 0.36, z: 1.35 },    // 3
+                { x: 0.82, y: 0.24, z: 0.85 },    // 4
+                { x: 1.25, y: 0.00, z: 0.55 },    // 5
+                { x: 0.82, y: -0.24, z: 0.85 },   // 6
+                { x: 0.00, y: -0.30, z: 1.35 },   // 7
+                { x: -0.82, y: -0.24, z: 0.85 },  // 8
 
-                // Right wing (mirrored)
-                { x: 0.105, y: 0.0, z: 1.775 },  // 9: Right wing forward anchor (on side plane)
-                { x: 0.24, y: 0.24, z: 0.2 },    // 10: Right wing rear-top anchor (on side plane)
-                { x: 0.24, y: -0.24, z: 0.2 },   // 11: Right wing rear-bottom anchor (on side plane)
-                { x: 1.85, y: 0.0, z: 1.0 }      // 12: Right wing outward point (~1/2 dorsal length out)
+                // Rear octagonal section (tighter taper for triangular side profile)
+                { x: -0.48, y: 0.00, z: -0.65 },  // 9
+                { x: -0.34, y: 0.24, z: -0.65 },  // 10
+                { x: 0.00, y: 0.52, z: -0.65 },   // 11
+                { x: 0.34, y: 0.24, z: -0.65 },   // 12
+                { x: 0.48, y: 0.00, z: -0.65 },   // 13
+                { x: 0.34, y: -0.12, z: -0.65 },  // 14
+                { x: 0.00, y: -0.18, z: -0.65 },  // 15
+                { x: -0.34, y: -0.12, z: -0.65 }  // 16
             ],
             
             // Faces as triangles (CCW when viewed from outside)
             // Colors are not used - distance-based shading will be applied
             faces: [
-                // 4 triangular sides of pyramid
-                [0, 2, 1],  // Top face
-                [0, 3, 2],  // Right face
-                [0, 4, 3],  // Bottom face
-                [0, 1, 4],  // Left face
-                
-                // Square base (2 triangles)
-                [1, 2, 3, 4],  // Base (quad)
+                // Nose fan into front octagon
+                [0, 2, 1],
+                [0, 3, 2],
+                [0, 4, 3],
+                [0, 5, 4],
+                [0, 6, 5],
+                [0, 7, 6],
+                [0, 8, 7],
+                [0, 1, 8],
 
-                // Wing surfaces (4-point triangles / quads)
-                [5, 6, 8, 7],   // Left wing
-                [9, 11, 12, 10] // Right wing (mirrored winding)
+                // Chassis sides (front octagon -> rear octagon)
+                [1, 2, 10, 9],
+                [2, 3, 11, 10],
+                [3, 4, 12, 11],
+                [4, 5, 13, 12],
+                [5, 6, 14, 13],
+                [6, 7, 15, 14],
+                [7, 8, 16, 15],
+                [8, 1, 9, 16],
+
+                // Flat octagonal rear cap (no extra back point)
+                [9, 10, 11, 12, 13, 14, 15, 16]
             ]
         }
     };

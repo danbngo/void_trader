@@ -64,7 +64,7 @@ const Object3DRenderer = (() => {
                 const primaryRadialThreshold = 0.6;
 
                 if (radialRatio >= primaryRadialThreshold) {
-                    return radialSpeed >= 0 ? '▲' : '▼';
+                    return radialSpeed >= 0 ? '⮝' : '⮟';
                 }
             }
         }
@@ -140,6 +140,8 @@ const Object3DRenderer = (() => {
         const geometry = object.geometry;
         const position = object.position || { x: 0, y: 0, z: 0 };
         const rotation = object.rotation || { x: 0, y: 0, z: 0, w: 1 };
+        const modelForwardCorrection = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI);
+        const visualRotation = ThreeDUtils.quatMultiply(rotation, modelForwardCorrection);
 
         // Check if object should render as single character (too small on screen)
         const relative = ThreeDUtils.subVec(position, playerShip.position);
@@ -216,7 +218,7 @@ const Object3DRenderer = (() => {
             
             if (x >= 0 && x < viewWidth && y >= 0 && y < viewHeight) {
                 // Calculate ship's forward direction in camera space
-                const arrow = getSingleCharShipArrow(object, rotation, playerShip);
+                const arrow = getSingleCharShipArrow(object, visualRotation, playerShip);
                 let color;
                 if (isFlashing && flashColor) {
                     color = flashColor;
@@ -260,7 +262,7 @@ const Object3DRenderer = (() => {
             // Scale for screen rendering magnification
             const scaled = ThreeDUtils.scaleVec(v, baseScreenScale);
             // Apply object's local rotation
-            const rotated = ThreeDUtils.rotateVecByQuat(scaled, rotation);
+            const rotated = ThreeDUtils.rotateVecByQuat(scaled, visualRotation);
             // Translate to object position
             return ThreeDUtils.addVec(rotated, position);
         });
@@ -304,7 +306,7 @@ const Object3DRenderer = (() => {
                 const projected = { x: centerX, y: centerY };
                 
                 if (projected.x >= 0 && projected.x < viewWidth && projected.y >= 0 && projected.y < viewHeight) {
-                    const arrow = getSingleCharShipArrow(object, rotation, playerShip);
+                    const arrow = getSingleCharShipArrow(object, visualRotation, playerShip);
                 const color = params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
                     const symbolX = Math.round(projected.x);
                     const symbolY = Math.round(projected.y);
@@ -486,7 +488,8 @@ const Object3DRenderer = (() => {
             } else {
                 // Normal green color range: dark green to light green
                 if (params.shipColor) {
-                    faceColor = lerpColorHex('#111111', params.shipColor, clampedT);
+                    const darkTint = lerpColorHex('#000000', params.shipColor, 0.22);
+                    faceColor = lerpColorHex(darkTint, params.shipColor, clampedT);
                 } else {
                     faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
                 }

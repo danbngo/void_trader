@@ -23,6 +23,9 @@ const SpaceTravelEncounters = (() => {
         if (!Array.isArray(mapInstance.npcCombatLaserBursts)) {
             mapInstance.npcCombatLaserBursts = [];
         }
+        if (mapInstance.currentGameState && !mapInstance.currentGameState.spaceTravelEncounterIgnoreByFleetId) {
+            mapInstance.currentGameState.spaceTravelEncounterIgnoreByFleetId = {};
+        }
     }
 
     function clearEncounterState(mapInstance, reason = 'manual') {
@@ -31,6 +34,9 @@ const SpaceTravelEncounters = (() => {
         }
 
         const hadFleet = Array.isArray(mapInstance.npcEncounterFleets) && mapInstance.npcEncounterFleets.length > 0;
+        const clearedFleetIds = hadFleet
+            ? mapInstance.npcEncounterFleets.map(fleet => fleet?.id).filter(Boolean)
+            : [];
         const hadHailPrompt = !!mapInstance.npcEncounterHailPrompt;
         mapInstance.npcEncounterFleets = [];
         mapInstance.npcEncounterSpawnUnlocked = true;
@@ -43,6 +49,12 @@ const SpaceTravelEncounters = (() => {
         }
 
         if (hadFleet) {
+            const ignoreByFleetId = mapInstance.currentGameState?.spaceTravelEncounterIgnoreByFleetId;
+            if (ignoreByFleetId && typeof ignoreByFleetId === 'object') {
+                clearedFleetIds.forEach(fleetId => {
+                    delete ignoreByFleetId[fleetId];
+                });
+            }
             console.log('[SpaceTravelEncounter] Encounter state cleared:', { reason });
         }
     }
@@ -251,7 +263,7 @@ const SpaceTravelEncounters = (() => {
             ships.push(createNpcShipFromData(shipData, fleetId, chosenRate.typeId, typeConfig.shipColor, mapInstance.playerShip, mapInstance.config, i));
         }
 
-        const shouldPursue = typeConfig.pursuesPlayer ? (Math.random() < 0.5) : false;
+        const ignorePlayer = Math.random() < 0.5;
 
         const fleet = {
             id: fleetId,
@@ -259,7 +271,8 @@ const SpaceTravelEncounters = (() => {
             ships,
             encounterType: typeConfig.encounterType,
             shipColor: typeConfig.shipColor,
-            state: shouldPursue ? 'pursuing' : 'ignoring',
+            ignorePlayer,
+            state: ignorePlayer ? 'ignoring' : 'pursuing',
             isHostile: false,
             hasHailedPlayer: false,
             lastFireMs: 0,
@@ -268,6 +281,10 @@ const SpaceTravelEncounters = (() => {
             destinationPlanetName: null,
             completedBusiness: false
         };
+
+        if (mapInstance.currentGameState?.spaceTravelEncounterIgnoreByFleetId) {
+            mapInstance.currentGameState.spaceTravelEncounterIgnoreByFleetId[fleetId] = ignorePlayer;
+        }
 
         setFleetRandomPlanetDestination(mapInstance, fleet);
 
@@ -280,8 +297,33 @@ const SpaceTravelEncounters = (() => {
             shipCount,
             sourcePlanet: fleet.sourcePlanetName,
             distanceToSourceAU: Number(chosenRate.distanceAU.toFixed(3)),
-            state: fleet.state
+            state: fleet.state,
+            ignorePlayer: fleet.ignorePlayer
         });
+    }
+
+    function normalizeFleetBehaviorFlags(fleet, mapInstance = null) {
+        if (!fleet) {
+            return;
+        }
+
+        const rememberedIgnore = mapInstance?.currentGameState?.spaceTravelEncounterIgnoreByFleetId?.[fleet.id];
+
+        if (typeof fleet.ignorePlayer !== 'boolean') {
+            if (typeof rememberedIgnore === 'boolean') {
+                fleet.ignorePlayer = rememberedIgnore;
+            } else {
+                fleet.ignorePlayer = fleet.state === 'ignoring';
+            }
+        }
+
+        if (mapInstance?.currentGameState?.spaceTravelEncounterIgnoreByFleetId && fleet.id) {
+            mapInstance.currentGameState.spaceTravelEncounterIgnoreByFleetId[fleet.id] = fleet.ignorePlayer;
+        }
+
+        if (!fleet.isHostile && !fleet.hasHailedPlayer && fleet.state !== 'disabled') {
+            fleet.state = fleet.ignorePlayer ? 'ignoring' : 'pursuing';
+        }
     }
 
     function setFleetHostile(fleet, reason = 'unknown') {
@@ -336,20 +378,17 @@ const SpaceTravelEncounters = (() => {
     }
 
     function directionToQuaternion(direction) {
-        const forward = { x: 0, y: 0, z: -1 };
         const normalized = ThreeDUtils.normalizeVec(direction);
-        const dot = Math.max(-1, Math.min(1, ThreeDUtils.dotVec(forward, normalized)));
-        const angle = Math.acos(dot);
-        const cross = {
-            x: forward.y * normalized.z - forward.z * normalized.y,
-            y: forward.z * normalized.x - forward.x * normalized.z,
-            z: forward.x * normalized.y - forward.y * normalized.x
-        };
-        const crossLen = ThreeDUtils.vecLength(cross);
-        if (crossLen < 0.00001) {
+        if (ThreeDUtils.vecLength(normalized) <= 0.00001) {
             return { x: 0, y: 0, z: 0, w: 1 };
         }
-        return ThreeDUtils.quatFromAxisAngle(ThreeDUtils.scaleVec(cross, 1 / crossLen), angle);
+
+        // Keep wings level with the system plane (XY), i.e. constrain roll around forward axis.
+        // quatFromForwardUp assumes +Z forward, but ship flight logic uses -Z as forward,
+        // so pass the negated direction to align local -Z toward movement.
+        const worldUp = { x: 0, y: 0, z: 1 };
+        const quatForward = ThreeDUtils.scaleVec(normalized, -1);
+        return ThreeDUtils.quatNormalize(ThreeDUtils.quatFromForwardUp(quatForward, worldUp));
     }
 
     function getShipForwardDirection(ship) {
@@ -474,9 +513,13 @@ const SpaceTravelEncounters = (() => {
         return best;
     }
 
-    function buildEncounterPromptText(fleet) {
-        const typeName = (fleet?.encounterType?.name || fleet?.typeId || 'Unknown').toString();
-        return `${typeName} fleet hailing...`;
+    function buildEncounterPromptTitle(fleet) {
+        const rawName = (fleet?.encounterType?.name || fleet?.typeId || 'Unknown').toString().trim();
+        if (!rawName) {
+            return 'Incoming hail';
+        }
+        const factionName = /s$/i.test(rawName) ? rawName : `${rawName}s`;
+        return `${factionName} are hailing you`;
     }
 
     function triggerHail(mapInstance, fleet, timestampMs, source = 'npc') {
@@ -487,8 +530,8 @@ const SpaceTravelEncounters = (() => {
         fleet.hasHailedPlayer = true;
         mapInstance.npcEncounterHailPrompt = {
             fleetId: fleet.id,
-            text: 'You are being hailed',
-            subtext: buildEncounterPromptText(fleet),
+            text: buildEncounterPromptTitle(fleet),
+            subtext: '',
             source,
             createdMs: timestampMs
         };
@@ -809,6 +852,8 @@ const SpaceTravelEncounters = (() => {
     }
 
     function updateFleetBehavior(mapInstance, fleet, dt, timestampMs) {
+        normalizeFleetBehaviorFlags(fleet, mapInstance);
+
         const playerShip = mapInstance.playerShip;
         const hailRange = Math.max(0.1, mapInstance.config.NPC_HAIL_RANGE_AU || 1);
         const despawnRange = Math.max(1, mapInstance.config.NPC_FLEET_DESPAWN_DISTANCE_AU || 10);
@@ -847,12 +892,9 @@ const SpaceTravelEncounters = (() => {
             return;
         }
 
-        if ((fleet.state === 'pursuing') && distanceToPlayer <= hailRange && !fleet.hasHailedPlayer) {
+        if ((fleet.state === 'pursuing') && distanceToPlayer <= hailRange && !fleet.hasHailedPlayer && !fleet.ignorePlayer) {
             triggerHail(mapInstance, fleet, timestampMs, 'npc');
-        }
-
-        if (fleet.typeId === 'MERCHANT' && distanceToPlayer <= hailRange && !fleet.hasHailedPlayer) {
-            triggerHail(mapInstance, fleet, timestampMs, 'npc');
+            fleet.state = 'ignoring';
         }
 
         if (fleet.state === 'pursuing') {
@@ -941,6 +983,7 @@ const SpaceTravelEncounters = (() => {
 
     function updateHailState(mapInstance, timestampMs) {
         const fleet = (mapInstance.npcEncounterFleets || [])[0] || null;
+        normalizeFleetBehaviorFlags(fleet, mapInstance);
         mapInstance.npcEncounterHailAvailable = !!fleet
             && !fleet.isHostile
             && !fleet.completedBusiness
@@ -1077,10 +1120,12 @@ const SpaceTravelEncounters = (() => {
             return;
         }
 
-        const title = prompt.text || 'You are being hailed';
+        const title = prompt.text || 'Incoming hail';
         const sub = prompt.subtext || '';
-        const width = Math.min(viewWidth - 4, Math.max(24, title.length + 6, sub.length + 6));
-        const height = 5;
+        const buttonLabel = 'Open Channel';
+        const buttonText = `[1] ${buttonLabel}`;
+        const width = Math.min(viewWidth - 4, Math.max(28, title.length + 6, sub.length + 6, buttonText.length + 6));
+        const height = sub ? 6 : 5;
         const left = Math.max(1, Math.floor((viewWidth - width) / 2));
         const top = Math.max(1, Math.floor((viewHeight - height) / 2));
 
@@ -1099,16 +1144,11 @@ const SpaceTravelEncounters = (() => {
             addHudText(subX, top + 2, sub, COLORS.TEXT_DIM);
         }
 
-        const status = 'Transmission incoming';
-        const statusX = left + Math.max(1, Math.floor((width - status.length) / 2));
-        addHudText(statusX, top + 3, status, COLORS.YELLOW);
-
-        const buttonLabel = 'Open Channel';
-        const buttonX = Math.max(0, left + Math.floor((width - (`[h] ${buttonLabel}`).length) / 2));
-        const buttonY = Math.min(viewHeight - 1, top + 4);
-        UI.addButton(buttonX, buttonY, 'h', buttonLabel, () => {
+        const buttonX = Math.max(0, left + Math.floor((width - buttonText.length) / 2));
+        const buttonY = top + height - 2;
+        UI.addButton(buttonX, buttonY, '1', buttonLabel, () => {
             onOpenChannel?.();
-        }, COLORS.YELLOW, 'Open channel with hailing fleet');
+        }, COLORS.YELLOW, '');
     }
 
     return {

@@ -4,13 +4,13 @@
  */
 
 const BODY_TYPES = {
-    STAR_RED_DWARF: { id: 'STAR_RED_DWARF', name: 'Red Dwarf', category: 'STAR', symbol: '*' },
-    STAR_YELLOW_DWARF: { id: 'STAR_YELLOW_DWARF', name: 'Yellow Dwarf', category: 'STAR', symbol: '*' },
-    STAR_WHITE_DWARF: { id: 'STAR_WHITE_DWARF', name: 'White Dwarf', category: 'STAR', symbol: '*' },
-    STAR_RED_GIANT: { id: 'STAR_RED_GIANT', name: 'Red Giant', category: 'STAR', symbol: '☼' },
-    STAR_BLUE_GIANT: { id: 'STAR_BLUE_GIANT', name: 'Blue Giant', category: 'STAR', symbol: '☼' },
-    STAR_NEUTRON: { id: 'STAR_NEUTRON', name: 'Neutron Star', category: 'STAR', symbol: '+' },
-    STAR_BLACK_HOLE: { id: 'STAR_BLACK_HOLE', name: 'Black Hole', category: 'STAR', symbol: '@' },
+    STAR_RED_DWARF: { id: 'STAR_RED_DWARF', name: 'Red Dwarf', category: 'STAR', symbol: '*', luminosity: 0.02 },
+    STAR_YELLOW_DWARF: { id: 'STAR_YELLOW_DWARF', name: 'Yellow Dwarf', category: 'STAR', symbol: '*', luminosity: 1 },
+    STAR_WHITE_DWARF: { id: 'STAR_WHITE_DWARF', name: 'White Dwarf', category: 'STAR', symbol: '*', luminosity: 0.1 },
+    STAR_RED_GIANT: { id: 'STAR_RED_GIANT', name: 'Red Giant', category: 'STAR', symbol: '☼', luminosity: 1000 },
+    STAR_BLUE_GIANT: { id: 'STAR_BLUE_GIANT', name: 'Blue Giant', category: 'STAR', symbol: '☼', luminosity: 10000 },
+    STAR_NEUTRON: { id: 'STAR_NEUTRON', name: 'Neutron Star', category: 'STAR', symbol: '+', luminosity: 0.05 },
+    STAR_BLACK_HOLE: { id: 'STAR_BLACK_HOLE', name: 'Black Hole', category: 'STAR', symbol: '@', luminosity: 0 },
 
     PLANET_TERRESTRIAL_GIANT: { id: 'PLANET_TERRESTRIAL_GIANT', name: 'Terrestrial Giant', category: 'PLANET', symbol: '●' },
     PLANET_TERRESTRIAL_DWARF: { id: 'PLANET_TERRESTRIAL_DWARF', name: 'Terrestrial Dwarf', category: 'PLANET', symbol: '○' },

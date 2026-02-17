@@ -3,12 +3,19 @@
  */
 
 const SpaceTravelInput = (() => {
-    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause, onHail }) {
+    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause, onHail, onOpenHailChannel }) {
         handlers.keyDownHandler = (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
                 onEscape();
                 return;
+            }
+            if (e.key === '1') {
+                const handled = onOpenHailChannel?.() === true;
+                if (handled) {
+                    e.preventDefault();
+                    return;
+                }
             }
             if (e.key === 'h' || e.key === 'H') {
                 e.preventDefault();
@@ -203,6 +210,20 @@ const SpaceTravelInput = (() => {
                     return;
                 }
                 mapInstance.togglePause();
+            },
+            onOpenHailChannel: () => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return false;
+                }
+                if (!mapInstance.npcEncounterHailPrompt) {
+                    return false;
+                }
+                const opened = SpaceTravelEncounters?.openPendingHail?.(mapInstance);
+                if (!opened) {
+                    mapInstance.lastErrorMessage = 'Unable to open hailing channel';
+                    mapInstance.lastErrorTimestampMs = performance.now();
+                }
+                return true;
             },
             onHail: () => {
                 if (deathTow.isDeathSequenceActive()) {

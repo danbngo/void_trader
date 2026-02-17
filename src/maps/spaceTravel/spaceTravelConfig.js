@@ -33,8 +33,8 @@ const SpaceTravelConfig = {
     SYSTEM_BODY_SCREEN_SCALE: 10,
     SYSTEM_BODY_PHYSICS_SCALE: 10,
     CHAR_CELL_ASPECT_RATIO: null,
-    SHIP_SCREEN_SCALE: 1000, // Magnification factor for screen rendering (must be visible)
-    SHIP_PHYSICS_SCALE: 1000, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
+    SHIP_SCREEN_SCALE: 100000, // Magnification factor for screen rendering (must be visible)
+    SHIP_PHYSICS_SCALE: 100000, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
     SHIP_MIN_NON_SYMBOL_SIZE_CHARS: 3,
     SHIP_MIN_NON_SYMBOL_MAX_SCALE_MULT: 4,
     SHIP_SPAWN_DISTANCE_AU: 0.2,  // Reduced 10x (was 2.0)
@@ -84,9 +84,9 @@ const SpaceTravelConfig = {
 
     // Rocket trail clouds
     ROCKET_TRAIL_ENABLED: true,
-    ROCKET_TRAIL_SPAWN_INTERVAL_MS: 200,
-    ROCKET_TRAIL_FADE_MS: 4000,
-    ROCKET_TRAIL_VISIBLE_DISTANCE_AU: 4,
+    ROCKET_TRAIL_SPAWN_INTERVAL_MS: 400,
+    ROCKET_TRAIL_FADE_MS: 8000,
+    ROCKET_TRAIL_VISIBLE_DISTANCE_AU: 2,
     ROCKET_TRAIL_CHAR: '*',
     ROCKET_TRAIL_COLOR: '#ff8a00',
     ROCKET_TRAIL_MIN_SPEED_AU_PER_SEC: 0.000001,
@@ -179,15 +179,6 @@ const SpaceTravelConfig = {
     STAR_HEAT_DAMAGE_PER_SEC: 10,
     STAR_HEAT_RANGE_MULT: 10,
     STAR_HEAT_MAX_DISTANCE_AU: null,
-    STAR_LUMINOSITY_BY_TYPE: {
-        STAR_RED_DWARF: 0.02,
-        STAR_YELLOW_DWARF: 1,
-        STAR_WHITE_DWARF: 0.1,
-        STAR_RED_GIANT: 1000,
-        STAR_BLUE_GIANT: 10000,
-        STAR_NEUTRON: 0.05,
-        STAR_BLACK_HOLE: 0
-    },
 
     ASCII_LOG_INTERVAL_MS: 2000,
 

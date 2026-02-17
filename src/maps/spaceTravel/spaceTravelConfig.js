@@ -35,6 +35,7 @@ const SpaceTravelConfig = {
     CHAR_CELL_ASPECT_RATIO: null,
     SHIP_SCREEN_SCALE: 100000, // Magnification factor for screen rendering (must be visible)
     SHIP_PHYSICS_SCALE: 100000, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
+    SHIP_FACE_SUBCELL_GLYPHS: true,
     SHIP_MIN_NON_SYMBOL_SIZE_CHARS: 3,
     SHIP_MIN_NON_SYMBOL_MAX_SCALE_MULT: 4,
     SHIP_SPAWN_DISTANCE_AU: 0.2,  // Reduced 10x (was 2.0)

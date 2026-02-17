@@ -507,19 +507,49 @@ const Object3DRenderer = (() => {
                 object._lastDamageFlashFaceDebugMs = timestampMs;
             }
             
-            // Render filled face
-            const rasterResult = RasterUtils.rasterizeFaceDepth(
-                depthBuffer,
-                ordered,
-                viewWidth,
-                viewHeight,
-                '█',
-                faceColor,
-                0,  // depth bias
-                config.NEAR_PLANE,
-                config.VIEW_FOV,
-                'tri'  // fill mode
-            );
+            // Render filled face using subcell glyph coverage for sharper ship silhouettes.
+            const useSubcellGlyphs = config.SHIP_FACE_SUBCELL_GLYPHS !== false;
+            let rasterResult;
+            if (useSubcellGlyphs && RasterUtils.rasterizeFaceDepthSubcell) {
+                rasterResult = RasterUtils.rasterizeFaceDepthSubcell(
+                    depthBuffer,
+                    ordered,
+                    viewWidth,
+                    viewHeight,
+                    faceColor,
+                    0,
+                    config.NEAR_PLANE,
+                    config.VIEW_FOV
+                );
+            } else {
+                rasterResult = RasterUtils.rasterizeFaceDepth(
+                    depthBuffer,
+                    ordered,
+                    viewWidth,
+                    viewHeight,
+                    '█',
+                    faceColor,
+                    0,
+                    config.NEAR_PLANE,
+                    config.VIEW_FOV,
+                    'tri'
+                );
+            }
+
+            if ((!rasterResult || rasterResult.plotCount <= 0) && RasterUtils.rasterizeFaceDepth) {
+                rasterResult = RasterUtils.rasterizeFaceDepth(
+                    depthBuffer,
+                    ordered,
+                    viewWidth,
+                    viewHeight,
+                    '█',
+                    faceColor,
+                    0,
+                    config.NEAR_PLANE,
+                    config.VIEW_FOV,
+                    'tri'
+                );
+            }
             
             if (rasterResult && rasterResult.plotCount > 0) {
                 faceRenderCount++;

@@ -3,6 +3,124 @@
  */
 
 class RasterUtils {
+    static _glyphFromSubcellMask(mask) {
+        switch (mask) {
+            case 1: return '◤';
+            case 2: return '◥';
+            case 4: return '◣';
+            case 8: return '◢';
+            case 3: return '▀';
+            case 12: return '▄';
+            case 5: return '▌';
+            case 10: return '▐';
+            case 6: return '▞';
+            case 9: return '▚';
+            case 7: return '▛';
+            case 11: return '▜';
+            case 13: return '▙';
+            case 14: return '▟';
+            case 15: return '█';
+            default: return null;
+        }
+    }
+
+    static rasterizeFaceDepthSubcell(buffer, faceVertices, viewWidth, viewHeight, fillColor, bias = 0, nearPlane = 0.0001, fovDeg = 75) {
+        if (!Array.isArray(faceVertices) || faceVertices.length < 3) {
+            return { plotCount: 0 };
+        }
+
+        const normal = ThreeDUtils.crossVec(
+            ThreeDUtils.subVec(faceVertices[1], faceVertices[0]),
+            ThreeDUtils.subVec(faceVertices[2], faceVertices[0])
+        );
+        if (ThreeDUtils.vecLength(normal) === 0) {
+            return { plotCount: 0 };
+        }
+
+        const basis = PolygonUtils.buildPlaneBasis(normal);
+        const orderedVertices = PolygonUtils.removeDuplicateVertices(faceVertices);
+        if (orderedVertices.length < 3) {
+            return { plotCount: 0 };
+        }
+
+        const projected = orderedVertices
+            .map(v => RasterUtils.projectCameraSpacePointRaw(v, viewWidth, viewHeight, fovDeg))
+            .filter(p => p !== null);
+        if (projected.length < 3) {
+            return { plotCount: 0 };
+        }
+
+        const rect = { minX: 0, maxX: viewWidth - 1, minY: 0, maxY: viewHeight - 1 };
+        const clippedProjected = RasterUtils._clipPolygonToRect(projected, rect);
+        if (clippedProjected.length < 3) {
+            return { plotCount: 0 };
+        }
+
+        const minX = Math.max(rect.minX, Math.floor(Math.min(...clippedProjected.map(p => p.x))));
+        const maxX = Math.min(rect.maxX, Math.ceil(Math.max(...clippedProjected.map(p => p.x))));
+        const minY = Math.max(rect.minY, Math.floor(Math.min(...clippedProjected.map(p => p.y))));
+        const maxY = Math.min(rect.maxY, Math.ceil(Math.max(...clippedProjected.map(p => p.y))));
+
+        const polygon2D = orderedVertices.map(v => ({
+            x: ThreeDUtils.dotVec(v, basis.u),
+            y: ThreeDUtils.dotVec(v, basis.v)
+        }));
+
+        const sampleOffsets = [
+            { dx: 0.25, dy: 0.25, bit: 1 },
+            { dx: 0.75, dy: 0.25, bit: 2 },
+            { dx: 0.25, dy: 0.75, bit: 4 },
+            { dx: 0.75, dy: 0.75, bit: 8 }
+        ];
+
+        let plotCount = 0;
+
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                let mask = 0;
+                let nearestZ = null;
+
+                for (let i = 0; i < sampleOffsets.length; i++) {
+                    const sample = sampleOffsets[i];
+                    const ray = RasterUtils.screenRayDirection(x + sample.dx, y + sample.dy, viewWidth, viewHeight, fovDeg);
+                    const denom = ThreeDUtils.dotVec(normal, ray);
+                    if (Math.abs(denom) <= 0.000001) {
+                        continue;
+                    }
+
+                    const t = ThreeDUtils.dotVec(normal, orderedVertices[0]) / denom;
+                    const point = ThreeDUtils.scaleVec(ray, t);
+                    if (point.z < nearPlane - 0.00001) {
+                        continue;
+                    }
+
+                    const point2D = {
+                        x: ThreeDUtils.dotVec(point, basis.u),
+                        y: ThreeDUtils.dotVec(point, basis.v)
+                    };
+
+                    if (!PolygonUtils.isPointInPolygon2D(point2D, polygon2D)) {
+                        continue;
+                    }
+
+                    mask |= sample.bit;
+                    nearestZ = nearestZ === null ? point.z : Math.min(nearestZ, point.z);
+                }
+
+                if (mask === 0 || nearestZ === null) {
+                    continue;
+                }
+
+                const glyph = RasterUtils._glyphFromSubcellMask(mask) || '█';
+                if (RasterUtils.plotDepthText(buffer, x, y, nearestZ + bias, glyph, fillColor)) {
+                    plotCount += 1;
+                }
+            }
+        }
+
+        return { plotCount };
+    }
+
     static _clipPolygonToRect(polygon, rect) {
         const clipEdge = (points, inside, intersect) => {
             if (points.length === 0) {

@@ -10,57 +10,20 @@ const ShipGeometry = (() => {
     const SHIPS = {
         FIGHTER: {
             id: 'FIGHTER',
-            // Wingless hull: wider/flatter chassis with octagonal rear section
+            // Simple long triangular pyramid for strong silhouette at small sizes
             vertices: [
-                // Nose (pointy front, facing +Z direction)
-                { x: 0, y: 0, z: 4.1 },           // 0: Nose tip (longer/sharper)
-
-                // Front octagonal section (wider side flare, still relatively flat)
-                { x: -1.25, y: 0.00, z: 0.55 },   // 1
-                { x: -0.82, y: 0.24, z: 0.85 },   // 2
-                { x: 0.00, y: 0.36, z: 1.35 },    // 3
-                { x: 0.82, y: 0.24, z: 0.85 },    // 4
-                { x: 1.25, y: 0.00, z: 0.55 },    // 5
-                { x: 0.82, y: -0.24, z: 0.85 },   // 6
-                { x: 0.00, y: -0.30, z: 1.35 },   // 7
-                { x: -0.82, y: -0.24, z: 0.85 },  // 8
-
-                // Rear octagonal section (tighter taper for triangular side profile)
-                { x: -0.48, y: 0.00, z: -0.65 },  // 9
-                { x: -0.34, y: 0.24, z: -0.65 },  // 10
-                { x: 0.00, y: 0.52, z: -0.65 },   // 11
-                { x: 0.34, y: 0.24, z: -0.65 },   // 12
-                { x: 0.48, y: 0.00, z: -0.65 },   // 13
-                { x: 0.34, y: -0.12, z: -0.65 },  // 14
-                { x: 0.00, y: -0.18, z: -0.65 },  // 15
-                { x: -0.34, y: -0.12, z: -0.65 }  // 16
+                { x: 0.0, y: 0.0, z: 4.4 },      // 0 nose tip
+                { x: -1.2, y: -0.35, z: -0.9 },  // 1 rear-left
+                { x: 1.2, y: -0.35, z: -0.9 },   // 2 rear-right
+                { x: 0.0, y: 0.95, z: -0.9 }     // 3 rear-top
             ],
             
             // Faces as triangles (CCW when viewed from outside)
-            // Colors are not used - distance-based shading will be applied
             faces: [
-                // Nose fan into front octagon
-                [0, 2, 1],
-                [0, 3, 2],
-                [0, 4, 3],
-                [0, 5, 4],
-                [0, 6, 5],
-                [0, 7, 6],
-                [0, 8, 7],
-                [0, 1, 8],
-
-                // Chassis sides (front octagon -> rear octagon)
-                [1, 2, 10, 9],
-                [2, 3, 11, 10],
-                [3, 4, 12, 11],
-                [4, 5, 13, 12],
-                [5, 6, 14, 13],
-                [6, 7, 15, 14],
-                [7, 8, 16, 15],
-                [8, 1, 9, 16],
-
-                // Flat octagonal rear cap (no extra back point)
-                [9, 10, 11, 12, 13, 14, 15, 16]
+                [0, 1, 2],
+                { vertices: [0, 2, 3], windshield: true, windshieldEdge: [0, 3], windshieldNose: 0, windshieldAft: 3 },
+                { vertices: [0, 3, 1], windshield: true, windshieldEdge: [0, 3], windshieldNose: 0, windshieldAft: 3 },
+                { vertices: [1, 3, 2], engineTexture: true }
             ]
         }
     };

@@ -142,6 +142,108 @@ const Object3DRenderer = (() => {
         const rotation = object.rotation || { x: 0, y: 0, z: 0, w: 1 };
         const modelForwardCorrection = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI);
         const visualRotation = ThreeDUtils.quatMultiply(rotation, modelForwardCorrection);
+        const shipRenderMode = (config.SHIP_RENDER_MODE || 'wireframe').toLowerCase();
+        const wireframeAngleStepDeg = Math.max(0, config.SHIP_WIREFRAME_ANGLE_STEP_DEG || 0);
+        const windshieldEnabled = config.SHIP_WINDSHIELD_ENABLED !== false;
+        const windshieldInsetScale = Math.max(0.2, Math.min(0.9, config.SHIP_WINDSHIELD_INSET_SCALE || 0.58));
+        const windshieldDepthBias = (typeof config.SHIP_WINDSHIELD_DEPTH_BIAS === 'number') ? config.SHIP_WINDSHIELD_DEPTH_BIAS : -0.00015;
+        const windshieldColor = config.SHIP_WINDSHIELD_COLOR || '#3f3f3f';
+        const windshieldEdgeFrontT = Math.max(0.02, Math.min(0.6, config.SHIP_WINDSHIELD_EDGE_FRONT_T || 0.10));
+        const windshieldEdgeBackT = Math.max(windshieldEdgeFrontT + 0.05, Math.min(0.95, config.SHIP_WINDSHIELD_EDGE_BACK_T || 0.42));
+        const windshieldSidePull = Math.max(0.5, Math.min(0.95, config.SHIP_WINDSHIELD_SIDE_PULL || 0.82));
+        const engineTextureEnabled = config.SHIP_ENGINE_TEXTURE_ENABLED !== false;
+        const engineTextureColor = config.SHIP_ENGINE_TEXTURE_COLOR || '#ff8a00';
+        const engineTextureInsetScale = Math.max(0.2, Math.min(0.85, config.SHIP_ENGINE_TEXTURE_INSET_SCALE || 0.5));
+        const engineTextureDepthBias = (typeof config.SHIP_ENGINE_TEXTURE_DEPTH_BIAS === 'number') ? config.SHIP_ENGINE_TEXTURE_DEPTH_BIAS : -0.00012;
+
+        const lerpVec = (a, b, t) => ({
+            x: a.x + ((b.x - a.x) * t),
+            y: a.y + ((b.y - a.y) * t),
+            z: a.z + ((b.z - a.z) * t)
+        });
+
+        const getDepthTintedShipColor = (depthValue, minDepthValue, depthRangeValue) => {
+            const depthT = 1 - ((depthValue - minDepthValue) / depthRangeValue);
+            const clampedT = Math.max(0, Math.min(1, depthT));
+
+            if (isFlashing && flashColor) {
+                return flashColor;
+            }
+            if (isDisabled) {
+                return lerpColorHex('#333333', '#888888', clampedT);
+            }
+            if (params.shipColor) {
+                const darkTint = lerpColorHex('#000000', params.shipColor, 0.22);
+                return lerpColorHex(darkTint, params.shipColor, clampedT);
+            }
+            return lerpColorHex('#003300', '#00ff00', clampedT);
+        };
+
+        const clipSegmentToNearPlane = (a, b, nearPlane) => {
+            const aIn = a.z >= nearPlane;
+            const bIn = b.z >= nearPlane;
+            if (!aIn && !bIn) {
+                return null;
+            }
+            if (aIn && bIn) {
+                return { a, b };
+            }
+
+            const denom = (b.z - a.z);
+            if (Math.abs(denom) < 0.000001) {
+                return null;
+            }
+            const t = (nearPlane - a.z) / denom;
+            const intersection = {
+                x: a.x + ((b.x - a.x) * t),
+                y: a.y + ((b.y - a.y) * t),
+                z: nearPlane
+            };
+
+            return aIn ? { a, b: intersection } : { a: intersection, b };
+        };
+
+        const drawDepthEdge = (v0, v1, color) => {
+            const clippedEdge = clipSegmentToNearPlane(v0, v1, config.NEAR_PLANE);
+            if (!clippedEdge) {
+                return;
+            }
+
+            const p0 = RasterUtils.projectCameraSpacePointRaw(clippedEdge.a, viewWidth, viewHeight, config.VIEW_FOV);
+            const p1 = RasterUtils.projectCameraSpacePointRaw(clippedEdge.b, viewWidth, viewHeight, config.VIEW_FOV);
+            if (!p0 || !p1) {
+                return;
+            }
+
+            const dirX = p1.x - p0.x;
+            const dirY = p1.y - p0.y;
+            const baseAngle = Math.atan2(dirY, dirX);
+            const stepRad = wireframeAngleStepDeg > 0 ? ThreeDUtils.degToRad(wireframeAngleStepDeg) : 0;
+            const snappedAngle = stepRad > 0 ? (Math.round(baseAngle / stepRad) * stepRad) : baseAngle;
+            const symbol = SpaceTravelShared.getLineSymbolFromDirection(Math.cos(snappedAngle), -Math.sin(snappedAngle));
+
+            const deltaX = p1.x - p0.x;
+            const deltaY = p1.y - p0.y;
+            const steps = Math.max(1, Math.ceil(Math.max(Math.abs(deltaX), Math.abs(deltaY))));
+
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const x = Math.round(p0.x + (deltaX * t));
+                const y = Math.round(p0.y + (deltaY * t));
+                if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
+                    continue;
+                }
+
+                const z = clippedEdge.a.z + ((clippedEdge.b.z - clippedEdge.a.z) * t);
+                if (RasterUtils.plotDepthText(depthBuffer, x, y, z, symbol, color)) {
+                    shipBoundingBox.minX = Math.min(shipBoundingBox.minX, x);
+                    shipBoundingBox.maxX = Math.max(shipBoundingBox.maxX, x);
+                    shipBoundingBox.minY = Math.min(shipBoundingBox.minY, y);
+                    shipBoundingBox.maxY = Math.max(shipBoundingBox.maxY, y);
+                    hasBoundingBox = true;
+                }
+            }
+        };
 
         // Check if object should render as single character (too small on screen)
         const relative = ThreeDUtils.subVec(position, playerShip.position);
@@ -419,11 +521,37 @@ const Object3DRenderer = (() => {
         let shipBoundingBox = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         let hasBoundingBox = false;
 
-        // Render each visible face with filled polygons
+        // Render each visible face with filled polygons or wireframe edges
         let faceRenderCount = 0;
-        visibleFaces.forEach(({ face, indices, depth, faceIdx }) => {
+        if (shipRenderMode === 'wireframe') {
+            const uniqueEdges = new Map();
+            visibleFaces.forEach(({ indices }) => {
+                for (let i = 0; i < indices.length; i++) {
+                    const a = indices[i];
+                    const b = indices[(i + 1) % indices.length];
+                    const low = Math.min(a, b);
+                    const high = Math.max(a, b);
+                    uniqueEdges.set(`${low}:${high}`, { a: low, b: high });
+                }
+            });
+
+            uniqueEdges.forEach(({ a, b }) => {
+                const v0 = cameraVertices[a];
+                const v1 = cameraVertices[b];
+                if (!v0 || !v1) {
+                    return;
+                }
+                const edgeDepth = (v0.z + v1.z) * 0.5;
+                const edgeColor = getDepthTintedShipColor(edgeDepth, minDepth, depthRange);
+                drawDepthEdge(v0, v1, edgeColor);
+                faceRenderCount++;
+            });
+        } else {
+            visibleFaces.forEach(({ face, indices, depth, faceIdx }) => {
             // Get camera space vertices for this face (for clipping)
             const cameraFace = indices.map(idx => cameraVertices[idx]).filter(v => v !== null);
+            const isWindshieldFace = windshieldEnabled && !Array.isArray(face) && !!face.windshield;
+            const isEngineTextureFace = engineTextureEnabled && !Array.isArray(face) && !!face.engineTexture;
             
             if (cameraFace.length < 3) {
                 return;
@@ -474,26 +602,7 @@ const Object3DRenderer = (() => {
 
             // Calculate distance-based color (green tint)
             // Closest face = light green, farthest = dark green
-            const depthT = 1 - ((depth - minDepth) / depthRange);
-            const clampedT = Math.max(0, Math.min(1, depthT));
-            
-            // Determine base color based on ship state
-            let faceColor;
-            if (isFlashing && flashColor) {
-                // Use flash color (white for shields, red for hull)
-                faceColor = flashColor;
-            } else if (isDisabled) {
-                // Gray scale for disabled ships: closest = gray, farthest = dark gray
-                faceColor = lerpColorHex('#333333', '#888888', clampedT);
-            } else {
-                // Normal green color range: dark green to light green
-                if (params.shipColor) {
-                    const darkTint = lerpColorHex('#000000', params.shipColor, 0.22);
-                    faceColor = lerpColorHex(darkTint, params.shipColor, clampedT);
-                } else {
-                    faceColor = lerpColorHex('#003300', '#00ff00', clampedT);
-                }
-            }
+            const faceColor = getDepthTintedShipColor(depth, minDepth, depthRange);
 
             if (isFlashing && (!object._lastDamageFlashFaceDebugMs || (timestampMs - object._lastDamageFlashFaceDebugMs) > 120)) {
                 console.log('[DamageFlash] Geometry render color:', {
@@ -554,7 +663,83 @@ const Object3DRenderer = (() => {
             if (rasterResult && rasterResult.plotCount > 0) {
                 faceRenderCount++;
             }
-        });
+
+            if (isWindshieldFace && ordered.length >= 3 && RasterUtils.rasterizeFaceDepth) {
+                let windshieldPolygon = null;
+
+                const faceIndices = Array.isArray(face.vertices) ? face.vertices : indices;
+                const edge = Array.isArray(face.windshieldEdge) && face.windshieldEdge.length === 2 ? face.windshieldEdge : null;
+                if (edge) {
+                    const noseIndex = typeof face.windshieldNose === 'number' ? face.windshieldNose : edge[0];
+                    const aftIndex = typeof face.windshieldAft === 'number' ? face.windshieldAft : edge[1];
+                    const sideIndex = faceIndices.find(idx => idx !== noseIndex && idx !== aftIndex);
+                    const noseVertex = cameraVertices[noseIndex];
+                    const aftVertex = cameraVertices[aftIndex];
+                    const sideVertex = (typeof sideIndex === 'number') ? cameraVertices[sideIndex] : null;
+
+                    if (noseVertex && aftVertex && sideVertex) {
+                        const edgeFront = lerpVec(noseVertex, aftVertex, windshieldEdgeFrontT);
+                        const edgeBack = lerpVec(noseVertex, aftVertex, windshieldEdgeBackT);
+                        const edgeMid = lerpVec(edgeFront, edgeBack, 0.5);
+                        const sideInner = lerpVec(sideVertex, edgeMid, windshieldSidePull);
+                        windshieldPolygon = [edgeFront, edgeBack, sideInner];
+                    }
+                }
+
+                if (!windshieldPolygon) {
+                    const faceCenter = ordered.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
+                    faceCenter.x /= ordered.length;
+                    faceCenter.y /= ordered.length;
+                    faceCenter.z /= ordered.length;
+
+                    windshieldPolygon = ordered.map(v => ({
+                        x: faceCenter.x + ((v.x - faceCenter.x) * windshieldInsetScale),
+                        y: faceCenter.y + ((v.y - faceCenter.y) * windshieldInsetScale),
+                        z: faceCenter.z + ((v.z - faceCenter.z) * windshieldInsetScale)
+                    }));
+                }
+
+                RasterUtils.rasterizeFaceDepth(
+                    depthBuffer,
+                    windshieldPolygon,
+                    viewWidth,
+                    viewHeight,
+                    '█',
+                    windshieldColor,
+                    windshieldDepthBias,
+                    config.NEAR_PLANE,
+                    config.VIEW_FOV,
+                    'tri'
+                );
+            }
+
+            if (isEngineTextureFace && ordered.length >= 3 && RasterUtils.rasterizeFaceDepth) {
+                const engineCenter = ordered.reduce((acc, v) => ThreeDUtils.addVec(acc, v), { x: 0, y: 0, z: 0 });
+                engineCenter.x /= ordered.length;
+                engineCenter.y /= ordered.length;
+                engineCenter.z /= ordered.length;
+
+                const enginePolygon = ordered.map(v => ({
+                    x: engineCenter.x + ((v.x - engineCenter.x) * engineTextureInsetScale),
+                    y: engineCenter.y + ((v.y - engineCenter.y) * engineTextureInsetScale),
+                    z: engineCenter.z + ((v.z - engineCenter.z) * engineTextureInsetScale)
+                }));
+
+                RasterUtils.rasterizeFaceDepth(
+                    depthBuffer,
+                    enginePolygon,
+                    viewWidth,
+                    viewHeight,
+                    '█',
+                    engineTextureColor,
+                    engineTextureDepthBias,
+                    config.NEAR_PLANE,
+                    config.VIEW_FOV,
+                    'tri'
+                );
+            }
+            });
+        }
         
         RasterUtils.flushDepthBuffer(depthBuffer);
 

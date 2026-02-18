@@ -33,9 +33,22 @@ const SpaceTravelConfig = {
     SYSTEM_BODY_SCREEN_SCALE: 10,
     SYSTEM_BODY_PHYSICS_SCALE: 10,
     CHAR_CELL_ASPECT_RATIO: null,
-    SHIP_SCREEN_SCALE: 100000, // Magnification factor for screen rendering (must be visible)
-    SHIP_PHYSICS_SCALE: 100000, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
-    SHIP_FACE_SUBCELL_GLYPHS: true,
+    SHIP_SCREEN_SCALE: 10000, // Magnification factor for screen rendering (must be visible)
+    SHIP_PHYSICS_SCALE: 10000, // Physics scale (vertices already sized correctly via SHIP_SIZE_AU)
+    SHIP_RENDER_MODE: 'solid', // 'wireframe' or 'solid'
+    SHIP_WIREFRAME_ANGLE_STEP_DEG: 45, // Quantize line directions to stabilize silhouettes
+    SHIP_FACE_SUBCELL_GLYPHS: false,
+    SHIP_WINDSHIELD_ENABLED: true,
+    SHIP_WINDSHIELD_COLOR: '#7ec8ff',
+    SHIP_WINDSHIELD_INSET_SCALE: 0.58,
+    SHIP_WINDSHIELD_DEPTH_BIAS: -0.00015,
+    SHIP_WINDSHIELD_EDGE_FRONT_T: 0.10,
+    SHIP_WINDSHIELD_EDGE_BACK_T: 0.56,
+    SHIP_WINDSHIELD_SIDE_PULL: 0.82,
+    SHIP_ENGINE_TEXTURE_ENABLED: true,
+    SHIP_ENGINE_TEXTURE_COLOR: '#ff8a00',
+    SHIP_ENGINE_TEXTURE_INSET_SCALE: 0.5,
+    SHIP_ENGINE_TEXTURE_DEPTH_BIAS: -0.00012,
     SHIP_MIN_NON_SYMBOL_SIZE_CHARS: 3,
     SHIP_MIN_NON_SYMBOL_MAX_SCALE_MULT: 4,
     SHIP_SPAWN_DISTANCE_AU: 0.2,  // Reduced 10x (was 2.0)

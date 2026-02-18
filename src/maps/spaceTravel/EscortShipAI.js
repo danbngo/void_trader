@@ -36,9 +36,12 @@ const EscortShipAI = (() => {
             minZ = Math.min(minZ, v.z); maxZ = Math.max(maxZ, v.z);
         });
         
-        const worldSizeX = (maxX - minX) * (config.SHIP_PHYSICS_SCALE || 50);
-        const worldSizeY = (maxY - minY) * (config.SHIP_PHYSICS_SCALE || 50);
-        const worldSizeZ = (maxZ - minZ) * (config.SHIP_PHYSICS_SCALE || 50);
+        const physicsScale = (typeof config?.SHIP_PHYSICS_SCALE === 'number' && config.SHIP_PHYSICS_SCALE > 0)
+            ? config.SHIP_PHYSICS_SCALE
+            : 1;
+        const worldSizeX = (maxX - minX) * physicsScale;
+        const worldSizeY = (maxY - minY) * physicsScale;
+        const worldSizeZ = (maxZ - minZ) * physicsScale;
         return Math.sqrt(worldSizeX * worldSizeX + worldSizeY * worldSizeY + worldSizeZ * worldSizeZ) / 2;
     }
 
@@ -529,11 +532,13 @@ const EscortShipAI = (() => {
         const relative = ThreeDUtils.subVec(escort.position, playerShip.position);
         const distance = ThreeDUtils.vecLength(relative);
         
-        // Use SHIP_SIZE_AU from global constants and apply collision radius multiplier
-        const baseRadius = (typeof SHIP_SIZE_AU !== 'undefined') ? SHIP_SIZE_AU : (typeof SHIP_COLLISION_RADIUS !== 'undefined' ? SHIP_COLLISION_RADIUS : 0.00000043);
+        const escortGeometry = escort?.geometry || ShipGeometry.getShip('FIGHTER');
+        const playerGeometry = playerShip?.geometry || ShipGeometry.getShip('FIGHTER');
+        const baseEscortRadius = calculateShipRadius(escortGeometry, config);
+        const basePlayerRadius = calculateShipRadius(playerGeometry, config);
         const radiusMult = config.SHIP_COLLISION_RADIUS_MULT || 1.2;
-        const playerRadius = baseRadius * radiusMult;
-        const escortRadius = baseRadius * radiusMult;
+        const playerRadius = basePlayerRadius * radiusMult;
+        const escortRadius = baseEscortRadius * radiusMult;
         const collisionDist = playerRadius + escortRadius;
 
         return distance < collisionDist;
@@ -558,6 +563,7 @@ const EscortShipAI = (() => {
         initializeEscortShips,
         update,
         checkPlayerCollision,
+        calculateShipRadius,
         getCollisionDamage,
         FOLLOW_DISTANCE,
         FOLLOW_STOP_DISTANCE

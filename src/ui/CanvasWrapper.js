@@ -263,6 +263,22 @@ class CanvasWrapper {
             drawTriangle({ x: x0, y: y0 }, { x: x1, y: cy }, { x: x0, y: y1 });
             return true;
         }
+        if (symbol === '◤') {
+            drawTriangle({ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x0, y: y1 });
+            return true;
+        }
+        if (symbol === '◥') {
+            drawTriangle({ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 });
+            return true;
+        }
+        if (symbol === '◣') {
+            drawTriangle({ x: x0, y: y0 }, { x: x0, y: y1 }, { x: x1, y: y1 });
+            return true;
+        }
+        if (symbol === '◢') {
+            drawTriangle({ x: x1, y: y0 }, { x: x0, y: y1 }, { x: x1, y: y1 });
+            return true;
+        }
 
         if (shadeAlpha !== null) {
             const prevAlpha = this.ctx.globalAlpha;

@@ -133,6 +133,31 @@ const Object3DRenderer = (() => {
             }
         };
 
+        // Render ship to a local depth buffer first, then composite into scene depth buffer.
+        // This isolates ship contour extraction from other scene geometry and stabilizes glyph output.
+        const shipLocalDepthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
+        const renderBuffer = shipLocalDepthBuffer;
+
+        const compositeRenderBufferIntoScene = () => {
+            if (!renderBuffer || renderBuffer === depthBuffer) {
+                return;
+            }
+
+            const totalCells = renderBuffer.width * renderBuffer.height;
+            for (let i = 0; i < totalCells; i++) {
+                const symbol = renderBuffer.chars[i];
+                if (!symbol) {
+                    continue;
+                }
+
+                const x = i % renderBuffer.width;
+                const y = Math.floor(i / renderBuffer.width);
+                const z = renderBuffer.depth[i];
+                const color = renderBuffer.colors[i];
+                RasterUtils.plotDepthText(depthBuffer, x, y, z, symbol, color);
+            }
+        };
+
         if (!object || !object.geometry || !playerShip) {
             return;
         }
@@ -155,6 +180,13 @@ const Object3DRenderer = (() => {
         const engineTextureColor = config.SHIP_ENGINE_TEXTURE_COLOR || '#ff8a00';
         const engineTextureInsetScale = Math.max(0.2, Math.min(0.85, config.SHIP_ENGINE_TEXTURE_INSET_SCALE || 0.5));
         const engineTextureDepthBias = (typeof config.SHIP_ENGINE_TEXTURE_DEPTH_BIAS === 'number') ? config.SHIP_ENGINE_TEXTURE_DEPTH_BIAS : -0.00012;
+        const edgeGlyphPostEnabled = (shipRenderMode !== 'wireframe') && (config.SHIP_EDGE_GLYPH_POSTPROCESS !== false);
+        const edgeGlyphOutsideEnabled = config.SHIP_EDGE_GLYPH_OUTSIDE !== false;
+        const shipGlyphSingleStage = config.SHIP_GLYPH_SINGLE_STAGE !== false;
+        const shipGlyphInvariantChecks = config.SHIP_GLYPH_INVARIANTS !== false;
+        const shipGlyphDisallowAdjacentSameTriangle = config.SHIP_GLYPH_DISALLOW_ADJACENT_SAME_TRIANGLE !== false;
+        const shipGlyphDebug = config.SHIP_GLYPH_DEBUG === true;
+        const shipGlyphDebugLogEveryMs = Math.max(0, config.SHIP_GLYPH_DEBUG_LOG_EVERY_MS || 500);
 
         const lerpVec = (a, b, t) => ({
             x: a.x + ((b.x - a.x) * t),
@@ -241,6 +273,338 @@ const Object3DRenderer = (() => {
                     shipBoundingBox.minY = Math.min(shipBoundingBox.minY, y);
                     shipBoundingBox.maxY = Math.max(shipBoundingBox.maxY, y);
                     hasBoundingBox = true;
+                }
+            }
+        };
+
+        const stylizeShipSilhouetteGlyphs = () => {
+            if (!edgeGlyphPostEnabled || !hasBoundingBox) {
+                return;
+            }
+
+            const width = renderBuffer.width;
+            const height = renderBuffer.height;
+
+            const idx = (x, y) => (y * width) + x;
+            const occupied = new Set();
+            const baseCells = [];
+
+            let minX = width;
+            let maxX = -1;
+            let minY = height;
+            let maxY = -1;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = idx(x, y);
+                    const symbol = renderBuffer.chars[i];
+                    if (!symbol) {
+                        continue;
+                    }
+
+                    occupied.add(i);
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                    if (symbol === '█') {
+                        baseCells.push(i);
+                    }
+                }
+            }
+
+            if (occupied.size === 0 || baseCells.length === 0 || minX > maxX || minY > maxY) {
+                return;
+            }
+
+            minX = Math.max(0, minX - 1);
+            maxX = Math.min(width - 1, maxX + 1);
+            minY = Math.max(0, minY - 1);
+            maxY = Math.min(height - 1, maxY + 1);
+
+            const exteriorEmpty = new Set();
+            const queue = [];
+            const enqueueExteriorIfEmpty = (x, y) => {
+                if (x < minX || x > maxX || y < minY || y > maxY) {
+                    return;
+                }
+                const i = idx(x, y);
+                if (occupied.has(i) || exteriorEmpty.has(i)) {
+                    return;
+                }
+                exteriorEmpty.add(i);
+                queue.push({ x, y });
+            };
+
+            for (let x = minX; x <= maxX; x++) {
+                enqueueExteriorIfEmpty(x, minY);
+                enqueueExteriorIfEmpty(x, maxY);
+            }
+            for (let y = minY; y <= maxY; y++) {
+                enqueueExteriorIfEmpty(minX, y);
+                enqueueExteriorIfEmpty(maxX, y);
+            }
+
+            while (queue.length > 0) {
+                const p = queue.shift();
+                enqueueExteriorIfEmpty(p.x + 1, p.y);
+                enqueueExteriorIfEmpty(p.x - 1, p.y);
+                enqueueExteriorIfEmpty(p.x, p.y + 1);
+                enqueueExteriorIfEmpty(p.x, p.y - 1);
+            }
+
+            const hasOccupied = (x, y) => {
+                if (x < minX || x > maxX || y < minY || y > maxY) {
+                    return false;
+                }
+                return occupied.has(idx(x, y));
+            };
+
+            const isExteriorEmpty = (x, y) => {
+                if (x < minX || x > maxX || y < minY || y > maxY) {
+                    return true;
+                }
+                return exteriorEmpty.has(idx(x, y));
+            };
+
+            const isTriangleGlyph = (glyph) => glyph === '◤' || glyph === '◥' || glyph === '◣' || glyph === '◢';
+
+            const hasTriangleInteriorSupport = (glyph, x, y) => {
+                if (glyph === '◢') return hasOccupied(x + 1, y) || hasOccupied(x, y + 1);
+                if (glyph === '◣') return hasOccupied(x - 1, y) || hasOccupied(x, y + 1);
+                if (glyph === '◤') return hasOccupied(x - 1, y) || hasOccupied(x, y - 1);
+                if (glyph === '◥') return hasOccupied(x + 1, y) || hasOccupied(x, y - 1);
+                return true;
+            };
+
+            const resolveFallbackGlyph = (x, y, originalGlyph) => {
+                const n = hasOccupied(x, y - 1);
+                const s = hasOccupied(x, y + 1);
+                const w = hasOccupied(x - 1, y);
+                const e = hasOccupied(x + 1, y);
+                if (originalGlyph) {
+                    return '█';
+                }
+                if (n && s && !w && !e) return '▌';
+                if (w && e && !n && !s) return '▀';
+                return null;
+            };
+
+            const candidateGlyphByIndex = new Map();
+            const candidateSourceByIndex = new Map();
+            const outsideDepthMetaByIndex = new Map();
+
+            baseCells.forEach((cellIndex) => {
+                const x = cellIndex % width;
+                const y = Math.floor(cellIndex / width);
+                const n = hasOccupied(x, y - 1);
+                const s = hasOccupied(x, y + 1);
+                const w = hasOccupied(x - 1, y);
+                const e = hasOccupied(x + 1, y);
+                const nOpen = isExteriorEmpty(x, y - 1);
+                const sOpen = isExteriorEmpty(x, y + 1);
+                const wOpen = isExteriorEmpty(x - 1, y);
+                const eOpen = isExteriorEmpty(x + 1, y);
+                const nwOpen = isExteriorEmpty(x - 1, y - 1);
+                const neOpen = isExteriorEmpty(x + 1, y - 1);
+                const swOpen = isExteriorEmpty(x - 1, y + 1);
+                const seOpen = isExteriorEmpty(x + 1, y + 1);
+
+                let glyph = null;
+                if (nOpen && s && w && e && nwOpen !== neOpen) glyph = nwOpen ? '◢' : '◣';
+                else if (sOpen && n && w && e && swOpen !== seOpen) glyph = swOpen ? '◥' : '◤';
+                else if (wOpen && n && s && e && nwOpen !== swOpen) glyph = nwOpen ? '◢' : '◥';
+                else if (eOpen && n && s && w && neOpen !== seOpen) glyph = neOpen ? '◣' : '◤';
+                else if (nOpen && s && w && e) glyph = '▄';
+                else if (sOpen && n && w && e) glyph = '▀';
+                else if (wOpen && n && s && e) glyph = '▐';
+                else if (eOpen && n && s && w) glyph = '▌';
+                else if (nOpen && wOpen && s && e) glyph = '◢';
+                else if (nOpen && eOpen && s && w) glyph = '◣';
+                else if (sOpen && wOpen && n && e) glyph = '◥';
+                else if (sOpen && eOpen && n && w) glyph = '◤';
+
+                if (glyph) {
+                    candidateGlyphByIndex.set(cellIndex, glyph);
+                    candidateSourceByIndex.set(cellIndex, 'inside');
+                }
+            });
+
+            if (edgeGlyphOutsideEnabled) {
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        const i = idx(x, y);
+                        if (occupied.has(i)) {
+                            continue;
+                        }
+                        if (!exteriorEmpty.has(i)) {
+                            continue;
+                        }
+                        if (renderBuffer.chars[i] || candidateGlyphByIndex.has(i)) {
+                            continue;
+                        }
+
+                        const n = hasOccupied(x, y - 1);
+                        const s = hasOccupied(x, y + 1);
+                        const w = hasOccupied(x - 1, y);
+                        const e = hasOccupied(x + 1, y);
+                        const nw = hasOccupied(x - 1, y - 1);
+                        const ne = hasOccupied(x + 1, y - 1);
+                        const sw = hasOccupied(x - 1, y + 1);
+                        const se = hasOccupied(x + 1, y + 1);
+
+                        let glyph = null;
+                        if (n && w && nw && !s && !e) glyph = '◤';
+                        else if (n && e && ne && !s && !w) glyph = '◥';
+                        else if (s && w && sw && !n && !e) glyph = '◣';
+                        else if (s && e && se && !n && !w) glyph = '◢';
+
+                        if (!glyph) {
+                            continue;
+                        }
+
+                        const neighbors = [
+                            { x: x, y: y - 1 },
+                            { x: x, y: y + 1 },
+                            { x: x - 1, y: y },
+                            { x: x + 1, y: y }
+                        ];
+
+                        let neighborDepth = Infinity;
+                        let neighborColor = null;
+                        neighbors.forEach((p) => {
+                            if (!hasOccupied(p.x, p.y)) {
+                                return;
+                            }
+                            const ni = idx(p.x, p.y);
+                            const nd = renderBuffer.depth[ni];
+                            if (nd < neighborDepth) {
+                                neighborDepth = nd;
+                                neighborColor = renderBuffer.colors[ni];
+                            }
+                        });
+
+                        if (!Number.isFinite(neighborDepth) || !neighborColor) {
+                            continue;
+                        }
+
+                        candidateGlyphByIndex.set(i, glyph);
+                        candidateSourceByIndex.set(i, 'outside');
+                        outsideDepthMetaByIndex.set(i, {
+                            depth: neighborDepth + 0.0002,
+                            color: neighborColor
+                        });
+                    }
+                }
+            }
+
+            if (shipGlyphInvariantChecks && candidateGlyphByIndex.size > 0) {
+                const getCandidate = (x, y) => {
+                    if (x < minX || x > maxX || y < minY || y > maxY) {
+                        return null;
+                    }
+                    return candidateGlyphByIndex.get(idx(x, y)) || null;
+                };
+
+                const getCandidateSource = (x, y) => {
+                    if (x < minX || x > maxX || y < minY || y > maxY) {
+                        return null;
+                    }
+                    return candidateSourceByIndex.get(idx(x, y)) || null;
+                };
+
+                const resolvedCandidates = [];
+                candidateGlyphByIndex.forEach((glyph, cellIndex) => {
+                    const x = cellIndex % width;
+                    const y = Math.floor(cellIndex / width);
+                    const currentSource = candidateSourceByIndex.get(cellIndex) || 'inside';
+
+                    if (!isTriangleGlyph(glyph)) {
+                        resolvedCandidates.push([cellIndex, glyph]);
+                        return;
+                    }
+
+                    const originalGlyph = renderBuffer.chars[cellIndex] || null;
+                    const hasSupport = (currentSource !== 'outside') || hasTriangleInteriorSupport(glyph, x, y);
+
+                    const adjacentSameGlyph = (
+                        getCandidate(x - 1, y) === glyph ||
+                        getCandidate(x + 1, y) === glyph ||
+                        getCandidate(x, y - 1) === glyph ||
+                        getCandidate(x, y + 1) === glyph
+                    );
+
+                    const adjacentOutsideSameGlyph = (
+                        (getCandidate(x - 1, y) === glyph && getCandidateSource(x - 1, y) === 'outside') ||
+                        (getCandidate(x + 1, y) === glyph && getCandidateSource(x + 1, y) === 'outside') ||
+                        (getCandidate(x, y - 1) === glyph && getCandidateSource(x, y - 1) === 'outside') ||
+                        (getCandidate(x, y + 1) === glyph && getCandidateSource(x, y + 1) === 'outside')
+                    );
+
+                    const adjacentInsideSameGlyph = (
+                        (getCandidate(x - 1, y) === glyph && getCandidateSource(x - 1, y) !== 'outside') ||
+                        (getCandidate(x + 1, y) === glyph && getCandidateSource(x + 1, y) !== 'outside') ||
+                        (getCandidate(x, y - 1) === glyph && getCandidateSource(x, y - 1) !== 'outside') ||
+                        (getCandidate(x, y + 1) === glyph && getCandidateSource(x, y + 1) !== 'outside')
+                    );
+
+                    let nextGlyph = glyph;
+                    const shouldRejectSameTriangleChain = shipGlyphDisallowAdjacentSameTriangle && (
+                        (currentSource === 'outside' && (adjacentSameGlyph || adjacentOutsideSameGlyph)) ||
+                        (currentSource !== 'outside' && adjacentOutsideSameGlyph && !adjacentInsideSameGlyph)
+                    );
+
+                    if (!hasSupport || shouldRejectSameTriangleChain) {
+                        nextGlyph = resolveFallbackGlyph(x, y, originalGlyph);
+                        if (!nextGlyph) {
+                            outsideDepthMetaByIndex.delete(cellIndex);
+                        }
+                    }
+
+                    resolvedCandidates.push([cellIndex, nextGlyph]);
+                });
+
+                resolvedCandidates.forEach(([cellIndex, glyph]) => {
+                    if (!glyph) {
+                        candidateGlyphByIndex.delete(cellIndex);
+                        candidateSourceByIndex.delete(cellIndex);
+                        return;
+                    }
+                    candidateGlyphByIndex.set(cellIndex, glyph);
+                });
+            }
+
+            candidateGlyphByIndex.forEach((glyph, cellIndex) => {
+                renderBuffer.chars[cellIndex] = glyph;
+                if (outsideDepthMetaByIndex.has(cellIndex)) {
+                    const outsideMeta = outsideDepthMetaByIndex.get(cellIndex);
+                    renderBuffer.depth[cellIndex] = outsideMeta.depth;
+                    renderBuffer.colors[cellIndex] = outsideMeta.color;
+                }
+            });
+
+            if (shipGlyphDebug) {
+                const nowMs = timestampMs || 0;
+                const lastMs = object._lastShipGlyphDebugMs || 0;
+                if (shipGlyphDebugLogEveryMs === 0 || nowMs - lastMs >= shipGlyphDebugLogEveryMs) {
+                    const counts = { block: 0, half: 0, tri: 0, other: 0 };
+                    for (let y = minY; y <= maxY; y++) {
+                        for (let x = minX; x <= maxX; x++) {
+                            const symbol = renderBuffer.chars[idx(x, y)];
+                            if (!symbol) continue;
+                            if (symbol === '█') counts.block++;
+                            else if (symbol === '▀' || symbol === '▄' || symbol === '▌' || symbol === '▐') counts.half++;
+                            else if (isTriangleGlyph(symbol)) counts.tri++;
+                            else counts.other++;
+                        }
+                    }
+
+                    console.log('[ShipGlyphResolve] committed local glyphs', {
+                        targetId: object.id || object.name || 'unknown',
+                        bbox: { minX, maxX, minY, maxY },
+                        counts
+                    });
+                    object._lastShipGlyphDebugMs = nowMs;
                 }
             }
         };
@@ -339,7 +703,7 @@ const Object3DRenderer = (() => {
                     });
                 }
                 
-                RasterUtils.plotDepthText(depthBuffer, x, y, depth, arrow, color);
+                RasterUtils.plotDepthText(renderBuffer, x, y, depth, arrow, color);
                 markShipMaskCell(x, y);
                 
                 // Report picking information
@@ -354,6 +718,7 @@ const Object3DRenderer = (() => {
                     });
                 }
             }
+            compositeRenderBufferIntoScene();
             return;
         }
 
@@ -412,7 +777,7 @@ const Object3DRenderer = (() => {
                 const color = params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
                     const symbolX = Math.round(projected.x);
                     const symbolY = Math.round(projected.y);
-                    RasterUtils.plotDepthText(depthBuffer, symbolX, symbolY, depth, arrow, color);
+                    RasterUtils.plotDepthText(renderBuffer, symbolX, symbolY, depth, arrow, color);
                     markShipMaskCell(symbolX, symbolY);
                     
                     if (onPickInfo) {
@@ -426,7 +791,7 @@ const Object3DRenderer = (() => {
                         });
                     }
                 }
-                RasterUtils.flushDepthBuffer(depthBuffer);
+                compositeRenderBufferIntoScene();
                 return;
             }
 
@@ -610,18 +975,18 @@ const Object3DRenderer = (() => {
                     faceColor,
                     depth,
                     minDepth,
-                    maxDepth,
-                    clampedT
+                    maxDepth
                 });
                 object._lastDamageFlashFaceDebugMs = timestampMs;
             }
             
-            // Render filled face using subcell glyph coverage for sharper ship silhouettes.
-            const useSubcellGlyphs = config.SHIP_FACE_SUBCELL_GLYPHS !== false;
+            // Single-stage ship glyph mode keeps face raster on full blocks and reserves
+            // triangles/halfblocks for silhouette postprocess only.
+            const useSubcellGlyphs = !shipGlyphSingleStage && (config.SHIP_FACE_SUBCELL_GLYPHS !== false);
             let rasterResult;
             if (useSubcellGlyphs && RasterUtils.rasterizeFaceDepthSubcell) {
                 rasterResult = RasterUtils.rasterizeFaceDepthSubcell(
-                    depthBuffer,
+                    renderBuffer,
                     ordered,
                     viewWidth,
                     viewHeight,
@@ -632,7 +997,7 @@ const Object3DRenderer = (() => {
                 );
             } else {
                 rasterResult = RasterUtils.rasterizeFaceDepth(
-                    depthBuffer,
+                    renderBuffer,
                     ordered,
                     viewWidth,
                     viewHeight,
@@ -647,7 +1012,7 @@ const Object3DRenderer = (() => {
 
             if ((!rasterResult || rasterResult.plotCount <= 0) && RasterUtils.rasterizeFaceDepth) {
                 rasterResult = RasterUtils.rasterizeFaceDepth(
-                    depthBuffer,
+                    renderBuffer,
                     ordered,
                     viewWidth,
                     viewHeight,
@@ -700,7 +1065,7 @@ const Object3DRenderer = (() => {
                 }
 
                 RasterUtils.rasterizeFaceDepth(
-                    depthBuffer,
+                    renderBuffer,
                     windshieldPolygon,
                     viewWidth,
                     viewHeight,
@@ -726,7 +1091,7 @@ const Object3DRenderer = (() => {
                 }));
 
                 RasterUtils.rasterizeFaceDepth(
-                    depthBuffer,
+                    renderBuffer,
                     enginePolygon,
                     viewWidth,
                     viewHeight,
@@ -741,7 +1106,8 @@ const Object3DRenderer = (() => {
             });
         }
         
-        RasterUtils.flushDepthBuffer(depthBuffer);
+        stylizeShipSilhouetteGlyphs();
+        compositeRenderBufferIntoScene();
 
         if (!isFlashing) {
             delete object._lastDamageFlashFaceDebugMs;

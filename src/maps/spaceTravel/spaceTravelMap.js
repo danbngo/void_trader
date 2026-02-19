@@ -606,14 +606,13 @@ class SpaceTravelMapClass {
             return;
         }
 
-        // Use global constants defined in CONSTS.js (with fallback defaults)
-        const collisionDamageDivisor = (typeof globalThis.COLLISION_DAMAGE_DIVISOR !== 'undefined') ? globalThis.COLLISION_DAMAGE_DIVISOR : 10;
-        const collisionMinDamage = (typeof globalThis.COLLISION_MIN_DAMAGE !== 'undefined') ? globalThis.COLLISION_MIN_DAMAGE : 1;
         const collisionCooldownMs = (typeof globalThis.COLLISION_COOLDOWN_MS !== 'undefined') ? globalThis.COLLISION_COOLDOWN_MS : 500;
-        const allyVsPlayerCollisionDamage = (typeof globalThis.ALLY_VS_PLAYER_COLLISION_DAMAGE !== 'undefined') ? globalThis.ALLY_VS_PLAYER_COLLISION_DAMAGE : true;
 
         this.escortShips.forEach((escort, index) => {
             if (!escort) return;
+            if (this._isShipDisabled(escort)) {
+                return;
+            }
 
             // Check if collision cooldown is active for this escort
             const lastCollision = this.escortLastCollisionMs[index] || 0;
@@ -623,64 +622,12 @@ class SpaceTravelMapClass {
 
             // Check collision between player and this escort ship
             if (EscortShipAI.checkPlayerCollision(escort, this.playerShip, this.config)) {
-                const damage = EscortShipAI.getCollisionDamage(escort, this.playerShip, this.config);
-                
-                // Calculate ram damage based on player velocity
-                const playerVelocity = this.playerShip.velocity || { x: 0, y: 0, z: 0 };
-                const speed = Math.sqrt(playerVelocity.x ** 2 + playerVelocity.y ** 2 + playerVelocity.z ** 2);
-                const ramDamageRatio = this.config.RAM_DAMAGE_RATIO || 0.3;
-                const ramDamageMin = this.config.RAM_DAMAGE_MIN || 5;
-                const ramDamage = Math.max(ramDamageMin, Math.ceil(speed * 1000 * ramDamageRatio)); // Convert AU/s to relative damage
-                
-                let escortHullDamaged = false;
-                
-                // Apply ram damage to escort
-                if (typeof escort.shields === 'number' && escort.shields > 0) {
-                    const shieldDamage = Math.min(escort.shields, ramDamage);
-                    escort.shields = Math.max(0, escort.shields - shieldDamage);
-                    const overflow = ramDamage - shieldDamage;
-                    if (overflow > 0 && typeof escort.hull === 'number') {
-                        escort.hull = Math.max(0, escort.hull - overflow);
-                        escortHullDamaged = true;
-                    }
-                } else if (typeof escort.hull === 'number') {
-                    escort.hull = Math.max(0, escort.hull - ramDamage);
-                    escortHullDamaged = true;
-                }
+                const ramDamage = this._computeShipCollisionDamage(this.playerShip, escort);
+                this._applyHullCollisionDamage(this.playerShip, ramDamage, timestampMs, false);
+                this._applyHullCollisionDamage(escort, ramDamage, timestampMs, true);
 
-                if (typeof escort.hull === 'number' && escort.hull <= 0) {
-                    escort.name = 'Abandoned Ship';
-                    if (escort.shipData) {
-                        escort.shipData.name = 'Abandoned Ship';
-                    }
-                }
-                
-                // Always set red flash for ram damage
-                if (escortHullDamaged || escort.shields < (escort.maxShields || 100)) {
-                    escort.flashStartMs = timestampMs;
-                    escort.flashColor = (typeof escort.hull === 'number' && escort.hull <= 0)
-                        ? (this.config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
-                        : (this.config.SHIP_FLASH_HULL_COLOR || '#ff0000');
-                }
-                
-                // Both player and ally take damage on collision
-                if (allyVsPlayerCollisionDamage) {
-                    // Apply damage to player
-                    if (this.playerShip.shields !== undefined) {
-                        const shieldDamage = Math.min(this.playerShip.shields, damage);
-                        this.playerShip.shields = Math.max(0, this.playerShip.shields - shieldDamage);
-                    }
-                    if (this.playerShip.shields <= 0 && this.playerShip.health !== undefined) {
-                        const healthDamage = damage - (this.playerShip.shields + Math.max(0, this.playerShip.shields));
-                        this.playerShip.health = Math.max(0, this.playerShip.health - healthDamage);
-                    }
-
-                    // Flash screen on collision
-                    this.damageFlashStartMs = timestampMs;
-                }
-
-                // Apply bounce physics to player ship
-                this._applyShipBounce(this.playerShip, escort, this.config);
+                this.damageFlashStartMs = timestampMs;
+                this._applyShipToShipBounce(this.playerShip, escort, this.config);
 
                 // Set cooldown for this escort
                 this.escortLastCollisionMs[index] = timestampMs;
@@ -718,6 +665,9 @@ class SpaceTravelMapClass {
             if (!ship || !ship.position) {
                 return;
             }
+            if (this._isShipDisabled(ship)) {
+                return;
+            }
 
             const collisionKey = ship.id || `npc-${index}`;
             const lastCollision = this.npcLastCollisionMs[collisionKey] || 0;
@@ -729,47 +679,60 @@ class SpaceTravelMapClass {
                 return;
             }
 
-            const damage = EscortShipAI.getCollisionDamage(ship, this.playerShip, this.config);
-
-            if (this.playerShip.shields !== undefined) {
-                const shieldDamage = Math.min(this.playerShip.shields, damage);
-                this.playerShip.shields = Math.max(0, this.playerShip.shields - shieldDamage);
-            }
-            if (this.playerShip.shields <= 0 && this.playerShip.health !== undefined) {
-                const healthDamage = damage - (this.playerShip.shields + Math.max(0, this.playerShip.shields));
-                this.playerShip.health = Math.max(0, this.playerShip.health - healthDamage);
-            }
-
-            const ramDamageRatio = this.config.RAM_DAMAGE_RATIO || 0.3;
-            const ramDamageMin = this.config.RAM_DAMAGE_MIN || 5;
-            const playerVelocity = this.playerShip.velocity || { x: 0, y: 0, z: 0 };
-            const speed = Math.sqrt(playerVelocity.x ** 2 + playerVelocity.y ** 2 + playerVelocity.z ** 2);
-            const ramDamage = Math.max(ramDamageMin, Math.ceil(speed * 1000 * ramDamageRatio));
-
-            if (typeof ship.shields === 'number' && ship.shields > 0) {
-                const shieldDamage = Math.min(ship.shields, ramDamage);
-                ship.shields = Math.max(0, ship.shields - shieldDamage);
-                const overflow = ramDamage - shieldDamage;
-                if (overflow > 0 && typeof ship.hull === 'number') {
-                    ship.hull = Math.max(0, ship.hull - overflow);
-                }
-            } else if (typeof ship.hull === 'number') {
-                ship.hull = Math.max(0, ship.hull - ramDamage);
-            }
-
-            ship.flashStartMs = timestampMs;
-            ship.flashColor = (typeof ship.hull === 'number' && ship.hull <= 0)
-                ? (this.config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
-                : (this.config.SHIP_FLASH_HULL_COLOR || '#ff0000');
+            const ramDamage = this._computeShipCollisionDamage(this.playerShip, ship);
+            this._applyHullCollisionDamage(this.playerShip, ramDamage, timestampMs, false);
+            this._applyHullCollisionDamage(ship, ramDamage, timestampMs, true);
 
             this.damageFlashStartMs = timestampMs;
-            this._applyShipBounce(this.playerShip, ship, this.config);
+            this._applyShipToShipBounce(this.playerShip, ship, this.config);
             this.npcLastCollisionMs[collisionKey] = timestampMs;
         });
     }
 
+    _isShipDisabled(ship) {
+        return !!ship && typeof ship.hull === 'number' && ship.hull <= 0;
+    }
+
+    _computeShipCollisionDamage(shipA, shipB) {
+        const velA = shipA?.velocity || { x: 0, y: 0, z: 0 };
+        const velB = shipB?.velocity || { x: 0, y: 0, z: 0 };
+        const relVel = ThreeDUtils.subVec(velA, velB);
+        const relSpeed = ThreeDUtils.vecLength(relVel);
+        const ramDamageRatio = this.config.RAM_DAMAGE_RATIO || 0.3;
+        const ramDamageMin = this.config.RAM_DAMAGE_MIN || 5;
+        return Math.max(ramDamageMin, Math.ceil(relSpeed * 1000 * ramDamageRatio));
+    }
+
+    _applyHullCollisionDamage(ship, damage, timestampMs, setFlash = true) {
+        if (!ship || typeof ship.hull !== 'number') {
+            return;
+        }
+
+        ship.hull = Math.max(0, ship.hull - damage);
+
+        if (ship.hull <= 0) {
+            if (!ship.disabledAtMs) {
+                ship.disabledAtMs = timestampMs;
+            }
+            ship.name = 'Abandoned Ship';
+            if (ship.shipData) {
+                ship.shipData.name = 'Abandoned Ship';
+            }
+        }
+
+        if (setFlash) {
+            ship.flashStartMs = timestampMs;
+            ship.flashColor = (ship.hull <= 0)
+                ? (this.config.SHIP_FLASH_ABANDONED_COLOR || '#8b0000')
+                : (this.config.SHIP_FLASH_HULL_COLOR || '#ff0000');
+        }
+    }
+
     _checkShipToShipCollision(ship1, ship2) {
         if (!ship1.position || !ship2.position) {
+            return false;
+        }
+        if (this._isShipDisabled(ship1) || this._isShipDisabled(ship2)) {
             return false;
         }
 
@@ -793,9 +756,10 @@ class SpaceTravelMapClass {
         const baseRadius1 = calculateRadius(geometry1, this.config);
         const baseRadius2 = calculateRadius(geometry2, this.config);
         const radiusMult = this.config?.SHIP_COLLISION_RADIUS_MULT || 1.2;
+        const distanceMult = (typeof this.config?.SHIP_COLLISION_DISTANCE_MULT === 'number') ? Math.max(0.05, this.config.SHIP_COLLISION_DISTANCE_MULT) : 1;
         const collisionRadius1 = baseRadius1 * radiusMult;
         const collisionRadius2 = baseRadius2 * radiusMult;
-        const collisionDistance = collisionRadius1 + collisionRadius2;
+        const collisionDistance = (collisionRadius1 + collisionRadius2) * distanceMult;
 
         return distance < collisionDistance;
     }
@@ -856,6 +820,19 @@ class SpaceTravelMapClass {
         if (lootableShips.length === 0) {
             return;
         }
+
+        const playerVelocity = this.playerShip?.velocity || { x: 0, y: 0, z: 0 };
+        const playerSpeed = Math.sqrt((playerVelocity.x ** 2) + (playerVelocity.y ** 2) + (playerVelocity.z ** 2));
+        const maxLootSpeed = (typeof this.config.DISABLED_SHIP_LOOT_MAX_SPEED_AU_PER_SEC === 'number')
+            ? this.config.DISABLED_SHIP_LOOT_MAX_SPEED_AU_PER_SEC
+            : 0.01;
+        if (playerSpeed > maxLootSpeed) {
+            return;
+        }
+
+        const lootArmMs = (typeof this.config.DISABLED_SHIP_LOOT_ARM_MS === 'number')
+            ? this.config.DISABLED_SHIP_LOOT_ARM_MS
+            : 1000;
         
         // Check if player collides with any disabled escort ship
         lootableShips.forEach((escort, index) => {
@@ -865,13 +842,37 @@ class SpaceTravelMapClass {
             if (typeof escort.hull !== 'number' || escort.hull > 0) {
                 return;
             }
+
+            if (escort.disabledAtMs && (timestampMs - escort.disabledAtMs) < lootArmMs) {
+                return;
+            }
             
             // Check if player is close enough to loot
             if (typeof EscortShipAI === 'undefined' || !EscortShipAI.checkPlayerCollision) {
                 return;
             }
-            
-            if (EscortShipAI.checkPlayerCollision(escort, this.playerShip, this.config)) {
+
+            const lootDistanceMult = (typeof this.config.DISABLED_SHIP_LOOT_DISTANCE_MULT === 'number')
+                ? this.config.DISABLED_SHIP_LOOT_DISTANCE_MULT
+                : 0.5;
+
+            const fallbackGeometry = (typeof ShipGeometry !== 'undefined' && ShipGeometry.getShip)
+                ? ShipGeometry.getShip('FIGHTER')
+                : null;
+            const calculateRadius = (typeof EscortShipAI.calculateShipRadius === 'function')
+                ? EscortShipAI.calculateShipRadius
+                : () => ((typeof SHIP_SIZE_AU !== 'undefined') ? SHIP_SIZE_AU : 0.00000043);
+
+            const playerGeometry = this.playerShip?.geometry || fallbackGeometry;
+            const targetGeometry = escort?.geometry || fallbackGeometry;
+            const radiusMult = this.config?.SHIP_COLLISION_RADIUS_MULT || 1.2;
+            const lootRange = (calculateRadius(playerGeometry, this.config) + calculateRadius(targetGeometry, this.config))
+                * radiusMult
+                * Math.max(0.05, lootDistanceMult);
+
+            const distanceToShip = ThreeDUtils.vecLength(ThreeDUtils.subVec(escort.position, this.playerShip.position));
+
+            if (distanceToShip <= lootRange) {
                 // Check cooldown to prevent re-opening immediately
                 const lastLoot = this.lastDisabledShipLootMs || 0;
                 const lootCooldown = 2000; // 2 second cooldown between loots
@@ -880,6 +881,12 @@ class SpaceTravelMapClass {
                     return;
                 }
                 
+                const runtimeState = this.getRuntimeStateSnapshot?.() || null;
+                const portalState = (typeof SpaceTravelPortal !== 'undefined' && SpaceTravelPortal.getState)
+                    ? SpaceTravelPortal.getState(this)
+                    : null;
+                const destination = this.targetSystem || SpaceTravelLogic.getNearestSystem(this.currentGameState);
+
                 // Stop the map and open loot menu
                 this.stop(true); // Preserve portal if active
                 this.lastDisabledShipLootMs = timestampMs;
@@ -899,7 +906,12 @@ class SpaceTravelMapClass {
                         }
                         
                         // Resume travel
-                        this.start();
+                        this.show(this.currentGameState, destination, {
+                            resetPosition: false,
+                            localDestination: this.localDestination,
+                            portalState,
+                            runtimeState
+                        });
                     });
                 }
             }

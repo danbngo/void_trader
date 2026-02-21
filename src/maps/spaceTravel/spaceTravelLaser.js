@@ -178,7 +178,7 @@ const SpaceTravelLaser = (() => {
             laserShots = laserShots.filter(shot => now <= (shot.impactMs + 100));
         }
 
-        function fireLaser({ playerShip, isPaused, lastHoverPick, config, inputState, boostActive, mapInstance, timestampMs = 0 }) {
+        function fireLaser({ playerShip, isPaused, lastHoverPick, localDestination, config, inputState, boostActive, mapInstance, timestampMs = 0 }) {
             if (!playerShip || isPaused) {
                 return { laserEmptyTimestampMs: null };
             }
@@ -201,8 +201,9 @@ const SpaceTravelLaser = (() => {
             }
             lastFireAttemptMs = now;
 
-            const targetScreen = getPlayerTargetScreenPoint({ inputState, config, lastHoverPick });
-            const targetPoint = getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, targetScreen });
+            const selectedShipRef = getSelectedShipRef(localDestination);
+            const targetScreen = getPlayerTargetScreenPoint({ inputState, config, lastHoverPick, localDestination, playerShip });
+            const targetPoint = getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, localDestination, targetScreen });
             
             const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);
@@ -225,8 +226,11 @@ const SpaceTravelLaser = (() => {
                 timestampMs: timestampMs || now
             });
 
-            if (lastHoverPick?.bodyRef?.isNpcEncounterShip && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
-                SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, lastHoverPick.bodyRef, timestampMs || now);
+            const enemyTarget = lastHoverPick?.bodyRef?.isNpcEncounterShip
+                ? lastHoverPick.bodyRef
+                : (selectedShipRef?.isNpcEncounterShip ? selectedShipRef : null);
+            if (enemyTarget && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
+                SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, enemyTarget, timestampMs || now);
             }
 
             return { laserEmptyTimestampMs: null };
@@ -379,16 +383,50 @@ const SpaceTravelLaser = (() => {
             return ThreeDUtils.rotateVecByQuat(cameraDir, playerShip.rotation);
         }
 
-        function getPlayerTargetScreenPoint({ inputState, config, lastHoverPick }) {
+        function getSelectedShipRef(localDestination) {
+            if (!localDestination) {
+                return null;
+            }
+            if (localDestination.type === 'NPC_SHIP' && localDestination.npcShip?.position) {
+                return localDestination.npcShip;
+            }
+            if (localDestination.type === 'ESCORT_SHIP' && localDestination.escort?.position) {
+                return localDestination.escort;
+            }
+            return null;
+        }
+
+        function getPlayerTargetScreenPoint({ inputState, config, lastHoverPick, localDestination, playerShip }) {
             if (Number.isFinite(lastHoverPick?.x) && Number.isFinite(lastHoverPick?.y)) {
                 return { x: lastHoverPick.x, y: lastHoverPick.y };
+            }
+
+            const selectedShipRef = getSelectedShipRef(localDestination);
+            if (selectedShipRef?.position && playerShip?.position && playerShip?.rotation) {
+                const grid = UI.getGridSize();
+                const viewWidth = grid.width;
+                const viewHeight = grid.height - config.PANEL_HEIGHT;
+                const relative = ThreeDUtils.subVec(selectedShipRef.position, playerShip.position);
+                const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
+                const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, config.VIEW_FOV);
+                if (projected) {
+                    return {
+                        x: Math.round(projected.x),
+                        y: Math.round(projected.y)
+                    };
+                }
             }
             return getLaserTarget({ inputState, config });
         }
 
-        function getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, targetScreen = null }) {
+        function getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, localDestination, targetScreen = null }) {
             if (lastHoverPick?.bodyRef?.position) {
                 return { ...lastHoverPick.bodyRef.position };
+            }
+
+            const selectedShipRef = getSelectedShipRef(localDestination);
+            if (selectedShipRef?.position) {
+                return { ...selectedShipRef.position };
             }
 
             const target = targetScreen || getLaserTarget({ inputState, config });

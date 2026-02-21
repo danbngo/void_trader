@@ -3,11 +3,16 @@
  */
 
 const SpaceTravelInput = (() => {
-    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause, onHail, onOpenHailChannel }) {
+    function setupInput({ keyState, codeState, handlers, setPaused, getPaused, getPausedByFocus, onEscape, onTogglePause, onHail, onOpenHailChannel, onFire }) {
         handlers.keyDownHandler = (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
                 onEscape();
+                return;
+            }
+            if ((e.key === 'q' || e.key === 'Q') && !e.repeat) {
+                e.preventDefault();
+                onFire?.();
                 return;
             }
             if (e.key === '1') {
@@ -250,6 +255,30 @@ const SpaceTravelInput = (() => {
                     UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 700);
                     UI.setOutputRow(msg, COLORS.TEXT_ERROR);
                 }
+            },
+            onFire: () => {
+                if (deathTow.isDeathSequenceActive()) {
+                    return;
+                }
+                const laserTimestampMs = mapInstance.timestampMs || performance.now();
+                const result = mapInstance.laser.fireLaser({
+                    playerShip: mapInstance.playerShip,
+                    isPaused: mapInstance.isPaused,
+                    lastHoverPick: mapInstance.lastHoverPick,
+                    localDestination: mapInstance.localDestination,
+                    config,
+                    inputState,
+                    boostActive: mapInstance.boostActive,
+                    mapInstance,
+                    timestampMs: laserTimestampMs
+                });
+                if (result?.laserEmptyTimestampMs) {
+                    mapInstance.laserEmptyTimestampMs = result.laserEmptyTimestampMs;
+                }
+                if (result?.flashMessage) {
+                    UI.startFlashing(COLORS.TEXT_ERROR, COLORS.BLACK, 1000);
+                    UI.setOutputRow(result.flashMessage, COLORS.TEXT_WARN);
+                }
             }
         });
         setupMouseTargeting({
@@ -295,6 +324,7 @@ const SpaceTravelInput = (() => {
                     playerShip: mapInstance.playerShip,
                     isPaused: mapInstance.isPaused,
                     lastHoverPick: mapInstance.lastHoverPick,
+                    localDestination: mapInstance.localDestination,
                     config,
                     inputState,
                     boostActive: mapInstance.boostActive,

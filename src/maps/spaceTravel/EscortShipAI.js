@@ -15,12 +15,11 @@ const EscortShipAI = (() => {
     const STAR_HEAT_AVOID_MARGIN = 1.2; // Multiplier on star heat radius for avoidance
 
     /**
-     * Calculate collision radius from ship geometry
+     * Calculate collision/proximity radius from ship geometry
      * @param {Object} geometry - Ship geometry with vertices
-     * @param {Object} config - SpaceTravelConfig with SHIP_PHYSICS_SCALE
-     * @returns {number} Collision radius in AU
+     * @returns {number} Radius in AU
      */
-    function calculateShipRadius(geometry, config) {
+    function calculateShipRadius(geometry) {
         if (!geometry || !geometry.vertices || geometry.vertices.length === 0) {
             return 0.00004; // fallback
         }
@@ -36,12 +35,9 @@ const EscortShipAI = (() => {
             minZ = Math.min(minZ, v.z); maxZ = Math.max(maxZ, v.z);
         });
         
-        const physicsScale = (typeof config?.SHIP_PHYSICS_SCALE === 'number' && config.SHIP_PHYSICS_SCALE > 0)
-            ? config.SHIP_PHYSICS_SCALE
-            : 1;
-        const worldSizeX = (maxX - minX) * physicsScale;
-        const worldSizeY = (maxY - minY) * physicsScale;
-        const worldSizeZ = (maxZ - minZ) * physicsScale;
+        const worldSizeX = (maxX - minX);
+        const worldSizeY = (maxY - minY);
+        const worldSizeZ = (maxZ - minZ);
         return Math.sqrt(worldSizeX * worldSizeX + worldSizeY * worldSizeY + worldSizeZ * worldSizeZ) / 2;
     }
 
@@ -116,14 +112,14 @@ const EscortShipAI = (() => {
                         minZ = Math.min(minZ, v.z); maxZ = Math.max(maxZ, v.z);
                     });
                     
-                    const worldSizeX = (maxX - minX) * (config.SHIP_PHYSICS_SCALE || 50);
-                    const worldSizeY = (maxY - minY) * (config.SHIP_PHYSICS_SCALE || 50);
-                    const worldSizeZ = (maxZ - minZ) * (config.SHIP_PHYSICS_SCALE || 50);
+                    const worldSizeX = (maxX - minX);
+                    const worldSizeY = (maxY - minY);
+                    const worldSizeZ = (maxZ - minZ);
                     
                     // Both player and escort use same geometry, so calculate radii the same way
-                    const escortRadius = calculateShipRadius(geometry, config);
+                    const escortRadius = calculateShipRadius(geometry);
                     const playerGeometry = ShipGeometry.getShip('FIGHTER'); // Player uses FIGHTER too
-                    const playerRadius = calculateShipRadius(playerGeometry, config);
+                    const playerRadius = calculateShipRadius(playerGeometry);
                     const offsetDist = Math.sqrt(finalOffsetX * finalOffsetX + finalOffsetY * finalOffsetY + finalOffsetZ * finalOffsetZ);
                     const minSafeDistance = escortRadius + playerRadius;
                     const hasIntersection = offsetDist < minSafeDistance;
@@ -205,9 +201,9 @@ const EscortShipAI = (() => {
                 // Calculate collision info
                 const offsetDist = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
                 const geometry = escort.geometry;
-                const escortRadius = calculateShipRadius(geometry, config);
+                const escortRadius = calculateShipRadius(geometry);
                 const playerGeometry = ShipGeometry.getShip('FIGHTER');
-                const playerRadius = calculateShipRadius(playerGeometry, config);
+                const playerRadius = calculateShipRadius(playerGeometry);
                 const minSafeDistance = escortRadius + playerRadius;
                 const hasIntersection = offsetDist < minSafeDistance;
                 const newDistance = Math.sqrt((newPos.x - playerShip.position.x)**2 +
@@ -524,18 +520,13 @@ const EscortShipAI = (() => {
      * Check if escort ship collides with player
      */
     function checkPlayerCollision(escort, playerShip, config) {
-        // If SHIP_PHYSICS_SCALE is 0, disable collisions
-        if (config.SHIP_PHYSICS_SCALE === 0) {
-            return false;
-        }
-        
         const relative = ThreeDUtils.subVec(escort.position, playerShip.position);
         const distance = ThreeDUtils.vecLength(relative);
         
         const escortGeometry = escort?.geometry || ShipGeometry.getShip('FIGHTER');
         const playerGeometry = playerShip?.geometry || ShipGeometry.getShip('FIGHTER');
-        const baseEscortRadius = calculateShipRadius(escortGeometry, config);
-        const basePlayerRadius = calculateShipRadius(playerGeometry, config);
+        const baseEscortRadius = calculateShipRadius(escortGeometry);
+        const basePlayerRadius = calculateShipRadius(playerGeometry);
         const radiusMult = config.SHIP_COLLISION_RADIUS_MULT || 1.2;
         const distanceMult = (typeof config.SHIP_COLLISION_DISTANCE_MULT === 'number') ? Math.max(0.05, config.SHIP_COLLISION_DISTANCE_MULT) : 1;
         const playerRadius = basePlayerRadius * radiusMult;

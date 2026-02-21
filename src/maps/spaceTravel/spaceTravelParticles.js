@@ -24,7 +24,7 @@ const SpaceTravelParticles = (() => {
             }
         });
 
-        const screenScale = Math.max(1, Number(config?.SHIP_SCREEN_SCALE) || 1);
+        const screenScale = Math.max(1, Number(config?.SHIP_ROCKET_TRAIL_OFFSET_SCALE) || 1);
         const radiusFromVisualModel = maxRadiusLocal * screenScale;
         const desiredOffset = Math.max(minOffset, radiusFromVisualModel * 0.35);
 
@@ -161,10 +161,16 @@ const SpaceTravelParticles = (() => {
                     const lengthAtBoostEnd = Math.max(0, boostEndTimestampMs - boostStartTimestampMs - delayMs);
                     const maxLength = 1 + Math.floor(Math.max(0, lengthAtBoostEnd - offsetMs) / config.BOOST_STREAK_GROWTH_MS);
                     
-                    // Shrink from maxLength to 0 over 1 second
+                    // Shrink over the same total persist window, but stagger per-star
+                    // shortening thresholds using deterministic hash jitter.
                     const shrinkElapsed = animTimestampMs - boostEndTimestampMs;
                     const shrinkProgress = Math.min(1, shrinkElapsed / streakPersistMs);
-                    baseLength = Math.max(1, Math.ceil(maxLength * (1 - shrinkProgress)));
+
+                    // Interpolate toward point-star length (1) and use deterministic
+                    // stochastic rounding so interval boundaries differ by star.
+                    const targetLength = 1 + ((maxLength - 1) * (1 - shrinkProgress));
+                    const shrinkJitter = ((starSeed * 16807) % 2147483647) / 2147483647;
+                    baseLength = Math.max(1, Math.floor(targetLength + shrinkJitter));
                 }
                 
                 // Draw streak from center outward toward screen center

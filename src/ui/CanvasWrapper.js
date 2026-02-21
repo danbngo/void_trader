@@ -244,39 +244,57 @@ class CanvasWrapper {
         const y0 = pixelY;
         const x1 = pixelX + this.charWidth;
         const y1 = pixelY + this.charHeight;
-        const cx = pixelX + Math.floor(this.charWidth / 2);
-        const cy = pixelY + Math.floor(this.charHeight / 2);
+        const cx = pixelX + (this.charWidth / 2);
+        const cy = pixelY + (this.charHeight / 2);
 
-        if (symbol === '▲') {
-            drawTriangle({ x: cx, y: y0 }, { x: x0, y: y1 }, { x: x1, y: y1 });
+        const cardinalArrowAngles = {
+            '▲': -Math.PI / 2,
+            '▶': 0,
+            '▼': Math.PI / 2,
+            '◀': Math.PI
+        };
+
+        if (Object.prototype.hasOwnProperty.call(cardinalArrowAngles, symbol)) {
+            const angle = cardinalArrowAngles[symbol];
+            const radius = Math.max(1, Math.min(this.charWidth, this.charHeight) * 0.44);
+            const p1 = { x: cx + (Math.cos(angle) * radius), y: cy + (Math.sin(angle) * radius) };
+            const p2 = { x: cx + (Math.cos(angle + ((2 * Math.PI) / 3)) * radius), y: cy + (Math.sin(angle + ((2 * Math.PI) / 3)) * radius) };
+            const p3 = { x: cx + (Math.cos(angle - ((2 * Math.PI) / 3)) * radius), y: cy + (Math.sin(angle - ((2 * Math.PI) / 3)) * radius) };
+            drawTriangle(p1, p2, p3);
             return true;
         }
-        if (symbol === '▼') {
-            drawTriangle({ x: x0, y: y0 }, { x: x1, y: y0 }, { x: cx, y: y1 });
-            return true;
-        }
-        if (symbol === '◀') {
-            drawTriangle({ x: x0, y: cy }, { x: x1, y: y0 }, { x: x1, y: y1 });
-            return true;
-        }
-        if (symbol === '▶') {
-            drawTriangle({ x: x0, y: y0 }, { x: x1, y: cy }, { x: x0, y: y1 });
-            return true;
-        }
-        if (symbol === '◤') {
-            drawTriangle({ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x0, y: y1 });
-            return true;
-        }
-        if (symbol === '◥') {
-            drawTriangle({ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 });
-            return true;
-        }
-        if (symbol === '◣') {
-            drawTriangle({ x: x0, y: y0 }, { x: x0, y: y1 }, { x: x1, y: y1 });
-            return true;
-        }
-        if (symbol === '◢') {
-            drawTriangle({ x: x1, y: y0 }, { x: x0, y: y1 }, { x: x1, y: y1 });
+
+        if (symbol === '◤' || symbol === '◥' || symbol === '◣' || symbol === '◢') {
+            const leg = Math.max(1, Math.min(this.charWidth, this.charHeight) * 0.71);
+            if (symbol === '◤') {
+                drawTriangle(
+                    { x: x0, y: y0 },
+                    { x: x0 + leg, y: y0 },
+                    { x: x0, y: y0 + leg }
+                );
+                return true;
+            }
+            if (symbol === '◥') {
+                drawTriangle(
+                    { x: x1, y: y0 },
+                    { x: x1 - leg, y: y0 },
+                    { x: x1, y: y0 + leg }
+                );
+                return true;
+            }
+            if (symbol === '◣') {
+                drawTriangle(
+                    { x: x0, y: y1 },
+                    { x: x0 + leg, y: y1 },
+                    { x: x0, y: y1 - leg }
+                );
+                return true;
+            }
+            drawTriangle(
+                { x: x1, y: y1 },
+                { x: x1 - leg, y: y1 },
+                { x: x1, y: y1 - leg }
+            );
             return true;
         }
 

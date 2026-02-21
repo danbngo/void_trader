@@ -222,6 +222,16 @@ const SpaceTravelRender = (() => {
 
         RasterUtils.flushDepthBuffer(depthBuffer);
 
+        if (params.config?.SHIP_SHOW_DISTANCE_LABELS !== false) {
+            renderShipDistanceLabels({
+                shipPickInfos,
+                viewWidth,
+                viewHeight,
+                addHudText: (x, y, text, color) => params.addHudText?.(x, y, text, color) || UI.addText(x, y, text, color),
+                applyPauseColor: (color) => params.applyPauseColor?.(color) || color
+            });
+        }
+
         const emergenceCooldownMs = params.emergenceMomentumActive 
             ? SpaceTravelPhysics.getEmergenceMomentumCooldownRemaining(params)
             : 0;
@@ -355,6 +365,99 @@ const SpaceTravelRender = (() => {
                 addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color)
             });
         }
+    }
+
+    function renderShipDistanceLabels({ shipPickInfos, viewWidth, viewHeight, addHudText, applyPauseColor }) {
+        if (!Array.isArray(shipPickInfos) || shipPickInfos.length === 0) {
+            return;
+        }
+
+        const sorted = shipPickInfos
+            .filter((pick) => pick && Number.isFinite(pick.screenX) && Number.isFinite(pick.screenY) && Number.isFinite(pick.distance))
+            .sort((a, b) => a.distance - b.distance);
+        const occupiedRows = new Set();
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+        sorted.forEach((pick) => {
+            const labelText = `${pick.distance.toFixed(2)} AU`;
+            const baseX = Math.round(pick.screenX - (labelText.length / 2));
+            const clampedX = clamp(baseX, 0, Math.max(0, viewWidth - labelText.length));
+            const preferredRows = [
+                clamp(pick.screenY - 1, 0, viewHeight - 1),
+                clamp(pick.screenY + 1, 0, viewHeight - 1),
+                clamp(pick.screenY - 2, 0, viewHeight - 1),
+                clamp(pick.screenY + 2, 0, viewHeight - 1)
+            ];
+
+            let drawY = preferredRows[0];
+            for (let i = 0; i < preferredRows.length; i++) {
+                const row = preferredRows[i];
+                const rowKey = `${row}:${clampedX}`;
+                if (!occupiedRows.has(rowKey)) {
+                    drawY = row;
+                    occupiedRows.add(rowKey);
+                    break;
+                }
+            }
+
+            const shipRef = pick.object || null;
+            const isDisabled = !!shipRef && typeof shipRef.hull === 'number' && shipRef.hull <= 0;
+            const isFlashing = !!(shipRef && shipRef.flashStartMs && shipRef.flashColor);
+            const baseColor = isFlashing
+                ? shipRef.flashColor
+                : (isDisabled
+                    ? '#777777'
+                    : (shipRef?.shipColor || (pick.kind === 'ESCORT_SHIP' ? COLORS.GREEN : '#00ff00')));
+            const color = dimColorByDistance(baseColor, pick.distance);
+            addHudText(clampedX, drawY, labelText, applyPauseColor(color));
+        });
+    }
+
+    function dimColorByDistance(color, distanceAu) {
+        const [r, g, b] = parseColorToRgb(color);
+        const dist = Math.max(0, Number.isFinite(distanceAu) ? distanceAu : 0);
+        const maxDistanceForDimming = 10;
+        const ratio = Math.min(1, dist / maxDistanceForDimming);
+        const brightness = 1 - (ratio * 0.6);
+        return `rgb(${Math.round(r * brightness)}, ${Math.round(g * brightness)}, ${Math.round(b * brightness)})`;
+    }
+
+    function parseColorToRgb(color) {
+        if (typeof color !== 'string') {
+            return [255, 255, 255];
+        }
+
+        const rgb = color.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+        if (rgb) {
+            return [
+                Math.max(0, Math.min(255, Number(rgb[1]))),
+                Math.max(0, Math.min(255, Number(rgb[2]))),
+                Math.max(0, Math.min(255, Number(rgb[3])))
+            ];
+        }
+
+        const hex6 = color.match(/^#([0-9a-f]{6})$/i);
+        if (hex6) {
+            const value = hex6[1];
+            return [
+                parseInt(value.slice(0, 2), 16),
+                parseInt(value.slice(2, 4), 16),
+                parseInt(value.slice(4, 6), 16)
+            ];
+        }
+
+        const hex3 = color.match(/^#([0-9a-f]{3})$/i);
+        if (hex3) {
+            const value = hex3[1];
+            return [
+                parseInt(value[0] + value[0], 16),
+                parseInt(value[1] + value[1], 16),
+                parseInt(value[2] + value[2], 16)
+            ];
+        }
+
+        return [255, 255, 255];
     }
 
     /**

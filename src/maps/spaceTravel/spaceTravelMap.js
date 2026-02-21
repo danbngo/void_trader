@@ -576,10 +576,6 @@ class SpaceTravelMapClass {
         const killed = this.hazards.checkHazardsAndCollisions(this, timestampMs);
         if (killed && this._handleDeathSequence(timestampMs)) return;
         
-        // Check collisions with escort ships
-        this._checkEscortCollisions(timestampMs);
-        this._checkNpcShipCollisions(timestampMs);
-        
         // Check for disabled ship looting
         this._checkDisabledShipLooting(timestampMs);
         
@@ -733,11 +729,6 @@ class SpaceTravelMapClass {
             return false;
         }
         if (this._isShipDisabled(ship1) || this._isShipDisabled(ship2)) {
-            return false;
-        }
-
-        // If SHIP_PHYSICS_SCALE is 0, disable collisions
-        if (this.config?.SHIP_PHYSICS_SCALE === 0) {
             return false;
         }
 

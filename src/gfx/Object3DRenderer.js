@@ -164,7 +164,7 @@ const Object3DRenderer = (() => {
         return tagSpriteLines(bankSet?.[forwardCardinal] || null, isTopside ? 'topside' : 'underside');
     }
 
-    function renderShipSprite(depthBuffer, centerX, centerY, depth, lines, color, plotCell) {
+    function renderShipSprite(depthBuffer, centerX, centerY, depth, lines, color, plotCell, useAccentColors = true) {
         if (!Array.isArray(lines) || lines.length === 0) {
             return { plotted: 0, pickRadius: 2 };
         }
@@ -172,6 +172,7 @@ const Object3DRenderer = (() => {
         const viewportGlyphs = lines?._spriteGroup === 'side' ? SIDE_VIEWPORT_GLYPHS : DEFAULT_VIEWPORT_GLYPHS;
         const exhaustColor = COLORS.ORANGE || '#FFA500';
         const viewportColor = COLORS.CYAN || '#00FFFF';
+        const occluderColor = COLORS.BLACK || '#000000';
 
         const width = lines.reduce((max, line) => Math.max(max, (line || '').length), 0);
         const height = lines.length;
@@ -183,15 +184,19 @@ const Object3DRenderer = (() => {
             const line = lines[row] || '';
             for (let col = 0; col < line.length; col++) {
                 const glyph = line[col];
-                if (glyph === ' ') {
-                    continue;
-                }
                 const px = startX + col;
                 const py = startY + row;
+
+                if (glyph === ' ') {
+                    RasterUtils.plotDepthText(depthBuffer, px, py, depth, ' ', occluderColor);
+                    plotCell(px, py);
+                    continue;
+                }
+
                 let glyphColor = color;
-                if (glyph === 'o') {
+                if (useAccentColors && glyph === 'o') {
                     glyphColor = exhaustColor;
-                } else if (viewportGlyphs.has(glyph)) {
+                } else if (useAccentColors && viewportGlyphs.has(glyph)) {
                     glyphColor = viewportColor;
                 }
 
@@ -318,7 +323,8 @@ const Object3DRenderer = (() => {
                         depthAtSymbol,
                         spriteLines,
                         color,
-                        markShipMaskCell
+                        markShipMaskCell,
+                        !isDisabled
                     );
                     pickRadius = spriteResult.pickRadius;
                 } else {

@@ -567,6 +567,11 @@ class SpaceTravelMapClass {
             SpaceTravelEncounters.update(this, dt, timestampMs);
         }
 
+        this._checkEscortCollisions(timestampMs);
+        this._checkNpcShipCollisions(timestampMs);
+
+        this._logCloseShipDiagnostics(timestampMs);
+
         this.laser?.updateLasers?.({
             mapInstance: this,
             timestampMs
@@ -591,6 +596,78 @@ class SpaceTravelMapClass {
             stop: () => this.stop(),
             TowMenu,
             onCancelBoost: () => { this.boostActive = false; }
+        });
+    }
+
+    _logCloseShipDiagnostics(timestampMs) {
+        if (!this.config?.DEBUG_CLOSE_SHIP_LOG || !this.playerShip?.position) {
+            return;
+        }
+
+        const maxDistanceAu = (typeof this.config.DEBUG_CLOSE_SHIP_DISTANCE_AU === 'number')
+            ? Math.max(0, this.config.DEBUG_CLOSE_SHIP_DISTANCE_AU)
+            : 0.5;
+
+        const npcShips = (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.getRenderableShips)
+            ? (SpaceTravelEncounters.getRenderableShips(this) || [])
+            : [];
+        const candidates = [
+            ...(Array.isArray(this.escortShips) ? this.escortShips.map(ship => ({ ship, group: 'escort' })) : []),
+            ...npcShips.map(ship => ({ ship, group: 'npc' }))
+        ];
+
+        const playerPos = this.playerShip.position;
+        const playerVel = this.playerShip.velocity || { x: 0, y: 0, z: 0 };
+
+        candidates.forEach(({ ship, group }, index) => {
+            if (!ship?.position) {
+                return;
+            }
+
+            const toShip = ThreeDUtils.subVec(ship.position, playerPos);
+            const distanceAu = ThreeDUtils.vecLength(toShip);
+            if (!Number.isFinite(distanceAu) || distanceAu > maxDistanceAu) {
+                return;
+            }
+
+            const relVel = ThreeDUtils.subVec(ship.velocity || { x: 0, y: 0, z: 0 }, playerVel);
+            const relSpeed = ThreeDUtils.vecLength(relVel);
+            const radialDir = distanceAu > 0.0000001
+                ? ThreeDUtils.scaleVec(toShip, 1 / distanceAu)
+                : { x: 0, y: 0, z: 0 };
+            const radialSpeed = ThreeDUtils.dotVec(relVel, radialDir);
+            const tangentialSpeed = Math.sqrt(Math.max(0, (relSpeed * relSpeed) - (radialSpeed * radialSpeed)));
+
+            console.log('[CloseShip][Frame]', {
+                timestampMs,
+                group,
+                shipId: ship.id || `${group}-${index}`,
+                shipName: ship.name || ship.shipData?.name || 'Unknown',
+                distanceAU: Number(distanceAu.toFixed(6)),
+                relSpeedAUps: Number(relSpeed.toFixed(6)),
+                radialSpeedAUps: Number(radialSpeed.toFixed(6)),
+                tangentialSpeedAUps: Number(tangentialSpeed.toFixed(6)),
+                playerPos: {
+                    x: Number((playerPos.x || 0).toFixed(6)),
+                    y: Number((playerPos.y || 0).toFixed(6)),
+                    z: Number((playerPos.z || 0).toFixed(6))
+                },
+                shipPos: {
+                    x: Number((ship.position.x || 0).toFixed(6)),
+                    y: Number((ship.position.y || 0).toFixed(6)),
+                    z: Number((ship.position.z || 0).toFixed(6))
+                },
+                playerVel: {
+                    x: Number((playerVel.x || 0).toFixed(6)),
+                    y: Number((playerVel.y || 0).toFixed(6)),
+                    z: Number((playerVel.z || 0).toFixed(6))
+                },
+                shipVel: {
+                    x: Number((ship.velocity?.x || 0).toFixed(6)),
+                    y: Number((ship.velocity?.y || 0).toFixed(6)),
+                    z: Number((ship.velocity?.z || 0).toFixed(6))
+                }
+            });
         });
     }
 

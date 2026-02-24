@@ -770,17 +770,37 @@ const SpaceTravelEncounters = (() => {
 
         fleet.lastFireMs = timestampMs;
 
+        const jitterRadiusAu = Math.max(0, Number(mapInstance.config.NPC_COMBAT_AIM_JITTER_AU) || 0);
+        const getNpcShotTargetPoint = () => {
+            if (jitterRadiusAu <= 0) {
+                return playerShip.position;
+            }
+
+            const axes = ThreeDUtils.getLocalAxes(playerShip.rotation);
+            const angle = Math.random() * Math.PI * 2;
+            const radius = jitterRadiusAu * Math.sqrt(Math.random());
+            const offsetRight = Math.cos(angle) * radius;
+            const offsetUp = Math.sin(angle) * radius;
+
+            return {
+                x: playerShip.position.x + (axes.right.x * offsetRight) + (axes.up.x * offsetUp),
+                y: playerShip.position.y + (axes.right.y * offsetRight) + (axes.up.y * offsetUp),
+                z: playerShip.position.z + (axes.right.z * offsetRight) + (axes.up.z * offsetUp)
+            };
+        };
+
         let shotsFired = 0;
         shooters.forEach(ship => {
             const perShotMin = Math.max(1, mapInstance.config.NPC_SHOT_MIN_DAMAGE || 2);
             const perShotMax = Math.max(perShotMin, mapInstance.config.NPC_SHOT_MAX_DAMAGE || 6);
+            const targetPoint = getNpcShotTargetPoint();
             const fired = mapInstance.laser?.fireWorldLaser?.({
                 mapInstance,
                 shooter: ship,
-                targetPoint: playerShip.position,
+                targetPoint,
                 damageMin: perShotMin,
                 damageMax: perShotMax,
-                color: fleet.shipColor || COLORS.RED,
+                color: mapInstance.config.LASER_COLOR || '#ff4d4d',
                 timestampMs
             });
             if (fired) {

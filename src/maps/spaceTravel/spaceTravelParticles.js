@@ -496,6 +496,7 @@ const SpaceTravelParticles = (() => {
                 prunedByAge: 0,
                 consideredShips: 0,
                 skippedMissingData: 0,
+                skippedDisabled: 0,
                 skippedMinSpeed: 0,
                 skippedSpawnInterval: 0,
                 spawned: 0,
@@ -537,6 +538,13 @@ const SpaceTravelParticles = (() => {
             if (!ship || !ship.position || !ship.velocity) {
                 if (updateStats) {
                     updateStats.skippedMissingData += 1;
+                }
+                return;
+            }
+
+            if (typeof ship.hull === 'number' && ship.hull <= 0) {
+                if (updateStats) {
+                    updateStats.skippedDisabled += 1;
                 }
                 return;
             }

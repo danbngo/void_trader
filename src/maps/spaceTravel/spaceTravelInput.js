@@ -178,11 +178,6 @@ const SpaceTravelInput = (() => {
                 if (deathTow.isDeathSequenceActive()) {
                     return;
                 }
-                if (mapInstance.npcEncounterHailPrompt) {
-                    mapInstance.lastErrorMessage = 'Open or clear hailing channel first';
-                    mapInstance.lastErrorTimestampMs = performance.now();
-                    return;
-                }
                 const portalState = SpaceTravelPortal.getState(mapInstance);
                 const runtimeState = mapInstance.getRuntimeStateSnapshot?.() || null;
                 mapInstance.stop(true);
@@ -209,9 +204,6 @@ const SpaceTravelInput = (() => {
             },
             onTogglePause: () => {
                 if (deathTow.isDeathSequenceActive()) {
-                    return;
-                }
-                if (mapInstance.npcEncounterHailPrompt) {
                     return;
                 }
                 mapInstance.togglePause();

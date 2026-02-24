@@ -23,22 +23,6 @@ const SpaceTravelRender = (() => {
         renderSceneDepthBuffer({ ...params, depthBuffer, renderTimestampMs, viewWidth, viewHeight });
         addDebugMessages(params, renderTimestampMs, viewWidth, viewHeight);
         const hailModalActive = !!params.mapInstance?.npcEncounterHailPrompt;
-        if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.renderHailPrompt) {
-            SpaceTravelEncounters.renderHailPrompt({
-                mapInstance: params.mapInstance,
-                viewWidth,
-                viewHeight,
-                timestampMs: renderTimestampMs,
-                addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color),
-                onOpenChannel: () => {
-                    const opened = SpaceTravelEncounters?.openPendingHail?.(params.mapInstance);
-                    if (!opened && params.mapInstance) {
-                        params.mapInstance.lastErrorMessage = 'Unable to open hailing channel';
-                        params.mapInstance.lastErrorTimestampMs = performance.now();
-                    }
-                }
-            });
-        }
 
         UI.draw();
 
@@ -281,7 +265,7 @@ const SpaceTravelRender = (() => {
                 }
             },
             onUnpause: () => params.setPaused?.(false, false),
-            suppressButtons: hailModalActive,
+            suppressButtons: false,
             onMenu: () => {
                 const portalState = SpaceTravelPortal.getState(params.mapInstance);
                 const runtimeState = params.mapInstance?.getRuntimeStateSnapshot?.() || null;
@@ -480,6 +464,14 @@ const SpaceTravelRender = (() => {
             }
             const flashPhase = Math.floor((timestampMs - messageTimestampMs) / 250) % 2;
             const messageColor = flashPhase === 0 ? COLORS.CYAN : COLORS.WHITE;
+            const x = Math.floor((viewWidth - message.length) / 2);
+            const y = Math.floor(viewHeight / 2);
+            UI.addText(x, y, message, messageColor);
+        } else if (params.mapInstance?.npcEncounterHailPrompt) {
+            const prompt = params.mapInstance.npcEncounterHailPrompt;
+            const message = prompt.alertText || `${prompt.text || 'Incoming hail'} [H to accept]`;
+            const flashPhase = Math.floor((timestampMs - (prompt.createdMs || timestampMs)) / 250) % 2;
+            const messageColor = flashPhase === 0 ? COLORS.YELLOW : COLORS.WHITE;
             const x = Math.floor((viewWidth - message.length) / 2);
             const y = Math.floor(viewHeight / 2);
             UI.addText(x, y, message, messageColor);

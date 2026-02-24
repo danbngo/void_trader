@@ -116,12 +116,13 @@ const Object3DRenderer = (() => {
     }
 
     function selectShipSpriteLines(cameraForward, cameraUp, shipSprites) {
-        const tagSpriteLines = (lines, spriteGroup) => {
+        const tagSpriteLines = (lines, spriteGroup, spriteKey = null) => {
             if (!Array.isArray(lines)) {
                 return null;
             }
             const taggedLines = [...lines];
             taggedLines._spriteGroup = spriteGroup;
+            taggedLines._spriteKey = spriteKey;
             return taggedLines;
         };
 
@@ -135,33 +136,38 @@ const Object3DRenderer = (() => {
             : (bellyDirection === 'bellyRight' ? 'bellyLeft' : bellyDirection);
 
         if (cameraForward.z <= -0.65) {
-            return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back');
+            return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back', rearBellyDirection);
         }
 
         if (cameraForward.z >= 0.65) {
-            return tagSpriteLines(sprites.nose?.[bellyDirection] || null, 'nose');
+            return tagSpriteLines(sprites.nose?.[bellyDirection] || null, 'nose', bellyDirection);
         }
 
         if (Math.abs(cameraForward.z) <= 0.25) {
-            if (forwardCardinal === 'left') return tagSpriteLines(sprites.side?.left || null, 'side');
-            if (forwardCardinal === 'right') return tagSpriteLines(sprites.side?.right || null, 'side');
+            if (forwardCardinal === 'left') return tagSpriteLines(sprites.side?.left || null, 'side', 'left');
+            if (forwardCardinal === 'right') return tagSpriteLines(sprites.side?.right || null, 'side', 'right');
 
             const bellyX = -cameraUp.x;
             if (forwardCardinal === 'up') {
                 return tagSpriteLines(
                     bellyX < 0 ? (sprites.side?.downBellyLeft || null) : (sprites.side?.downBellyRight || null),
-                    'side'
+                    'side',
+                    bellyX < 0 ? 'downBellyLeft' : 'downBellyRight'
                 );
             }
             return tagSpriteLines(
                 bellyX < 0 ? (sprites.side?.upBellyLeft || null) : (sprites.side?.upBellyRight || null),
-                'side'
+                'side',
+                bellyX < 0 ? 'upBellyLeft' : 'upBellyRight'
             );
         }
 
         const isTopside = cameraUp.z < 0;
         const bankSet = isTopside ? sprites.topside : sprites.underside;
-        return tagSpriteLines(bankSet?.[forwardCardinal] || null, isTopside ? 'topside' : 'underside');
+        const bankDirection = (!isTopside && (forwardCardinal === 'up' || forwardCardinal === 'down'))
+            ? (forwardCardinal === 'up' ? 'down' : 'up')
+            : forwardCardinal;
+        return tagSpriteLines(bankSet?.[bankDirection] || null, isTopside ? 'topside' : 'underside', bankDirection);
     }
 
     function renderShipSprite(depthBuffer, centerX, centerY, depth, lines, color, plotCell, useAccentColors = true) {
@@ -169,7 +175,16 @@ const Object3DRenderer = (() => {
             return { plotted: 0, pickRadius: 2 };
         }
 
-        const viewportGlyphs = lines?._spriteGroup === 'side' ? SIDE_VIEWPORT_GLYPHS : DEFAULT_VIEWPORT_GLYPHS;
+        let viewportGlyphs = DEFAULT_VIEWPORT_GLYPHS;
+        if (lines?._spriteGroup === 'side') {
+            if (lines?._spriteKey === 'left') {
+                viewportGlyphs = new Set(['<']);
+            } else if (lines?._spriteKey === 'right') {
+                viewportGlyphs = new Set(['>']);
+            } else {
+                viewportGlyphs = SIDE_VIEWPORT_GLYPHS;
+            }
+        }
         const exhaustColor = COLORS.ORANGE || '#FFA500';
         const viewportColor = COLORS.CYAN || '#00FFFF';
         const occluderColor = COLORS.BLACK || '#000000';

@@ -522,6 +522,17 @@ const SpaceTravelEncounters = (() => {
         return `${factionName} are hailing you`;
     }
 
+    function buildEncounterAlertText(fleet) {
+        const rawName = (fleet?.encounterType?.name || fleet?.typeId || 'Unknown').toString().trim();
+        const singularName = rawName.replace(/s$/i, '') || 'Unknown';
+        return `${singularName} fleet is hailing you [H to accept]`;
+    }
+
+    function shouldEscalateIgnoredHailToHostile(fleet) {
+        const typeId = (fleet?.typeId || '').toString().toUpperCase();
+        return typeId === 'PIRATE' || typeId === 'POLICE';
+    }
+
     function triggerHail(mapInstance, fleet, timestampMs, source = 'npc') {
         if (!mapInstance || !fleet || mapInstance.npcEncounterHailPrompt) {
             return;
@@ -531,20 +542,44 @@ const SpaceTravelEncounters = (() => {
         mapInstance.npcEncounterHailPrompt = {
             fleetId: fleet.id,
             text: buildEncounterPromptTitle(fleet),
+            alertText: buildEncounterAlertText(fleet),
             subtext: '',
             source,
             createdMs: timestampMs
         };
-
-        if (typeof mapInstance.setPaused === 'function') {
-            mapInstance.setPaused(true, false);
-        }
 
         console.log('[SpaceTravelEncounter] Hail triggered:', {
             fleetId: fleet.id,
             type: fleet.typeId,
             source
         });
+    }
+
+    function updatePendingHailPrompt(mapInstance, timestampMs) {
+        const prompt = mapInstance?.npcEncounterHailPrompt;
+        if (!prompt) {
+            return;
+        }
+
+        const fleet = (mapInstance.npcEncounterFleets || []).find(candidate => candidate.id === prompt.fleetId);
+        if (!fleet) {
+            mapInstance.npcEncounterHailPrompt = null;
+            return;
+        }
+
+        const responseTimeoutMs = Math.max(0, mapInstance.config.NPC_HAIL_RESPONSE_TIMEOUT_MS || 5000);
+        if (!Number.isFinite(prompt.createdMs) || (timestampMs - prompt.createdMs) < responseTimeoutMs) {
+            return;
+        }
+
+        if (prompt.source === 'npc' && !fleet.isHostile && shouldEscalateIgnoredHailToHostile(fleet)) {
+            setFleetHostile(fleet, 'ignored_hail_timeout');
+            mapInstance.lastErrorMessage = `${fleet.encounterType?.name || fleet.typeId || 'Fleet'} turned hostile (no hail response)`;
+            mapInstance.lastErrorTimestampMs = performance.now();
+            UI.startFlashing?.(COLORS.TEXT_ERROR, COLORS.BLACK, 900);
+        }
+
+        mapInstance.npcEncounterHailPrompt = null;
     }
 
     function canOpenPendingHail(mapInstance) {
@@ -1022,6 +1057,8 @@ const SpaceTravelEncounters = (() => {
         } else {
             trySpawn(mapInstance, dt, timestampMs);
         }
+
+        updatePendingHailPrompt(mapInstance, timestampMs);
 
         updateHailState(mapInstance, timestampMs);
 

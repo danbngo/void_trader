@@ -531,7 +531,10 @@ const EscortShipAI = (() => {
         const distanceMult = (typeof config.SHIP_COLLISION_DISTANCE_MULT === 'number') ? Math.max(0.05, config.SHIP_COLLISION_DISTANCE_MULT) : 1;
         const playerRadius = basePlayerRadius * radiusMult;
         const escortRadius = baseEscortRadius * radiusMult;
-        const collisionDist = (playerRadius + escortRadius) * distanceMult;
+        const minCollisionDistance = (typeof config.SHIP_MIN_COLLISION_DISTANCE_AU === 'number')
+            ? Math.max(0, config.SHIP_MIN_COLLISION_DISTANCE_AU)
+            : 0;
+        const collisionDist = Math.max((playerRadius + escortRadius) * distanceMult, minCollisionDistance);
 
         return distance < collisionDist;
     }

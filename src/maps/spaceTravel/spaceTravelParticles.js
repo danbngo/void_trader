@@ -3,6 +3,11 @@
  */
 
 const SpaceTravelParticles = (() => {
+    const trailDebugState = {
+        lastRenderLogMs: 0,
+        lastUpdateLogMs: 0
+    };
+
     function getTrailRearOffset(ship, config) {
         const fallbackShipSize = ship?.size || SHIP_SIZE_AU || 0.00000043;
         const minOffset = Math.max(fallbackShipSize * 0.75, 0.0000004);
@@ -34,10 +39,31 @@ const SpaceTravelParticles = (() => {
     }
 
     function renderRocketTrails({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, rocketTrailClouds, config, shipOccupancyMask = null }) {
-        if (!playerShip || !Array.isArray(rocketTrailClouds) || rocketTrailClouds.length === 0) {
+        const debugEnabled = !!config?.DEBUG_ROCKET_TRAIL_LOG;
+        const debugLogEveryMs = Math.max(100, Number(config?.DEBUG_ROCKET_TRAIL_LOG_EVERY_MS) || 1000);
+        const shouldLog = debugEnabled && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastRenderLogMs >= debugLogEveryMs);
+
+        if (!config?.ROCKET_TRAIL_ENABLED) {
+            if (shouldLog) {
+                trailDebugState.lastRenderLogMs = timestampMs;
+                console.log('[RocketTrail][Render]', {
+                    timestampMs,
+                    reason: 'ROCKET_TRAIL_DISABLED'
+                });
+            }
             return;
         }
-        if (!config.ROCKET_TRAIL_ENABLED) {
+
+        if (!playerShip || !Array.isArray(rocketTrailClouds) || rocketTrailClouds.length === 0) {
+            if (shouldLog) {
+                trailDebugState.lastRenderLogMs = timestampMs;
+                console.log('[RocketTrail][Render]', {
+                    timestampMs,
+                    reason: !playerShip
+                        ? 'NO_PLAYER_SHIP'
+                        : (!Array.isArray(rocketTrailClouds) ? 'CLOUD_ARRAY_INVALID' : 'NO_CLOUDS')
+                });
+            }
             return;
         }
 
@@ -45,43 +71,124 @@ const SpaceTravelParticles = (() => {
         const visibleDistanceAU = config.ROCKET_TRAIL_VISIBLE_DISTANCE_AU || 1;
         const cloudChar = config.ROCKET_TRAIL_CHAR || '*';
         const startColor = config.ROCKET_TRAIL_COLOR || '#ff8a00';
+        const renderStats = debugEnabled
+            ? {
+                totalClouds: 0,
+                skippedByAge: 0,
+                skippedByDistance: 0,
+                skippedNearPlane: 0,
+                skippedProjection: 0,
+                skippedOffscreen: 0,
+                maskedRelocated: 0,
+                maskedDropped: 0,
+                rendered: 0
+            }
+            : null;
 
         rocketTrailClouds.forEach(cloud => {
+            if (renderStats) {
+                renderStats.totalClouds += 1;
+            }
+
             const ageMs = timestampMs - cloud.spawnMs;
             if (ageMs < 0 || ageMs > fadeMs) {
+                if (renderStats) {
+                    renderStats.skippedByAge += 1;
+                }
                 return;
             }
 
             const distToPlayer = ThreeDUtils.distance(playerShip.position, cloud.position);
             if (distToPlayer > visibleDistanceAU) {
+                if (renderStats) {
+                    renderStats.skippedByDistance += 1;
+                }
                 return;
             }
 
             const relative = ThreeDUtils.subVec(cloud.position, playerShip.position);
             const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
             if (cameraSpace.z < config.NEAR_PLANE) {
+                if (renderStats) {
+                    renderStats.skippedNearPlane += 1;
+                }
                 return;
             }
 
             const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, config.VIEW_FOV);
             if (!projected) {
+                if (renderStats) {
+                    renderStats.skippedProjection += 1;
+                }
                 return;
             }
 
             const x = Math.round(projected.x);
             const y = Math.round(projected.y);
             if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
-                return;
-            }
-
-            if (shipOccupancyMask && shipOccupancyMask[(y * viewWidth) + x]) {
+                if (renderStats) {
+                    renderStats.skippedOffscreen += 1;
+                }
                 return;
             }
 
             const t = Math.max(0, Math.min(1, ageMs / fadeMs));
             const color = SpaceTravelShared.lerpColorHex(startColor, '#000000', t);
-            RasterUtils.plotDepthText(depthBuffer, x, y, cameraSpace.z, cloudChar, color);
+
+            let drawX = x;
+            let drawY = y;
+            if (shipOccupancyMask && shipOccupancyMask[(y * viewWidth) + x]) {
+                const nearbyOffsets = [
+                    { x: -1, y: 0 }, { x: 1, y: 0 },
+                    { x: 0, y: -1 }, { x: 0, y: 1 },
+                    { x: -1, y: -1 }, { x: 1, y: -1 },
+                    { x: -1, y: 1 }, { x: 1, y: 1 },
+                    { x: -2, y: 0 }, { x: 2, y: 0 },
+                    { x: 0, y: -2 }, { x: 0, y: 2 }
+                ];
+
+                let foundSpot = false;
+                for (let i = 0; i < nearbyOffsets.length; i++) {
+                    const nx = x + nearbyOffsets[i].x;
+                    const ny = y + nearbyOffsets[i].y;
+                    if (nx < 0 || nx >= viewWidth || ny < 0 || ny >= viewHeight) {
+                        continue;
+                    }
+                    if (shipOccupancyMask[(ny * viewWidth) + nx]) {
+                        continue;
+                    }
+                    drawX = nx;
+                    drawY = ny;
+                    foundSpot = true;
+                    break;
+                }
+
+                if (!foundSpot) {
+                    if (renderStats) {
+                        renderStats.maskedDropped += 1;
+                    }
+                    return;
+                }
+                if (renderStats) {
+                    renderStats.maskedRelocated += 1;
+                }
+            }
+
+            RasterUtils.plotDepthText(depthBuffer, drawX, drawY, cameraSpace.z, cloudChar, color);
+            if (renderStats) {
+                renderStats.rendered += 1;
+            }
         });
+
+        if (renderStats && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastRenderLogMs >= debugLogEveryMs)) {
+            trailDebugState.lastRenderLogMs = timestampMs;
+            console.log('[RocketTrail][Render]', {
+                timestampMs,
+                ...renderStats,
+                visibleDistanceAU,
+                cloudChar
+            });
+        }
     }
 
     function renderStars({ viewWidth, viewHeight, depthBuffer, timestampMs = 0, playerShip, starfield, boostActive, boostStartTimestampMs, boostEndTimestampMs, config, isPaused, pauseTimestampMs }) {
@@ -345,10 +452,27 @@ const SpaceTravelParticles = (() => {
     }
 
     function updateRocketTrails(mapInstance, timestampMs = 0) {
+        const debugEnabled = !!mapInstance?.config?.DEBUG_ROCKET_TRAIL_LOG;
+        const debugLogEveryMs = Math.max(100, Number(mapInstance?.config?.DEBUG_ROCKET_TRAIL_LOG_EVERY_MS) || 1000);
+
         if (!mapInstance?.config?.ROCKET_TRAIL_ENABLED) {
+            if (debugEnabled && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastUpdateLogMs >= debugLogEveryMs)) {
+                trailDebugState.lastUpdateLogMs = timestampMs;
+                console.log('[RocketTrail][Update]', {
+                    timestampMs,
+                    reason: 'ROCKET_TRAIL_DISABLED'
+                });
+            }
             return;
         }
         if (!mapInstance.playerShip) {
+            if (debugEnabled && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastUpdateLogMs >= debugLogEveryMs)) {
+                trailDebugState.lastUpdateLogMs = timestampMs;
+                console.log('[RocketTrail][Update]', {
+                    timestampMs,
+                    reason: 'NO_PLAYER_SHIP'
+                });
+            }
             return;
         }
 
@@ -366,13 +490,33 @@ const SpaceTravelParticles = (() => {
         const fadeMs = mapInstance.config.ROCKET_TRAIL_FADE_MS || 4000;
         const spawnIntervalMs = mapInstance.config.ROCKET_TRAIL_SPAWN_INTERVAL_MS || 200;
         const minSpeed = mapInstance.config.ROCKET_TRAIL_MIN_SPEED_AU_PER_SEC || 0.000001;
+        const updateStats = debugEnabled
+            ? {
+                existingBefore: Array.isArray(mapInstance.rocketTrailClouds) ? mapInstance.rocketTrailClouds.length : 0,
+                prunedByAge: 0,
+                consideredShips: 0,
+                skippedMissingData: 0,
+                skippedMinSpeed: 0,
+                skippedSpawnInterval: 0,
+                spawned: 0,
+                npcShipsConsidered: 0,
+                escortsConsidered: Array.isArray(mapInstance.escortShips) ? mapInstance.escortShips.length : 0
+            }
+            : null;
 
         mapInstance.rocketTrailClouds = mapInstance.rocketTrailClouds.filter(cloud => {
             if (!cloud || !Number.isFinite(cloud.spawnMs)) {
+                if (updateStats) {
+                    updateStats.prunedByAge += 1;
+                }
                 return false;
             }
             const age = now - cloud.spawnMs;
-            return age >= 0 && age <= fadeMs;
+            const keep = age >= 0 && age <= fadeMs;
+            if (!keep && updateStats) {
+                updateStats.prunedByAge += 1;
+            }
+            return keep;
         });
 
         const npcShips = (Array.isArray(mapInstance.npcEncounterFleets) && mapInstance.npcEncounterFleets.length > 0)
@@ -383,13 +527,25 @@ const SpaceTravelParticles = (() => {
             ...(Array.isArray(mapInstance.escortShips) ? mapInstance.escortShips : []),
             ...npcShips
         ];
+        if (updateStats) {
+            updateStats.npcShipsConsidered = npcShips.length;
+        }
         ships.forEach((ship, index) => {
+            if (updateStats) {
+                updateStats.consideredShips += 1;
+            }
             if (!ship || !ship.position || !ship.velocity) {
+                if (updateStats) {
+                    updateStats.skippedMissingData += 1;
+                }
                 return;
             }
 
             const speed = ThreeDUtils.vecLength(ship.velocity);
             if (speed < minSpeed) {
+                if (updateStats) {
+                    updateStats.skippedMinSpeed += 1;
+                }
                 return;
             }
 
@@ -401,6 +557,9 @@ const SpaceTravelParticles = (() => {
 
             const safeLastSpawnMs = mapInstance.rocketTrailLastSpawnByShip[shipKey] || 0;
             if ((now - safeLastSpawnMs) < spawnIntervalMs) {
+                if (updateStats) {
+                    updateStats.skippedSpawnInterval += 1;
+                }
                 return;
             }
 
@@ -414,7 +573,22 @@ const SpaceTravelParticles = (() => {
                 shipId: shipKey
             });
             mapInstance.rocketTrailLastSpawnByShip[shipKey] = now;
+            if (updateStats) {
+                updateStats.spawned += 1;
+            }
         });
+
+        if (updateStats && Number.isFinite(now) && (now - trailDebugState.lastUpdateLogMs >= debugLogEveryMs)) {
+            trailDebugState.lastUpdateLogMs = now;
+            console.log('[RocketTrail][Update]', {
+                timestampMs: now,
+                ...updateStats,
+                existingAfter: mapInstance.rocketTrailClouds.length,
+                minSpeed,
+                spawnIntervalMs,
+                fadeMs
+            });
+        }
     }
 
     function updateParticles(mapInstance, timestampMs = 0) {

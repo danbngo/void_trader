@@ -1,0 +1,34 @@
+const SHIP_SPRITES = {
+    topside: {
+        right: ['◣', '██▶', '◤'],
+        left: ['  ◢', '◀██', '  ◥'],
+        down: ['◥██◤', ' ◥◤'],
+        up: [' ◢◣', '◢██◣']
+    },
+    underside: {
+        right: ['◣', '██▶', '◤'],
+        left: ['  ◢', '◀██', '  ◥'],
+        down: ['◥██◤', ' ◥◤'],
+        up: [' ◢◣', '◢██◣']
+    },
+    side: {
+        left: ['◢██', '  ◥'],
+        right: ['██◣', '◤'],
+        upBellyLeft: [' ◣', '◢██'],
+        upBellyRight: [' ◢', '██◣'],
+        downBellyRight: ['██◤', ' ◥'],
+        downBellyLeft: ['◢██', ' ◤']
+    },
+    nose: {
+        bellyDown: ['◢█⮟█◣'],
+        bellyLeft: [' ◣', '<█', ' ◤'],
+        bellyRight: ['◢', '█>', '◥'],
+        bellyUp: ['◥█^█◤']
+    },
+    back: {
+        bellyDown: ['◢███◣'],
+        bellyLeft: ['◣', '██', '◤'],
+        bellyRight: [' ◢', '██', ' ◥'],
+        bellyUp: ['◥███◤']
+    }
+};

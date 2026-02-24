@@ -10,7 +10,7 @@ const SpaceTravelRender = (() => {
         if (!params.isActive) {
             return;
         }
-        const renderTimestampMs = params._getRenderTimestampMs?.(params.lastTimestamp) || params.timestampMs;
+        const renderTimestampMs = params._getRenderTimestampMs?.(params.timestampMs) || params.timestampMs;
         UI.setGameCursorEnabled?.(!params.isPaused);
         UI.clear();
         UI.clearOutputRow();
@@ -384,10 +384,10 @@ const SpaceTravelRender = (() => {
             const baseX = Math.round(pick.screenX - (labelText.length / 2));
             const clampedX = clamp(baseX, 0, Math.max(0, viewWidth - labelText.length));
             const preferredRows = [
-                clamp(pick.screenY - 1, 0, viewHeight - 1),
-                clamp(pick.screenY + 1, 0, viewHeight - 1),
                 clamp(pick.screenY - 2, 0, viewHeight - 1),
-                clamp(pick.screenY + 2, 0, viewHeight - 1)
+                clamp(pick.screenY, 0, viewHeight - 1),
+                clamp(pick.screenY - 3, 0, viewHeight - 1),
+                clamp(pick.screenY + 1, 0, viewHeight - 1)
             ];
 
             let drawY = preferredRows[0];

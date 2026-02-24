@@ -202,6 +202,49 @@ const SpaceTravelLaser = (() => {
             lastFireAttemptMs = now;
 
             const selectedShipRef = getSelectedShipRef(localDestination);
+            const enemyTarget = lastHoverPick?.bodyRef?.isNpcEncounterShip
+                ? lastHoverPick.bodyRef
+                : (selectedShipRef?.isNpcEncounterShip ? selectedShipRef : null);
+
+            const warningDurationMs = Math.max(250, config.NPC_NON_HOSTILE_FIRE_WARNING_MS || 2000);
+            if (enemyTarget && Array.isArray(mapInstance?.npcEncounterFleets)) {
+                const fleetId = enemyTarget.npcFleetId || enemyTarget.fleetId || enemyTarget.shipData?.npcFleetId;
+                const fleet = fleetId
+                    ? (mapInstance.npcEncounterFleets || []).find(candidate => candidate?.id === fleetId)
+                    : null;
+
+                if (fleet && !fleet.isHostile) {
+                    if (!mapInstance.nonHostileFireWarningsByFleetId) {
+                        mapInstance.nonHostileFireWarningsByFleetId = {};
+                    }
+
+                    const state = mapInstance.nonHostileFireWarningsByFleetId[fleet.id] || { shown: false, warningStartMs: 0 };
+                    if (!state.shown) {
+                        const fleetName = fleet.encounterType?.name || fleet.typeId || 'fleet';
+                        const message = `Warning: Firing on the ${fleetName} will initiate combat!`;
+                        mapInstance.nonHostileFireWarningsByFleetId[fleet.id] = {
+                            shown: true,
+                            warningStartMs: timestampMs || now
+                        };
+                        mapInstance.combatWarningMessage = message;
+                        mapInstance.combatWarningTimestampMs = timestampMs || now;
+                        mapInstance.combatWarningDurationMs = warningDurationMs;
+                        return {
+                            laserEmptyTimestampMs: null,
+                            flashMessage: message
+                        };
+                    }
+
+                    const elapsedMs = (timestampMs || now) - (state.warningStartMs || 0);
+                    if (elapsedMs < warningDurationMs) {
+                        return {
+                            laserEmptyTimestampMs: null,
+                            flashMessage: mapInstance.combatWarningMessage || `Warning: Firing on the ${fleet.encounterType?.name || fleet.typeId || 'fleet'} will initiate combat!`
+                        };
+                    }
+                }
+            }
+
             const targetScreen = getPlayerTargetScreenPoint({ inputState, config, lastHoverPick, localDestination, playerShip });
             const targetPoint = getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, localDestination, targetScreen });
             
@@ -226,9 +269,6 @@ const SpaceTravelLaser = (() => {
                 timestampMs: timestampMs || now
             });
 
-            const enemyTarget = lastHoverPick?.bodyRef?.isNpcEncounterShip
-                ? lastHoverPick.bodyRef
-                : (selectedShipRef?.isNpcEncounterShip ? selectedShipRef : null);
             if (enemyTarget && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
                 SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, enemyTarget, timestampMs || now);
             }

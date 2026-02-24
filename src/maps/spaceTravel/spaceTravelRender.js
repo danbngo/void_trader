@@ -475,6 +475,19 @@ const SpaceTravelRender = (() => {
             const x = Math.floor((viewWidth - message.length) / 2);
             const y = Math.floor(viewHeight / 2);
             UI.addText(x, y, message, messageColor);
+        } else if (params.combatWarningMessage) {
+            const warningDurationMs = Math.max(250, params.combatWarningDurationMs || params.config?.NPC_NON_HOSTILE_FIRE_WARNING_MS || 2000);
+            if ((timestampMs - (params.combatWarningTimestampMs || 0)) > warningDurationMs) {
+                params.combatWarningMessage = '';
+                params.combatWarningTimestampMs = 0;
+                params.combatWarningDurationMs = 0;
+                return;
+            }
+            const flashPhase = Math.floor((timestampMs - (params.combatWarningTimestampMs || timestampMs)) / 250) % 2;
+            const messageColor = flashPhase === 0 ? COLORS.ORANGE : COLORS.WHITE;
+            const x = Math.floor((viewWidth - params.combatWarningMessage.length) / 2);
+            const y = Math.floor(viewHeight / 2);
+            UI.addText(x, y, params.combatWarningMessage, messageColor);
         } else if (params.boostTurnMessage || params.boostBlockMessage) {
             const message = params.boostTurnMessage || params.boostBlockMessage;
             const messageTimestampMs = params.boostTurnMessage

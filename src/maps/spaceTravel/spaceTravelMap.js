@@ -76,6 +76,10 @@ class SpaceTravelMapClass {
         this.boostBlockMessageTimestampMs = 0;
         this.boostTurnMessageTimestampMs = 0;
         this.boostNoFuelTimestampMs = 0;
+        this.combatWarningMessage = '';
+        this.combatWarningTimestampMs = 0;
+        this.combatWarningDurationMs = 0;
+        this.nonHostileFireWarningsByFleetId = {};
 
         // Auto navigation state
         this.autoNavActive = false;

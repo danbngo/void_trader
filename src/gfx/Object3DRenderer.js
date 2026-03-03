@@ -115,7 +115,7 @@ const Object3DRenderer = (() => {
         return 'bellyRight';
     }
 
-    function selectShipSpriteLines(cameraForward, cameraUp, shipSprites) {
+    function selectShipSpriteLines(cameraForward, cameraUp, shipSprites, config = null) {
         const tagSpriteLines = (lines, spriteGroup, spriteKey = null) => {
             if (!Array.isArray(lines)) {
                 return null;
@@ -135,15 +135,18 @@ const Object3DRenderer = (() => {
             ? 'bellyRight'
             : (bellyDirection === 'bellyRight' ? 'bellyLeft' : bellyDirection);
 
-        if (cameraForward.z <= -0.65) {
+        const noseBackThreshold = Math.min(0.99, Math.max(0.5, Number(config?.SHIP_SPRITE_NOSE_BACK_THRESHOLD) || 0.92));
+        const sideViewThreshold = Math.min(0.6, Math.max(0.05, Number(config?.SHIP_SPRITE_SIDE_VIEW_MAX_ABS_Z) || 0.12));
+
+        if (cameraForward.z <= -noseBackThreshold) {
             return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back', rearBellyDirection);
         }
 
-        if (cameraForward.z >= 0.65) {
+        if (cameraForward.z >= noseBackThreshold) {
             return tagSpriteLines(sprites.nose?.[bellyDirection] || null, 'nose', bellyDirection);
         }
 
-        if (Math.abs(cameraForward.z) <= 0.25) {
+        if (Math.abs(cameraForward.z) <= sideViewThreshold) {
             if (forwardCardinal === 'left') return tagSpriteLines(sprites.side?.left || null, 'side', 'left');
             if (forwardCardinal === 'right') return tagSpriteLines(sprites.side?.right || null, 'side', 'right');
 
@@ -321,7 +324,7 @@ const Object3DRenderer = (() => {
         let pickRadius = 2;
 
         if (canRenderSprite) {
-            const spriteLines = selectShipSpriteLines(cameraForward, cameraUp, config.SHIP_SPRITES);
+            const spriteLines = selectShipSpriteLines(cameraForward, cameraUp, config.SHIP_SPRITES, config);
             if (spriteLines && spriteLines.length > 0) {
                 const width = spriteLines.reduce((max, line) => Math.max(max, (line || '').length), 0);
                 const height = spriteLines.length;

@@ -6,53 +6,71 @@
 const TitleMenu = (() => {
     const LY_TO_AU = 63241; // 1 LY = 63,241 AU
     let animationInterval = null;
+    let titleScene = null;
+
+    const TITLE_TICK_MS = 33;
+    const TITLE_STAR_COUNT = 400;
+    const TITLE_PORTAL_AUTONAV_SPEED_AU_PER_SEC = 0.03;
+    const TITLE_PORTAL_STOP_DISTANCE_AU = 0.0002;
+    const TITLE_DUST_IDLE_SPEED_AU_PER_SEC = 0.01;
+    const TITLE_DUST_SHIP_SIZE_AU = 0.0012;
+
+    function logTitleTransitionPhase(phase, extra = {}) {
+        const nowMs = performance.now();
+        const sinceStartMs = (titleScene && Number.isFinite(titleScene.transitionStartMs))
+            ? (nowMs - titleScene.transitionStartMs)
+            : null;
+        console.log('[TitleTransition]', {
+            phase,
+            nowMs: Number(nowMs.toFixed(2)),
+            sinceStartMs: sinceStartMs === null ? null : Number(sinceStartMs.toFixed(2)),
+            ...extra
+        });
+    }
+
+    function runAfterUiPaint(phasePrefix, callback) {
+        logTitleTransitionPhase(`${phasePrefix}_wait_for_paint`);
+        const raf = (typeof requestAnimationFrame === 'function')
+            ? requestAnimationFrame
+            : (fn) => setTimeout(fn, 16);
+        raf(() => {
+            logTitleTransitionPhase(`${phasePrefix}_painted`);
+            setTimeout(callback, 0);
+        });
+    }
+
+    function getTitleDustConfig() {
+        return {
+            ...SpaceTravelConfig,
+            DUST_PARTICLE_COUNT: 140,
+            DUST_PARTICLE_RANGE_SHIP_LENGTHS: 10,
+            DUST_PARTICLE_SPAWN_RADIUS_SHIP_LENGTHS: 5,
+            DUST_PARTICLE_MIN_DISTANCE_SHIP_LENGTHS: 0.6,
+            DUST_PARTICLE_MAX_DISTANCE_SHIP_LENGTHS: 10,
+            DUST_PARTICLE_EDGE_BAND_SHIP_LENGTHS: 2.2,
+            DUST_PARTICLE_VELOCITY_BIAS: 0.55
+        };
+    }
     
     /**
      * Show the title screen
      */
     function show() {
-        // Initialize starfield
-        Starfield.init();
-        
-        // Start animation loop
-        screenController = startAnimation();
-        if (screenController) screenController.setScreen('title');
-        
-        // Initial render
-        renderTitleScreen();
-    }
-    
-    /**
-     * Start the starfield animation loop
-     */
-    function startAnimation() {
-        // Clear any existing animation
-        if (animationInterval) {
-            clearInterval(animationInterval);
-        }
-        
-        // Track which screen we're on
-        let currentScreen = 'title';
-        
-        // Animate at ~30 FPS
+        stopAnimation();
+        UI.resetSelection();
+        titleScene = createTitleScene();
+        refreshContinuePortal();
+        setupTitleInputHandlers();
+        renderTitleScene();
+
         animationInterval = setInterval(() => {
-            Starfield.update();
-            
-            // Re-render the appropriate screen
-            // We need to check which screen is active
-            if (currentScreen === 'title') {
-                renderTitleScreen();
-            } else if (currentScreen === 'about') {
-                renderAboutScreen();
+            updateTitleScene(performance.now());
+            if (!titleScene || titleScene.isWarping) {
+                return;
             }
-        }, 33);
-        
-        return {
-            setScreen: (screen) => { currentScreen = screen; }
-        };
+            renderTitleScene();
+        }, TITLE_TICK_MS);
     }
-    
-    let screenController = null;
     
     /**
      * Stop the starfield animation
@@ -62,55 +80,496 @@ const TitleMenu = (() => {
             clearInterval(animationInterval);
             animationInterval = null;
         }
+        teardownTitleInputHandlers();
     }
-    
-    function setupMouseLogging() {
+
+    function createTitleScene() {
+        return {
+            mode: 'select',
+            selectedIndex: 0,
+            activePortalIndex: 0,
+            autoNavActive: false,
+            continueAvailable: false,
+            continueCount: 0,
+            playerShip: {
+                position: { x: 0, y: 0, z: 0.0675 },
+                rotation: { x: 0, y: 0, z: 0, w: 1 },
+                velocity: { x: 0, y: 0, z: 0 }
+            },
+            dustCameraPosition: { x: 0, y: 0, z: 0.0675 },
+            dustParticles: [],
+            shipStart: { x: 0, y: 0, z: 0 },
+            phaseStartMs: performance.now(),
+            lastTimestampMs: performance.now(),
+            actionTriggered: false,
+            isWarping: false,
+            pressedKeys: new Set(),
+            keyDownHandler: null,
+            keyUpHandler: null,
+            transientMessage: '',
+            transientMessageUntilMs: 0,
+            transitionStartMs: null,
+            portalTintLastLogMs: 0,
+            lastPortalScreenLogMs: 0,
+            starfield: ThreeDUtils.buildStarfield(TITLE_STAR_COUNT),
+            portals: [
+                {
+                    id: 'new-game',
+                    label: 'NEW GAME',
+                    color: COLORS.CYAN,
+                    world: { x: -0.008, y: 0, z: 0.09 },
+                    action: () => {
+                        stopAnimation();
+                        newGame();
+                    }
+                },
+                {
+                    id: 'continue',
+                    label: 'CONTINUE',
+                    color: COLORS.MAGENTA,
+                    world: { x: 0.008, y: 0, z: 0.09 },
+                    action: () => {
+                        stopAnimation();
+                        LoadMenu.show(() => TitleMenu.show());
+                    }
+                }
+            ]
+        };
+    }
+
+    function orientShipToward(targetPos) {
+        if (!titleScene || !titleScene.playerShip || !targetPos) {
+            return;
+        }
+        const toTarget = ThreeDUtils.subVec(targetPos, titleScene.playerShip.position);
+        const forward = ThreeDUtils.normalizeVec(toTarget);
+        if (ThreeDUtils.vecLength(forward) <= 0.000001) {
+            return;
+        }
+        const up = { x: 0, y: 0, z: 1 };
+        titleScene.playerShip.rotation = ThreeDUtils.quatNormalize(ThreeDUtils.quatFromForwardUp(forward, up));
+    }
+
+    function setupTitleInputHandlers() {
+        if (!titleScene) {
+            return;
+        }
+        teardownTitleInputHandlers();
+
+        titleScene.keyDownHandler = (event) => {
+            if (!titleScene || titleScene.isWarping) return;
+            const key = String(event.key || '').toLowerCase();
+
+            if (key === '1') {
+                event.preventDefault();
+                beginPortalAutoNav(0);
+                return;
+            }
+            if (key === '2') {
+                event.preventDefault();
+                beginPortalAutoNav(1);
+                return;
+            }
+
+            if (key === 'arrowleft' || key === 'arrowup') {
+                event.preventDefault();
+                titleScene.selectedIndex = (titleScene.selectedIndex - 1 + titleScene.portals.length) % titleScene.portals.length;
+                return;
+            }
+
+            if (key === 'arrowright' || key === 'arrowdown') {
+                event.preventDefault();
+                titleScene.selectedIndex = (titleScene.selectedIndex + 1) % titleScene.portals.length;
+                return;
+            }
+
+            if (key === 'enter') {
+                event.preventDefault();
+                beginPortalAutoNav(titleScene.selectedIndex);
+            }
+        };
+
+        titleScene.keyUpHandler = (event) => {
+            if (!titleScene) return;
+        };
+
+        document.addEventListener('keydown', titleScene.keyDownHandler);
+        document.addEventListener('keyup', titleScene.keyUpHandler);
+    }
+
+    function teardownTitleInputHandlers() {
+        if (!titleScene) {
+            return;
+        }
+        if (titleScene.keyDownHandler) {
+            document.removeEventListener('keydown', titleScene.keyDownHandler);
+            titleScene.keyDownHandler = null;
+        }
+        if (titleScene.keyUpHandler) {
+            document.removeEventListener('keyup', titleScene.keyUpHandler);
+            titleScene.keyUpHandler = null;
+        }
+        if (titleScene.pressedKeys) titleScene.pressedKeys.clear();
+    }
+
+    function refreshContinuePortal() {
+        if (!titleScene) return;
+        const saves = SaveLoadManager.getSaveList();
+        titleScene.continueCount = saves.length;
+        titleScene.continueAvailable = saves.length > 0;
+    }
+
+    function easeInOut(t) {
+        const x = Math.max(0, Math.min(1, t));
+        return x < 0.5 ? (2 * x * x) : (1 - Math.pow(-2 * x + 2, 2) / 2);
+    }
+
+    function updateTitleScene(timestampMs) {
+        if (!titleScene) return;
+
+        const dt = Math.max(0, Math.min(0.05, (timestampMs - titleScene.lastTimestampMs) / 1000));
+        titleScene.lastTimestampMs = timestampMs;
+
+        if (!titleScene.isWarping) {
+            updatePortalAutoNav(dt);
+            checkTitlePortalEntry();
+        }
+
+        updateTitleDust(dt);
+    }
+
+    function updateTitleDust(dt) {
+        if (!titleScene) {
+            return;
+        }
+
+        const titleDustConfig = getTitleDustConfig();
+
+        const currentSpeed = ThreeDUtils.vecLength(titleScene.playerShip.velocity);
+        const dustVelocity = (currentSpeed > 0.000001)
+            ? { ...titleScene.playerShip.velocity }
+            : ThreeDUtils.scaleVec(ThreeDUtils.getLocalAxes(titleScene.playerShip.rotation).forward, TITLE_DUST_IDLE_SPEED_AU_PER_SEC);
+
+        const dustShip = {
+            ...titleScene.playerShip,
+            position: { ...titleScene.dustCameraPosition },
+            velocity: dustVelocity,
+            size: TITLE_DUST_SHIP_SIZE_AU
+        };
+
+        titleScene.dustCameraPosition = ThreeDUtils.addVec(
+            titleScene.dustCameraPosition,
+            ThreeDUtils.scaleVec(dustVelocity, dt)
+        );
+
+        titleScene.dustParticles = SpaceTravelParticles.updateDustParticles({
+            playerShip: dustShip,
+            dustParticles: Array.isArray(titleScene.dustParticles) ? titleScene.dustParticles : [],
+            config: titleDustConfig,
+            getVelocityWorldDirection: () => ThreeDUtils.normalizeVec(dustVelocity)
+        });
+    }
+
+    function updatePortalAutoNav(dt) {
+        if (!titleScene || !titleScene.autoNavActive || titleScene.isWarping) {
+            return;
+        }
+
+        const portal = titleScene.portals[titleScene.activePortalIndex];
+        if (!portal) {
+            titleScene.autoNavActive = false;
+            return;
+        }
+
+        const toPortal = ThreeDUtils.subVec(portal.world, titleScene.playerShip.position);
+        const distance = ThreeDUtils.vecLength(toPortal);
+        if (distance <= TITLE_PORTAL_STOP_DISTANCE_AU) {
+            titleScene.autoNavActive = false;
+            return;
+        }
+
+        const direction = ThreeDUtils.scaleVec(toPortal, 1 / Math.max(0.000001, distance));
+        titleScene.playerShip.velocity = ThreeDUtils.scaleVec(direction, TITLE_PORTAL_AUTONAV_SPEED_AU_PER_SEC);
+        titleScene.playerShip.position = ThreeDUtils.addVec(
+            titleScene.playerShip.position,
+            ThreeDUtils.scaleVec(titleScene.playerShip.velocity, dt)
+        );
+    }
+
+    function getPortalScreenInfo(portalWorld, viewWidth, viewHeight) {
+        const relative = ThreeDUtils.subVec(portalWorld, titleScene.playerShip.position);
+        const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(titleScene.playerShip.rotation));
+        if (cameraSpace.z <= SpaceTravelConfig.NEAR_PLANE) {
+            return null;
+        }
+
+        const center = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, SpaceTravelConfig.VIEW_FOV);
+        if (!center) {
+            return null;
+        }
+
+        const right = RasterUtils.projectCameraSpacePointRaw({
+            x: cameraSpace.x + SpaceTravelConfig.PORTAL_RADIUS_AU,
+            y: cameraSpace.y,
+            z: cameraSpace.z
+        }, viewWidth, viewHeight, SpaceTravelConfig.VIEW_FOV);
+        const up = RasterUtils.projectCameraSpacePointRaw({
+            x: cameraSpace.x,
+            y: cameraSpace.y + (SpaceTravelConfig.PORTAL_RADIUS_AU * SpaceTravelPortal.getWorldRadiusYScale(viewWidth, viewHeight, SpaceTravelConfig)),
+            z: cameraSpace.z
+        }, viewWidth, viewHeight, SpaceTravelConfig.VIEW_FOV);
+        if (!right || !up) {
+            return null;
+        }
+
+        return {
+            centerX: center.x,
+            centerY: center.y,
+            radiusX: Math.max(1, Math.abs(right.x - center.x)),
+            radiusY: Math.max(1, Math.abs(up.y - center.y))
+        };
+    }
+
+    function renderTravelStyleScene(depthBuffer, viewWidth, viewHeight, timestampMs) {
+        const titleDustConfig = getTitleDustConfig();
+
+        SpaceTravelParticles.renderStars({
+            viewWidth,
+            viewHeight,
+            depthBuffer,
+            timestampMs,
+            playerShip: titleScene.playerShip,
+            starfield: titleScene.starfield,
+            boostActive: titleScene.isWarping,
+            boostStartTimestampMs: titleScene.phaseStartMs,
+            boostEndTimestampMs: 0,
+            config: SpaceTravelConfig,
+            isPaused: false,
+            pauseTimestampMs: 0
+        });
+
+        const currentSpeed = ThreeDUtils.vecLength(titleScene.playerShip.velocity);
+        const dustVelocity = (currentSpeed > 0.000001)
+            ? { ...titleScene.playerShip.velocity }
+            : ThreeDUtils.scaleVec(ThreeDUtils.getLocalAxes(titleScene.playerShip.rotation).forward, TITLE_DUST_IDLE_SPEED_AU_PER_SEC);
+        const dustShip = {
+            ...titleScene.playerShip,
+            position: { ...titleScene.dustCameraPosition },
+            velocity: dustVelocity,
+            size: TITLE_DUST_SHIP_SIZE_AU
+        };
+
+        SpaceTravelParticles.renderDust({
+            viewWidth,
+            viewHeight,
+            depthBuffer,
+            playerShip: dustShip,
+            dustParticles: Array.isArray(titleScene.dustParticles) ? titleScene.dustParticles : [],
+            config: titleDustConfig,
+            targetSystem: null,
+            currentGameState: { date: new Date() },
+            getVelocityCameraSpace: () => ThreeDUtils.rotateVecByQuat(dustVelocity, ThreeDUtils.quatConjugate(titleScene.playerShip.rotation))
+        });
+
+        titleScene.portals.forEach((portal) => {
+            const params = {
+                playerShip: titleScene.playerShip,
+                config: SpaceTravelConfig,
+                isPaused: false,
+                portalPausedTimestampMs: 0,
+                portalActive: true,
+                portalPosition: portal.world,
+                portalPrimaryColor: portal.id === 'continue' ? COLORS.MAGENTA : COLORS.CYAN,
+                portalSecondaryColor: portal.id === 'continue' ? COLORS.PURPLE : COLORS.BLUE,
+                portalTintColor: portal.id === 'continue' ? COLORS.MAGENTA : COLORS.CYAN,
+                portalOpenTimestampMs: timestampMs - ((SpaceTravelConfig.PORTAL_EXPAND_DURATION_MS || 2000) + 250),
+                portalTintLastLogMs: titleScene.portalTintLastLogMs
+            };
+            SpaceTravelPortal.render(params, depthBuffer, viewWidth, viewHeight, timestampMs);
+            titleScene.portalTintLastLogMs = params.portalTintLastLogMs || titleScene.portalTintLastLogMs;
+        });
+    }
+
+    function beginPortalAutoNav(portalIndex) {
+        if (!titleScene || titleScene.isWarping) return;
+
+        if (portalIndex === 1 && !titleScene.continueAvailable) {
+            titleScene.transientMessage = 'No save found. Start a new game first.';
+            titleScene.transientMessageUntilMs = performance.now() + 1800;
+            return;
+        }
+
+        const portal = titleScene.portals[portalIndex];
+        if (!portal) return;
+
+        titleScene.transitionStartMs = performance.now();
+        titleScene.selectedIndex = portalIndex;
+        titleScene.activePortalIndex = portalIndex;
+        titleScene.autoNavActive = true;
+        logTitleTransitionPhase('autonav_start', {
+            portalIndex,
+            portalId: portal.id,
+            portalWorld: { ...portal.world },
+            playerPos: { ...titleScene.playerShip.position }
+        });
+    }
+
+    function checkTitlePortalEntry() {
+        if (!titleScene || titleScene.isWarping) return;
+
+        const radius = SpaceTravelConfig.PORTAL_RADIUS_AU;
+        for (let i = 0; i < titleScene.portals.length; i++) {
+            const portal = titleScene.portals[i];
+            if (i === 1 && !titleScene.continueAvailable) {
+                continue;
+            }
+            const distance = ThreeDUtils.distance(titleScene.playerShip.position, portal.world);
+            if (distance <= radius) {
+                logTitleTransitionPhase('portal_entry_detected', {
+                    portalIndex: i,
+                    portalId: portal.id,
+                    distance,
+                    radius,
+                    playerPos: { ...titleScene.playerShip.position }
+                });
+                startTitleWarpAnimation(i);
+                return;
+            }
+        }
+    }
+
+    function startTitleWarpAnimation(portalIndex) {
+        if (!titleScene || titleScene.isWarping) return;
+
+        titleScene.isWarping = true;
+        titleScene.autoNavActive = false;
+        titleScene.activePortalIndex = portalIndex;
+
+        const portal = titleScene.portals[portalIndex] || null;
+        logTitleTransitionPhase('transition_begin', {
+            portalIndex,
+            portalId: portal?.id || null
+        });
+
+        stopAnimation();
+        logTitleTransitionPhase('animation_stopped', {
+            portalIndex,
+            portalId: portal?.id || null
+        });
+        executeActivePortalAction();
+    }
+
+    function executeActivePortalAction() {
+        if (!titleScene) return;
+        const portal = titleScene.portals[titleScene.activePortalIndex] || titleScene.portals[0];
+        if (!portal || typeof portal.action !== 'function') {
+            logTitleTransitionPhase('action_missing', {
+                activePortalIndex: titleScene.activePortalIndex
+            });
+            return;
+        }
+        logTitleTransitionPhase('action_dispatch', {
+            portalId: portal.id,
+            label: portal.label,
+            continueAvailable: titleScene.continueAvailable,
+            continueCount: titleScene.continueCount
+        });
+        portal.action();
     }
     
     /**
      * Render the title screen with starfield background
      */
-    function renderTitleScreen() {
+    function renderTitleScene() {
+        if (!titleScene) {
+            return;
+        }
+
+        refreshContinuePortal();
         UI.clear();
-        
-        // Render starfield FIRST (background layer)
-        Starfield.render();
-        
-        // Don't reset selection here - it causes buttons to reset every frame
-        // UI.resetSelection();
-        
+
         const grid = UI.getGridSize();
-        const centerX = Math.floor(grid.width / 2);
-        
-        // Title
-        UI.addTitleLineCentered(5, 'V O I D   T R A D E R');
-        UI.addTextCentered(7, 'A Text-Based Space Trading Game', COLORS.TEXT_DIM);
-        
-        // Menu buttons positioned at bottom
-        const buttonY = grid.height - 5;
-        
-        UI.addCenteredButtons(buttonY, [
-            { key: '1', label: 'New Game', callback: () => {
-                stopAnimation();
-                newGame();
-            }, color: COLORS.BUTTON, helpText: 'Start a new adventure' },
-            { key: '2', label: 'Load Game', callback: () => {
-                stopAnimation();
-                LoadMenu.show(() => TitleMenu.show());
-            }, color: COLORS.BUTTON, helpText: 'Load a previously saved game' },
-            { key: '3', label: 'About', callback: () => {
-                stopAnimation();
-                showAbout();
-            }, color: COLORS.BUTTON, helpText: 'Learn about the game' },
-            { key: '4', label: 'Debug Mode', callback: () => {
-                stopAnimation();
-                newGameDebug();
-            }, color: COLORS.YELLOW, helpText: 'Start a new game with debug cheats (1M CR, all perks, elite status)' }
-        ]);
-        
-        UI.addTextCentered(grid.height - 1, '(Use mouse, arrow keys or numbers to select)', COLORS.TEXT_DIM);
-        
-        // Draw everything
+        const viewHeight = Math.max(5, grid.height - 7);
+        const timestampMs = performance.now();
+        const depthBuffer = RasterUtils.createDepthBuffer(grid.width, viewHeight);
+
+        const clickables = [];
+
+        renderTravelStyleScene(depthBuffer, grid.width, viewHeight, timestampMs);
+        RasterUtils.flushDepthBuffer(depthBuffer);
+
+        titleScene.portals.forEach((portal, portalIndex) => {
+            const projected = getPortalScreenInfo(portal.world, grid.width, viewHeight);
+            if (!projected) {
+                return;
+            }
+
+            const nowMs = timestampMs;
+            if ((nowMs - (titleScene.lastPortalScreenLogMs || 0)) >= 500) {
+                console.log('[TitlePortalScreen]', {
+                    id: portal.id,
+                    selected: titleScene.selectedIndex === portalIndex,
+                    centerX: Number(projected.centerX.toFixed(2)),
+                    centerY: Number(projected.centerY.toFixed(2)),
+                    radiusX: Number(projected.radiusX.toFixed(2)),
+                    radiusY: Number(projected.radiusY.toFixed(2)),
+                    width: Number((projected.radiusX * 2).toFixed(2)),
+                    height: Number((projected.radiusY * 2).toFixed(2)),
+                    world: portal.world
+                });
+            }
+
+            const isSelected = titleScene.selectedIndex === portalIndex;
+            const keyPrefix = `${portalIndex + 1}. `;
+            const label = portalIndex === 1 && !titleScene.continueAvailable
+                ? `${keyPrefix}${portal.label} (NO SAVE)`
+                : `${keyPrefix}${portal.label}`;
+            const labelColor = (portalIndex === 1 && !titleScene.continueAvailable)
+                ? COLORS.TEXT_DIM
+                : (isSelected ? COLORS.YELLOW : COLORS.TEXT_NORMAL);
+            const labelWidth = label.length;
+            const centeredLabelX = Math.round(projected.centerX - ((labelWidth - 1) / 2));
+            const labelX = Math.max(0, Math.min(grid.width - labelWidth, centeredLabelX));
+            const labelY = Math.round(projected.centerY + projected.radiusY + 1);
+
+            if (labelY >= 0 && labelY < viewHeight) {
+                UI.addText(labelX, labelY, label, labelColor);
+            }
+
+            if (!titleScene.isWarping) {
+                const minY = Math.max(0, Math.floor(projected.centerY - projected.radiusY));
+                const maxY = Math.min(viewHeight - 1, Math.ceil(projected.centerY + projected.radiusY));
+                for (let y = minY; y <= maxY; y++) {
+                    const dy = (y - projected.centerY) / projected.radiusY;
+                    const halfW = Math.floor(projected.radiusX * Math.sqrt(Math.max(0, 1 - (dy * dy))));
+                    const startX = Math.max(0, Math.floor(projected.centerX - halfW));
+                    const endX = Math.min(grid.width - 1, Math.ceil(projected.centerX + halfW));
+                    const width = endX - startX + 1;
+                    if (width > 0) {
+                        clickables.push({ x: startX, y, width, portalIndex });
+                    }
+                }
+            }
+        });
+
+        if ((timestampMs - (titleScene.lastPortalScreenLogMs || 0)) >= 500) {
+            titleScene.lastPortalScreenLogMs = timestampMs;
+        }
+
+        UI.addTitleLineCentered(viewHeight, 'V O I D   T R A D E R');
+        UI.addTextCentered(viewHeight + 1, 'Arrow Keys select portal | Enter to confirm', COLORS.TEXT_DIM);
+        UI.addTextCentered(viewHeight + 2, 'Click a portal to start', COLORS.TEXT_DIM);
+
+        if (titleScene.transientMessage && timestampMs <= titleScene.transientMessageUntilMs) {
+            UI.addTextCentered(viewHeight + 3, titleScene.transientMessage, COLORS.TEXT_ERROR);
+        }
+
+        clickables.forEach(hitbox => {
+            UI.addClickable(hitbox.x, hitbox.y, hitbox.width, () => {
+                beginPortalAutoNav(hitbox.portalIndex);
+            });
+        });
+
         UI.draw();
     }
 
@@ -211,6 +670,7 @@ const TitleMenu = (() => {
      * Start a new game
      */
     function newGame() {
+        logTitleTransitionPhase('new_game_start');
         UI.clear();
         const grid = UI.getGridSize();
         const centerY = Math.floor(grid.height / 2);
@@ -219,8 +679,9 @@ const TitleMenu = (() => {
         UI.draw();
         UI.draw();
         
-        // Initialize game state
-        setTimeout(() => {
+        // Initialize game state (after one guaranteed paint)
+        runAfterUiPaint('new_game', () => {
+            logTitleTransitionPhase('new_game_init_enter');
             // Clear used ship names for new game
             ShipGenerator.clearUsedNames();
             
@@ -273,6 +734,11 @@ const TitleMenu = (() => {
                     console.log(`Galaxy generation attempt ${attempts} failed - no valid path from Nexus to Proxima. Retrying...`);
                 }
             }
+
+            logTitleTransitionPhase('new_game_galaxy_ready', {
+                attempts,
+                systemCount: Array.isArray(gameState.systems) ? gameState.systems.length : 0
+            });
             
             console.log(`Galaxy generated successfully after ${attempts} attempt(s)`);
             
@@ -306,14 +772,16 @@ const TitleMenu = (() => {
             window.gameState = gameState;
             
             // Show introduction screen
+            logTitleTransitionPhase('new_game_show_intro');
             IntroScreen.show(gameState);
-        }, 500);
+        });
     }
     
     /**
      * Start a new game with debug mode enabled
      */
     function newGameDebug() {
+        logTitleTransitionPhase('new_game_debug_start');
         UI.clear();
         const grid = UI.getGridSize();
         const centerY = Math.floor(grid.height / 2);
@@ -322,8 +790,9 @@ const TitleMenu = (() => {
         UI.draw();
         UI.draw();
         
-        // Initialize game state
-        setTimeout(() => {
+        // Initialize game state (after one guaranteed paint)
+        runAfterUiPaint('new_game_debug', () => {
+            logTitleTransitionPhase('new_game_debug_init_enter');
             // Clear used ship names for new game
             ShipGenerator.clearUsedNames();
             
@@ -375,6 +844,11 @@ const TitleMenu = (() => {
                     console.log(`Galaxy generation attempt ${attempts} failed - no valid path from Nexus to Proxima. Retrying...`);
                 }
             }
+
+            logTitleTransitionPhase('new_game_debug_galaxy_ready', {
+                attempts,
+                systemCount: Array.isArray(gameState.systems) ? gameState.systems.length : 0
+            });
             
             console.log(`Galaxy generated successfully after ${attempts} attempt(s)`);
             
@@ -452,8 +926,9 @@ const TitleMenu = (() => {
             window.gameState = gameState;
             
             // Show introduction screen
+            logTitleTransitionPhase('new_game_debug_show_intro');
             IntroScreen.show(gameState);
-        }, 500);
+        });
     }
 
     function setStationLocalDestination(gameState) {
@@ -480,45 +955,6 @@ const TitleMenu = (() => {
             }
         };
         gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
-    }
-    
-    /**
-     * Show about screen
-     */
-    function showAbout() {
-        // Keep starfield running
-        if (!animationInterval) {
-            Starfield.init();
-            screenController = startAnimation();
-        }
-        
-        if (screenController) screenController.setScreen('about');
-        
-        renderAboutScreen();
-    }
-    
-    /**
-     * Render the about screen
-     */
-    function renderAboutScreen() {
-        UI.clear();
-        
-        // Render starfield background
-        Starfield.render();
-        
-        const grid = UI.getGridSize();
-        
-        UI.addTitleLineCentered(8, 'V O I D   T R A D E R');
-        UI.addTextCentered(11, 'A text-based space trading adventure', COLORS.TEXT_NORMAL);
-        UI.addTextCentered(13, 'Navigate the cosmos, trade goods, and', COLORS.TEXT_NORMAL);
-        UI.addTextCentered(14, 'build your interstellar trading empire.', COLORS.TEXT_NORMAL);
-        
-        UI.addTextCentered(17, 'Controls: Number keys', COLORS.BUTTON);
-        UI.addTextCentered(18, 'Version: 0.1.0', COLORS.TEXT_DIM);
-        
-        UI.addCenteredButton(22, '1', 'Back to Title', () => show(), COLORS.BUTTON);
-        
-        UI.draw();
     }
     
     // Public API

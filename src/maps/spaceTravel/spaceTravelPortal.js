@@ -4,6 +4,21 @@
  */
 
 const SpaceTravelPortal = {
+    getWorldRadiusYScale(viewWidth, viewHeight, config = null) {
+        const charDims = UI.getCharDimensions?.() || { width: 1, height: 1 };
+        const charAspectWH = (charDims.width > 0 && charDims.height > 0)
+            ? (charDims.width / charDims.height)
+            : 1;
+        if (viewWidth <= 0 || viewHeight <= 0) {
+            return 1;
+        }
+        const baseScale = (viewWidth * charAspectWH) / viewHeight;
+        const scaleMult = (typeof config?.PORTAL_RADIUS_Y_SCALE_MULT === 'number')
+            ? config.PORTAL_RADIUS_Y_SCALE_MULT
+            : 1;
+        return baseScale * scaleMult;
+    },
+
     getState(params) {
         if (!params) {
             return null;
@@ -267,6 +282,7 @@ const SpaceTravelPortal = {
         if (!params.portalActive || !params.portalPosition) {
             return;
         }
+        const debugPortalLog = !!params.config?.DEBUG_PORTAL_LOG;
 
         const effectiveTimestampMs = this.getEffectiveTimestamp(params, timestampMs);
 
@@ -280,7 +296,7 @@ const SpaceTravelPortal = {
         const expansionProgress = this.getExpansionProgress(params, effectiveTimestampMs);
         const maxRadius = params.config.PORTAL_RADIUS_AU;
         const currentRadius = this.getCurrentRadius(params, effectiveTimestampMs);
-        if (expansionProgress < 1) {
+        if (debugPortalLog && expansionProgress < 1) {
             console.log('[Portal] Expansion:', {
                 elapsedMs: Math.round(expansionProgress * (params.config.PORTAL_EXPAND_DURATION_MS || 2000)),
                 progress: (expansionProgress * 100).toFixed(1) + '%',
@@ -289,13 +305,20 @@ const SpaceTravelPortal = {
             });
         }
 
-        const aspectRatio = SpaceTravelShared.getCharacterAspectRatio(params.config);
-        const expectedRadiusY = currentRadius / aspectRatio;  // INVERT: divide to make taller in character space
-        console.log('[Portal] Render:', {
+        const radiusYScale = this.getWorldRadiusYScale(viewWidth, viewHeight, params.config);
+        const expectedRadiusY = currentRadius * radiusYScale;
+        const portalPrimaryColor = params.portalPrimaryColor || COLORS.CYAN;
+        const portalSecondaryColor = params.portalSecondaryColor || COLORS.BLUE;
+        if (debugPortalLog) {
+            console.log('[Portal] Render:', {
             radiusX: currentRadius.toFixed(6),
             radiusY: expectedRadiusY.toFixed(6),
-            aspectRatio: aspectRatio.toFixed(3)
-        });
+                portalPrimaryColor,
+                portalSecondaryColor,
+                aspectRatio: SpaceTravelShared.getCharacterAspectRatio(params.config).toFixed(3),
+                radiusYScale: radiusYScale.toFixed(3)
+            });
+        }
 
         if (currentRadius <= 0) {
             return;
@@ -303,7 +326,7 @@ const SpaceTravelPortal = {
 
         const segments = Math.max(8, params.config.PORTAL_SEGMENTS || 32);
         const radiusX = currentRadius;
-        const radiusY = currentRadius / aspectRatio;  // INVERT: divide instead of multiply
+        const radiusY = currentRadius * radiusYScale;
         const step = (Math.PI * 2) / segments;
         
         // Rotation speed in radians per millisecond
@@ -327,7 +350,7 @@ const SpaceTravelPortal = {
                 // Smooth blend between cyan and blue; rotate colors opposite to ring motion
                 const colorAngle = i * step - rotationOffset;
                 const blendT = (Math.sin(colorAngle) + 1) / 2;
-                const color = SpaceTravelShared.lerpColorHex(COLORS.CYAN, COLORS.BLUE, blendT);
+                const color = SpaceTravelShared.lerpColorHex(portalPrimaryColor, portalSecondaryColor, blendT);
 
                 RasterUtils.plotDepthText(depthBuffer, x, y, point.z, 'o', color);
             }
@@ -340,6 +363,7 @@ const SpaceTravelPortal = {
         if (!params.portalActive || !params.portalPosition) {
             return;
         }
+        const debugPortalLog = !!params.config?.DEBUG_PORTAL_LOG;
 
         const effectiveTimestampMs = this.getEffectiveTimestamp(params, timestampMs);
         const relative = ThreeDUtils.subVec(params.portalPosition, params.playerShip.position);
@@ -348,15 +372,15 @@ const SpaceTravelPortal = {
             return;
         }
 
-        const aspectRatio = SpaceTravelShared.getCharacterAspectRatio(params.config);
         const expansionProgress = this.getExpansionProgress(params, effectiveTimestampMs);
         const currentRadius = this.getCurrentRadius(params, effectiveTimestampMs);
         if (currentRadius <= 0) {
             return;
         }
+        const portalTintColor = params.portalTintColor || params.portalPrimaryColor || COLORS.CYAN;
 
         const radiusX = currentRadius;
-        const radiusY = currentRadius / aspectRatio;
+        const radiusY = currentRadius * this.getWorldRadiusYScale(viewWidth, viewHeight, params.config);
         const portalCenter = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, params.config.VIEW_FOV);
         if (!portalCenter) {
             return;
@@ -416,7 +440,7 @@ const SpaceTravelPortal = {
                 if (!color || typeof color !== 'string' || color[0] !== '#') {
                     color = SpaceTravelShared.lerpColorHex('#000000', COLORS.TEXT_NORMAL, emptyBrightness);
                 }
-                depthBuffer.colors[index] = SpaceTravelShared.lerpColorHex(color, COLORS.CYAN, tintStrength);
+                depthBuffer.colors[index] = SpaceTravelShared.lerpColorHex(color, portalTintColor, tintStrength);
                 tintApplied++;
             }
         }
@@ -481,7 +505,7 @@ const SpaceTravelPortal = {
                 const brightness = Math.max(0.4, 1.0 - Math.abs(pulsePhase - 0.5) * 0.8); // Peak brightness mid-pulse
 
                 // Color: bright cyan fading slightly at edges
-                const color = SpaceTravelShared.lerpColorHex(COLORS.CYAN, '#004466', distFromCenter * 0.3);
+                const color = SpaceTravelShared.lerpColorHex(portalTintColor, '#004466', distFromCenter * 0.3);
 
                 // Use directional character based on angle
                 const symbol = SpaceTravelShared.getLineSymbolFromDirection(cosAngle, -sinAngle);
@@ -504,7 +528,7 @@ const SpaceTravelPortal = {
         }
 
         const logIntervalMs = 1000;
-        if (effectiveTimestampMs - (params.portalTintLastLogMs || 0) >= logIntervalMs) {
+        if (debugPortalLog && effectiveTimestampMs - (params.portalTintLastLogMs || 0) >= logIntervalMs) {
             console.log('[PortalTint]', {
                 tintStrength: Number(tintStrength.toFixed(3)),
                 linesDrawn,

@@ -115,7 +115,7 @@ const Object3DRenderer = (() => {
         return 'bellyRight';
     }
 
-    function selectShipSpriteLines(cameraForward, cameraUp, shipSprites, config = null) {
+    function selectShipSpriteLines(cameraForward, cameraUp, shipSprites, config = null, toCameraDir = null) {
         const tagSpriteLines = (lines, spriteGroup, spriteKey = null) => {
             if (!Array.isArray(lines)) {
                 return null;
@@ -128,7 +128,7 @@ const Object3DRenderer = (() => {
 
         const sprites = shipSprites || FALLBACK_SHIP_SPRITES;
         const forwardScreenX = -cameraForward.x;
-        const forwardScreenY = -cameraForward.y;
+        const forwardScreenY = cameraForward.y;
         const forwardCardinal = getCardinalDirection(forwardScreenX, forwardScreenY);
         const bellyDirection = getBellyDirection(cameraUp);
         const rearBellyDirection = bellyDirection === 'bellyLeft'
@@ -137,6 +137,20 @@ const Object3DRenderer = (() => {
 
         const noseBackThreshold = Math.min(0.99, Math.max(0.5, Number(config?.SHIP_SPRITE_NOSE_BACK_THRESHOLD) || 0.92));
         const sideViewThreshold = Math.min(0.6, Math.max(0.05, Number(config?.SHIP_SPRITE_SIDE_VIEW_MAX_ABS_Z) || 0.12));
+
+        if (toCameraDir) {
+            const facingDot = (cameraForward.x * toCameraDir.x)
+                + (cameraForward.y * toCameraDir.y)
+                + (cameraForward.z * toCameraDir.z);
+
+            if (facingDot >= noseBackThreshold) {
+                return tagSpriteLines(sprites.nose?.[bellyDirection] || null, 'nose', bellyDirection);
+            }
+
+            if (facingDot <= -noseBackThreshold) {
+                return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back', rearBellyDirection);
+            }
+        }
 
         if (cameraForward.z <= -noseBackThreshold) {
             return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back', rearBellyDirection);
@@ -153,23 +167,21 @@ const Object3DRenderer = (() => {
             const bellyX = -cameraUp.x;
             if (forwardCardinal === 'up') {
                 return tagSpriteLines(
-                    bellyX < 0 ? (sprites.side?.downBellyLeft || null) : (sprites.side?.downBellyRight || null),
+                    bellyX < 0 ? (sprites.side?.upBellyLeft || null) : (sprites.side?.upBellyRight || null),
                     'side',
-                    bellyX < 0 ? 'downBellyLeft' : 'downBellyRight'
+                    bellyX < 0 ? 'upBellyLeft' : 'upBellyRight'
                 );
             }
             return tagSpriteLines(
-                bellyX < 0 ? (sprites.side?.upBellyLeft || null) : (sprites.side?.upBellyRight || null),
+                bellyX < 0 ? (sprites.side?.downBellyLeft || null) : (sprites.side?.downBellyRight || null),
                 'side',
-                bellyX < 0 ? 'upBellyLeft' : 'upBellyRight'
+                bellyX < 0 ? 'downBellyLeft' : 'downBellyRight'
             );
         }
 
         const isTopside = cameraUp.z < 0;
         const bankSet = isTopside ? sprites.topside : sprites.underside;
-        const bankDirection = (!isTopside && (forwardCardinal === 'up' || forwardCardinal === 'down'))
-            ? (forwardCardinal === 'up' ? 'down' : 'up')
-            : forwardCardinal;
+        const bankDirection = forwardCardinal;
         return tagSpriteLines(bankSet?.[bankDirection] || null, isTopside ? 'topside' : 'underside', bankDirection);
     }
 
@@ -316,15 +328,26 @@ const Object3DRenderer = (() => {
         const worldUp = ThreeDUtils.rotateVecByQuat(shipUp, visualRotation);
         const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
         const cameraUp = ThreeDUtils.rotateVecByQuat(worldUp, ThreeDUtils.quatConjugate(playerShip.rotation));
+        const cameraToShipLen = Math.max(0.000001, ThreeDUtils.vecLength(cameraSpace));
+        const toCameraDir = {
+            x: -cameraSpace.x / cameraToShipLen,
+            y: -cameraSpace.y / cameraToShipLen,
+            z: -cameraSpace.z / cameraToShipLen
+        };
 
         const spriteDistanceLimit = (typeof config.SHIP_SPRITE_MAX_DISTANCE_AU === 'number')
             ? config.SHIP_SPRITE_MAX_DISTANCE_AU
             : 1;
+        const largeSpriteDistanceLimit = (typeof config.SHIP_SPRITE_LARGE_MAX_DISTANCE_AU === 'number')
+            ? config.SHIP_SPRITE_LARGE_MAX_DISTANCE_AU
+            : (spriteDistanceLimit * 0.5);
         const canRenderSprite = config.SHIP_USE_ANGLE_SPRITES !== false && distanceAU <= spriteDistanceLimit;
+        const useLargeSpriteSet = !!config.SHIP_SPRITES_LARGE && distanceAU <= largeSpriteDistanceLimit;
+        const spriteSet = useLargeSpriteSet ? config.SHIP_SPRITES_LARGE : config.SHIP_SPRITES;
         let pickRadius = 2;
 
         if (canRenderSprite) {
-            const spriteLines = selectShipSpriteLines(cameraForward, cameraUp, config.SHIP_SPRITES, config);
+            const spriteLines = selectShipSpriteLines(cameraForward, cameraUp, spriteSet, config, toCameraDir);
             if (spriteLines && spriteLines.length > 0) {
                 const width = spriteLines.reduce((max, line) => Math.max(max, (line || '').length), 0);
                 const height = spriteLines.length;

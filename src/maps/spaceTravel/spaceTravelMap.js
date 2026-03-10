@@ -57,6 +57,8 @@ class SpaceTravelMapClass {
         this.rocketTrailLastSpawnByShip = {};
         this.possibleStations = [];
         this.visibleStations = [];
+        this.asteroids = [];
+        this.asteroidLastSpawnByBeltMs = {};
 
         // Laser state
         this.laserEmptyTimestampMs = 0;
@@ -135,23 +137,18 @@ class SpaceTravelMapClass {
     setPaused(nextPaused, byFocus = false) {
         const now = performance.now();
         if (nextPaused && !this.isPaused) {
-            this.pauseTimestampMs = now;
+            // Store pause timestamp on the same paused-duration-adjusted timeline
+            // used by _getRenderTimestampMs so elapsed calculations stay consistent.
+            this.pauseTimestampMs = Math.max(0, now - this.pausedDurationMs);
             this.portalPausedTimestampMs = this.pauseTimestampMs;
         }
         if (!nextPaused && this.isPaused) {
-            if (this.pauseTimestampMs) {
-                this.pausedDurationMs += (now - this.pauseTimestampMs);
+            if (this.pauseTimestampMs || this.pauseTimestampMs === 0) {
+                const pauseStartedAtRawMs = this.pauseTimestampMs + this.pausedDurationMs;
+                this.pausedDurationMs += Math.max(0, now - pauseStartedAtRawMs);
             }
             this.pauseTimestampMs = 0;
             this.portalPausedTimestampMs = 0;
-            
-            // Adjust boost timing when unpausing to maintain proper fade timing
-            if (this.boostStartTimestampMs > 0) {
-                this.boostStartTimestampMs += this.pausedDurationMs;
-            }
-            if (this.boostEndTimestampMs > 0) {
-                this.boostEndTimestampMs += this.pausedDurationMs;
-            }
         }
         this.isPaused = nextPaused;
         this.pausedByFocus = nextPaused && byFocus;
@@ -259,6 +256,8 @@ class SpaceTravelMapClass {
             this.npcEncounterSpawnUnlocked = runtimeState.npcEncounterSpawnUnlocked !== false;
             this.npcEncounterHailPrompt = runtimeState.npcEncounterHailPrompt || null;
             this.npcEncounterHailAvailable = !!runtimeState.npcEncounterHailAvailable;
+            this.asteroids = Array.isArray(runtimeState.asteroids) ? runtimeState.asteroids : [];
+            this.asteroidLastSpawnByBeltMs = runtimeState.asteroidLastSpawnByBeltMs ? { ...runtimeState.asteroidLastSpawnByBeltMs } : {};
         } else {
             this.escortLastCollisionMs = {};
             this.npcLastCollisionMs = {};
@@ -268,6 +267,14 @@ class SpaceTravelMapClass {
             this.npcEncounterSpawnUnlocked = true;
             this.npcEncounterHailPrompt = null;
             this.npcEncounterHailAvailable = false;
+            this.asteroids = [];
+            this.asteroidLastSpawnByBeltMs = {};
+        }
+
+        if (typeof SpaceTravelAsteroids !== 'undefined' && SpaceTravelAsteroids.ensureState) {
+            SpaceTravelAsteroids.ensureState(this);
+            SpaceTravelAsteroids.ensureSystemAsteroidBelts?.(this.targetSystem);
+            SpaceTravelAsteroids.logSystemEntryBeltDistances?.(this);
         }
 
         if (!hasRuntimeState && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.spawnInitialEncounter) {
@@ -415,6 +422,8 @@ class SpaceTravelMapClass {
         this.dustParticles = [];
         this.possibleStations = [];
         this.visibleStations = [];
+        this.asteroids = [];
+        this.asteroidLastSpawnByBeltMs = {};
         this.lastTimestamp = 0;
         this.lastAsciiLogTimestamp = 0;
         this.laserEmptyTimestampMs = 0;
@@ -457,7 +466,9 @@ class SpaceTravelMapClass {
             npcEncounterFleets: Array.isArray(this.npcEncounterFleets) ? this.npcEncounterFleets : [],
             npcEncounterSpawnUnlocked: this.npcEncounterSpawnUnlocked !== false,
             npcEncounterHailPrompt: this.npcEncounterHailPrompt ? { ...this.npcEncounterHailPrompt } : null,
-            npcEncounterHailAvailable: !!this.npcEncounterHailAvailable
+            npcEncounterHailAvailable: !!this.npcEncounterHailAvailable,
+            asteroids: Array.isArray(this.asteroids) ? this.asteroids : [],
+            asteroidLastSpawnByBeltMs: { ...(this.asteroidLastSpawnByBeltMs || {}) }
         };
     }
 
@@ -569,6 +580,10 @@ class SpaceTravelMapClass {
 
         if (typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.update) {
             SpaceTravelEncounters.update(this, dt, timestampMs);
+        }
+
+        if (typeof SpaceTravelAsteroids !== 'undefined' && SpaceTravelAsteroids.update && this.config?.ASTEROID_ENABLED !== false) {
+            SpaceTravelAsteroids.update(this, dt, timestampMs);
         }
 
         this._checkEscortCollisions(timestampMs);

@@ -46,10 +46,10 @@ const SpaceTravelParticles = (() => {
         if (!config?.ROCKET_TRAIL_ENABLED) {
             if (shouldLog) {
                 trailDebugState.lastRenderLogMs = timestampMs;
-                console.log('[RocketTrail][Render]', {
-                    timestampMs,
-                    reason: 'ROCKET_TRAIL_DISABLED'
-                });
+                // console.log('[RocketTrail][Render]', {
+                //     timestampMs,
+                //     reason: 'ROCKET_TRAIL_DISABLED'
+                // });
             }
             return;
         }
@@ -57,12 +57,12 @@ const SpaceTravelParticles = (() => {
         if (!playerShip || !Array.isArray(rocketTrailClouds) || rocketTrailClouds.length === 0) {
             if (shouldLog) {
                 trailDebugState.lastRenderLogMs = timestampMs;
-                console.log('[RocketTrail][Render]', {
-                    timestampMs,
-                    reason: !playerShip
-                        ? 'NO_PLAYER_SHIP'
-                        : (!Array.isArray(rocketTrailClouds) ? 'CLOUD_ARRAY_INVALID' : 'NO_CLOUDS')
-                });
+                // console.log('[RocketTrail][Render]', {
+                //     timestampMs,
+                //     reason: !playerShip
+                //         ? 'NO_PLAYER_SHIP'
+                //         : (!Array.isArray(rocketTrailClouds) ? 'CLOUD_ARRAY_INVALID' : 'NO_CLOUDS')
+                // });
             }
             return;
         }
@@ -182,12 +182,12 @@ const SpaceTravelParticles = (() => {
 
         if (renderStats && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastRenderLogMs >= debugLogEveryMs)) {
             trailDebugState.lastRenderLogMs = timestampMs;
-            console.log('[RocketTrail][Render]', {
-                timestampMs,
-                ...renderStats,
-                visibleDistanceAU,
-                cloudChar
-            });
+            // console.log('[RocketTrail][Render]', {
+            //     timestampMs,
+            //     ...renderStats,
+            //     visibleDistanceAU,
+            //     cloudChar
+            // });
         }
     }
 
@@ -458,20 +458,20 @@ const SpaceTravelParticles = (() => {
         if (!mapInstance?.config?.ROCKET_TRAIL_ENABLED) {
             if (debugEnabled && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastUpdateLogMs >= debugLogEveryMs)) {
                 trailDebugState.lastUpdateLogMs = timestampMs;
-                console.log('[RocketTrail][Update]', {
-                    timestampMs,
-                    reason: 'ROCKET_TRAIL_DISABLED'
-                });
+                // console.log('[RocketTrail][Update]', {
+                //     timestampMs,
+                //     reason: 'ROCKET_TRAIL_DISABLED'
+                // });
             }
             return;
         }
         if (!mapInstance.playerShip) {
             if (debugEnabled && Number.isFinite(timestampMs) && (timestampMs - trailDebugState.lastUpdateLogMs >= debugLogEveryMs)) {
                 trailDebugState.lastUpdateLogMs = timestampMs;
-                console.log('[RocketTrail][Update]', {
-                    timestampMs,
-                    reason: 'NO_PLAYER_SHIP'
-                });
+                // console.log('[RocketTrail][Update]', {
+                //     timestampMs,
+                //     reason: 'NO_PLAYER_SHIP'
+                // });
             }
             return;
         }
@@ -588,14 +588,14 @@ const SpaceTravelParticles = (() => {
 
         if (updateStats && Number.isFinite(now) && (now - trailDebugState.lastUpdateLogMs >= debugLogEveryMs)) {
             trailDebugState.lastUpdateLogMs = now;
-            console.log('[RocketTrail][Update]', {
-                timestampMs: now,
-                ...updateStats,
-                existingAfter: mapInstance.rocketTrailClouds.length,
-                minSpeed,
-                spawnIntervalMs,
-                fadeMs
-            });
+            // console.log('[RocketTrail][Update]', {
+            //     timestampMs: now,
+            //     ...updateStats,
+            //     existingAfter: mapInstance.rocketTrailClouds.length,
+            //     minSpeed,
+            //     spawnIntervalMs,
+            //     fadeMs
+            // });
         }
     }
 

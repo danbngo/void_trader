@@ -528,6 +528,12 @@ const SpaceTravelEncounters = (() => {
         return `${singularName} fleet is hailing you [H to accept]`;
     }
 
+    function buildLaserPoweringAlertText(fleet) {
+        const rawName = (fleet?.encounterType?.name || fleet?.typeId || 'Unknown').toString().trim();
+        const singularName = rawName.replace(/s$/i, '') || 'Unknown';
+        return `${singularName} fleet is powering up lasers [H to accept]`;
+    }
+
     function shouldEscalateIgnoredHailToHostile(fleet) {
         const typeId = (fleet?.typeId || '').toString().toUpperCase();
         return typeId === 'PIRATE' || typeId === 'POLICE';
@@ -543,6 +549,8 @@ const SpaceTravelEncounters = (() => {
             fleetId: fleet.id,
             text: buildEncounterPromptTitle(fleet),
             alertText: buildEncounterAlertText(fleet),
+            alertFlashColor: COLORS.YELLOW,
+            escalationStage: 1,
             subtext: '',
             source,
             createdMs: timestampMs
@@ -572,7 +580,21 @@ const SpaceTravelEncounters = (() => {
             return;
         }
 
-        if (prompt.source === 'npc' && !fleet.isHostile && shouldEscalateIgnoredHailToHostile(fleet)) {
+        const shouldEscalate = prompt.source === 'npc' && !fleet.isHostile && shouldEscalateIgnoredHailToHostile(fleet);
+        const escalationStage = Number(prompt.escalationStage) || 1;
+        const preAttackWarningMs = Math.max(250, mapInstance.config.NPC_NON_HOSTILE_FIRE_WARNING_MS || 2000);
+
+        if (shouldEscalate && escalationStage < 2) {
+            prompt.escalationStage = 2;
+            prompt.alertText = buildLaserPoweringAlertText(fleet);
+            prompt.alertFlashColor = COLORS.TEXT_ERROR || COLORS.RED || '#ff0000';
+            prompt.createdMs = timestampMs + preAttackWarningMs;
+
+            UI.startFlashing?.(COLORS.TEXT_ERROR || COLORS.RED || '#ff0000', COLORS.BLACK, 900);
+            return;
+        }
+
+        if (shouldEscalate) {
             setFleetHostile(fleet, 'ignored_hail_timeout');
             mapInstance.lastErrorMessage = `${fleet.encounterType?.name || fleet.typeId || 'Fleet'} turned hostile (no hail response)`;
             mapInstance.lastErrorTimestampMs = performance.now();
@@ -788,7 +810,7 @@ const SpaceTravelEncounters = (() => {
         }
 
         const playerShip = mapInstance.playerShip;
-        const weaponRange = Math.max(0.1, mapInstance.config.NPC_FLEET_WEAPON_RANGE_AU || 2);
+        const weaponRange = Math.max(0.1, (mapInstance.config.NPC_FLEET_WEAPON_RANGE_AU || 2) * 4);
         const shooters = fleet.ships.filter(ship => {
             if (!ship || (ship.hull || 0) <= 0) {
                 return false;
@@ -906,6 +928,31 @@ const SpaceTravelEncounters = (() => {
         }
     }
 
+    function getHostileRamTarget(ship, playerShip, config) {
+        if (!ship || !ship.position || !playerShip || !playerShip.position) {
+            return playerShip?.position || null;
+        }
+
+        const leadSec = Math.max(0, Number(config?.NPC_HOSTILE_RAM_LEAD_SEC) || 0.75);
+        const playerVelocity = playerShip.velocity || { x: 0, y: 0, z: 0 };
+        const predictedPlayerPos = ThreeDUtils.addVec(playerShip.position, ThreeDUtils.scaleVec(playerVelocity, leadSec));
+
+        const toPredicted = ThreeDUtils.subVec(predictedPlayerPos, ship.position);
+        const toPredictedLen = ThreeDUtils.vecLength(toPredicted);
+        if (toPredictedLen <= 0.000001) {
+            return { ...predictedPlayerPos };
+        }
+
+        const ramDirection = ThreeDUtils.scaleVec(toPredicted, 1 / toPredictedLen);
+        const overshootAu = Math.max(
+            0.01,
+            Number(config?.NPC_HOSTILE_RAM_OVERSHOOT_AU)
+            || ((Number(config?.SHIP_MIN_COLLISION_DISTANCE_AU) || 0.01) * 2)
+        );
+
+        return ThreeDUtils.addVec(predictedPlayerPos, ThreeDUtils.scaleVec(ramDirection, overshootAu));
+    }
+
     function updateFleetBehavior(mapInstance, fleet, dt, timestampMs) {
         normalizeFleetBehaviorFlags(fleet, mapInstance);
 
@@ -941,7 +988,10 @@ const SpaceTravelEncounters = (() => {
 
         if (fleet.isHostile) {
             fleet.state = 'hostile';
-            activeShips.forEach(ship => steerShipToward(ship, playerShip.position, dt, mapInstance.config, mapInstance.config.NPC_HOSTILE_SPEED_MULT || 1.1));
+            activeShips.forEach(ship => {
+                const ramTarget = getHostileRamTarget(ship, playerShip, mapInstance.config) || playerShip.position;
+                steerShipToward(ship, ramTarget, dt, mapInstance.config, mapInstance.config.NPC_HOSTILE_SPEED_MULT || 1.1);
+            });
             applyNpcCombatShots(mapInstance, fleet, timestampMs);
             applyAllyCombatShots(mapInstance, fleet, timestampMs);
             return;

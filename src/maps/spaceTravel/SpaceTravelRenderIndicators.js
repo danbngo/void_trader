@@ -234,23 +234,23 @@ const SpaceTravelRenderIndicators = (() => {
                 
                 // Log detailed positioning info
                 if (mapInstance && logNow - (mapInstance.lastLabelPosLogMs || 0) >= 1000) {
-                    console.log('[LabelPositioning]', {
-                        targetName,
-                        centerX: labelX,
-                        centerY: labelY,
-                        objectRadiusChars,
-                        offsetDistance,
-                        displayX,
-                        displayY,
-                        labelWidth,
-                        depth: Number(depth.toFixed(2)),
-                        pixelsPerUnit: Number(pixelsPerUnit.toFixed(2)),
-                        viewWidth,
-                        viewHeight,
-                        charWidth: charDims.width,
-                        charHeight: charDims.height,
-                        worldRadiusAU: localDestination?.radiusAU || targetInfo.radiusAU || 'undefined'
-                    });
+                    // console.log('[LabelPositioning]', {
+                    //     targetName,
+                    //     centerX: labelX,
+                    //     centerY: labelY,
+                    //     objectRadiusChars,
+                    //     offsetDistance,
+                    //     displayX,
+                    //     displayY,
+                    //     labelWidth,
+                    //     depth: Number(depth.toFixed(2)),
+                    //     pixelsPerUnit: Number(pixelsPerUnit.toFixed(2)),
+                    //     viewWidth,
+                    //     viewHeight,
+                    //     charWidth: charDims.width,
+                    //     charHeight: charDims.height,
+                    //     worldRadiusAU: localDestination?.radiusAU || targetInfo.radiusAU || 'undefined'
+                    // });
                     mapInstance.lastLabelPosLogMs = logNow;
                 }
             }

@@ -21,7 +21,7 @@ const UiAnimations = (() => {
         state.flashCallback = callback;
         state.flashStartTime = Date.now();
 
-        if (callImmediately && state.flashCallback) {
+        if (callImmediately && typeof state.flashCallback === 'function') {
             uiLog('[UI] Calling flash callback immediately');
             state.isInFlashCallback = true;
             state.flashCallback();
@@ -37,7 +37,7 @@ const UiAnimations = (() => {
             state.flashState = !state.flashState;
             uiLog('[UI] Flash state toggled to:', state.flashState);
 
-            if (state.flashCallback) {
+            if (typeof state.flashCallback === 'function') {
                 state.isInFlashCallback = true;
                 state.flashCallback();
                 state.isInFlashCallback = false;

@@ -57,12 +57,6 @@ const SpaceTravelMenu = (() => {
             GalaxyMap.show(gameState);
         }, COLORS.BUTTON, 'View nearby systems and set destination');
 
-        UI.addButton(middleX, buttonY + 1, 'r', 'Return', () => {
-            if (onReturn) {
-                onReturn();
-            }
-        }, COLORS.GREEN, 'Return to space travel');
-
         // Options button (right column)
         const optionsButtonDisabled = isMoving;
         UI.addButton(rightX, buttonY, 'o', 'Options', () => {

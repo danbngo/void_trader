@@ -115,6 +115,9 @@ const SpaceTravelPhysics = {
      * @param {number} timestampMs - Current timestamp
      */
     updateMovement(params, dt, timestampMs = 0) {
+        const effectTimestampMs = (typeof params._getRenderTimestampMs === 'function')
+            ? params._getRenderTimestampMs(timestampMs)
+            : timestampMs;
         const autoNavInput = params.autoNavActive ? params.autoNavInput : null;
         const codeState = params.inputState.codeState || params.inputState.keyState;
         const accelerate = (params.emergenceMomentumActive) // Block acceleration during emergence
@@ -142,12 +145,12 @@ const SpaceTravelPhysics = {
         params.boostActive = boostKey && hasFuel && params.boostCooldownRemaining <= 0 && boostReady;
 
         if (params.boostActive && !wasBoosting) {
-            params.boostStartTimestampMs = timestampMs;
-            console.log('[SpaceTravel] Boost started:', { timestampMs, boostStartTimestampMs: params.boostStartTimestampMs });
+            params.boostStartTimestampMs = effectTimestampMs;
+            console.log('[SpaceTravel] Boost started:', { timestampMs: effectTimestampMs, boostStartTimestampMs: params.boostStartTimestampMs });
         }
         if (!params.boostActive && wasBoosting) {
-            params.boostEndTimestampMs = timestampMs;
-            console.log('[SpaceTravel] Boost ended:', { timestampMs, boostEndTimestampMs: params.boostEndTimestampMs });
+            params.boostEndTimestampMs = effectTimestampMs;
+            console.log('[SpaceTravel] Boost ended:', { timestampMs: effectTimestampMs, boostEndTimestampMs: params.boostEndTimestampMs });
         }
 
         const pendingCooldown = (!params.boostActive && wasBoosting) ? params.config.BOOST_COOLDOWN_SEC : params.boostCooldownRemaining;
@@ -173,7 +176,7 @@ const SpaceTravelPhysics = {
             if (params.playerShip.fuel <= 0) {
                 params.playerShip.fuel = 0;
                 params.boostActive = false;
-                params.boostEndTimestampMs = timestampMs;
+                params.boostEndTimestampMs = effectTimestampMs;
             }
         }
 

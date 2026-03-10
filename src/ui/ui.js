@@ -539,7 +539,34 @@ const UI = (() => {
      * @param {boolean} callImmediately - If true, call callback immediately before starting interval (default: false)
      */
     function startFlashing(callback, interval = 200, duration = 2000, callImmediately = false) {
-        UiAnimations.startFlashing(flashingState, uiLog, callback, interval, duration, callImmediately);
+        if (typeof callback === 'function') {
+            UiAnimations.startFlashing(flashingState, uiLog, callback, interval, duration, callImmediately);
+            return;
+        }
+
+        const primaryColor = (typeof callback === 'string' && callback.length > 0)
+            ? callback
+            : (outputRowColor || 'white');
+        const secondaryColor = (typeof interval === 'string' && interval.length > 0)
+            ? interval
+            : (COLORS.BLACK || '#000000');
+        const flashDuration = Number.isFinite(duration) ? duration : 2000;
+        const flashInterval = 200;
+
+        UiAnimations.startFlashing(
+            flashingState,
+            uiLog,
+            () => {
+                const isFlashOn = UiAnimations.getFlashState(flashingState);
+                if (outputRowText) {
+                    outputRowColor = isFlashOn ? secondaryColor : primaryColor;
+                }
+                draw();
+            },
+            flashInterval,
+            flashDuration,
+            true
+        );
     }
     
     /**

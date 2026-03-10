@@ -53,6 +53,17 @@ const SpaceTravelRender = (() => {
 
         SpaceStationGfx.renderStationOccluders(renderParams);
 
+        if (typeof SpaceTravelAsteroids !== 'undefined' && SpaceTravelAsteroids.render && params.config?.ASTEROID_ENABLED !== false) {
+            SpaceTravelAsteroids.render({
+                mapInstance: params.mapInstance,
+                playerShip: params.playerShip,
+                depthBuffer,
+                viewWidth,
+                viewHeight,
+                config: params.config
+            });
+        }
+
         // Get effective timestamp that respects pause state
         const effectiveRenderTimestampMs = params.isPaused && params.portalPausedTimestampMs
             ? params.portalPausedTimestampMs
@@ -367,11 +378,16 @@ const SpaceTravelRender = (() => {
             const labelText = `${pick.distance.toFixed(2)} AU`;
             const baseX = Math.round(pick.screenX - (labelText.length / 2));
             const clampedX = clamp(baseX, 0, Math.max(0, viewWidth - labelText.length));
+            const safeRadius = Math.max(1, Math.ceil(Number(pick.pickRadius) || 2));
+            const safeAboveY = pick.screenY - (safeRadius + 1);
+            const safeBelowY = pick.screenY + (safeRadius + 1);
             const preferredRows = [
-                clamp(pick.screenY - 2, 0, viewHeight - 1),
-                clamp(pick.screenY, 0, viewHeight - 1),
-                clamp(pick.screenY - 3, 0, viewHeight - 1),
-                clamp(pick.screenY + 1, 0, viewHeight - 1)
+                clamp(safeAboveY, 0, viewHeight - 1),
+                clamp(safeAboveY - 1, 0, viewHeight - 1),
+                clamp(safeAboveY + 1, 0, viewHeight - 1),
+                clamp(safeAboveY - 2, 0, viewHeight - 1),
+                clamp(safeBelowY, 0, viewHeight - 1),
+                clamp(safeBelowY + 1, 0, viewHeight - 1)
             ];
 
             let drawY = preferredRows[0];
@@ -387,12 +403,9 @@ const SpaceTravelRender = (() => {
 
             const shipRef = pick.object || null;
             const isDisabled = !!shipRef && typeof shipRef.hull === 'number' && shipRef.hull <= 0;
-            const isFlashing = !!(shipRef && shipRef.flashStartMs && shipRef.flashColor);
-            const baseColor = isFlashing
-                ? shipRef.flashColor
-                : (isDisabled
-                    ? '#777777'
-                    : (shipRef?.shipColor || (pick.kind === 'ESCORT_SHIP' ? COLORS.GREEN : '#00ff00')));
+            const baseColor = isDisabled
+                ? '#777777'
+                : (shipRef?.shipColor || (pick.kind === 'ESCORT_SHIP' ? COLORS.GREEN : '#00ff00'));
             const color = dimColorByDistance(baseColor, pick.distance);
             addHudText(clampedX, drawY, labelText, applyPauseColor(color));
         });
@@ -471,7 +484,8 @@ const SpaceTravelRender = (() => {
             const prompt = params.mapInstance.npcEncounterHailPrompt;
             const message = prompt.alertText || `${prompt.text || 'Incoming hail'} [H to accept]`;
             const flashPhase = Math.floor((timestampMs - (prompt.createdMs || timestampMs)) / 250) % 2;
-            const messageColor = flashPhase === 0 ? COLORS.YELLOW : COLORS.WHITE;
+            const primaryColor = prompt.alertFlashColor || COLORS.YELLOW;
+            const messageColor = flashPhase === 0 ? primaryColor : COLORS.WHITE;
             const x = Math.floor((viewWidth - message.length) / 2);
             const y = Math.floor(viewHeight / 2);
             UI.addText(x, y, message, messageColor);

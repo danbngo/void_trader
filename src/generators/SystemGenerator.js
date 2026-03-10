@@ -106,6 +106,71 @@ const SystemGenerator = (() => {
         return RandomUtils.randomElement(bodyList);
     }
 
+    function generateAsteroidBeltsForSystem(system) {
+        if (!system) {
+            return [];
+        }
+
+        const planets = Array.isArray(system.planets) ? system.planets : [];
+        const farthestPlanetOrbit = planets.reduce((maxOrbit, planet) => {
+            const orbit = Number(planet?.orbit?.semiMajorAU) || 0;
+            return Math.max(maxOrbit, orbit);
+        }, 0);
+
+        const belts = [];
+        const mainCount = RandomUtils.randomInt(1, 2);
+        const mainInnerBase = Math.max(1.2, farthestPlanetOrbit * 0.45);
+
+        for (let i = 0; i < mainCount; i++) {
+            const orbitDistanceAU = mainInnerBase + 1.5 + (i * (1.6 + Math.random() * 1.4)) + (Math.random() * 0.9);
+            const widthAU = 0.6 + (Math.random() * 1.1);
+            const beltData = {
+                id: `main-${i + 1}`,
+                name: `Main Belt ${i + 1}`,
+                type: 'MAIN',
+                orbitDistanceAU,
+                widthAU,
+                icy: false,
+                minAsteroids: 8,
+                maxAsteroids: 16
+            };
+            belts.push((typeof AsteroidBelt !== 'undefined') ? new AsteroidBelt(beltData) : beltData);
+        }
+
+        const outerMain = belts.reduce((maxOrbit, belt) => {
+            const orbit = Number(belt?.orbitDistanceAU) || 0;
+            const width = Number(belt?.widthAU) || 0;
+            return Math.max(maxOrbit, orbit + (width * 0.5));
+        }, farthestPlanetOrbit);
+
+        const kuiperData = {
+            id: 'kuiper',
+            name: 'Kuiper Belt',
+            type: 'KUIPER',
+            orbitDistanceAU: Math.max(outerMain + 6 + (Math.random() * 4), farthestPlanetOrbit + 8 + (Math.random() * 6)),
+            widthAU: 4 + (Math.random() * 4),
+            icy: true,
+            minAsteroids: 10,
+            maxAsteroids: 18
+        };
+
+        const oortData = {
+            id: 'oort',
+            name: 'Oort Cloud',
+            type: 'OORT',
+            orbitDistanceAU: Math.max(kuiperData.orbitDistanceAU + 24 + (Math.random() * 18), farthestPlanetOrbit + 40 + (Math.random() * 30)),
+            widthAU: 25 + (Math.random() * 25),
+            icy: true,
+            minAsteroids: 12,
+            maxAsteroids: 22
+        };
+
+        belts.push((typeof AsteroidBelt !== 'undefined') ? new AsteroidBelt(kuiperData) : kuiperData);
+        belts.push((typeof AsteroidBelt !== 'undefined') ? new AsteroidBelt(oortData) : oortData);
+
+        return belts;
+    }
+
     function assignSystemBodies(system) {
         // Generate stars using StarGenerator
         system.stars = StarGenerator.generateStars(system.name);
@@ -151,6 +216,7 @@ const SystemGenerator = (() => {
         const moonCount = RandomUtils.randomInt(MIN_SYSTEM_MOONS, MAX_SYSTEM_MOONS);
         
         system.belts = Array.from({ length: beltCount }, () => randomBodyEntry(BELT_BODY_TYPES)).filter(Boolean);
+        system.asteroidBelts = generateAsteroidBeltsForSystem(system);
         system.moons = Array.from({ length: moonCount }, () => randomBodyEntry(MOON_BODY_TYPES)).filter(Boolean);
 
         // Generate station - ensure it's beyond the heat damage zone of all stars

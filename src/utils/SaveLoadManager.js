@@ -220,6 +220,7 @@ const SaveLoadManager = (() => {
             system.planets = (s.planets || []).map(planet => (planet instanceof Planet ? planet : new Planet(planet)));
             system.moons = s.moons || [];
             system.belts = s.belts || [];
+            system.asteroidBelts = s.asteroidBelts || [];
             if (s.features) {
                 system.features = s.features;
             } else {

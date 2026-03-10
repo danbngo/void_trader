@@ -196,6 +196,10 @@ const SpaceTravelLaser = (() => {
             
             // Prevent rapid successive fire attempts (laser caching bug fix)
             const now = performance.now();
+            const inputTimestampMs = Number.isFinite(timestampMs) && timestampMs > 0 ? timestampMs : now;
+            const effectTimestampMs = (mapInstance && typeof mapInstance._getRenderTimestampMs === 'function')
+                ? mapInstance._getRenderTimestampMs(inputTimestampMs)
+                : inputTimestampMs;
             if (now - lastFireAttemptMs < MIN_FIRE_INTERVAL_MS) {
                 return { laserEmptyTimestampMs: null };
             }
@@ -224,10 +228,10 @@ const SpaceTravelLaser = (() => {
                         const message = `Warning: Firing on the ${fleetName} will initiate combat!`;
                         mapInstance.nonHostileFireWarningsByFleetId[fleet.id] = {
                             shown: true,
-                            warningStartMs: timestampMs || now
+                            warningStartMs: effectTimestampMs
                         };
                         mapInstance.combatWarningMessage = message;
-                        mapInstance.combatWarningTimestampMs = timestampMs || now;
+                        mapInstance.combatWarningTimestampMs = effectTimestampMs;
                         mapInstance.combatWarningDurationMs = warningDurationMs;
                         return {
                             laserEmptyTimestampMs: null,
@@ -235,7 +239,7 @@ const SpaceTravelLaser = (() => {
                         };
                     }
 
-                    const elapsedMs = (timestampMs || now) - (state.warningStartMs || 0);
+                    const elapsedMs = effectTimestampMs - (state.warningStartMs || 0);
                     if (elapsedMs < warningDurationMs) {
                         return {
                             laserEmptyTimestampMs: null,
@@ -246,7 +250,11 @@ const SpaceTravelLaser = (() => {
             }
 
             const targetScreen = getPlayerTargetScreenPoint({ inputState, config, lastHoverPick, localDestination, playerShip });
-            const targetPoint = getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, localDestination, targetScreen });
+            let targetPoint = getPlayerTargetWorldPoint({ inputState, config, playerShip, lastHoverPick, localDestination, targetScreen });
+            const jitterTargetShipRef = lastHoverPick?.bodyRef?.position
+                ? lastHoverPick.bodyRef
+                : selectedShipRef;
+            targetPoint = getCombatJitteredTargetPoint(targetPoint, jitterTargetShipRef, config);
             
             const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);
@@ -266,11 +274,11 @@ const SpaceTravelLaser = (() => {
                 renderMode: 'player_screen',
                 targetScreen,
                 beamLength: 5 + currentLaser,
-                timestampMs: timestampMs || now
+                timestampMs: effectTimestampMs
             });
 
             if (enemyTarget && typeof SpaceTravelEncounters !== 'undefined' && SpaceTravelEncounters.handlePlayerAttackTarget) {
-                SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, enemyTarget, timestampMs || now);
+                SpaceTravelEncounters.handlePlayerAttackTarget(mapInstance, enemyTarget, effectTimestampMs);
             }
 
             return { laserEmptyTimestampMs: null };
@@ -434,6 +442,30 @@ const SpaceTravelLaser = (() => {
                 return localDestination.escort;
             }
             return null;
+        }
+
+        function getCombatJitteredTargetPoint(basePoint, targetShipRef, config) {
+            if (!basePoint || !targetShipRef?.position) {
+                return basePoint;
+            }
+
+            const jitterRadiusAu = Math.max(0, Number(config?.NPC_COMBAT_AIM_JITTER_AU) || 0);
+            if (jitterRadiusAu <= 0) {
+                return basePoint;
+            }
+
+            const targetRotation = targetShipRef.rotation || { x: 0, y: 0, z: 0, w: 1 };
+            const axes = ThreeDUtils.getLocalAxes(targetRotation);
+            const angle = Math.random() * Math.PI * 2;
+            const radius = jitterRadiusAu * Math.sqrt(Math.random());
+            const offsetRight = Math.cos(angle) * radius;
+            const offsetUp = Math.sin(angle) * radius;
+
+            return {
+                x: basePoint.x + (axes.right.x * offsetRight) + (axes.up.x * offsetUp),
+                y: basePoint.y + (axes.right.y * offsetRight) + (axes.up.y * offsetUp),
+                z: basePoint.z + (axes.right.z * offsetRight) + (axes.up.z * offsetUp)
+            };
         }
 
         function getPlayerTargetScreenPoint({ inputState, config, lastHoverPick, localDestination, playerShip }) {

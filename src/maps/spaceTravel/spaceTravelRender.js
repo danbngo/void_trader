@@ -20,11 +20,17 @@ const SpaceTravelRender = (() => {
         const viewWidth = grid.width;
         const depthBuffer = RasterUtils.createDepthBuffer(viewWidth, viewHeight);
 
-        renderSceneDepthBuffer({ ...params, depthBuffer, renderTimestampMs, viewWidth, viewHeight });
+        const sceneArtifacts = renderSceneDepthBuffer({ ...params, depthBuffer, renderTimestampMs, viewWidth, viewHeight });
         addDebugMessages(params, renderTimestampMs, viewWidth, viewHeight);
         const hailModalActive = !!params.mapInstance?.npcEncounterHailPrompt;
 
         UI.draw();
+
+        // Ship wireframes are drawn on canvas after UI.draw() so text rendering does not clear them.
+        Object3DRenderer?.drawWireframes?.({
+            wireframes: sceneArtifacts?.shipWireframes || [],
+            isPaused: params.isPaused
+        });
 
         // Render visual effects AFTER UI.draw() so they appear on top
         SpaceTravelRenderEffects.renderAll(params, renderTimestampMs);
@@ -68,6 +74,8 @@ const SpaceTravelRender = (() => {
         const effectiveRenderTimestampMs = params.isPaused && params.portalPausedTimestampMs
             ? params.portalPausedTimestampMs
             : renderTimestampMs;
+        const charDims = UI.getCharDimensions?.() || { width: 1, height: 1 };
+        const charAspectRatio = Math.max(0.001, (charDims.width || 1) / Math.max(0.001, (charDims.height || 1)));
 
         const bodyLabels = SpaceTravelRenderBodies.render({
             ...renderParams,
@@ -83,6 +91,7 @@ const SpaceTravelRender = (() => {
 
         // Render escort ships
         const shipPickInfos = [];
+        const shipWireframes = [];
         const shipOccupancyMask = new Uint8Array(viewWidth * viewHeight);
         if (params.escortShips && params.escortShips.length > 0 && typeof Object3DRenderer !== 'undefined') {
             params.escortShips.forEach((escort, idx) => {
@@ -99,9 +108,13 @@ const SpaceTravelRender = (() => {
                         return depthBuffer.chars[idx] || ' ';
                     },
                     timestampMs: effectiveRenderTimestampMs,
+                    charAspectRatio,
                     mouseState,
                     isAlly: true, // Mark escort ships as allies for green coloring
                     shipOccupancyMask,
+                    onWireframe: (wireframe) => {
+                        shipWireframes.push(wireframe);
+                    },
                     onPickInfo: (pickInfo) => {
                         shipPickInfos.push({ ...pickInfo, kind: 'ESCORT_SHIP' });
                     }
@@ -125,10 +138,14 @@ const SpaceTravelRender = (() => {
                         return depthBuffer.chars[idx] || ' ';
                     },
                     timestampMs: effectiveRenderTimestampMs,
+                    charAspectRatio,
                     mouseState,
                     isAlly: false,
                     shipColor: ship.shipColor,
                     shipOccupancyMask,
+                    onWireframe: (wireframe) => {
+                        shipWireframes.push(wireframe);
+                    },
                     onPickInfo: (pickInfo) => {
                         shipPickInfos.push({ ...pickInfo, kind: 'NPC_SHIP' });
                     }
@@ -360,6 +377,10 @@ const SpaceTravelRender = (() => {
                 addHudText: (x, y, text, color) => UI.addText(x, y, text, params.applyPauseColor?.(color) || color)
             });
         }
+
+        return {
+            shipWireframes
+        };
     }
 
     function renderShipDistanceLabels({ shipPickInfos, viewWidth, viewHeight, addHudText, applyPauseColor }) {

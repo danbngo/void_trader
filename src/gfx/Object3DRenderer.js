@@ -1,246 +1,283 @@
 /**
- * Ship renderer
- * Renders ships as directional symbols or angle-based sprite glyphs.
+ * Ship renderer (wireframe prototype)
+ *
+ * Legacy ASCII sprite logic has been intentionally disabled for now.
+ * We can bring it back later, but current rendering uses canvas line drawing.
  */
 
 const Object3DRenderer = (() => {
-    const SIDE_VIEWPORT_GLYPHS = new Set(['v', '^']);
-    const DEFAULT_VIEWPORT_GLYPHS = new Set(['v', '^', '<', '>']);
+    const lastWireframeLogByShip = new Map();
 
-    const FALLBACK_SHIP_SPRITES = {
-        topside: {
-            right: ['◣', '██▶', '◤'],
-            left: ['  ◢', '◀██', '  ◥'],
-            down: ['◥██◤', ' ◥◤'],
-            up: [' ◢◣', '◢██◣']
-        },
-        underside: {
-            right: ['◣', '██▶', '◤'],
-            left: ['  ◢', '◀██', '  ◥'],
-            down: ['◥██◤', ' ◥◤'],
-            up: [' ◢◣', '◢██◣']
-        },
-        side: {
-            left: ['◢██', '  ◥'],
-            right: ['██◣', '◤'],
-            upBellyLeft: [' ◣', '◢██'],
-            upBellyRight: [' ◢', '██◣'],
-            downBellyRight: ['██◤', ' ◥'],
-            downBellyLeft: ['◢██', ' ◤']
-        },
-        nose: {
-            bellyDown: ['◢█v█◣'],
-            bellyLeft: [' ◣', '<█', ' ◤'],
-            bellyRight: ['◢', '█>', '◥'],
-            bellyUp: ['◥█^█◤']
-        },
-        back: {
-            bellyDown: ['◢███◣'],
-            bellyLeft: ['◣', '██', '◤'],
-            bellyRight: ['◢', '██', '◥'],
-            bellyUp: ['◥███◤']
-        }
-    };
+    // Triangular rocket hull with elevated crest vertex and flat wings.
+    // Local-space forward is -Z. Wing points sit on the same Y plane as base A/B.
+    const FALLBACK_WIREFRAME_VERTICES = [
+        { x: 0.0, y: 0.0, z: -1.9 },   // 0 nose
+        { x: -0.58, y: -0.34, z: 1.45 }, // 1 base A (left, low)
+        { x: 0.58, y: -0.34, z: 1.45 },  // 2 base B (right, low)
+        { x: 0.0, y: 0.74, z: 1.45 },    // 3 base C (crest, high)
+        { x: -1.35, y: -0.34, z: 0.35 }, // 4 wing left tip
+        { x: 1.35, y: -0.34, z: 0.35 }   // 5 wing right tip
+    ];
 
-    function getFatArrow(dx, dy) {
-        const mag = Math.sqrt(dx * dx + dy * dy);
-        if (mag <= 0.000001) {
-            return '▲';
-        }
+    const FALLBACK_WIREFRAME_EDGES = [
+        [0, 1], [0, 2], [0, 3],
+        [1, 2], [2, 3], [3, 1],
+        [1, 4], [2, 5], [4, 5],
+        [0, 4], [0, 5]
+    ];
 
-        const angle = Math.atan2(dy, dx);
-        const degrees = angle * (180 / Math.PI);
+    function getShipColor(object, params, timestampMs) {
+        const flashDuration = params.config.SHIP_FLASH_DURATION_MS || 1000;
+        const flashCount = params.config.SHIP_FLASH_COUNT || 2;
 
-        if (degrees >= -22.5 && degrees < 22.5) return '▶';
-        if (degrees >= 22.5 && degrees < 67.5) return '◢';
-        if (degrees >= 67.5 && degrees < 112.5) return '▼';
-        if (degrees >= 112.5 && degrees < 157.5) return '◣';
-        if (degrees >= 157.5 || degrees < -157.5) return '◀';
-        if (degrees >= -157.5 && degrees < -112.5) return '◤';
-        if (degrees >= -112.5 && degrees < -67.5) return '▲';
-        return '◥';
-    }
-
-    function getSingleCharShipArrow(object, visualRotation, playerShip) {
-        const getDepthArrow = (cameraVec) => {
-            if (!cameraVec) {
-                return null;
-            }
-            const depthAbs = Math.abs(cameraVec.z || 0);
-            const lateralAbs = Math.max(Math.abs(cameraVec.x || 0), Math.abs(cameraVec.y || 0));
-            if (depthAbs <= lateralAbs) {
-                return null;
-            }
-            return (cameraVec.z || 0) < 0 ? '⮟' : '⮝';
-        };
-
-        const velocity = object?.velocity;
-        if (velocity) {
-            const speed = ThreeDUtils.vecLength(velocity);
-            if (speed > 0.000001) {
-                const cameraVelocity = ThreeDUtils.rotateVecByQuat(velocity, ThreeDUtils.quatConjugate(playerShip.rotation));
-                const depthArrow = getDepthArrow(cameraVelocity);
-                if (depthArrow) {
-                    return depthArrow;
+        if (object.flashStartMs && timestampMs) {
+            const flashElapsed = timestampMs - object.flashStartMs;
+            if (flashElapsed < flashDuration) {
+                const flashPeriod = flashDuration / flashCount;
+                const flashPhase = (flashElapsed % flashPeriod) / flashPeriod;
+                if (flashPhase < 0.5) {
+                    return object.flashColor || '#ffffff';
                 }
-                // Convert camera-space up (+Y) to screen-space up (-Y)
-                return getFatArrow(cameraVelocity.x, -cameraVelocity.y);
-            }
-        }
-
-        const shipForward = { x: 0, y: 0, z: -1 };
-        const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, visualRotation);
-        const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
-        const depthArrow = getDepthArrow(cameraForward);
-        if (depthArrow) {
-            return depthArrow;
-        }
-        return getFatArrow(cameraForward.x, -cameraForward.y);
-    }
-
-    function getCardinalDirection(x, y) {
-        if (Math.abs(x) >= Math.abs(y)) {
-            return x >= 0 ? 'right' : 'left';
-        }
-        return y >= 0 ? 'down' : 'up';
-    }
-
-    function getBellyDirection(cameraUp) {
-        const bellyX = -cameraUp.x;
-        const bellyY = cameraUp.y;
-        const cardinal = getCardinalDirection(bellyX, bellyY);
-        if (cardinal === 'up') return 'bellyUp';
-        if (cardinal === 'down') return 'bellyDown';
-        if (cardinal === 'left') return 'bellyLeft';
-        return 'bellyRight';
-    }
-
-    function selectShipSpriteLines(cameraForward, cameraUp, shipSprites, config = null, toCameraDir = null) {
-        const tagSpriteLines = (lines, spriteGroup, spriteKey = null) => {
-            if (!Array.isArray(lines)) {
-                return null;
-            }
-            const taggedLines = [...lines];
-            taggedLines._spriteGroup = spriteGroup;
-            taggedLines._spriteKey = spriteKey;
-            return taggedLines;
-        };
-
-        const sprites = shipSprites || FALLBACK_SHIP_SPRITES;
-        const forwardScreenX = -cameraForward.x;
-        const forwardScreenY = cameraForward.y;
-        const forwardCardinal = getCardinalDirection(forwardScreenX, forwardScreenY);
-        const bellyDirection = getBellyDirection(cameraUp);
-        const rearBellyDirection = bellyDirection === 'bellyLeft'
-            ? 'bellyRight'
-            : (bellyDirection === 'bellyRight' ? 'bellyLeft' : bellyDirection);
-
-        const noseBackThreshold = Math.min(0.99, Math.max(0.5, Number(config?.SHIP_SPRITE_NOSE_BACK_THRESHOLD) || 0.92));
-        const sideViewThreshold = Math.min(0.6, Math.max(0.05, Number(config?.SHIP_SPRITE_SIDE_VIEW_MAX_ABS_Z) || 0.12));
-
-        if (toCameraDir) {
-            const facingDot = (cameraForward.x * toCameraDir.x)
-                + (cameraForward.y * toCameraDir.y)
-                + (cameraForward.z * toCameraDir.z);
-
-            if (facingDot >= noseBackThreshold) {
-                return tagSpriteLines(sprites.nose?.[bellyDirection] || null, 'nose', bellyDirection);
-            }
-
-            if (facingDot <= -noseBackThreshold) {
-                return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back', rearBellyDirection);
-            }
-        }
-
-        if (cameraForward.z <= -noseBackThreshold) {
-            return tagSpriteLines(sprites.back?.[rearBellyDirection] || null, 'back', rearBellyDirection);
-        }
-
-        if (cameraForward.z >= noseBackThreshold) {
-            return tagSpriteLines(sprites.nose?.[bellyDirection] || null, 'nose', bellyDirection);
-        }
-
-        if (Math.abs(cameraForward.z) <= sideViewThreshold) {
-            if (forwardCardinal === 'left') return tagSpriteLines(sprites.side?.left || null, 'side', 'left');
-            if (forwardCardinal === 'right') return tagSpriteLines(sprites.side?.right || null, 'side', 'right');
-
-            const bellyX = -cameraUp.x;
-            if (forwardCardinal === 'up') {
-                return tagSpriteLines(
-                    bellyX < 0 ? (sprites.side?.upBellyLeft || null) : (sprites.side?.upBellyRight || null),
-                    'side',
-                    bellyX < 0 ? 'upBellyLeft' : 'upBellyRight'
-                );
-            }
-            return tagSpriteLines(
-                bellyX < 0 ? (sprites.side?.downBellyLeft || null) : (sprites.side?.downBellyRight || null),
-                'side',
-                bellyX < 0 ? 'downBellyLeft' : 'downBellyRight'
-            );
-        }
-
-        const isTopside = cameraUp.z < 0;
-        const bankSet = isTopside ? sprites.topside : sprites.underside;
-        const bankDirection = forwardCardinal;
-        return tagSpriteLines(bankSet?.[bankDirection] || null, isTopside ? 'topside' : 'underside', bankDirection);
-    }
-
-    function renderShipSprite(depthBuffer, centerX, centerY, depth, lines, color, plotCell, useAccentColors = true) {
-        if (!Array.isArray(lines) || lines.length === 0) {
-            return { plotted: 0, pickRadius: 2 };
-        }
-
-        let viewportGlyphs = DEFAULT_VIEWPORT_GLYPHS;
-        if (lines?._spriteGroup === 'side') {
-            if (lines?._spriteKey === 'left') {
-                viewportGlyphs = new Set(['<']);
-            } else if (lines?._spriteKey === 'right') {
-                viewportGlyphs = new Set(['>']);
             } else {
-                viewportGlyphs = SIDE_VIEWPORT_GLYPHS;
+                delete object.flashStartMs;
+                delete object.flashColor;
             }
         }
-        const exhaustColor = COLORS.ORANGE || '#FFA500';
-        const viewportColor = COLORS.CYAN || '#00FFFF';
-        const occluderColor = COLORS.BLACK || '#000000';
 
-        const width = lines.reduce((max, line) => Math.max(max, (line || '').length), 0);
-        const height = lines.length;
-        const startX = centerX - Math.floor(width / 2);
-        const startY = centerY - Math.floor(height / 2);
-        let plotted = 0;
+        const isDisabled = (typeof object.hull === 'number' && object.hull <= 0);
+        if (isDisabled) {
+            return '#777777';
+        }
 
-        for (let row = 0; row < lines.length; row++) {
-            const line = lines[row] || '';
-            for (let col = 0; col < line.length; col++) {
-                const glyph = line[col];
-                const px = startX + col;
-                const py = startY + row;
+        return params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
+    }
 
-                if (glyph === ' ') {
-                    RasterUtils.plotDepthText(depthBuffer, px, py, depth, ' ', occluderColor);
-                    plotCell(px, py);
-                    continue;
+    function projectShipWireframe({ object, playerShip, viewWidth, viewHeight, config, charAspectRatio = 1 }) {
+        const rotation = object.rotation || { x: 0, y: 0, z: 0, w: 1 };
+        const modelForwardCorrection = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI);
+        const visualRotation = ThreeDUtils.quatMultiply(rotation, modelForwardCorrection);
+
+        const cameraConjugate = ThreeDUtils.quatConjugate(playerShip.rotation);
+        const shipToCamera = ThreeDUtils.subVec(object.position, playerShip.position);
+        const cameraSpaceCenter = ThreeDUtils.rotateVecByQuat(shipToCamera, cameraConjugate);
+        if (cameraSpaceCenter.z < config.NEAR_PLANE) {
+            return null;
+        }
+
+        const centerProjection = RasterUtils.projectCameraSpacePointRaw(cameraSpaceCenter, viewWidth, viewHeight, config.VIEW_FOV);
+        if (!centerProjection) {
+            return null;
+        }
+
+        const shipGeometry = (typeof ShipGeometry !== 'undefined' && typeof ShipGeometry.getShip === 'function')
+            ? ShipGeometry.getShip(object.shipGeometryId || 'FIGHTER')
+            : null;
+        const sourceVertices = Array.isArray(shipGeometry?.vertices) && shipGeometry.vertices.length > 0
+            ? shipGeometry.vertices
+            : FALLBACK_WIREFRAME_VERTICES;
+        const sourceEdges = Array.isArray(shipGeometry?.edges) && shipGeometry.edges.length > 0
+            ? shipGeometry.edges
+            : FALLBACK_WIREFRAME_EDGES;
+
+        // If we are using fallback canonical vertices, apply ship size scaling.
+        // ShipGeometry vertices are already scaled by SHIP_SIZE_AU at load time.
+        const configuredScaleMult = Math.max(0.001, Number(config?.SHIP_WIREFRAME_SCALE_MULT) || 1);
+        const configuredMinScale = Math.max(0.0000001, Number(config?.SHIP_WIREFRAME_MIN_SCALE_AU) || 0.00025);
+        const modelScale = shipGeometry
+            ? 1
+            : Math.max(configuredMinScale, Number(object.size) || 0.0012);
+        const effectiveScale = modelScale * configuredScaleMult;
+        const projectedVertices = [];
+        const vertexDiagnostics = [];
+
+        for (let i = 0; i < sourceVertices.length; i++) {
+            const v = sourceVertices[i];
+            const local = {
+                x: v.x * effectiveScale,
+                y: v.y * effectiveScale,
+                z: v.z * effectiveScale
+            };
+
+            const worldOffset = ThreeDUtils.rotateVecByQuat(local, visualRotation);
+            const worldPos = ThreeDUtils.addVec(object.position, worldOffset);
+            const relative = ThreeDUtils.subVec(worldPos, playerShip.position);
+            const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, cameraConjugate);
+
+            if (cameraSpace.z < config.NEAR_PLANE) {
+                return null;
+            }
+
+            const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, config.VIEW_FOV);
+            if (!projected) {
+                return null;
+            }
+
+            projectedVertices.push({
+                x: projected.x,
+                y: projected.y,
+                z: cameraSpace.z
+            });
+
+            vertexDiagnostics.push({
+                index: i,
+                world: {
+                    x: worldPos.x,
+                    y: worldPos.y,
+                    z: worldPos.z
+                },
+                camera: {
+                    x: cameraSpace.x,
+                    y: cameraSpace.y,
+                    z: cameraSpace.z
+                },
+                screen: {
+                    x: projected.x,
+                    y: projected.y,
+                    inBounds: projected.x >= 0 && projected.x < viewWidth && projected.y >= 0 && projected.y < viewHeight
                 }
+            });
+        }
 
-                let glyphColor = color;
-                if (useAccentColors && glyph === 'o') {
-                    glyphColor = exhaustColor;
-                } else if (useAccentColors && viewportGlyphs.has(glyph)) {
-                    glyphColor = viewportColor;
-                }
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
 
-                if (RasterUtils.plotDepthText(depthBuffer, px, py, depth, glyph, glyphColor)) {
-                    plotted += 1;
-                }
-                plotCell(px, py);
+        projectedVertices.forEach((p) => {
+            minX = Math.min(minX, p.x);
+            maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y);
+            maxY = Math.max(maxY, p.y);
+        });
+
+        const minChars = Math.max(0, Number(config?.SHIP_WIREFRAME_MIN_SIZE_CHARS) || 0);
+        const maxScaleMult = Math.max(1, Number(config?.SHIP_WIREFRAME_MAX_SCREEN_SCALE_MULT) || 1);
+        let appliedScreenScale = 1;
+        const safeAspect = Math.max(0.001, Number(charAspectRatio) || 1);
+
+        if (minChars > 0) {
+            const centerX = (minX + maxX) * 0.5;
+            const centerY = (minY + maxY) * 0.5;
+
+            let baseRadius = 0;
+            projectedVertices.forEach((p) => {
+                const dx = (p.x - centerX) * safeAspect;
+                const dy = (p.y - centerY);
+                baseRadius = Math.max(baseRadius, Math.sqrt((dx * dx) + (dy * dy)));
+            });
+
+            const targetRadius = Math.max(0.0001, minChars * 0.5);
+            const requiredScale = targetRadius / Math.max(0.0001, baseRadius);
+            if (requiredScale > 1) {
+                appliedScreenScale = Math.min(requiredScale, maxScaleMult);
+
+                projectedVertices.forEach((p) => {
+                    p.x = centerX + ((p.x - centerX) * appliedScreenScale);
+                    p.y = centerY + ((p.y - centerY) * appliedScreenScale);
+                });
+
+                minX = Infinity;
+                maxX = -Infinity;
+                minY = Infinity;
+                maxY = -Infinity;
+                projectedVertices.forEach((p) => {
+                    minX = Math.min(minX, p.x);
+                    maxX = Math.max(maxX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxY = Math.max(maxY, p.y);
+                });
             }
         }
+
+        const intersectsScreen = maxX >= 0 && minX < viewWidth && maxY >= 0 && minY < viewHeight;
+        if (!intersectsScreen) {
+            return null;
+        }
+
+        const pickRadius = Math.max(3, Math.ceil(Math.max(maxX - minX, maxY - minY) * 0.5));
 
         return {
-            plotted,
-            pickRadius: Math.max(2, Math.ceil(Math.max(width, height) / 2))
+            screenX: Math.round(centerProjection.x),
+            screenY: Math.round(centerProjection.y),
+            depth: Math.max(config.NEAR_PLANE, cameraSpaceCenter.z),
+            distance: ThreeDUtils.vecLength(shipToCamera),
+            pickRadius,
+            projectedVertices,
+            sourceEdges,
+            vertexDiagnostics,
+            scaleInfo: {
+                configuredScaleMult,
+                configuredMinScale,
+                effectiveScale,
+                appliedScreenScale,
+                charAspectRatio: safeAspect,
+                bboxWidthChars: maxX - minX,
+                bboxHeightChars: maxY - minY
+            }
         };
+    }
+
+    function maybeLogWireframeDebug(params, projection) {
+        if (params.isAlly || !params.object || !projection) {
+            return;
+        }
+
+        const debugEnabled = !!params.config?.DEBUG_SHIP_WIREFRAME_LOG;
+        if (!debugEnabled) {
+            return;
+        }
+
+        const nowMs = Number.isFinite(params.timestampMs) ? params.timestampMs : performance.now();
+        const logEveryMs = Math.max(0, Number(params.config?.DEBUG_SHIP_WIREFRAME_LOG_EVERY_MS) || 0);
+        const shipId = params.object.id || params.object.name || `npc-${Math.round(projection.screenX)}-${Math.round(projection.screenY)}`;
+        const lastLogMs = lastWireframeLogByShip.get(shipId) || -Infinity;
+        if ((nowMs - lastLogMs) < logEveryMs) {
+            return;
+        }
+        lastWireframeLogByShip.set(shipId, nowMs);
+
+        const bbox = projection.projectedVertices.reduce((acc, p) => {
+            acc.minX = Math.min(acc.minX, p.x);
+            acc.maxX = Math.max(acc.maxX, p.x);
+            acc.minY = Math.min(acc.minY, p.y);
+            acc.maxY = Math.max(acc.maxY, p.y);
+            return acc;
+        }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+
+        console.log('[WireframeShip][NPC][Frame]', {
+            timestampMs: nowMs,
+            shipId,
+            shipName: params.object.name || params.object.shipData?.name || 'Unknown NPC',
+            distanceAU: Number(projection.distance.toFixed(6)),
+            centerScreen: { x: projection.screenX, y: projection.screenY },
+            bboxScreen: {
+                minX: Number(bbox.minX.toFixed(2)),
+                maxX: Number(bbox.maxX.toFixed(2)),
+                minY: Number(bbox.minY.toFixed(2)),
+                maxY: Number(bbox.maxY.toFixed(2)),
+                width: Number((bbox.maxX - bbox.minX).toFixed(2)),
+                height: Number((bbox.maxY - bbox.minY).toFixed(2))
+            },
+            scaleInfo: projection.scaleInfo,
+            vertices: projection.vertexDiagnostics.map((v) => ({
+                index: v.index,
+                world: {
+                    x: Number(v.world.x.toFixed(6)),
+                    y: Number(v.world.y.toFixed(6)),
+                    z: Number(v.world.z.toFixed(6))
+                },
+                camera: {
+                    x: Number(v.camera.x.toFixed(6)),
+                    y: Number(v.camera.y.toFixed(6)),
+                    z: Number(v.camera.z.toFixed(6))
+                },
+                screen: {
+                    x: Number(v.screen.x.toFixed(2)),
+                    y: Number(v.screen.y.toFixed(2)),
+                    inBounds: v.screen.inBounds
+                }
+            }))
+        });
     }
 
     function render(params) {
@@ -250,152 +287,96 @@ const Object3DRenderer = (() => {
             viewWidth,
             viewHeight,
             config,
-            depthBuffer,
             timestampMs = 0,
-            onPickInfo = null
+            onPickInfo = null,
+            onWireframe = null
         } = params;
 
         if (!object || !object.position || !playerShip) {
             return;
         }
 
-        const markShipMaskCell = (x, y) => {
-            const mask = params.shipOccupancyMask;
-            if (!mask) {
-                return;
-            }
-            if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
-                return;
-            }
-            mask[(y * viewWidth) + x] = 1;
-        };
-
-        const position = object.position;
-        const rotation = object.rotation || { x: 0, y: 0, z: 0, w: 1 };
-        const modelForwardCorrection = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI);
-        const visualRotation = ThreeDUtils.quatMultiply(rotation, modelForwardCorrection);
-
-        const relative = ThreeDUtils.subVec(position, playerShip.position);
-        const distanceAU = ThreeDUtils.vecLength(relative);
-        const cameraSpace = ThreeDUtils.rotateVecByQuat(relative, ThreeDUtils.quatConjugate(playerShip.rotation));
-        if (cameraSpace.z < config.NEAR_PLANE) {
+        const projection = projectShipWireframe({
+            object,
+            playerShip,
+            viewWidth,
+            viewHeight,
+            config,
+            charAspectRatio: params.charAspectRatio || 1
+        });
+        if (!projection) {
             return;
         }
 
-        const projected = RasterUtils.projectCameraSpacePointRaw(cameraSpace, viewWidth, viewHeight, config.VIEW_FOV);
-        if (!projected) {
-            return;
-        }
+        maybeLogWireframeDebug(params, projection);
 
-        const x = Math.round(projected.x);
-        const y = Math.round(projected.y);
+        const color = getShipColor(object, params, timestampMs);
 
-        const flashDuration = config.SHIP_FLASH_DURATION_MS || 1000;
-        const flashCount = config.SHIP_FLASH_COUNT || 2;
-        let isFlashing = false;
-        let flashColor = null;
+        const segments = projection.sourceEdges.map(([a, b]) => ({
+            a: projection.projectedVertices[a],
+            b: projection.projectedVertices[b]
+        }));
 
-        if (object.flashStartMs && timestampMs) {
-            const flashElapsed = timestampMs - object.flashStartMs;
-            if (flashElapsed < flashDuration) {
-                const flashPeriod = flashDuration / flashCount;
-                const flashPhase = (flashElapsed % flashPeriod) / flashPeriod;
-                if (flashPhase < 0.5) {
-                    isFlashing = true;
-                    flashColor = object.flashColor || '#ffffff';
-                }
-            } else {
-                delete object.flashStartMs;
-                delete object.flashColor;
-            }
-        }
-
-        const isDisabled = (typeof object.hull === 'number' && object.hull <= 0);
-        const arrow = getSingleCharShipArrow(object, visualRotation, playerShip);
-        let color;
-        if (isFlashing && flashColor) {
-            color = flashColor;
-        } else if (isDisabled) {
-            color = '#777777';
-        } else {
-            color = params.shipColor || (params.isAlly ? COLORS.GREEN : '#00ff00');
-        }
-
-        const depthAtSymbol = Math.max(config.NEAR_PLANE, cameraSpace.z);
-        const shipForward = { x: 0, y: 0, z: -1 };
-        const shipUp = { x: 0, y: 1, z: 0 };
-        const worldForward = ThreeDUtils.rotateVecByQuat(shipForward, visualRotation);
-        const worldUp = ThreeDUtils.rotateVecByQuat(shipUp, visualRotation);
-        const cameraForward = ThreeDUtils.rotateVecByQuat(worldForward, ThreeDUtils.quatConjugate(playerShip.rotation));
-        const cameraUp = ThreeDUtils.rotateVecByQuat(worldUp, ThreeDUtils.quatConjugate(playerShip.rotation));
-        const cameraToShipLen = Math.max(0.000001, ThreeDUtils.vecLength(cameraSpace));
-        const toCameraDir = {
-            x: -cameraSpace.x / cameraToShipLen,
-            y: -cameraSpace.y / cameraToShipLen,
-            z: -cameraSpace.z / cameraToShipLen
-        };
-
-        const spriteDistanceLimit = (typeof config.SHIP_SPRITE_MAX_DISTANCE_AU === 'number')
-            ? config.SHIP_SPRITE_MAX_DISTANCE_AU
-            : 1;
-        const largeSpriteDistanceLimit = (typeof config.SHIP_SPRITE_LARGE_MAX_DISTANCE_AU === 'number')
-            ? config.SHIP_SPRITE_LARGE_MAX_DISTANCE_AU
-            : (spriteDistanceLimit * 0.5);
-        const canRenderSprite = config.SHIP_USE_ANGLE_SPRITES !== false && distanceAU <= spriteDistanceLimit;
-        const useLargeSpriteSet = !!config.SHIP_SPRITES_LARGE && distanceAU <= largeSpriteDistanceLimit;
-        const spriteSet = useLargeSpriteSet ? config.SHIP_SPRITES_LARGE : config.SHIP_SPRITES;
-        let pickRadius = 2;
-
-        if (canRenderSprite) {
-            const spriteLines = selectShipSpriteLines(cameraForward, cameraUp, spriteSet, config, toCameraDir);
-            if (spriteLines && spriteLines.length > 0) {
-                const width = spriteLines.reduce((max, line) => Math.max(max, (line || '').length), 0);
-                const height = spriteLines.length;
-                const halfWidth = Math.floor(width / 2);
-                const halfHeight = Math.floor(height / 2);
-                const intersectsScreen = (x + halfWidth >= 0) && (x - halfWidth < viewWidth)
-                    && (y + halfHeight >= 0) && (y - halfHeight < viewHeight);
-
-                if (intersectsScreen) {
-                    const spriteResult = renderShipSprite(
-                        depthBuffer,
-                        x,
-                        y,
-                        depthAtSymbol,
-                        spriteLines,
-                        color,
-                        markShipMaskCell,
-                        !isDisabled
-                    );
-                    pickRadius = spriteResult.pickRadius;
-                } else {
-                    return;
-                }
-            } else {
-                if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
-                    return;
-                }
-                RasterUtils.plotDepthText(depthBuffer, x, y, depthAtSymbol, arrow, color);
-                markShipMaskCell(x, y);
-            }
-        } else {
-            if (x < 0 || x >= viewWidth || y < 0 || y >= viewHeight) {
-                return;
-            }
-            RasterUtils.plotDepthText(depthBuffer, x, y, depthAtSymbol, arrow, color);
-            markShipMaskCell(x, y);
+        if (onWireframe) {
+            onWireframe({
+                segments,
+                color,
+                depth: projection.depth
+            });
         }
 
         if (onPickInfo) {
             onPickInfo({
                 object,
-                screenX: x,
-                screenY: y,
-                depth: depthAtSymbol,
-                distance: distanceAU,
-                pickRadius
+                screenX: projection.screenX,
+                screenY: projection.screenY,
+                depth: projection.depth,
+                distance: projection.distance,
+                pickRadius: projection.pickRadius
             });
         }
+    }
+
+    function drawWireframes({ wireframes, isPaused }) {
+        if (!Array.isArray(wireframes) || wireframes.length === 0) {
+            return;
+        }
+
+        const ctx = UI.getContext?.();
+        const canvas = UI.getCanvas?.();
+        const charDims = UI.getCharDimensions?.();
+        if (!ctx || !canvas || !charDims) {
+            return;
+        }
+
+        const charWidth = Math.max(1, charDims.width || 1);
+        const charHeight = Math.max(1, charDims.height || 1);
+
+        const sorted = [...wireframes].sort((a, b) => (b.depth || 0) - (a.depth || 0));
+
+        ctx.save();
+        ctx.lineWidth = 1.35;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        sorted.forEach((wf) => {
+            const stroke = isPaused ? ColorUtils.toMonochrome(wf.color || COLORS.TEXT_NORMAL) : (wf.color || COLORS.TEXT_NORMAL);
+            ctx.strokeStyle = stroke;
+
+            (wf.segments || []).forEach((segment) => {
+                const x1 = ((segment.a.x || 0) + 0.5) * charWidth;
+                const y1 = ((segment.a.y || 0) + 0.5) * charHeight;
+                const x2 = ((segment.b.x || 0) + 0.5) * charWidth;
+                const y2 = ((segment.b.y || 0) + 0.5) * charHeight;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+        });
+
+        ctx.restore();
     }
 
     function isOnScreen(object, playerShip, viewWidth, viewHeight, config) {
@@ -415,12 +396,13 @@ const Object3DRenderer = (() => {
         }
 
         const margin = 5;
-        return projected.x >= -margin && projected.x < viewWidth + margin &&
-               projected.y >= -margin && projected.y < viewHeight + margin;
+        return projected.x >= -margin && projected.x < viewWidth + margin
+            && projected.y >= -margin && projected.y < viewHeight + margin;
     }
 
     return {
         render,
+        drawWireframes,
         isOnScreen
     };
 })();

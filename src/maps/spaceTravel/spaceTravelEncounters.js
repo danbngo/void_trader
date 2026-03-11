@@ -828,9 +828,29 @@ const SpaceTravelEncounters = (() => {
         fleet.lastFireMs = timestampMs;
 
         const jitterRadiusAu = Math.max(0, Number(mapInstance.config.NPC_COMBAT_AIM_JITTER_AU) || 0);
+        const viewGrid = UI.getGridSize?.() || { width: 80, height: 30 };
+        const viewWidth = viewGrid.width;
+        const viewHeight = viewGrid.height - (mapInstance.config.PANEL_HEIGHT || 0);
+        const cameraConjugate = ThreeDUtils.quatConjugate(playerShip.rotation);
+        const projectWorldToScreen = (worldPoint) => {
+            if (!worldPoint) return null;
+            const relative = ThreeDUtils.subVec(worldPoint, playerShip.position);
+            const camera = ThreeDUtils.rotateVecByQuat(relative, cameraConjugate);
+            const projected = RasterUtils.projectCameraSpacePointRaw(camera, viewWidth, viewHeight, mapInstance.config.VIEW_FOV);
+            if (!projected) return null;
+            return {
+                x: Number(projected.x.toFixed(2)),
+                y: Number(projected.y.toFixed(2)),
+                z: Number(camera.z.toFixed(6))
+            };
+        };
+
         const getNpcShotTargetPoint = () => {
             if (jitterRadiusAu <= 0) {
-                return playerShip.position;
+                return {
+                    point: { ...playerShip.position },
+                    jitterOffset: { x: 0, y: 0, z: 0 }
+                };
             }
 
             const axes = ThreeDUtils.getLocalAxes(playerShip.rotation);
@@ -839,10 +859,19 @@ const SpaceTravelEncounters = (() => {
             const offsetRight = Math.cos(angle) * radius;
             const offsetUp = Math.sin(angle) * radius;
 
-            return {
+            const point = {
                 x: playerShip.position.x + (axes.right.x * offsetRight) + (axes.up.x * offsetUp),
                 y: playerShip.position.y + (axes.right.y * offsetRight) + (axes.up.y * offsetUp),
                 z: playerShip.position.z + (axes.right.z * offsetRight) + (axes.up.z * offsetUp)
+            };
+
+            return {
+                point,
+                jitterOffset: {
+                    x: point.x - playerShip.position.x,
+                    y: point.y - playerShip.position.y,
+                    z: point.z - playerShip.position.z
+                }
             };
         };
 
@@ -850,7 +879,8 @@ const SpaceTravelEncounters = (() => {
         shooters.forEach(ship => {
             const perShotMin = Math.max(1, mapInstance.config.NPC_SHOT_MIN_DAMAGE || 2);
             const perShotMax = Math.max(perShotMin, mapInstance.config.NPC_SHOT_MAX_DAMAGE || 6);
-            const targetPoint = getNpcShotTargetPoint();
+            const shotTarget = getNpcShotTargetPoint();
+            const targetPoint = shotTarget.point;
             const fired = mapInstance.laser?.fireWorldLaser?.({
                 mapInstance,
                 shooter: ship,
@@ -862,6 +892,34 @@ const SpaceTravelEncounters = (() => {
             });
             if (fired) {
                 shotsFired += 1;
+                if (mapInstance.config?.DEBUG_NPC_LASER_LOG || mapInstance.config?.DEBUG_LASER_LOG) {
+                    console.log('[SpaceTravelEncounter][NpcLaserFire]', {
+                        timestampMs,
+                        fleetId: fleet.id,
+                        shooterId: ship.id || null,
+                        shooterName: ship.name || ship.shipData?.name || null,
+                        shooterScreen: projectWorldToScreen(ship.position),
+                        playerScreen: projectWorldToScreen(playerShip.position),
+                        targetScreen: projectWorldToScreen(targetPoint),
+                        targetWorld: {
+                            x: Number(targetPoint.x.toFixed(6)),
+                            y: Number(targetPoint.y.toFixed(6)),
+                            z: Number(targetPoint.z.toFixed(6))
+                        },
+                        playerWorld: {
+                            x: Number(playerShip.position.x.toFixed(6)),
+                            y: Number(playerShip.position.y.toFixed(6)),
+                            z: Number(playerShip.position.z.toFixed(6))
+                        },
+                        jitterRadiusAu,
+                        jitterOffset: {
+                            x: Number(shotTarget.jitterOffset.x.toFixed(6)),
+                            y: Number(shotTarget.jitterOffset.y.toFixed(6)),
+                            z: Number(shotTarget.jitterOffset.z.toFixed(6))
+                        },
+                        damageRange: { min: perShotMin, max: perShotMax }
+                    });
+                }
             }
         });
 

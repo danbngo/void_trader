@@ -14,11 +14,11 @@ const ShipGeometry = (() => {
             // Wing tips are flat on the A/B plane to keep wings parallel to ship "ground".
             vertices: [
                 { x: 0.0, y: 0.0, z: -1.9 },      // 0 nose
-                { x: -0.58, y: -0.34, z: 1.45 }, // 1 base A (left, low)
-                { x: 0.58, y: -0.34, z: 1.45 },  // 2 base B (right, low)
-                { x: 0.0, y: 0.74, z: 1.45 },    // 3 base C (crest, high)
-                { x: -1.35, y: -0.34, z: 0.35 }, // 4 wing left tip
-                { x: 1.35, y: -0.34, z: 0.35 }   // 5 wing right tip
+                { x: -0.58, y: -0.42, z: 1.15 }, // 1 base A (left, low, thicker wing root)
+                { x: 0.58, y: -0.42, z: 1.15 },  // 2 base B (right, low, thicker wing root)
+                { x: 0.0, y: 0.28, z: 1.45 },    // 3 base C (crest, lowered)
+                { x: -1.35, y: -0.48, z: 0.65 }, // 4 wing left tip (same span, thicker wedge)
+                { x: 1.35, y: -0.48, z: 0.65 }   // 5 wing right tip (same span, thicker wedge)
             ],
 
             // Explicit edge graph for wireframe rendering.

@@ -54,8 +54,7 @@ const Object3DRenderer = (() => {
 
     function projectShipWireframe({ object, playerShip, viewWidth, viewHeight, config, charAspectRatio = 1 }) {
         const rotation = object.rotation || { x: 0, y: 0, z: 0, w: 1 };
-        const modelForwardCorrection = ThreeDUtils.quatFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI);
-        const visualRotation = ThreeDUtils.quatMultiply(rotation, modelForwardCorrection);
+        const visualRotation = rotation;
 
         const cameraConjugate = ThreeDUtils.quatConjugate(playerShip.rotation);
         const shipToCamera = ThreeDUtils.subVec(object.position, playerShip.position);
@@ -244,40 +243,40 @@ const Object3DRenderer = (() => {
             return acc;
         }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
 
-        console.log('[WireframeShip][NPC][Frame]', {
-            timestampMs: nowMs,
-            shipId,
-            shipName: params.object.name || params.object.shipData?.name || 'Unknown NPC',
-            distanceAU: Number(projection.distance.toFixed(6)),
-            centerScreen: { x: projection.screenX, y: projection.screenY },
-            bboxScreen: {
-                minX: Number(bbox.minX.toFixed(2)),
-                maxX: Number(bbox.maxX.toFixed(2)),
-                minY: Number(bbox.minY.toFixed(2)),
-                maxY: Number(bbox.maxY.toFixed(2)),
-                width: Number((bbox.maxX - bbox.minX).toFixed(2)),
-                height: Number((bbox.maxY - bbox.minY).toFixed(2))
-            },
-            scaleInfo: projection.scaleInfo,
-            vertices: projection.vertexDiagnostics.map((v) => ({
-                index: v.index,
-                world: {
-                    x: Number(v.world.x.toFixed(6)),
-                    y: Number(v.world.y.toFixed(6)),
-                    z: Number(v.world.z.toFixed(6))
-                },
-                camera: {
-                    x: Number(v.camera.x.toFixed(6)),
-                    y: Number(v.camera.y.toFixed(6)),
-                    z: Number(v.camera.z.toFixed(6))
-                },
-                screen: {
-                    x: Number(v.screen.x.toFixed(2)),
-                    y: Number(v.screen.y.toFixed(2)),
-                    inBounds: v.screen.inBounds
-                }
-            }))
-        });
+        // console.log('[WireframeShip][NPC][Frame]', {
+        //     timestampMs: nowMs,
+        //     shipId,
+        //     shipName: params.object.name || params.object.shipData?.name || 'Unknown NPC',
+        //     distanceAU: Number(projection.distance.toFixed(6)),
+        //     centerScreen: { x: projection.screenX, y: projection.screenY },
+        //     bboxScreen: {
+        //         minX: Number(bbox.minX.toFixed(2)),
+        //         maxX: Number(bbox.maxX.toFixed(2)),
+        //         minY: Number(bbox.minY.toFixed(2)),
+        //         maxY: Number(bbox.maxY.toFixed(2)),
+        //         width: Number((bbox.maxX - bbox.minX).toFixed(2)),
+        //         height: Number((bbox.maxY - bbox.minY).toFixed(2))
+        //     },
+        //     scaleInfo: projection.scaleInfo,
+        //     vertices: projection.vertexDiagnostics.map((v) => ({
+        //         index: v.index,
+        //         world: {
+        //             x: Number(v.world.x.toFixed(6)),
+        //             y: Number(v.world.y.toFixed(6)),
+        //             z: Number(v.world.z.toFixed(6))
+        //         },
+        //         camera: {
+        //             x: Number(v.camera.x.toFixed(6)),
+        //             y: Number(v.camera.y.toFixed(6)),
+        //             z: Number(v.camera.z.toFixed(6))
+        //         },
+        //         screen: {
+        //             x: Number(v.screen.x.toFixed(2)),
+        //             y: Number(v.screen.y.toFixed(2)),
+        //             inBounds: v.screen.inBounds
+        //         }
+        //     }))
+        // });
     }
 
     function render(params) {

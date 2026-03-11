@@ -80,24 +80,28 @@ const SpaceTravelLaser = (() => {
             });
 
             const createdShot = laserShots[laserShots.length - 1];
-            console.log('[SpaceTravelLaser] Enqueue', {
-                shotId: createdShot.id,
-                mode: createdShot.renderMode,
-                from: {
-                    x: Number(createdShot.from.x.toFixed(6)),
-                    y: Number(createdShot.from.y.toFixed(6)),
-                    z: Number(createdShot.from.z.toFixed(6))
-                },
-                to: {
-                    x: Number(createdShot.to.x.toFixed(6)),
-                    y: Number(createdShot.to.y.toFixed(6)),
-                    z: Number(createdShot.to.z.toFixed(6))
-                },
-                targetScreen: createdShot.targetScreen,
-                beamLength: createdShot.beamLength,
-                createdMs: Math.round(createdShot.createdMs),
-                impactMs: Math.round(createdShot.impactMs)
-            });
+            const laserLogEnabled = !!mapInstance?.config?.DEBUG_LASER_LOG;
+            if (laserLogEnabled) {
+                console.log('[SpaceTravelLaser] Enqueue', {
+                    shotId: createdShot.id,
+                    shooterId: shooter?.id || 'unknown',
+                    mode: createdShot.renderMode,
+                    from: {
+                        x: Number(createdShot.from.x.toFixed(6)),
+                        y: Number(createdShot.from.y.toFixed(6)),
+                        z: Number(createdShot.from.z.toFixed(6))
+                    },
+                    to: {
+                        x: Number(createdShot.to.x.toFixed(6)),
+                        y: Number(createdShot.to.y.toFixed(6)),
+                        z: Number(createdShot.to.z.toFixed(6))
+                    },
+                    targetScreen: createdShot.targetScreen,
+                    beamLength: createdShot.beamLength,
+                    createdMs: Math.round(createdShot.createdMs),
+                    impactMs: Math.round(createdShot.impactMs)
+                });
+            }
 
             if (laserShots.length > 120) {
                 laserShots.splice(0, laserShots.length - 120);
@@ -254,7 +258,39 @@ const SpaceTravelLaser = (() => {
             const jitterTargetShipRef = lastHoverPick?.bodyRef?.position
                 ? lastHoverPick.bodyRef
                 : selectedShipRef;
-            targetPoint = getCombatJitteredTargetPoint(targetPoint, jitterTargetShipRef, config);
+            const preJitterTargetPoint = { ...targetPoint };
+            const playerJitterRadiusAu = Math.max(0, Number(config?.PLAYER_COMBAT_AIM_JITTER_AU ?? config?.NPC_COMBAT_AIM_JITTER_AU) || 0);
+            targetPoint = getCombatJitteredTargetPoint(targetPoint, jitterTargetShipRef, playerJitterRadiusAu);
+            const jitterOffset = {
+                x: targetPoint.x - preJitterTargetPoint.x,
+                y: targetPoint.y - preJitterTargetPoint.y,
+                z: targetPoint.z - preJitterTargetPoint.z
+            };
+            if (config?.DEBUG_LASER_LOG) {
+                console.log('[SpaceTravelLaser][PlayerFire]', {
+                    timestampMs: effectTimestampMs,
+                    selectedShipId: selectedShipRef?.id || null,
+                    hoverShipId: lastHoverPick?.bodyRef?.id || null,
+                    enemyTargetId: enemyTarget?.id || null,
+                    targetScreen: targetScreen ? { x: targetScreen.x, y: targetScreen.y } : null,
+                    targetWorldPreJitter: {
+                        x: Number(preJitterTargetPoint.x.toFixed(6)),
+                        y: Number(preJitterTargetPoint.y.toFixed(6)),
+                        z: Number(preJitterTargetPoint.z.toFixed(6))
+                    },
+                    targetWorldPostJitter: {
+                        x: Number(targetPoint.x.toFixed(6)),
+                        y: Number(targetPoint.y.toFixed(6)),
+                        z: Number(targetPoint.z.toFixed(6))
+                    },
+                    jitterRadiusAu: playerJitterRadiusAu,
+                    jitterOffset: {
+                        x: Number(jitterOffset.x.toFixed(6)),
+                        y: Number(jitterOffset.y.toFixed(6)),
+                        z: Number(jitterOffset.z.toFixed(6))
+                    }
+                });
+            }
             
             const laserEnergy = Ship.getLaserMax(playerShip);
             Ship.setLaserCurrent(playerShip, 0);
@@ -321,7 +357,7 @@ const SpaceTravelLaser = (() => {
                     const targetX = Math.max(0, Math.min(viewWidth - 1, Math.floor(shot.targetScreen?.x ?? (viewWidth / 2))));
                     const targetY = Math.max(0, Math.min(viewHeight - 1, Math.floor(shot.targetScreen?.y ?? (viewHeight / 2))));
 
-                    if (!shot.debugRenderLogged) {
+                    if (!shot.debugRenderLogged && config?.DEBUG_LASER_LOG) {
                         shot.debugRenderLogged = true;
                         console.log('[SpaceTravelLaser] Render player_screen', {
                             shotId: shot.id,
@@ -344,9 +380,17 @@ const SpaceTravelLaser = (() => {
                     const leftPoints = LineDrawer.drawLine(0, viewHeight - 1, targetX, targetY, true, laserColor);
                     const rightPoints = LineDrawer.drawLine(viewWidth - 1, viewHeight - 1, targetX, targetY, true, laserColor);
                     const shotBeamLength = Math.max(3, shot.beamLength || 8);
+                    const drawFullPath = config?.PLAYER_LASER_DRAW_FULL_PATH !== false;
 
                     const renderPoints = (points) => {
                         if (!points || points.length === 0) {
+                            return;
+                        }
+                        if (drawFullPath) {
+                            for (let i = 0; i < points.length; i++) {
+                                const point = points[i];
+                                RasterUtils.plotDepthText(depthBuffer, point.x, point.y, config.LASER_DEPTH, point.symbol, laserColor);
+                            }
                             return;
                         }
                         const totalDistance = points.length + shotBeamLength;
@@ -444,20 +488,20 @@ const SpaceTravelLaser = (() => {
             return null;
         }
 
-        function getCombatJitteredTargetPoint(basePoint, targetShipRef, config) {
+        function getCombatJitteredTargetPoint(basePoint, targetShipRef, jitterRadiusAu = 0) {
             if (!basePoint || !targetShipRef?.position) {
                 return basePoint;
             }
 
-            const jitterRadiusAu = Math.max(0, Number(config?.NPC_COMBAT_AIM_JITTER_AU) || 0);
-            if (jitterRadiusAu <= 0) {
+            const safeJitterRadiusAu = Math.max(0, Number(jitterRadiusAu) || 0);
+            if (safeJitterRadiusAu <= 0) {
                 return basePoint;
             }
 
             const targetRotation = targetShipRef.rotation || { x: 0, y: 0, z: 0, w: 1 };
             const axes = ThreeDUtils.getLocalAxes(targetRotation);
             const angle = Math.random() * Math.PI * 2;
-            const radius = jitterRadiusAu * Math.sqrt(Math.random());
+            const radius = safeJitterRadiusAu * Math.sqrt(Math.random());
             const offsetRight = Math.cos(angle) * radius;
             const offsetUp = Math.sin(angle) * radius;
 

@@ -102,6 +102,28 @@ const SpaceTravelInput = (() => {
                 const clickedNpcShip = !!pick && pick.kind === 'NPC_SHIP';
 
                 if (clickedNpcShip) {
+                    const selectedDestination = mapInstance?.localDestination || mapInstance?.currentGameState?.localDestination || null;
+                    const selectedNpc = (selectedDestination && (selectedDestination.type === 'NPC_SHIP' || selectedDestination.kind === 'NPC_SHIP'))
+                        ? (selectedDestination.npcShip || null)
+                        : null;
+                    const clickedNpc = pick.bodyRef || null;
+                    const clickedFleetId = clickedNpc?.npcFleetId || clickedNpc?.fleetId || clickedNpc?.shipData?.npcFleetId;
+                    const clickedFleet = clickedFleetId
+                        ? (mapInstance?.npcEncounterFleets || []).find((fleet) => fleet?.id === clickedFleetId)
+                        : null;
+                    const clickedIsHostile = !!clickedFleet?.isHostile;
+                    const sameSelectedNpc = !!selectedNpc && !!clickedNpc && (selectedNpc.id === clickedNpc.id);
+
+                    if (sameSelectedNpc && clickedIsHostile && typeof onFire === 'function') {
+                        console.log('[SpaceTravelInput] Left click fired on selected hostile NPC ship:', {
+                            npcShipId: clickedNpc.id,
+                            fleetId: clickedFleetId,
+                            hostile: clickedIsHostile
+                        });
+                        onFire();
+                        return;
+                    }
+
                     if (typeof onPick === 'function') {
                         onPick(pick);
                     }

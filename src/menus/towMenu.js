@@ -5,20 +5,13 @@
 
 const TowMenu = (() => {
     let currentGameState = null;
-    let towContext = null;
     
     /**
      * Show the tow menu after being stranded
      * @param {GameState} gameState - Current game state
-     * @param {object|string} options - Tow options or legacy system name string
      */
-    function show(gameState, options = null) {
+    function show(gameState) {
         currentGameState = gameState;
-        if (typeof options === 'string') {
-            towContext = { systemName: options };
-        } else {
-            towContext = options;
-        }
         render();
     }
     
@@ -36,19 +29,14 @@ const TowMenu = (() => {
         y += 1;
         
         const previousSystem = currentGameState.systems[currentGameState.previousSystemIndex];
-        const towSystemName = towContext?.systemName || previousSystem?.name || 'the previous system';
-        const towLocationName = towContext?.location?.name || null;
-        const towText = towLocationName ? `${towLocationName}` : towSystemName;
-        const reasonText = towContext?.reason || null;
         
-        if (reasonText) {
-            UI.addText(10, y++, reasonText, COLORS.TEXT_ERROR);
-            y += 1;
-        }
-        UI.addText(10, y++, `A tow ship recovers your fleet.`, COLORS.TEXT);
-        UI.addText(10, y++, `You are towed back to ${towText}.`, COLORS.TEXT);
-        UI.addText(10, y++, `Your weakest vessel is patched to 1 hull.`, COLORS.TEXT);
-        UI.addText(10, y++, `All cargo is lost.`, COLORS.TEXT_ERROR);
+        UI.addText(10, y++, `You call for a tow ship...`, COLORS.TEXT);
+        UI.addText(10, y++, `The tow ship recovers your disabled vessels.`, COLORS.TEXT);
+        UI.addText(10, y++, `You are towed back to ${previousSystem.name}.`, COLORS.TEXT);
+        UI.addText(10, y++, `All ships and cargo have been lost.`, COLORS.TEXT_ERROR);
+        y += 1;
+        UI.addText(10, y++, `The tow ship crew repairs your weakest vessel to minimal function.`, COLORS.TEXT);
+        UI.addText(10, y++, `You can limp back to port with 1 hull remaining.`, COLORS.TEXT);
         y += 1;
         
         const buttonY = grid.height - 3;
@@ -95,24 +83,9 @@ const TowMenu = (() => {
         currentGameState.encounter = false;
         currentGameState.encounterShips = [];
         currentGameState.encounterCargo = {};
-        const targetSystemIndex = typeof towContext?.systemIndex === 'number'
-            ? towContext.systemIndex
-            : currentGameState.previousSystemIndex;
-        if (typeof currentGameState.setCurrentSystem === 'function') {
-            currentGameState.setCurrentSystem(targetSystemIndex);
-        } else {
-            currentGameState.currentSystemIndex = targetSystemIndex;
-        }
-
-        if (towContext?.location) {
-            if (typeof currentGameState.setCurrentLocation === 'function') {
-                currentGameState.setCurrentLocation(towContext.location);
-            } else {
-                currentGameState.currentLocation = towContext.location;
-            }
-        }
+        currentGameState.setCurrentSystem(currentGameState.previousSystemIndex);
         
-        DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
+        DockMenu.show(currentGameState);
     }
     
     return {

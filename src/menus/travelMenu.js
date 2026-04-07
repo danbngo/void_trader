@@ -16,8 +16,6 @@ const TravelMenu = (() => {
     let encounterType = null;
     let travelTickInterval = null;
     let shipFuelCosts = []; // Pre-calculated fuel cost for each ship
-    let externalResumeHandler = null;
-    let externalResumeGameState = null;
     
     /**
      * Show the travel menu
@@ -180,14 +178,7 @@ const TravelMenu = (() => {
             
             UI.addCenteredButton(buttonY, '1', 'Continue', () => {
                 // Check for undetected encounter (radar comparison)
-                if (typeof UndetectedEncounter !== 'undefined' && UndetectedEncounter.check) {
-                    UndetectedEncounter.check(currentGameState, encounterType);
-                    return;
-                }
-
-                if (encounterType?.onGreet) {
-                    encounterType.onGreet(currentGameState, encounterType);
-                }
+                UndetectedEncounter.check(currentGameState, encounterType);
             }, COLORS.GREEN);
         } else if (arrivedAtDestination) {
             const arrivalMessage = `You have arrived at ${targetSystem.name}!`;
@@ -421,12 +412,7 @@ const TravelMenu = (() => {
         // Check if target system is conquered by aliens
         if (targetSystem.conqueredByAliens) {
             // Trigger liberation battle
-            if (typeof AlienLiberationBattle !== 'undefined' && AlienLiberationBattle?.show) {
-                AlienLiberationBattle.show(currentGameState, targetSystem);
-            } else {
-                console.log('[TravelMenu] AlienLiberationBattle missing; falling back to docking flow');
-                DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
-            }
+            AlienLiberationBattle.show(currentGameState, targetSystem);
             return;
         }
         
@@ -436,14 +422,9 @@ const TravelMenu = (() => {
         });
         
         if (SystemUtils.isHabitedSystem(targetSystem)) {
-            DockMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation);
+            DockMenu.show(currentGameState);
         } else {
-            if (typeof UninhabitedSystemMenu !== 'undefined' && UninhabitedSystemMenu?.show) {
-                UninhabitedSystemMenu.show(currentGameState, currentGameState.getCurrentLocation ? currentGameState.getCurrentLocation() : currentGameState.currentLocation, () => GalaxyMap.show(currentGameState));
-            } else {
-                console.log('[TravelMenu] UninhabitedSystemMenu missing; falling back to galaxy map');
-                GalaxyMap.show(currentGameState);
-            }
+            UninhabitedSystemMenu.show(currentGameState, () => GalaxyMap.show(currentGameState));
         }
     }
     
@@ -451,9 +432,6 @@ const TravelMenu = (() => {
      * Consume fuel based on current progress (used for encounters/defeats)
      */
     function consumeFuelForProgress() {
-        if (!currentGameState || !Array.isArray(currentGameState.ships) || currentGameState.ships.length === 0) {
-            return;
-        }
         // Deduct proportional fuel based on progress
         currentGameState.ships.forEach((ship, index) => {
             const fuelToConsume = shipFuelCosts[index] * progress;
@@ -483,24 +461,6 @@ const TravelMenu = (() => {
      * Resume travel after encounter
      */
     function resume() {
-        if (typeof externalResumeHandler === 'function') {
-            const gs = externalResumeGameState || currentGameState;
-            if (gs) {
-                gs.encounter = false;
-                gs.encounterShips = [];
-                gs.encounterCargo = {};
-                gs.encounterShipModules = [];
-                gs.encounterContext = null;
-                gs.factionReward = null;
-            }
-
-            const callback = externalResumeHandler;
-            externalResumeHandler = null;
-            externalResumeGameState = null;
-            callback();
-            return;
-        }
-
         // Clear encounter state
         currentGameState.encounter = false;
         currentGameState.encounterShips = [];
@@ -524,24 +484,12 @@ const TravelMenu = (() => {
         
         render();
     }
-
-    function setExternalResumeHandler(handler, gameState = null) {
-        externalResumeHandler = (typeof handler === 'function') ? handler : null;
-        externalResumeGameState = gameState || null;
-    }
-
-    function isExternalResumeActive() {
-        return typeof externalResumeHandler === 'function';
-    }
     
     /**
      * Handle fuel consumption when towed back
      * Player is towed back to origin, but fuel is consumed based on progress made
      */
     function handleTowedBack() {
-        if (!currentGameState || !Array.isArray(currentGameState.ships) || currentGameState.ships.length === 0) {
-            return;
-        }
         // Consume fuel proportional to progress made before defeat
         consumeFuelForProgress();
         
@@ -579,8 +527,6 @@ const TravelMenu = (() => {
     return {
         show,
         resume,
-        setExternalResumeHandler,
-        isExternalResumeActive,
         consumeFuelForProgress,
         handleTowedBack
     };

@@ -13,8 +13,6 @@
     <script src="src/consts/CONSTS.js"></script>
     <script src="src/consts/COLORS.js"></script>
     <script src="src/defs/BODY_TYPES.js"></script>
-    <script src="lib/PLANET_FEATURES.js"></script>
-    <script src="src/defs/PLANET_SURFACE_TYPES.js"></script>
     <script src="src/defs/SYSTEM_FEATURES.js"></script>
     <script src="src/defs/SYSTEM_CULTURE_LEVELS.js"></script>
     <script src="src/defs/SYSTEM_TECHNOLOGY_LEVELS.js"></script>
@@ -37,31 +35,18 @@
     <script src="src/defs/DIALOGUE.js"></script>
     <script src="src/defs/JOB_TYPES.js"></script>
     <script src="src/defs/NEWS_TYPES.js"></script>
-    <script src="debug.js"></script>
     
-    <!-- UI Utils (loaded before ui.js as ui.js depends on them) -->
-    <script src="src/ui/colorUtils.js"></script>
-    <script src="src/ui/ColorTinting.js"></script>
-    <script src="src/ui/CanvasWrapper.js"></script>
-    <script src="src/ui/InputHandler.js"></script>
-    <script src="src/ui/ProgressBar.js"></script>
-    <script src="src/ui/uiText.js"></script>
-    <script src="src/ui/uiButtons.js"></script>
-    <script src="src/ui/uiCursor.js"></script>
-    <script src="src/ui/uiAnimations.js"></script>
+    <!-- Utils (loaded before ui.js as ui.js depends on them) -->
+    <script src="src/utils/colorUtils.js"></script>
+    <script src="src/utils/CanvasWrapper.js"></script>
+    <script src="src/utils/InputHandler.js"></script>
+    <script src="src/utils/ProgressBar.js"></script>
     <script src="src/utils/SkillEffects.js"></script>
     <script src="src/utils/SystemUtils.js"></script>
-    <script src="src/geom/SystemOrbitUtils.js"></script>
     
-    <script src="src/ui/ui.js"></script>
-    
-    <!-- Core Utils (needed by classes) -->
-    <script src="src/utils/randomUtils.js"></script>
-    <script src="src/utils/numberUtils.js"></script>
-    <script src="src/utils/alienUtils.js"></script>
+    <script src="src/ui.js"></script>
     
     <!-- Classes -->
-    <script src="src/classes/Planet.js"></script>
     <script src="src/classes/StarSystem.js"></script>
     <script src="src/classes/Ship.js"></script>
     <script src="src/classes/Officer.js"></script>
@@ -70,9 +55,7 @@
     <script src="src/classes/News.js"></script>
     <script src="src/classes/Quest.js"></script>
     <script src="src/classes/GameState.js"></script>
-    <script src="src/classes/SpaceStation.js"></script>
     <script src="src/classes/Asteroid.js"></script>
-    <script src="src/classes/AsteroidBelt.js"></script>
     <script src="src/classes/CombatAction.js"></script>
     <script src="src/classes/CombatActionHandler.js"></script>
     <script src="src/classes/CombatAI.js"></script>
@@ -87,79 +70,52 @@
     <script src="src/messages/blackreachMessages.js"></script>
     <script src="src/defs/MESSAGES.js"></script>
     
-    <!-- Utils -->
-    <script src="src/geom/geomUtils.js"></script>
-    
     <!-- Generators -->
-    <script src="src/generators/StarGenerator.js"></script>
-    <script src="src/generators/PlanetGenerator.js"></script>
-    <script src="src/generators/SettlementGenerator.js"></script>
-    <script src="src/generators/UniqueSystemGenerator.js"></script>
     <script src="src/generators/SystemGenerator.js"></script>
     <script src="src/generators/EncounterGenerator.js"></script>
     <script src="src/generators/ShipGenerator.js"></script>
     <script src="src/generators/OfficerGenerator.js"></script>
     
-    <!-- More Utils -->
+    <!-- Utils -->
+    <script src="src/utils/geom.js"></script>
     <script src="src/utils/SaveLoadManager.js"></script>
-    <script src="src/ui/TableRenderer.js"></script>
-    <script src="src/ui/ShipTableRenderer.js"></script>
-    <script src="src/ui/LineDrawer.js"></script>
-    <script src="src/menus/Starfield.js"></script>
-    <script src="src/quests/questUtils.js"></script>
+    <script src="src/utils/TableRenderer.js"></script>
+    <script src="src/utils/ShipTableRenderer.js"></script>
+    <script src="src/utils/LineDrawer.js"></script>
+    <script src="src/utils/Starfield.js"></script>
+    <script src="src/utils/questUtils.js"></script>
+    <script src="src/utils/encounterUtils.js"></script>
     <script src="src/utils/experienceUtils.js"></script>
     
     <!-- Menus -->
     <script src="src/menus/titleMenu.js"></script>
     <script src="src/menus/introScreen.js"></script>
-    <script src="src/maps/galaxyMap.js"></script>
-    <script src="src/menus/spaceTravelMenu.js"></script>
-    <script src="src/menus/hailingMenu.js"></script>
+    <script src="src/menus/galaxyMap.js"></script>
     <script src="src/menus/scanSystemMenu.js"></script>
-    <script src="src/geom/3dUtils.js"></script>
-    <script src="src/geom/Polygon.js"></script>
-    <script src="src/gfx/rasterUtils.js"></script>
-    <script src="src/geom/physicsUtils.js"></script>
-    <script src="src/geom/ShipGeometry.js"></script>
-    <script src="src/gfx/Object3DRenderer.js"></script>
-    <script src="src/gfx/SpaceStationGfx.js"></script>
-    <script src="src/gfx/dockingAnimation.js"></script>
-    <script src="src/gfx/warpAnimation.js"></script>
-    <script src="src/maps/spaceTravel/shipSprites.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelConfig.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelShared.js"></script>
-    <script src="src/menus/localSystemMap.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelLogic.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelUi.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelInput.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelDeathTow.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelDocking.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelLaser.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelHazards.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelMessages.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelAnimation.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelParticles.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelEncounters.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelAsteroids.js"></script>
-    <script src="src/maps/spaceTravel/SpaceTravelRenderBodies.js"></script>
-    <script src="src/maps/spaceTravel/SpaceTravelRenderLabels.js"></script>
-    <script src="src/maps/spaceTravel/SpaceTravelRenderIndicators.js"></script>
-    <script src="src/maps/spaceTravel/SpaceTravelRenderEffects.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelRender.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelHud.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelAutoNav.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelPortal.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelPhysics.js"></script>
-    <script src="src/maps/spaceTravel/EscortShipAI.js"></script>
-    <script src="src/maps/spaceTravel/spaceTravelMap.js"></script>
     <script src="src/menus/travelConfirmMenu.js"></script>
     <script src="src/menus/travelMenu.js"></script>
+    
+    <!-- Encounters -->
+    <script src="src/encounters/policeEncounter.js"></script>
+    <script src="src/encounters/merchantEncounter.js"></script>
+    <script src="src/encounters/smugglersEncounter.js"></script>
+    <script src="src/encounters/pirateEncounter.js"></script>
+    <script src="src/encounters/soldiersEncounter.js"></script>
+    <script src="src/encounters/abandonedShipEncounter.js"></script>
+    <script src="src/encounters/alienSkirmishEncounter.js"></script>
+    <script src="src/encounters/alienDefenseEncounter.js"></script>
+    <script src="src/encounters/undetectedEncounter.js"></script>
+    <script src="src/encounters/factionVsFactionEncounter.js"></script>
+    <script src="src/encounters/encounterDecisionMenu.js"></script>
+    <script src="src/menus/encounterMenu.js"></script>
     
     <script src="src/menus/dockMenu.js"></script>
     <script src="src/menus/resupplyMenu.js"></script>
     <script src="src/menus/lootMenu.js"></script>
     <script src="src/menus/towMenu.js"></script>
     <script src="src/menus/systemMenu.js"></script>
+    <script src="src/menus/uninhabitedSystemMenu.js"></script>
+    <script src="src/menus/alienLiberationBattle.js"></script>
     <script src="src/menus/courthouseMenu.js"></script>
     <script src="src/menus/guildMenu.js"></script>
     <script src="src/menus/shipyardMenu.js"></script>

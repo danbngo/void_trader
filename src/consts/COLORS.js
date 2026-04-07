@@ -20,13 +20,10 @@ const COLORS = {
     ORANGE: '#FFA500',
     PURPLE: '#800080',
     BROWN: '#8B4513',
-    LIGHT_BROWN: '#B0724D',
     LIGHT_BLUE: '#87CEEB',
-    LIGHT_GREEN: '#90EE90',
     LIGHT_CYAN: '#E0FFFF',
     LIGHT_MAGENTA: '#FF69B4',
     DARK_MAGENTA: '#8B008B',
-    DARK_RED: '#660000',
     
     // Grays
     DARK_GRAY: '#444444',
@@ -43,4 +40,9 @@ const COLORS = {
     TEXT_ERROR: '#FF0000',
     TEXT_SUCCESS: '#00FF00',
     TEXT_HIGHLIGHT: '#66FFFF',
+    
+    // Space theme
+    SPACE_BLUE: '#1E90FF',
+    STAR: '#FFFFAA',
+    NEBULA: '#9966FF'
 };

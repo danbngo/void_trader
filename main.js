@@ -10,10 +10,6 @@ const Game = {
      */
     init() {
         UI.init();
-        if (UI.testMonospaceFont) {
-            const fontTest = UI.testMonospaceFont();
-            console.log('[FontTest] Monospace check:', fontTest);
-        }
         TitleMenu.show();
     }
 };

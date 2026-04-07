@@ -8,17 +8,14 @@ const DockServicesMenu = (() => {
     let selectedShipIndex = 0;
     let outputMessage = '';
     let outputColor = COLORS.TEXT_NORMAL;
-    let dockLocation = null;
     
     /**
      * Show the dock services menu
      * @param {GameState} state - Current game state
-     * @param {Object} location - Docked planet/station
      * @param {Function} onReturn - Callback to return to previous screen
      */
-    function show(state, location, onReturn) {
+    function show(state, onReturn) {
         gameState = state;
-        dockLocation = location || (state.getCurrentLocation ? state.getCurrentLocation() : state.currentLocation) || null;
         selectedShipIndex = 0;
         outputMessage = '';
         UI.resetSelection();
@@ -33,10 +30,9 @@ const DockServicesMenu = (() => {
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
-        const locationName = dockLocation?.name || currentSystem?.name || 'Dock';
         
         // Title
-        UI.addTitleLineCentered(0, `${locationName}: Dock`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}: Dock`);
         UI.addText(5, 5, `Credits: ${gameState.credits} CR`, COLORS.TEXT_NORMAL);
         
         // Player ships table

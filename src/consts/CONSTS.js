@@ -34,30 +34,25 @@ const GALAXY_MAP_HEIGHT = 30 // Characters
 const COMBAT_MAP_WIDTH = 50 // Characters
 const COMBAT_MAP_HEIGHT = 30 // Characters
 
-const MIN_NUM_SYSTEMS = 50
-const MAX_NUM_SYSTEMS = 75
-const MIN_SYSTEM_X = -40
-const MAX_SYSTEM_X = 40
-const MIN_SYSTEM_Y = -40
-const MAX_SYSTEM_Y = 40
+const MIN_NUM_SYSTEMS = 200
+const MAX_NUM_SYSTEMS = 300
+const MIN_SYSTEM_X = -100
+const MAX_SYSTEM_X = 100
+const MIN_SYSTEM_Y = -100
+const MAX_SYSTEM_Y = 100
 const MAX_SYSTEM_POPULATION = 10000 // in millions
 const UNINHABITED_SYSTEMS_MIN_NUM = 50
 const UNINHABITED_SYSTEMS_MAX_NUM = 100
 const UNINHABITED_SYSTEM_MIN_DISTANCE_FROM_HABITED = 15
 const UNINHABITED_SYSTEM_MAX_DISTANCE_FROM_HABITED = 30
 const MIN_SYSTEM_STARS = 1
-const MAX_SYSTEM_STARS = 1
-const MIN_SYSTEM_PLANETS = 1
-const MAX_SYSTEM_PLANETS = 15
+const MAX_SYSTEM_STARS = 3
+const MIN_SYSTEM_PLANETS = 2
+const MAX_SYSTEM_PLANETS = 12
 const MIN_SYSTEM_BELTS = 0
 const MAX_SYSTEM_BELTS = 2
 const MIN_SYSTEM_MOONS = 0
 const MAX_SYSTEM_MOONS = 8
-const SYSTEM_PLANET_ORBIT_MIN_AU = 0.2
-const SYSTEM_PLANET_ORBIT_MAX_AU = 40
-const SYSTEM_PLANET_ORBIT_GAP_MIN_AU = 0.2
-const SYSTEM_PLANET_ORBIT_GAP_MAX_AU = 3.0
-const SYSTEM_STATION_ORBIT_BUFFER_AU = 2.5
 const SAVE_FILE_PREFIX = 'void_trader_save_'
 const MAX_SAVES = 5
 const SHIP_MIN_STAT_VARIATION = 0.5
@@ -110,9 +105,13 @@ const BOUNTY_POLICE_ALWAYS_ATTACK_THRESHOLD = 50*1000
 const REPUTATION_SOLDIERS_MIN_ATTACK_THRESHOLD = -25
 const REPUTATION_SOLDIERS_ALWAYS_ATTACK_THRESHOLD = -100
 
-const DAYS_IN_JAIL_PER_1000CR_BOUNTY = 7
 
-const FUEL_COST_PER_UNIT = 10
+const DAYS_IN_JAIL_PER_1000CR_BOUNTY = 7
+const EXPERIENCE_FROM_AVERAGE_VICTORY = 100
+const EXPERIENCE_FROM_TRADING_1000_CR = 10
+const EXPERIENCE_FROM_AVERAGE_ESCAPE = 10
+
+const FUEL_COST_PER_UNIT = 1
 const HULL_REPAIR_COST_PER_UNIT = 10
 const STARTING_CREDITS = 500
 
@@ -126,19 +125,20 @@ const SKILL_POINTS_PER_LEVEL = 5
 const EXP_POINTS_FOR_FIRST_LEVEL_UP = 100
 const EXP_POINTS_LEVEL_MULTIPLIER = 2.5 //each level is 2.5x more expensive than the previous
 
-const EXP_POINTS_FROM_DISABLE_ENEMY_SHIP = 10 //per victory. modified by their total ship value / ours
+const EXP_POINTS_FROM_COMBAT_VICTORY_AVG = 25 //per victory. modified by their total ship value / ours
+const EXP_POINTS_FROM_COMBAT_FLEE_AVG = 5 //per successful flee. modified by their total ship value / ours
 const EXP_POINTS_FROM_TRADING_1000CR = 5 //per 1000cr traded. apply this fractionally, ie, if player trades 100cr then he has a 50/50 chance of gaining 1 exp. if player trades 300 cr then he has 50% chance of gaining 1 exp and 50% chance of gaining 2.
 const EXP_POINTS_FROM_SMUGGLING = 5 //if player had illegal cargo and police overlook it, award this
 
 const SCORE_PENALTY_PER_ALIEN_SYSTEM = 500
 const SCORE_PER_SYSTEM_RANK = 1000
 
-/*const FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER = 0.5
+const FACTION_V_FACTION_ENCOUNTER_CHANCE_MODIFIER = 0.5
 const FACTION_V_FACTION_REWARD_CHANCE = 0.5
 const FACTION_V_FACTION_MAX_CREDITS_REWARD = 1.0
 const FACTION_V_FACTION_MAX_LOOT_REWARD = 1.0
 const FACTION_V_FACTION_MERCHANTS_REWARD_CARGO_CHANCE = 0.5
-const FACTION_VS_FACTION_PIRATE_BETRAYAL_CHANCE = 0.5*/
+const FACTION_VS_FACTION_PIRATE_BETRAYAL_CHANCE = 0.5
 
 const ABANDONED_SHIP_AMBUSH_CHANCE = 0.25
 const ABANDONED_SHIP_ENCOUNTER_WEIGHT = 0.5
@@ -179,21 +179,18 @@ const BLACKREACH_PIRATE_WEIGHT = 4.0
 const BLACKREACH_SMUGGLERS_WEIGHT = 4.0
 
 // Ship module effect constants
+const MODULE_REFLECTOR_CHANCE = 0.25 // Chance to reflect laser back
+const MODULE_REFLECTOR_DAMAGE_MULTIPLIER = 1.0 // Damage multiplier for reflected laser
+const MODULE_DISRUPTER_CHANCE = 0.25 // Chance to remove all enemy shields
+const MODULE_DRILL_DAMAGE_MULTIPLIER = 2.0 // Ramming damage multiplier
 const MODULE_REGENERATIVE_HULL_PER_DAY = 1 // Hull restored per day of travel
 const MODULE_TRACTOR_BEAM_DISTANCE_RATIO = 0.5 // Pull distance as ratio of damage
-
-const SPACE_STATION_SIZE_AU = 0.000043 // about 6.45 million km, which is roughly the size of the ISS's orbit around Earth. This is used for collision detection and rendering scale in space travel map and station interiors.
-const SHIP_SIZE_AU = SPACE_STATION_SIZE_AU*.01
-
-// Collision damage constants (generalized for all object types)
-const COLLISION_DAMAGE_DIVISOR = 10 // damage = floor(speedPerMinute / COLLISION_DAMAGE_DIVISOR), min 1
-const COLLISION_MIN_DAMAGE = 1 // Minimum damage dealt on collision
-const COLLISION_COOLDOWN_MS = 500 // Minimum time between collision damage events
-const SHIP_COLLISION_RADIUS = SHIP_SIZE_AU // AU - collision radius for player/ally ships (based on ship size)
-const ALLY_VS_PLAYER_COLLISION_DAMAGE = true // Ally ships take damage when hit by player
-const ALLY_VS_PLAYER_DAMAGE_DIVISOR = 10 // Same formula as stations
-const AI_COLLISION_BOUNCE = true // AI ships bounce off player without damage
-const AI_OBJECT_AVOID_DISTANCE = 0.5 // AU - distance AI ships maintain from hazards
-
-// Space travel combat tuning
-const SPACE_TRAVEL_LASER_TRAVEL_DURATION_MS = 125
+const MODULE_REPULSOR_DISTANCE_RATIO = 0.5 // Push distance as ratio of damage
+const MODULE_BLINK_CHANCE = 0.25 // Chance to teleport when hit
+const MODULE_BLINK_DISTANCE = 10 // Teleport distance in LY
+const MODULE_SELF_DESTRUCT_RANGE = 25 // Damage range
+const MODULE_SELF_DESTRUCT_DAMAGE_RATIO = 0.25 // Damage as ratio of max hull
+const MODULE_WARHEAD_RANGE = 5 // Splash damage range
+const MODULE_WARHEAD_DAMAGE_RATIO = 0.5 // Splash damage as ratio of base damage
+const MINING_MAX_HULL_DAMAGE = 5
+const MINING_MAX_GOODS_PER_LASER = 0.1

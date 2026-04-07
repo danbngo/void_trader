@@ -9,34 +9,14 @@ const DockMenu = (() => {
     let currentNewNews = []; // Persist new news within the current system visit
     let currentExpiredNews = []; // Persist expired news within the current system visit
     let lastSystemIndex = -1; // Track which system we're at
-    let currentDockLocation = null;
-
-    function getDockLocation(gameState, location) {
-        return location
-            || currentDockLocation
-            || (gameState.getCurrentLocation ? gameState.getCurrentLocation() : gameState.currentLocation)
-            || null;
-    }
     
     /**
      * Show the dock menu
      * @param {GameState} gameState - Current game state
-     * @param {Object} location - Docked planet/station
      */
-    function show(gameState, location) {
-        currentDockLocation = getDockLocation(gameState, location);
-        const dockData = currentDockLocation && currentDockLocation.dataRef ? currentDockLocation.dataRef : currentDockLocation;
-        const hasHabitedFeature = dockData?.features && PLANET_FEATURES?.HABITED?.id
-            ? dockData.features.includes(PLANET_FEATURES.HABITED.id)
-            : false;
-        const isHabitedLocation = dockData && (((dockData.population || 0) > 0) || (dockData.buildings && dockData.buildings.length > 0) || hasHabitedFeature);
-        if (!isHabitedLocation) {
-            if (typeof UninhabitedSystemMenu !== 'undefined' && UninhabitedSystemMenu?.show) {
-                UninhabitedSystemMenu.show(gameState, currentDockLocation, () => GalaxyMap.show(gameState));
-            } else {
-                console.log('[DockMenu] UninhabitedSystemMenu missing; falling back to galaxy map');
-                GalaxyMap.show(gameState);
-            }
+    function show(gameState) {
+        if (!SystemUtils.isHabitedSystem(gameState.getCurrentSystem())) {
+            UninhabitedSystemMenu.show(gameState, () => GalaxyMap.show(gameState));
             return;
         }
         // If we changed systems, reset the news arrays
@@ -171,13 +151,9 @@ const DockMenu = (() => {
         
         const grid = UI.getGridSize();
         const currentSystem = gameState.getCurrentSystem();
-        const dockLocation = getDockLocation(gameState);
-        const dockData = dockLocation && dockLocation.dataRef ? dockLocation.dataRef : dockLocation;
-        const returnToDock = () => show(gameState, dockLocation);
         
         // Title at top edge
-        const titleName = dockLocation?.name || currentSystem?.name || 'Dock';
-        UI.addTitleLineCentered(0, `${titleName}`);
+        UI.addTitleLineCentered(0, `${currentSystem.name}`);
         
         // Two-column layout for info
         const leftColumnX = 5;
@@ -185,12 +161,12 @@ const DockMenu = (() => {
         const startY = 2;
         
         // Left column title
-        UI.addHeaderLine(leftColumnX, startY, 'Location Info');
+        UI.addHeaderLine(leftColumnX, startY, 'System Info');
         
         // Left column: System info
         TableRenderer.renderKeyValueList(leftColumnX, startY + 1, [
-            { label: 'Population:', value: `${dockData?.population || 0}M`, valueColor: COLORS.TEXT_NORMAL },
-            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[dockData?.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
+            { label: 'Population:', value: `${currentSystem.population}M`, valueColor: COLORS.TEXT_NORMAL },
+            { label: 'Government:', value: SYSTEM_GOVERNMENT_TYPES[currentSystem.governmentType]?.name || 'Unknown', valueColor: COLORS.TEXT_NORMAL }
         ]);
         
         // Right column title
@@ -313,56 +289,55 @@ const DockMenu = (() => {
                 name: 'Dock',
                 key: '1',
                 buildingType: BUILDING_TYPES.DOCK,
-                openMenu: () => DockServicesMenu.show(gameState, dockLocation, returnToDock)
+                openMenu: () => DockServicesMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'MARKET',
                 name: 'Market',
                 key: '2',
                 buildingType: BUILDING_TYPES.MARKET,
-                openMenu: () => MarketMenu.show(gameState, returnToDock)
+                openMenu: () => MarketMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'BLACK_MARKET',
                 name: 'Black Market',
                 key: 'b',
                 buildingType: BUILDING_TYPES.BLACK_MARKET,
-                openMenu: () => BlackMarketMenu.show(gameState, returnToDock)
+                openMenu: () => BlackMarketMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'COURTHOUSE',
                 name: 'Courthouse',
                 key: '3',
                 buildingType: BUILDING_TYPES.COURTHOUSE,
-                openMenu: () => CourthouseMenu.show(gameState, returnToDock)
+                openMenu: () => CourthouseMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'SHIPYARD',
                 name: 'Shipyard',
                 key: '4',
                 buildingType: BUILDING_TYPES.SHIPYARD,
-                openMenu: () => ShipyardMenu.show(gameState, returnToDock)
+                openMenu: () => ShipyardMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'TAVERN',
                 name: 'Tavern',
                 key: '5',
                 buildingType: BUILDING_TYPES.TAVERN,
-                openMenu: () => TavernMenu.show(gameState, returnToDock)
+                openMenu: () => TavernMenu.show(gameState, () => show(gameState))
             },
             {
                 id: 'GUILD',
                 name: 'Guild',
                 key: '6',
                 buildingType: BUILDING_TYPES.GUILD,
-                openMenu: () => GuildMenu.show(gameState, returnToDock)
+                openMenu: () => GuildMenu.show(gameState, () => show(gameState))
             }
         ].filter(building => building.id !== 'BLACK_MARKET' || currentSystem.name === 'Blackreach');
         
         // Add building buttons in 3 columns (3 per column)
         allBuildings.forEach((building, index) => {
-            const buildingList = dockData?.buildings || [];
-            let hasBuilding = buildingList.includes(building.id);
+            let hasBuilding = currentSystem.buildings.includes(building.id);
             if (building.id === 'BLACK_MARKET') {
                 hasBuilding = hasBuilding && currentSystem.name === 'Blackreach';
             }
@@ -414,9 +389,9 @@ const DockMenu = (() => {
         const hasUnreadMessages = gameState.messages && gameState.messages.length > 0 && gameState.messages.some(m => !m.isRead);
         const hasSkillPoints = gameState.captain.hasSpendableSkillPoints();
         const assistantColor = (hasUnreadMessages || hasSkillPoints) ? COLORS.YELLOW : COLORS.BUTTON;
-        UI.addButton(rightX, buttonY + 1, 'a', 'Assistant', () => AssistantMenu.show(gameState, returnToDock), assistantColor, 'View ship, cargo, and captain information');
+        UI.addButton(rightX, buttonY + 1, 'a', 'Assistant', () => AssistantMenu.show(gameState, () => show(gameState)), assistantColor, 'View ship, cargo, and captain information');
         
-        UI.addButton(rightX, buttonY + 2, '0', 'Options', () => OptionsMenu.show(returnToDock), COLORS.BUTTON, 'Game settings and save/load');
+        UI.addButton(rightX, buttonY + 2, '0', 'Options', () => OptionsMenu.show(() => show(gameState)), COLORS.BUTTON, 'Game settings and save/load');
         
         // Set output message if there is one
         if (outputMessage) {
@@ -444,7 +419,7 @@ const DockMenu = (() => {
         // Check for unread messages and handle departure flow
         UnreadMessagesMenu.show(
             gameState,
-            () => show(gameState, currentDockLocation), // onReturn to dock
+            show, // onReturn to dock
             proceedToGalaxyMap // onProceed with departure
         );
     }
@@ -466,84 +441,13 @@ const DockMenu = (() => {
             // Show resupply menu
             ResupplyMenu.show(
                 gameState,
-                () => show(gameState, currentDockLocation), // onReturn
-                () => beginSpaceTravel(gameState) // onDepart
+                () => show(gameState), // onReturn
+                () => GalaxyMap.show(gameState) // onDepart
             );
         } else {
-            // All good, go straight to space travel
-            beginSpaceTravel(gameState);
-        }
-    }
-
-    function beginSpaceTravel(gameState) {
-        const destination = gameState.getCurrentSystem() || getNearestSystem(gameState);
-        if (!destination) {
+            // All good, go straight to galaxy map
             GalaxyMap.show(gameState);
-            return;
         }
-
-        const dockLocation = getDockLocation(gameState);
-        const isStationDock = dockLocation?.type === 'STATION';
-        if (dockLocation && !isStationDock && dockLocation.orbit && gameState.ships && gameState.ships[0]) {
-            const systemCenter = {
-                x: destination.x * SpaceTravelConfig.LY_TO_AU,
-                y: destination.y * SpaceTravelConfig.LY_TO_AU,
-                z: 0
-            };
-            const orbitOffset = SystemOrbitUtils.getOrbitPosition(dockLocation.orbit, gameState.date);
-            const planetPos = ThreeDUtils.addVec(systemCenter, orbitOffset);
-            const rel = ThreeDUtils.subVec(planetPos, systemCenter);
-            const dir = ThreeDUtils.vecLength(rel) > 0
-                ? ThreeDUtils.normalizeVec(rel)
-                : { x: 0, y: 0, z: 1 };
-            const physicsScale = (typeof SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE === 'number' && SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE > 0)
-                ? SpaceTravelConfig.SYSTEM_BODY_PHYSICS_SCALE
-                : 1;
-            const planetRadius = dockLocation.radiusAU || 0;
-            const dockMult = SpaceTravelConfig.PLANET_DOCK_RADIUS_MULT || 1;
-            const offsetDistance = planetRadius * physicsScale * dockMult * 1.1;
-
-            const playerShip = gameState.ships[0];
-            playerShip.velocity = { x: 0, y: 0, z: 0 };
-            playerShip.position = ThreeDUtils.addVec(planetPos, ThreeDUtils.scaleVec(dir, offsetDistance));
-            ThreeDUtils.faceToward(playerShip, planetPos);
-
-            gameState.localDestination = dockLocation;
-            gameState.localDestinationSystemIndex = gameState.currentSystemIndex;
-
-            gameState.previousSystemIndex = gameState.currentSystemIndex;
-            SpaceTravelMap.show(gameState, destination, {
-                resetPosition: false,
-                localDestination: gameState.localDestination
-            });
-            return;
-        }
-
-        gameState.previousSystemIndex = gameState.currentSystemIndex;
-        SpaceTravelMap.show(gameState, destination, { resetPosition: true });
-    }
-
-    function getNearestSystem(gameState) {
-        if (!gameState || !gameState.systems || gameState.systems.length === 0) {
-            return null;
-        }
-        const current = gameState.getCurrentSystem();
-        if (!current) {
-            return gameState.systems[0];
-        }
-        let nearest = null;
-        let nearestDist = Infinity;
-        gameState.systems.forEach(system => {
-            if (system === current) {
-                return;
-            }
-            const dist = current.distanceTo(system);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearest = system;
-            }
-        });
-        return nearest;
     }
     
     /**
@@ -689,7 +593,7 @@ const DockMenu = (() => {
                 gameState.completedJobReward = null;
                 
                 // Return to dock menu
-                show(gameState, currentDockLocation);
+                show(gameState);
             }, color: COLORS.GREEN, helpText: 'Collect your rewards and continue' }
         ]);
         

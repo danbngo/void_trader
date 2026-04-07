@@ -11,17 +11,12 @@ class GameState {
         this.systems = [];
         this.currentSystemIndex = 0;
         this.previousSystemIndex = 0; // Track system player departed from (for jail mechanic)
-        this.destination = null; // Target system for travel
-        this.localDestination = null; // Target planet/star in current system
-        this.localDestinationSystemIndex = null;
-        this.currentLocation = null; // Current planet/station within system
         this.x = 0; // Player's current x position
         this.y = 0; // Player's current y position
         this.credits = STARTING_CREDITS; // Player's money
         this.reputation = 0; // Player's reputation (-100 to 100)
         this.bounty = 0; // Player's bounty (credits)
         this.visitedSystems = []; // Array of visited system indices
-        this.visitedPlanets = []; // Array of visited planet IDs
         this.date = new Date(3000, 0, 1); // Game date set to January 1, 3000 AD
         this.encounterShips = []; // Ships involved in current encounter
         this.encounter = false; // Whether an encounter is active
@@ -100,7 +95,6 @@ class GameState {
             const system = this.systems[systemIndex];
             this.x = system.x;
             this.y = system.y;
-            this.setCurrentLocation(system.primaryBody || (system.planets && system.planets[0]) || null);
             
             // Mark system as visited
             if (!this.visitedSystems.includes(systemIndex)) {
@@ -111,32 +105,6 @@ class GameState {
             this.recommendationSeen = false;
 
         }
-    }
-
-    setCurrentLocation(location) {
-        this.currentLocation = location || null;
-        const system = this.getCurrentSystem();
-        if (system && typeof system.setPrimaryBody === 'function') {
-            const targetBody = location && location.dataRef ? location.dataRef : location;
-            if (targetBody) {
-                system.setPrimaryBody(targetBody);
-            }
-        }
-        
-        // Mark planet as visited if it has an id
-        if (location && location.id) {
-            if (!this.visitedPlanets.includes(location.id)) {
-                this.visitedPlanets.push(location.id);
-            }
-        }
-    }
-
-    getCurrentLocation() {
-        const system = this.getCurrentSystem();
-        if (!system) {
-            return this.currentLocation;
-        }
-        return this.currentLocation || system.primaryBody || (system.planets && system.planets[0]) || null;
     }
     
     /**

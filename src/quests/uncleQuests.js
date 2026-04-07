@@ -65,23 +65,23 @@ const QUESTS_UNCLE = {
     LEARN_CARGO_HANDLING: new Quest(
         'LEARN_CARGO_HANDLING',
         'Learn Cargo Handling',
-        'Buy Cargo Handling: Perishable at Guild',
+        'Buy Cargo Handling: Fragile at Guild',
         4000,
         800,
         (gameState) => {
-            return gameState.perks.has('CARGO_PERISHABLE');
+            return gameState.perks.has('CARGO_FRAGILE');
         },
         'CARGO_HANDLING_ATTAINED',
         ['Proxima'],
         (gameState) => {
-            const perk = PERKS.CARGO_PERISHABLE;
+            const perk = PERKS.CARGO_FRAGILE;
             const proximaSystem = gameState.systems.find(s => s.name === 'Proxima');
             const fees = proximaSystem ? proximaSystem.fees : 0;
             const totalCost = Math.floor(perk.baseCost * (1 + fees));
             return Math.min(1.0, gameState.credits / totalCost);
         },
         (gameState) => {
-            const perk = PERKS.CARGO_PERISHABLE;
+            const perk = PERKS.CARGO_FRAGILE;
             const proximaSystem = gameState.systems.find(s => s.name === 'Proxima');
             const fees = proximaSystem ? proximaSystem.fees : 0;
             const totalCost = Math.floor(perk.baseCost * (1 + fees));
